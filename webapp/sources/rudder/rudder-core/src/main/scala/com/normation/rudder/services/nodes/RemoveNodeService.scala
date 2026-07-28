@@ -41,11 +41,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants.*
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.ldap.sdk.*
-import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -56,7 +53,6 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult.*
@@ -64,7 +60,6 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
-import com.unboundid.ldif.LDIFChangeRecord
 import enumeratum.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -117,7 +112,7 @@ object DeleteMode extends Enum[DeleteMode] {
 trait PostNodeDeleteAction {
   // a node can have several status (if inventories already deleted, and now in pending again for ex)
   // or zero (if only some things remain)
-  // and if can optionnally have a nodeInfo
+  // and it can optionally have a nodeInfo
   def run(nodeId: NodeId, mode: DeleteMode, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
       cc: ChangeContext
   ): UIO[Unit]
@@ -161,10 +156,10 @@ trait RemoveNodeBackend {
   def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]]
 
   // the abstract method that actually commit in backend repo the deletion from accepted nodes
-  def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit]
+  def commitDeleteAccepted(nodeInfo: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit]
 
   // the abstract method that actually commit in backend repo the deletion from accepted nodes
-  def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit]
+  def commitPurgeRemoved(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[Unit]
 
 }
 
@@ -178,11 +173,11 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
     }
   }
 
-  override def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
+  override def commitDeleteAccepted(nodeInfo: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
     backend.delete(nodeInfo.id).unit
   }
 
-  override def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
+  override def commitPurgeRemoved(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[Unit] = {
     backend.delete(nodeId).unit
   }
 }
@@ -203,14 +198,14 @@ class RemoveNodeServiceImpl(
   }
 
   /**
-   * the removal of a node is a multi-step system
+   * the removal of a node is a multistep operation.
    * First, fetch the node, then remove it from groups, and clear all node configurations
    * Move the node to the removed inventory (and don't forget to change its container dn)
    * Then find its container, to see if it has others nodes on it
    *        if so, copy the container to the removed inventory
    *        if not, move the container to the removed inventory
    *
-   * Return a couple RemoveNodeServiceImplwith 2 boxes, one about the LDIF change, and one containing the result of the clear cache
+   * Return a couple RemoveNodeServiceImpl with 2 boxes, one about the LDIF change, and one containing the result of the clear cache
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
@@ -224,7 +219,7 @@ class RemoveNodeServiceImpl(
           status  <- backend.findNodeStatuses(nodeId)
           -       <- NodeLoggerPure.Delete.debug(s"  - node '${nodeId.value}' has status: [${status.map(_.name).mkString(",")}]")
           info    <- Ref.make(Option.empty[CoreNodeFact]) // a place to store the maybe node info
-          // always delete in order pending then accepted then deleted
+          // always delete in order pending, then accepted
           res1    <- if (status.contains(PendingInventory)) {
                        (for {
                          i <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Pending)
@@ -282,8 +277,8 @@ class RemoveNodeServiceImpl(
                      PreHookFailed(a).succeed
                    case _ =>
                      for {
-                       _       <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in LDAP (mode='${mode.name}')")
-                       _       <- backend.commitDeleteAccepted(nodeInfo, mode)
+                       _       <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in repository (mode='${mode.name}')")
+                       _       <- backend.commitDeleteAccepted(nodeInfo)
                        _       <- NodeLoggerPure.Delete.debug(s"  - run node post hooks for '${nodeInfo.id.value}'")
                        postRun <- runPostHooks(hookEnv)
                      } yield {
@@ -303,7 +298,7 @@ class RemoveNodeServiceImpl(
       Success.succeed
     } else { // erase
       NodeLoggerPure.Delete.debug(s"-> erase '${nodeId.value}' from removed nodes") *>
-      backend.commitPurgeRemoved(nodeId, mode).map(_ => Success)
+      backend.commitPurgeRemoved(nodeId).map(_ => Success)
     }
   }
 
@@ -388,68 +383,6 @@ class RemoveNodeServiceImpl(
       res._1
     }
   }
-}
-
-class LdapRemoveNodeBackend(
-    nodeDit:      NodeDit,
-    pendingDit:   InventoryDit,
-    acceptedDit:  InventoryDit,
-    deletedDit:   InventoryDit,
-    ldap:         LDAPConnectionProvider[RwLDAPConnection],
-    fullNodeRepo: LDAPFullInventoryRepository,
-    nodeLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
-) extends RemoveNodeBackend {
-
-  override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
-    for {
-      con <- ldap
-      res <- con.search(deletedDit.BASE_DN.getParent, Sub, AND(IS(OC_NODE), EQ(A_NODE_UUID, nodeId.value)), A_NODE_UUID)
-    } yield {
-      List((pendingDit, PendingInventory), (acceptedDit, AcceptedInventory), (deletedDit, RemovedInventory)).map {
-        case (dit, status) =>
-          res.collect { case e if (dit.NODES.NODE.dn(nodeId.value) == e.dn) => status }.headOption
-      }.flatten.toSet
-    }
-  }
-
-  override def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
-    fullNodeRepo.delete(nodeId, RemovedInventory).unit
-  }
-
-  // the part that just move/delete node
-  override def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
-    for {
-      _ <-
-        nodeLibMutex.writeLock(atomicDelete(nodeInfo.id, mode)).chainError("Error when deleting a node")
-    } yield ()
-  }
-
-  def atomicDelete(nodeId: NodeId, mode: DeleteMode): IOResult[Seq[LDIFChangeRecord]] = {
-    for {
-      cleanNode         <- deleteFromNodes(nodeId).chainError(s"Could not remove the node '${nodeId.value}' from base")
-      moveNodeInventory <- mode match {
-                             case DeleteMode.MoveToRemoved => fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
-                             case DeleteMode.Erase         => fullNodeRepo.delete(nodeId, AcceptedInventory)
-                           }
-    } yield {
-      cleanNode ++ moveNodeInventory
-    }
-  }
-
-  /**
-   * Deletes from ou=Node
-   */
-  def deleteFromNodes(nodeId: NodeId): IOResult[Seq[LDIFChangeRecord]] = {
-    for {
-      _      <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from ou=Nodes,cn=rudder-configuration")
-      con    <- ldap
-      dn      = nodeDit.NODES.NODE.dn(nodeId.value)
-      result <- con.delete(dn)
-    } yield {
-      result
-    }
-  }
-
 }
 
 /**
@@ -605,6 +538,7 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
               .forEach(new Consumer[Path] {
                 override def accept(p: Path): Unit = {
                   try {
+                    NodeLoggerPure.Delete.logEffect.trace(s"Delete node '${nodeInfo.id.value}' keys: ${p.toString}")
                     Files.delete(p)
                   } catch {
                     case ex: Exception =>
@@ -617,7 +551,7 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
           )
           .catchAll(err => {
             NodeLoggerPure.Delete.info(
-              s"Error when cleaning-up cfengine key for node ${nodeInfo.fqdn} (${nodeInfo.id.value}), some files may be remaining."
+              s"Error when cleaning-up CFEngine key for node ${nodeInfo.fqdn} (${nodeInfo.id.value}), some files may be remaining."
             )
           })
     }
@@ -636,11 +570,15 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>
-    cleanPoliciesRec(nodeId, File(varRudderShare)).runDrain.catchAll(err => {
-      NodeLoggerPure.Delete.info(
-        s"Error when cleaning-up policy files for node ${(nodeId, info).name}, some files may be remaining: ${err.fullMsg}"
-      )
-    })
+    ZStream
+      .fromZIO(Ref.make(Option.empty[Int]))
+      .flatMap(lastOpenFd => cleanPoliciesRec(nodeId, File(varRudderShare), lastOpenFd))
+      .runDrain
+      .catchAll(err => {
+        NodeLoggerPure.Delete.info(
+          s"Error when cleaning-up policy files for node ${(nodeId, info).name}, some files may be remaining: ${err.fullMsg}"
+        )
+      })
   }
 
   /*
@@ -672,14 +610,15 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
    * - we can do that in an iterator and only consume one fd at a time
    * - it only happens when a node is deleted, so that should not even been in the
    *   "several time per minute" range.
+   * Open fd is just a guard to check that we don't explose fd counters here
    */
-  def cleanPoliciesRec(nodeId: NodeId, file: File): ZStream[Any, RudderError, File] = {
+  def cleanPoliciesRec(nodeId: NodeId, file: File, lastOpenFd: Ref[Option[Int]]): ZStream[Any, RudderError, File] = {
     ZStream
       .fromZIO(
         IOResult.attempt(file.exists).catchAll(err => NodeLoggerPure.Delete.error(err.fullMsg) *> false.succeed)
       )
-      .flatMap(cond => {
-        // here file is either root or a rec call with "path/share". If it doesn't exists,
+      .flatMap { cond =>
+        // here file is either root or a rec call with "path/share". If it doesn't exist,
         // it's because the node wasn't a relay, so processing for that branch.
         if (!cond) ZStream.empty
         else {
@@ -688,22 +627,48 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
             .mapError(
               SystemError(s"Error when listing children of file '${file.pathAsString}' when cleaning node '${nodeId.value}'", _)
             )
-            .tap(_ => {
-              NodeLoggerPure.Delete.ifTraceEnabled {
-                (ZIO.attempt {
-                  (root / "proc" / "self").children.size
-                } catchAll { _ => (-1).succeed })
-                  .flatMap(openfd => NodeLoggerPure.Delete.trace(s"Currently ${openfd} open files by Rudder Server process"))
-              }
-            })
+            // this part is only there to check that we don't open a lot of file descriptors. It can be very noisy though
+            .tap(_ => traceOpenFdOnChange(lastOpenFd))
             .flatMap { nodeFolder =>
               if (nodeId == NodeId(nodeFolder.name)) {
-                ZStream.fromZIO(IOResult.attempt(nodeFolder.delete()) *> nodeFolder.succeed)
+                ZStream.fromZIO(
+                  NodeLoggerPure.Delete.debug(s"      - deleting node '${nodeId.value}' folder: ${nodeFolder.pathAsString}")
+                  *> IOResult.attempt(nodeFolder.delete())
+                )
               } else {
-                cleanPoliciesRec(nodeId, nodeFolder / "share")
+                // maybe a relay folder? Sub-nodes are under its "share" directory
+                cleanPoliciesRec(nodeId, nodeFolder / "share", lastOpenFd)
               }
             }
         }
-      })
+      }
   }
+
+  /*
+   * Trace the current number of open files by the Rudder process, but only the first time
+   * and then only when that count changes, to avoid one identical trace line per walked entry.
+   * It's only there so that we don't explode open fd count without log.
+   */
+  private def traceOpenFdOnChange(lastOpenFd: Ref[Option[Int]]): UIO[Unit] = {
+    NodeLoggerPure.Delete.ifTraceEnabled {
+      for {
+        current  <- ZIO.attempt((root / "proc" / "self").children.size).catchAll(_ => (-1).succeed)
+        previous <- lastOpenFd.get
+        _        <- previous match {
+                      case None       =>
+                        lastOpenFd.set(Some(current)) *>
+                        NodeLoggerPure.Delete.trace(s"      Currently ${current} open files by Rudder Server process")
+                      case Some(last) =>
+                        if (current < last + 100) ZIO.unit // don't trace minor variation
+                        else {
+                          lastOpenFd.set(Some(current)) *>
+                          NodeLoggerPure.Delete.warn(
+                            s"The number of opened file descriptor significantly increased during node clean-up from ${last} to ${current}. Please report it as bug to Rudder maintainers."
+                          )
+                        }
+                    }
+      } yield ()
+    }
+  }
+
 }
