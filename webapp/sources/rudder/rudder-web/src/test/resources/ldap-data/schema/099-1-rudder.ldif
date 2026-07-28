@@ -322,6 +322,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.356
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.359
+  NAME 'parameterScope'
+  DESC 'serialized rule target restricting the nodes a parameter is distributed to'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.357
   NAME 'inheritMode'
   DESC 'inherit mode of a property or parameter'
@@ -463,7 +469,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.120
   SUP top
   STRUCTURAL
   MUST ( parameterName )
-  MAY ( parameterValue $ description $ propertyProvider $ securityTag $ visibility $ inheritMode $ revision) )
+  MAY ( parameterValue $ description $ propertyProvider $ securityTag $ visibility $ inheritMode $ revision $ parameterScope) )
 #
 # Application properties
 #

@@ -65,10 +65,13 @@ final case class ModifyGlobalParameterDiff(
     modProvider:    Option[SimpleDiff[Option[PropertyProvider]]] = None,
     modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None,
     modVisibility:  Option[SimpleDiff[Option[Visibility]]] = None,
-    modSecurityTag: Option[SimpleDiff[Option[SecurityTag]]] = None
+    modSecurityTag: Option[SimpleDiff[Option[SecurityTag]]] = None,
+    // serialized rule target, see ADR 29409
+    modScope:       Option[SimpleDiff[Option[String]]] = None
 ) extends ParameterDiff {
   def needDeployment: Boolean = {
-    modValue.isDefined || modInheritMode.isDefined || modSecurityTag.isDefined
+    // a scope change moves the parameter between nodes, so policies must be rewritten
+    modValue.isDefined || modInheritMode.isDefined || modSecurityTag.isDefined || modScope.isDefined
   }
 }
 

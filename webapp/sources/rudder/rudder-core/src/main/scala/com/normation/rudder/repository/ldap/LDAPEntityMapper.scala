@@ -1158,8 +1158,22 @@ class LDAPEntityMapper(
                           }
                       }
         security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        // an unparsable scope is an error, never "no scope": that would silently distribute the
+        // parameter to the whole fleet (ADR 29409)
+        scope      <- e(A_PARAMETER_SCOPE) match {
+                        case None    => Right(None)
+                        case Some(t) =>
+                          RuleTarget
+                            .unser(t)
+                            .map(Some(_))
+                            .left
+                            .map(err => {
+                              InventoryMappingRudderError
+                                .UnexpectedObject(s"Parameter '${name}' has an unparsable scope '${t}': ${err.fullMsg}")
+                            })
+                      }
       } yield {
-        GlobalParameter(name, rev, parsed, mode, description, provider, visibility, security)
+        GlobalParameter(name, rev, parsed, mode, description, provider, visibility, security, scope)
       }
     } else {
       Left(
@@ -1180,6 +1194,7 @@ class LDAPEntityMapper(
     parameter.inheritMode.foreach(m => entry.resetValuesTo(A_INHERIT_MODE, m.value))
     entry.resetValuesTo(A_VISIBILITY, parameter.visibility.entryName)
     parameter.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    parameter.scope.foreach(t => entry.resetValuesTo(A_PARAMETER_SCOPE, t.target))
 
     entry
   }
