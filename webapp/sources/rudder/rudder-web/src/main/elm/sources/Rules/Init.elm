@@ -1,8 +1,7 @@
 module Rules.Init exposing (..)
 
-import Activity.ApiCalls exposing (getActivities)
+import Activity.ActivityTable exposing (initTable)
 import Activity.DataTypes exposing (Activity, BodyParameters, ContextPath(..), Search)
-import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter)
 import Dict
@@ -20,37 +19,7 @@ import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Time exposing (Zone)
 import TimeZone
 import Ui.Datatable exposing (Category, SubCategories(..), defaultTableFilters)
-import Utils.DateUtils exposing (posixToString)
 import Utils.TooltipUtils exposing (buildTooltipContent)
-
-
-initActivityTable : Zone -> Rudder.Table.Model Activity Msg
-initActivityTable timezone =
-    let
-        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity Msg)
-        columns =
-            NonEmptyList.Nonempty
-                { name = ColumnName "Id", renderHtml = .id >> String.fromInt >> text, ordering = Ordering.byField .id }
-                [ { name = ColumnName "Actor", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
-                , { name = ColumnName "Description"
-                  , renderHtml = .description >> toHtml
-                  , ordering = Ordering.byField (.description >> toString)
-                  }
-                , { name = ColumnName "Date", renderHtml = .date >> posixToString timezone >> text, ordering = Ordering.byField (.date >> Time.posixToMillis) }
-                ]
-
-        config =
-            buildConfig.newConfig columns
-                |> buildConfig.withOptions
-                    (buildOptions.newOptions
-                        |> buildOptions.withCustomizations
-                            (buildCustomizations.newCustomizations
-                                |> buildCustomizations.withTableContainerAttrs [ class "table-container" ]
-                                |> buildCustomizations.withTableAttrs [ class "no-footer dataTable" ]
-                            )
-                    )
-    in
-    Rudder.Table.init config []
 
 
 bodyParameters : Search -> BodyParameters
@@ -98,7 +67,7 @@ init flags =
             , ui = initUI
             , rulesTable = initTable
             , csvExportOptions = exportCsvOptions.csvExport
-            , activityTable = initActivityTable zone
+            , activityTable = Activity.ActivityTable.initTable zone
             }
 
         listCRActions =
