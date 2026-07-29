@@ -69,6 +69,11 @@ class FileUtilsTest extends Specification {
   val file3:   File = folder2 / "file3"
   file3.createFile()
 
+  // a symlinked *ancestor* pointing outside the jail, used to check the create/write path:
+  // the leaf itself does not exist yet, so containment must still be checked against the real target.
+  val linkToEtc: File = tmp / "linkToEtc"
+  linkToEtc.symbolicLinkTo(File("/etc"))
+
   "sanitize valid path" >> {
     val tail = "/file2"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
@@ -109,6 +114,14 @@ class FileUtilsTest extends Specification {
     val tail = "/symlink1"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(Some("symlink1"), root / "etc")))
+  }
+
+  "sanitize does not follow a symlinked ancestor on the create/write path" >> {
+    // the leaf `passwd_new` does not exist, but its ancestor `linkToEtc` escapes the jail
+    val tail = "/linkToEtc/passwd_new"
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
+    (res must beLeft(beAnInstanceOf[SecurityError])) and
+    (res must beLeft(OutsideBaseDir(Some("passwd_new"), root / "etc" / "passwd_new")))
   }
 
   "sanitize resolve jail dir and correctly check existing real path" >> {
