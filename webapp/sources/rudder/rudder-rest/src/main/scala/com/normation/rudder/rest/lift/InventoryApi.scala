@@ -46,11 +46,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.InventoryApi as API
 import com.normation.rudder.rest.syntax.*
-import com.normation.rudder.rest.RestError
-import com.normation.rudder.rest.RestUtils.effectiveResponse
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.implicits.*
 import com.normation.utils.FileUtils
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
