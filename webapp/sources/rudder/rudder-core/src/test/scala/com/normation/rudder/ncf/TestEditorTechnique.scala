@@ -64,9 +64,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${prefix.var[foo]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.prefix.var.foo
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -75,9 +75,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${rudder.node.foo.bar.baz} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.rudder.node.foo.bar.baz
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -86,9 +86,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${rudder.parameters[foo]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.rudder.param.foo
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -97,9 +97,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${node.properties[foo]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.node.properties.foo
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -108,9 +108,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${data.test[foo]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.data.test.foo
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -120,9 +120,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${node.properties[foo][bar]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.node.properties.foo.bar
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -132,9 +132,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${prefix.var} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.prefix.var
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -144,9 +144,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${prefix.var[foo bar][baz]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.prefix.var.foo bar.baz
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
@@ -160,9 +160,9 @@ class TestEditorTechnique extends Specification {
           translate("foo ${prefix.var[tëst😍 Ã¶emo😄ji-parameter]} bar") must beRight(
             """(@'
               |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{' + @'
+              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
               |vars.prefix.var.tëst😍 Ã¶emo😄ji-parameter
-              |'@ + '}}')) + @'
+              |'@ + '}}}')) + @'
               | bar
               |'@)""".stripMargin
           )
