@@ -388,6 +388,11 @@ fn lint_expression(s: &str) -> Result<()> {
             warn!("Error parsing '{}': {:?}", s, e);
         }
         Ok(e) => {
+            // unlike the other lints, using a removed global parameter fails the compilation
+            if let Err(err) = e.check_no_global_parameter() {
+                error!("Error checking '{}': {:?}", s, err);
+                user_error()
+            }
             if let Err(e) = e.lint() {
                 error!("Error checking '{}': {:?}", s, e);
             }

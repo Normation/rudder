@@ -140,16 +140,9 @@ class NodeContextBuilderImpl(
   ): IOResult[NodesContextResult] = {
 
     /*
-     * parameters have to be taken apart:
-     *
-     * - they can be overridden by node - not handled here, it will be in the resolution of node
-     *   when implemented. Most likely, we will have the information in the node info. And
-     *   in that case, we could just use an interpolation variable
-     *
-     * - they can be plain string => nothing to do
-     * - they can contains interpolated strings:
-     *   - to node info parameters: ok
-     *   - to parameters : hello loops!
+     * A global parameter value can still be interpolated (`${rudder.node.x}`,
+     * `${node.properties[x]}`, property engines), but it can not reference an other global
+     * parameter anymore, so there is no cycle to fear here.
      */
     def buildParams(
         parameters: List[GlobalParameter]
@@ -178,12 +171,7 @@ class NodeContextBuilderImpl(
               Box(
                 nodeFacts.get(info.rudderSettings.policyServerId)
               ) ?~! s"Policy server '${info.rudderSettings.policyServerId.value}' of Node '${nodeId.value}' was not found"
-            context            = ParamInterpolationContext(
-                                   info,
-                                   policyServer,
-                                   globalPolicyMode,
-                                   parameters.map { case (p, i) => (p.name, i) }
-                                 )
+            context            = ParamInterpolationContext(info, policyServer, globalPolicyMode)
             nodeParam         <- ZIO
                                    .foreach(parameters.toList) {
                                      case (param, interpol) =>
@@ -221,7 +209,7 @@ class NodeContextBuilderImpl(
                                    policyServer,
                                    globalPolicyMode,
                                    nodeContextBefore,
-                                   nodeParam.map { case (k, g) => (k, g.value) }.toMap
+                                   nodeParam.toMap
                                  )
             _                  = { timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge }
             propsCompiled     <- ZIO
@@ -261,7 +249,7 @@ class NodeContextBuilderImpl(
                 policyServer,
                 globalPolicyMode,
                 nodeContext,
-                nodeParam.map { case (k, g) => (k, g.value) }.toMap
+                nodeParam.toMap
               )
             )
           }) match {

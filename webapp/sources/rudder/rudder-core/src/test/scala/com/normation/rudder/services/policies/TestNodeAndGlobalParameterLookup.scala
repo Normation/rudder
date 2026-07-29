@@ -49,7 +49,6 @@ import com.normation.rudder.services.nodes.RudderPropertyEngine
 import com.normation.rudder.services.policies.fetchinfo.NodeContextBuilderImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
-import com.typesafe.config.ConfigValue
 import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.matcher.Expectable
@@ -119,19 +118,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val buildContext  = new NodeContextBuilderImpl(compiler, data.systemVariableService)
 
   val context: ParamInterpolationContext = ParamInterpolationContext(
-    parameters = Map(),
     globalPolicyMode = defaultModesConfig.globalPolicyMode,
     nodeInfo = fact1,
     policyServerInfo = factRoot
   )
 
-  def toNodeContext(c: ParamInterpolationContext, params: Map[String, ConfigValue]): InterpolationContext = InterpolationContext(
-    parameters = params,
+  def toNodeContext(c: ParamInterpolationContext): InterpolationContext = InterpolationContext(
     nodeInfo = c.nodeInfo,
     globalPolicyMode = c.globalPolicyMode,
     policyServerInfo = c.policyServerInfo, // environment variable for that server
 
-    nodeContext = Map()
+    nodeContext = Map(),
+    // global parameters are not interpolable anymore, so they play no role in these tests
+    parameters = Map()
   )
 
   def lookup(
@@ -148,38 +147,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       variables:   Seq[Variable],
       lookupParam: ParamInterpolationContext
   ): ZIO[Any, RudderError, Map[ComponentId, Variable]] = {
-    (for {
-      params <- ZIO.foreach(lookupParam.parameters.toList) { case (k, c) => c(lookupParam).map((k, _)) }
-      p      <- ZIO.foreach(params.toList) { case (k, value) => GenericProperty.parseValue(value).map(v => (k, v)).toIO }
-      res    <- lookupService.lookupNodeParameterization(variables.map(v => (ComponentId(v.spec.name, Nil, v.spec.id), v)).toMap)(
-                  toNodeContext(lookupParam, p.toMap)
-                )
-    } yield res)
+    lookupService.lookupNodeParameterization(variables.map(v => (ComponentId(v.spec.name, Nil, v.spec.id), v)).toMap)(
+      toNodeContext(lookupParam)
+    )
   }
 
   def jparse(s: String): Json = s.fromJson[Json].getOrElse(Str(s))
 
-  // two variables
-  val var1:              InputVariable = InputVariableSpec("var1", "", None, id = None).toVariable(Seq("== ${rudder.param.foo} =="))
-  val var1_double:       InputVariable =
-    InputVariableSpec("var1_double", "", None, id = None).toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
-  val var1_double_space: InputVariable = InputVariableSpec("var1_double_space", "", None, id = None).toVariable(
-    Seq("== ${rudder.param.foo} contains ${rudder.param.bar} ==")
-  )
+  // global parameter interpolation was removed, both syntaxes must now be refused
+  val oldSyntaxVariable: InputVariable =
+    InputVariableSpec("oldSyntax", "", None, id = None).toVariable(Seq("== ${rudder.param.foo} =="))
+  val newSyntaxVariable: InputVariable =
+    InputVariableSpec("newSyntax", "", None, id = None).toVariable(Seq("== ${rudder.parameters[foo]} =="))
 
-  val pathCaseInsensitive: InputVariable =
-    InputVariableSpec("pathCaseInsensitive", "", None, id = None).toVariable(Seq("== ${RudDer.paRam.foo} =="))
-
-  val paramNameCaseSensitive: InputVariable =
-    InputVariableSpec("paramNameCaseSensitive", "", None, id = None).toVariable(Seq("== ${rudder.param.Foo} =="))
-
-  val recurVariable: InputVariable =
-    InputVariableSpec("recurParam", "", None, id = None).toVariable(Seq("== ${rudder.param.recurToFoo} =="))
-
-  val dangerVariable: InputVariable = InputVariableSpec("danger", "", None, id = None).toVariable(Seq("${rudder.param.danger}"))
-
-  val multilineInputVariable:    InputVariable =
-    InputVariableSpec("multiInput", "", None, id = None).toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
   val multilineNodePropVariable: InputVariable =
     InputVariableSpec("multiNodeProp", "", None, id = None).toVariable(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n="))
 
@@ -195,31 +175,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   )
 
   val badEmptyRudder: InputVariable = InputVariableSpec("empty", "", None, id = None).toVariable(Seq("== ${rudder.} =="))
-  val badUnclosed:    InputVariable = InputVariableSpec("empty", "", None, id = None).toVariable(Seq("== ${rudder.param.foo =="))
   val badUnknown:     InputVariable = InputVariableSpec("empty", "", None, id = None).toVariable(Seq("== ${rudder.foo} =="))
-
-  val fooParam:   ParameterForConfiguration = ParameterForConfiguration("foo", "fooValue")
-  val barParam:   ParameterForConfiguration = ParameterForConfiguration("bar", "barValue")
-  val recurParam: ParameterForConfiguration = ParameterForConfiguration("recurToFoo", """${rudder.param.foo}""")
-
-  val badChars = """$¹ ${plop[]} (foo) \$ @ %plop & \\ | $[xas]^"""
-  val dangerousChars: ParameterForConfiguration = ParameterForConfiguration("danger", badChars)
-
-  def p(params: ParameterForConfiguration*): Map[String, ParamInterpolationContext => IOResult[String]] = {
-    import cats.implicits.*
-    params.toList.traverse { param =>
-      for {
-        p <- compiler
-               .compileParam(param.value)
-               .chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
-      } yield {
-        (param.name, p)
-      }
-    }.map(seq => Map(seq*)).chainError("Error when parsing parameters for interpolated variables") match {
-      case Left(err)  => throw new RuntimeException(err.fullMsg)
-      case Right(res) => res
-    }
-  }
 
   import com.normation.rudder.services.policies.PropertyParser.*
   import com.normation.rudder.services.policies.PropertyParserTokens.*
@@ -230,6 +186,14 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     fastparse.parse(value, p(_)) match {
       case Parsed.Success(x, index) => x === result
       case f: Parsed.Failure => ko(f.trace().longAggregateMsg)
+    }
+  }
+
+  // the value must not parse, and the failure must tell what to use instead
+  def testRemovedParameter[T](p: P[?] => P[T], value: String): MatchResult[Any] = {
+    fastparse.parse(value, p(_)) match {
+      case Parsed.Success(x, index) => ko(s"'${value}' must not parse anymore, but it gave: ${x}")
+      case f: Parsed.Failure => f.trace().longAggregateMsg must contain(PropertyParser.removedParameterMessage)
     }
   }
 
@@ -248,12 +212,12 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       test({ case given P[?] => noVariableStart }, s, CharSeq(s))
     }
 
-    "parse a rudder param variable with old syntax" in {
-      test({ case given P[?] => variable }, """${rudder.param.foo}""", Param("foo" :: Nil))
+    "refuse a rudder param variable with old syntax" in {
+      testRemovedParameter({ case given P[?] => variable }, """${rudder.param.foo}""")
     }
 
-    "parse a rudder param variable with spaces with old syntax" in {
-      test({ case given P[?] => variable }, """${rudder . param . foo}""", Param("foo" :: Nil))
+    "refuse a rudder param variable with spaces with old syntax" in {
+      testRemovedParameter({ case given P[?] => variable }, """${rudder . param . foo}""")
     }
 
     "parse a rudder node variable" in {
@@ -264,16 +228,16 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       test({ case given P[?] => variable }, """${rudder . node . foo . bar . baz}""", NodeAccessor(List("foo", "bar", "baz")))
     }
 
-    "parse a rudder param variable with all parser with old syntax" in {
-      test({ case given P[?] => all }, """${rudder.param.foo}""", List(Param("foo" :: Nil)))
+    "refuse a rudder param variable with all parser with old syntax" in {
+      testRemovedParameter({ case given P[?] => all }, """${rudder.param.foo}""")
     }
 
-    "parse a rudder param variable with new syntax" in {
-      test({ case given P[?] => all }, """${rudder.parameters[foo][bar]}""", List(Param("foo" :: "bar" :: Nil)))
+    "refuse a rudder param variable with new syntax" in {
+      testRemovedParameter({ case given P[?] => all }, """${rudder.parameters[foo][bar]}""")
     }
 
-    "parse a rudder param variable with all parser with spaces" in {
-      test({ case given P[?] => all }, """${rudder . param . foo}""", List(Param("foo" :: Nil)))
+    "refuse a rudder param variable with all parser with spaces" in {
+      testRemovedParameter({ case given P[?] => all }, """${rudder . param . foo}""")
     }
 
     "parse a non rudder param variable with all parser" in {
@@ -607,17 +571,9 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       )
     }
 
-    "parse node properties 'default:param' option" in {
+    "refuse node properties 'default:param' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${rudder.param.foo}}  and some more text"""
-      test(
-        { case given P[?] => all },
-        s,
-        List(
-          CharSeq("some text and "),
-          Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Param("foo" :: Nil) :: Nil))),
-          CharSeq("  and some more text")
-        )
-      )
+      testRemovedParameter({ case given P[?] => all }, s)
     }
 
     "parse node properties 'default:node.hostname' option" in {
@@ -810,117 +766,29 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       }
     }
 
-    "correctly interpret simple param with old syntax" in {
-      val res = "p1 replaced"
-      val i   = compileAndGet("${rudder.param.p1}")
-      val c   = context.copy(parameters = {
-        Map(
-          ("p1", (i: ParamInterpolationContext) => res.succeed)
-        )
-      })
-      i(c).either.runNow must beEqualTo(Right(res))
+    "refuse to compile a global parameter, whatever the syntax" in {
+      val values = List(
+        "${rudder.param.p1}",
+        "${rudder.parameters[p1]}",
+        "${rudder.parameters[p1][p2]}",
+        "${RudDer.paRam.p1}"
+      )
+      values.map { value =>
+        compiler.compileParam(value) match {
+          case Right(_)  => ko(s"'${value}' must not compile anymore")
+          case Left(err) => err.fullMsg must contain(PropertyParser.removedParameterMessage)
+        }
+      }.reduce(_ and _)
     }
 
-    "correctly interpret simple param with new syntax on string" in {
-      val res = "p1 replaced"
-      val i   = compileAndGet("${rudder.parameters[p1]}")
-      val c   = context.copy(parameters = {
-        Map(
-          ("p1", (i: ParamInterpolationContext) => res.succeed)
-        )
-      })
-      i(c).either.runNow must beEqualTo(Right(res))
-    }
-
-    "correctly interpret simple param with new syntax on json" in {
-      val res  = "p1 replaced"
-      val json = s"""{"p2": "${res}"}"""
-      val i    = compileAndGet("${rudder.parameters[p1][p2]}")
-      val c    = context.copy(parameters = {
-        Map(
-          ("p1", (i: ParamInterpolationContext) => json.succeed)
-        )
-      })
-      i(c).either.runNow must beEqualTo(Right(res))
-    }
-
-    "fails on missing param in context" in {
-      val i = compileAndGet("${rudder.param.p1}")
-      i(context).either.runNow match {
-        case Right(_) => ko("The parameter should not have been found")
-        case Left(_)  => ok
+    // a global parameter value can still use the other interpolations, it just can not
+    // reference an other global parameter anymore
+    "still interpolate node information in a global parameter value" in {
+      val i = compiler.compileParam("${rudder.node.hostname}") match {
+        case Left(err) => throw new RuntimeException(err.fullMsg)
+        case Right(i)  => i
       }
-    }
-
-    "correcly replace parameter with interpolated values" in {
-      val res     = "p1 replaced with p2 value"
-      val i       = compileAndGet("${rudder.param.p1}")
-      val p1value = compileAndGet("${rudder.param.p2}")
-      val c       = context.copy(parameters = {
-        Map(
-          ("p1", p1value),
-          ("p2", (i: ParamInterpolationContext) => res.succeed)
-        )
-      })
-      i(c).either.runNow must beEqualTo(Right(res))
-    }
-
-    "correctly replace maxDepth-1 parameter with interpolated values" in {
-      val res          = "p1 replaced with p2 value"
-      val i            = compileAndGet("${rudder.param.p1}")
-      val p1value      = compileAndGet("${rudder.param.p2}")
-      val p2value      = compileAndGet("${rudder.param.p3}")
-      val p3value      = compileAndGet("${rudder.param.p4}")
-      val analyseParam = new AnalyseParamInterpolation(propertyEngineService)
-      val c            = context.copy(parameters = {
-        Map(
-          ("p1", p1value),
-          ("p2", p2value),
-          ("p3", p3value),
-          ("p4", (i: ParamInterpolationContext) => res.succeed)
-        )
-      })
-
-      (analyseParam.maxEvaluationDepth == 5) and
-      (i(c).either.runNow must beEqualTo(Right(res)))
-    }
-
-    "fails to replace maxDepth parameter with interpolated values" in {
-      val res          = "p1 replaced with p2 value"
-      val i            = compileAndGet("${rudder.param.p1}")
-      val p1value      = compileAndGet("${rudder.param.p2}")
-      val p2value      = compileAndGet("${rudder.param.p3}")
-      val p3value      = compileAndGet("${rudder.param.p4}")
-      val analyseParam = new AnalyseParamInterpolation(propertyEngineService)
-      val c            = context.copy(parameters = {
-        Map(
-          ("p1", p1value),
-          ("p2", p2value),
-          ("p3", p3value),
-          ("p4", p3value),
-          ("p5", (i: ParamInterpolationContext) => res.succeed)
-        )
-      })
-
-      (analyseParam.maxEvaluationDepth == 5) and
-      (i(c).either.runNow match {
-        case Right(_) => ko("Was expecting an error due to too deep evaluation")
-        case Left(_)  => ok
-      })
-    }
-
-    "fails to replace recurring parameter value" in {
-      val i = compileAndGet("${rudder.param.p1}")
-      val c = context.copy(parameters = {
-        Map(
-          ("p1", i)
-        )
-      })
-
-      i(c).either.runNow match {
-        case Right(_) => ko("Was expecting an error due to too deep evaluation")
-        case Left(_)  => ok
-      }
+      i(context).either.runNow must beEqualTo(Right("node1.localhost"))
     }
 
     // utility class to help run the IOResult
@@ -944,8 +812,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val before2 =
         """{"login":"admin", "password":"${rudder-data.fakeEncryptorEngineTesting[password_test] | option1 = foo | option2 = bar}"}"""
       val after   = """{"login":"admin", "password":"encrypted-string-test"}"""
-      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
-      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context)) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context)) must beEqualTo(parseJson(after)))
     }
 
     "interpolate unknown engine in JSON must raise en error" in {
@@ -967,8 +835,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (buildContext.parseJValue(parseJson(before), toNodeContext(context, Map())).either.runNow must beLeft) and
-      (buildContext.parseJValue(parseJson(before2), toNodeContext(context, Map())).either.runNow must beLeft)
+      (buildContext.parseJValue(parseJson(before), toNodeContext(context)).either.runNow must beLeft) and
+      (buildContext.parseJValue(parseJson(before2), toNodeContext(context)).either.runNow must beLeft)
     }
 
     "interpolate engine in nested JSON object" in {
@@ -1000,8 +868,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |""".stripMargin
       }
 
-      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
-      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context)) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context)) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine in JSON array" in {
@@ -1026,8 +894,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
-      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context)) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context)) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine in nested JSON array" in {
@@ -1076,8 +944,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
-      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context)) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context)) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine multiple time" in {
@@ -1147,33 +1015,21 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |""".stripMargin
       }
 
-      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
-      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context)) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context)) must beEqualTo(parseJson(after)))
     }
   }
 
-  "A single parameter" should {
-    "be replaced by its value" in {
-      lookup(Seq(var1), context.copy(parameters = p(fooParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
+  "A global parameter in a directive value" should {
+    "be refused with the old syntax" in {
+      getError(lookupParam(Seq(oldSyntaxVariable), context).either.runNow) must contain(
+        PropertyParser.removedParameterMessage
       )
     }
 
-    "understand if its value is a parameter" in {
-      lookup(Seq(recurVariable), context.copy(parameters = p(fooParam, recurParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
-      )
-    }
-
-    "correctly escape regex special chars" in {
-      lookup(Seq(dangerVariable), context.copy(parameters = p(dangerousChars)))(values =>
-        values must containTheSameElementsAs(Seq(Seq(badChars)))
-      )
-    }
-
-    "match when inputs are on multiline" in {
-      lookup(Seq(multilineInputVariable), context.copy(parameters = p(fooParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("=\r= \nfooValue =\n=")))
+    "be refused with the new syntax" in {
+      getError(lookupParam(Seq(newSyntaxVariable), context).either.runNow) must contain(
+        PropertyParser.removedParameterMessage
       )
     }
 
@@ -1187,43 +1043,21 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val c = context
         .modify(_.nodeInfo.properties)
         .setTo(Chunk(NodeProperty("datacenter", v, None, None)))
-        .modify(_.parameters)
-        .setTo(p(fooParam))
 
       lookup(Seq(multilineNodePropVariable), c)(values => values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n="))))
     }
 
-    "fails when the curly brace after ${rudder. is not closed" in {
-      getError(lookupParam(Seq(badUnclosed), context).either.runNow) must beMatching(
-        """.*\Q'== ${rudder.param.foo =='. Error message is: Expected "}":1:23, found "=="\E.*""".r
-      )
-    }
-
     "fails when the part after ${rudder.} is empty" in {
       getError(lookupParam(Seq(badEmptyRudder), context).either.runNow) must beMatching(
-        """.*\Q'== ${rudder.} =='. Error message is: Expected (rudderNode | parameters | oldParameter):1:13, found "} =="\E.*""".r
+        """.*\Q'== ${rudder.} =='. Error message is: Expected (rudderNode | removedParameter):1:13, found "} =="\E.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
-      getError(lookupParam(Seq(badUnknown), context.copy(parameters = p(fooParam))).either.runNow) must beMatching(
-        """.*\Q'== ${rudder.foo} =='. Error message is: Expected (rudderNode | parameters | oldParameter):1:13, found "foo} =="\E.*""".r
+      getError(lookupParam(Seq(badUnknown), context).either.runNow) must beMatching(
+        """.*\Q'== ${rudder.foo} =='. Error message is: Expected (rudderNode | removedParameter):1:13, found "foo} =="\E.*""".r
       )
     }
-  }
-
-  "A double parameter" should {
-    "be replaced by its value" in {
-      lookup(Seq(var1_double), context.copy(parameters = p(fooParam, barParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("== fooValuebarValue ==")))
-      )
-    }
-    "accept space between values" in {
-      lookup(Seq(var1_double_space), context.copy(parameters = p(fooParam, barParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("== fooValue contains barValue ==")))
-      )
-    }
-
   }
 
   "Node parameters" should {
@@ -1335,37 +1169,9 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   }
 
   "Case" should {
-    "not matter in the path" in {
-      lookup(Seq(pathCaseInsensitive), context.copy(parameters = p(fooParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
-      )
-    }
-
     "not matter in nodes path accessor" in {
       val i = compileAndGet("${rudder.node.HoStNaMe}")
       i(context).either.runNow must beEqualTo(Right("node1.localhost"))
-    }
-
-    "matter for parameter names" in {
-      getError(lookupParam(Seq(paramNameCaseSensitive), context).either.runNow) must beMatching(
-        """.*\QMissing parameter '${node.parameter[Foo]}\E.*""".r
-      )
-    }
-
-    "matter in param names" in {
-      val i = compileAndGet("${rudder.param.xX}")
-      val c = context.copy(parameters = {
-        Map(
-          // test all combination
-          ("XX", (i: ParamInterpolationContext) => "bad".succeed),
-          ("Xx", (i: ParamInterpolationContext) => "bad".succeed),
-          ("xx", (i: ParamInterpolationContext) => "bad".succeed)
-        )
-      })
-      i(c).either.runNow match {
-        case Right(_)  => ko("No, case must matter!")
-        case Left(err) => err.msg must beEqualTo("Missing parameter '${node.parameter[xX]}'")
-      }
     }
 
     "matter in node properties" in {

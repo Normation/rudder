@@ -57,6 +57,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.HookEnvPairs
@@ -320,8 +321,12 @@ class PolicyWriterServiceImpl(
     }
 
     val file             = File(agentNodeConfig.paths.newFolder, Constants.GENERATED_PARAMETER_FILE)
+    // hidden parameters are not written in that file: they are only used internally (typically by
+    // plugins) and are already distributed to the node as node properties, no need to duplicate them.
     val jsonParameters   = generateParametersJson(
-      agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentInfo.agentType))
+      agentNodeConfig.config.parameters
+        .filter(_.visibility == Visibility.Displayed)
+        .map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentInfo.agentType))
     )
     val parameterContent = jsonParameters.toJsonPretty
 
