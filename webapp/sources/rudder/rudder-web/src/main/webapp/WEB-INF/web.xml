@@ -42,6 +42,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
   <session-config>
    <cookie-config>
+    <name>__Secure-RudderSID</name>
     <http-only>true</http-only>
     <secure>true</secure>
     <attribute>
