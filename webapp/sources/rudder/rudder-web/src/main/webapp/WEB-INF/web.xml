@@ -49,6 +49,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <attribute-value>Lax</attribute-value>
     </attribute>
    </cookie-config>
+   <tracking-mode>COOKIE</tracking-mode>
   </session-config>
 
   <context-param>
