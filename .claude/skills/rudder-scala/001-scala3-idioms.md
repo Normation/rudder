@@ -8,6 +8,10 @@ A business `case class` should be *dumb* (ideally zero methods). Put parsing,
 serialization, conversion and helpers in the **companion object** or in `extension`
 methods. This keeps the data type clean and aligns with Scala 3 practice.
 
+This is about *business* objects; a technical type may hold the one canonical rendering
+of itself — see [`400`](400-domain-case-classes.md#technical-types) for where the line
+is.
+
 Real example — `TenantAccess` (a tenant id + a permission) is a dumb 2-field case
 class; its companion holds the `parse`, `serialize` and codec
 (`rudder-core/.../tenants/Tenants.scala`):
@@ -73,8 +77,12 @@ import com.normation.errors.*
 scalafmt (`rewrite.imports.expand`) already **expands grouped braces to one-per-line**,
 so it enforces the "no `{a, b, c}`" half automatically. Choosing a **star import once you
 have 3+** names is *our* convention on top — scalafmt won't create it for you, but it
-leaves a `.*` import as-is. So: write the star yourself when it's 3 or more (see
-[`800`](800-build-and-formatting.md)).
+leaves a `.*` import as-is. So: write the star yourself when it's 3 or more.
+
+This is one case of a general split — some of our style is enforced by scalafmt and some
+is not — and the rest of it (braces over significant indentation, `${value}`
+interpolation, what `spotless:apply` will rewrite for you) is in
+[`800`](800-build-and-formatting.md#style-what-the-formatter-decides-and-what-you-must-write).
 
 ## `extension` methods
 
@@ -94,25 +102,48 @@ object AcceptationDateTime {
 
 ## Type-directed development: no stringly-typed code
 
-We let **types describe the domain**. A new concept gets a new type — we do **not**
-thread bare `String`/`Int`/`Boolean`/`Map[String, String]` around to stand for domain
-notions. This makes signatures self-documenting, prevents mixing up a `NodeId` with a
-`RuleId`, and lets "parse, don't validate" ([`201`](201-parse-dont-validate.md)) anchor
-invariants on the type.
+This is
+[principle 6 — name domain concepts as types, and propose the zero-cost form](../rudder-principles/SKILL.md#6-name-domain-concepts-as-types--and-propose-the-zero-cost-form)
+in Scala. Concretely: a new concept gets a new type, with its `parse`/`serialize`/codec in
+the companion ([`201`](201-parse-dont-validate.md)) — we do **not** thread bare
+`String`/`Int`/`Boolean`/`Map[String, String]` around to stand for domain notions. If
+you're about to write `def f(x: String, y: String)`, stop and name them.
 
-- Modelling a new thing? Define a type for it (and put its `parse`/`serialize`/codec in
-  the companion).
-- A parameter that is "an id", "a name", "a token", "a path"… is a *type*, not a
-  `String`. If you're about to write `def f(x: String, y: String)`, stop and name them.
+**Technical data too**, not only the domain — instrumentation, cache keys, internal
+messages. That is where the rule gets skipped, and the two triggers from principle 6
+apply verbatim:
+
+- a tuple passed through more than one function, or read as `_._1`/`_._3`, becomes a
+  `final case class` with named fields;
+- a discriminator a caller assembles by concatenation becomes a parameterised ADT case
+  ([ADT shapes](#adt-shapes)).
+
+```scala
+// no: two positional strings threaded through four methods, and a tuple in the queue
+def record(phase: String, detail: String, durationMs: Long): Unit
+private val done = new ConcurrentLinkedQueue[(String, String, Long)]()
+
+// yes: the model is named first, and the queue says what it holds
+final case class BootStep(phase: BootPhase, detail: String)
+final case class TimedStep(step: BootStep, duration: Duration)
+def record(step: BootStep, duration: Duration): Unit
+private val done = new ConcurrentLinkedQueue[TimedStep]()
+```
+
+Declare those types **above** the code that uses them: the reader meets the model, then
+the procedure.
 
 ### Choosing the wrapper: `opaque type` > value class > raw
 
 For a concept backed by a **single** underlying value, in order of preference:
 
-1. **`opaque type`** — the preferred form for **new** wrappers. A true zero-cost
-   newtype (no runtime allocation) that still presents a typed API and keeps invariants
-   true. Expose construction/behaviour via the companion + `extension` (as
-   `AcceptationDateTime` above).
+1. **`opaque type`** — the preferred form for **new** wrappers, and **the zero-cost
+   abstraction to propose** under principle 6: a true newtype with *no runtime
+   allocation*, that still presents a typed API and keeps invariants true. Expose
+   construction/behaviour via the companion + `extension` (as `AcceptationDateTime`
+   above). Since it costs nothing at runtime, the hot-path objection
+   ([principle 7](../rudder-principles/SKILL.md#7-weigh-hot-path-cost--while-planning-not-after))
+   does not apply to it — say so when you propose it.
    ```scala
    opaque type TenantId = String
    object TenantId {
@@ -130,15 +161,62 @@ For a concept backed by a **single** underlying value, in order of preference:
 For a concept that is genuinely **two or more** values, use a `case class`
 (e.g. `TenantAccess` above) — not an `opaque type` over a tuple.
 
-## ADTs: `sealed trait` + `case object`/`case class`
+## ADTs: choosing the shape of a closed set {#adt-shapes}
 
-Model closed sets of cases with `sealed trait` + `case object`/`case class`. Keep the
-cases dumb; put logic in the companion (e.g. `PluginInstallStatus.from(...)` decides the
-status from inputs in one place).
+Sum types for closed sets are
+[principle 1](../rudder-principles/SKILL.md#1-the-data-model-is-the-design) in Scala:
+model them with `sealed trait` + `case object`/`case class`. Keep the cases dumb; put
+logic in the companion (e.g. `PluginInstallStatus.from(...)` decides the status from
+inputs in one place).
 
-We do **not** use the native Scala 3 `enum` keyword. When you need an enumeration with
-a name/value, lookup-by-name, or `values`, use **enumeratum** (see
-[`401`](401-json-zio-json.md#enums)) — it's the project standard.
+Three shapes are in use and the choice is not a matter of taste. Answer in order:
+
+### 1. Does any case carry data?
+
+Then: **`sealed trait Base(val name: String)`**, each case supplying its own name.
+enumeratum is not an option here — `findValues` only finds `case object`s, so `values`
+and lookup-by-name cannot exist once a case has parameters.
+
+```scala
+sealed trait BootPhase(val name: String)
+object BootPhase {
+  case object Git                    extends BootPhase("git-repositories")
+  case class  Plugin(plugin: String) extends BootPhase("plugins:" + plugin)
+}
+```
+
+The canonical name is a **constructor parameter** and the variable part is a **case
+parameter** — never something a caller assembles. Write `BootPhase.Plugin(name)`, not
+`"plugins:" + name` at the call site, and not a bare `String` phase. A case rendering
+*its own* name this way is not "logic in the case": decisions and business rules still
+belong in the companion.
+
+If such a type is also serialized, put the matching `parse` in the companion and test
+the round trip — you are hand-writing what enumeratum would otherwise have given you.
+
+### 2. Is a value of the type ever (de)serialized?
+
+JSON, database, LDAP, REST API, configuration file, event log — anything crossing the
+process boundary, in either direction. Then **enumeratum is mandatory** (see
+[`401`](401-json-zio-json.md#enums), [`404`](404-serialization-contracts.md)).
+
+The `entryName` is a wire contract: it is written explicitly, reviewed, and stays stable
+when the Scala case is renamed. A native `enum` takes its name from the case identifier,
+so a rename silently changes what is stored on disk and answered to clients.
+
+### 3. Otherwise: native `enum`
+
+Purely internal, never leaves the JVM, no `values`/lookup needed — then the native
+Scala 3 `enum` is fine, and is the shortest thing that works.
+
+```scala
+// the outcome of one internal decision, consumed by one `match`, stored nowhere
+enum BootWatchdogVerdict {
+  case Progressing
+  case SameStep
+  case Stalled
+}
+```
 
 ## Collections: prefer `Chunk`
 
@@ -159,7 +237,7 @@ whenever the change is strictly equivalent** (a plain `implicit val`/`implicit d
 the rewrite isn't a no-op — e.g. `implicit class` extension wrappers (use an
 [`extension`](#extension-methods) instead, which is a different shape, not a mechanical
 swap) or implicit conversions, where semantics or resolution could shift. Keep such
-rewrites within the [up-merge](000-coding-philosophy.md#concurrent-branches--up-merge)
+rewrites within the [up-merge](../rudder-principles/SKILL.md#working-in-a-long-lived-codebase)
 budget: don't churn an entire legacy file just to convert implicits.
 
 ## Style reminders
