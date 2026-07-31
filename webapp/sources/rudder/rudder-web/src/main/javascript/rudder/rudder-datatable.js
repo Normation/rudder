@@ -428,10 +428,17 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   };
 
   // Rule Category
+  // The category is a path built from user-provided category names, so it is untrusted: it
+  // arrives already HTML-escaped from RuleGrid.scala (RuleLine.json). Rendering it as HTML is
+  // therefore intended -- do NOT switch this to .text(), that would double-encode it and show
+  // entities (`&eacute;`) for any accented category name.
   var category =
     { "mDataProp": "category"
     , "sWidth": "12%"
     , "sTitle": "Category"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty().html(oData.category);
+      }
     };
 
   // Status of the rule (disabled) add reason tooltip if needed
