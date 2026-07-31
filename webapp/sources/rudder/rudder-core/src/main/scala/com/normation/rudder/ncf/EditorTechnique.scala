@@ -287,9 +287,9 @@ object ParameterType {
 
     private def translateDscHereString(value: String): PureResult[String] = {
       // Format to DSC specific expression for a known Rudder path variable.
-      def mkDatastate(path: List[String]) = s"""([Rudder.Datastate]::Render('{{' + @'
+      def mkDatastate(path: List[String]) = s"""([Rudder.Datastate]::Render('{{{' + @'
                                                |vars.${path.mkString(".")}
-                                               |'@ + '}}'))""".stripMargin
+                                               |'@ + '}}}'))""".stripMargin
 
       // Refuse "dots" in individual path keys for DSC. For now, assume we only have names without interpolation itself in a path element
       def validatedPath(path: List[String]): PureResult[Unit] = {
