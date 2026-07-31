@@ -19,14 +19,16 @@ Benefits:
 
 ## Decision
 
+Use plural nouns to represent resources.
+
 Follow these patterns
 ```
-<METHOD> resource ? offset=0&limit=10 
-<METHOD> resource / {action}
-<METHOD> resource / {resource-id}
-<METHOD> resource / {resource-id} / subresource ? offset=0&limit=10 
-<METHOD> resource / {resource-id} / subresource / {action}
-<METHOD> resource / {resource-id} / subresource / {subresource-id}
+<METHOD> resources ? offset=0&limit=10 
+<METHOD> resources / {action}
+<METHOD> resources / {resource-id}
+<METHOD> resources / {resource-id} / subresources ? offset=0&limit=10 
+<METHOD> resources / {resource-id} / subresources / {action}
+<METHOD> resources / {resource-id} / subresources / {subresource-id}
 ```
 
 ## Consequences
