@@ -11,6 +11,7 @@ check-methods-windows:
 check: lint check-modules
 	cd rudderc && make check
 	$(MAKE) cargo-test PACKAGE=agent
+	$(MAKE) cargo-test PACKAGE=agentd
 	$(MAKE) cargo-test PACKAGE=rudder_cli
 	$(MAKE) cargo-test PACKAGE=rudder_commons
 	$(MAKE) cargo-test PACKAGE=rudder-report
