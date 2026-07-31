@@ -54,7 +54,7 @@ init flags =
         initModel : Model
         initModel =
             { directiveId = DirectiveId flags.directiveId
-            , activityTable = initTable zone
+            , activityTable = initTable (ContextPath flags.contextPath) zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }
