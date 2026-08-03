@@ -115,7 +115,8 @@ class RuleLineTest extends Specification {
       RuleId(RuleUid("rule-xss")),
       name = payload,
       categoryId = RuleCategoryId("cat-xss"),
-      shortDescription = payload
+      shortDescription = payload,
+      security = None
     )
     val lines   = List(ErrorLine(rule, "enabled", payload, nodeIsEmpty = false))
 
