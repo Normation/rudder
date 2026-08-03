@@ -117,13 +117,17 @@ pub enum Command {
         #[arg(long, short, help = "Enable all installed plugins")]
         all: bool,
 
-        #[arg(long, short, help = "Snapshot the list of enabled plugins")]
+        #[arg(
+            long,
+            short,
+            help = "Write a snapshot of the list of enabled plugins to stdout"
+        )]
         save: bool,
 
         #[arg(
             long,
             short,
-            help = "Restore the list of enabled plugins from latest snapshot"
+            help = "Restore the list of enabled plugins from a snapshot read on stdin"
         )]
         restore: bool,
     },

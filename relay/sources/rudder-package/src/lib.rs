@@ -21,6 +21,7 @@ mod webapp;
 use std::process;
 use std::{
     fs::create_dir_all,
+    io,
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -56,7 +57,6 @@ const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_
 const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-version";
 const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
 const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
-const PLUGIN_STATUS_BACKUP_PATH: &str = "/tmp/rudder-plugins-upgrade";
 const DONT_RESTART_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RESTART";
 const DONT_RUN_POSTINST_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RUN_POSTINST";
 
@@ -302,12 +302,14 @@ pub fn run_inner(args: Args) -> Result<()> {
             };
 
             if to_enable.is_empty() {
-                let backup_path = Path::new(PLUGIN_STATUS_BACKUP_PATH);
                 if save {
-                    db.disabled_plugins_save(backup_path, &mut webapp)?;
+                    // To stdout, and to stdin below: the caller redirects the snapshot to and from
+                    // wherever it keeps it, so we never open a file in a directory we do not
+                    // control. Our logs go to stderr, so they do not end up in it.
+                    db.disabled_plugins_save(&mut io::stdout().lock(), &mut webapp)?;
                     info!("Plugins status successfully saved");
                 } else if restore {
-                    db.enabled_plugins_restore(backup_path, &mut webapp)?;
+                    db.enabled_plugins_restore(io::stdin().lock(), &mut webapp)?;
                     info!("Plugins status successfully restored");
                 } else {
                     bail!("No plugin provided");
