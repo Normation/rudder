@@ -812,6 +812,26 @@ object RuleLine {
 
   }
 
+  /*
+   * These fields are consumed by `createRuleTable` in rudder-datatable.js, and whether one must
+   * be HTML-escaped here depends *only* on the DOM sink that renders it there. This is
+   * deliberately not "escape everything to be safe": escapeHtml4 also entity-encodes non-ASCII
+   * (`é` -> `&eacute;`), so escaping a field whose sink builds a text node double-encodes it and
+   * shows entities to the user. Keep this list in sync with the column definitions:
+   *
+   *  - `category`: no fnCreatedCell, so DataTables assigns it with `td.innerHTML` => MUST escape.
+   *  - `reasons` / `explanation`: put in the `title` of an element carrying
+   *    `data-bs-toggle="tooltip"`, and initBsTooltips() builds those with `html: true` => HTML
+   *    sink. `reasons` is escaped; `explanation` is *deliberately* HTML built by ComputePolicyMode
+   *    out of constant strings, so escaping it would break its rendering.
+   *  - `name` / `status`: rendered with jQuery `.text()` => must NOT be escaped.
+   *  - `description`: put in a plain `title` (no `data-bs-toggle`), i.e. a native browser tooltip,
+   *    never HTML-parsed => must NOT be escaped.
+   *  - `tags` uses `.text()`, `tagsDisplayed` is escaped client-side by displayTags().
+   *  - `id`: also a DOM id, a jQuery selector, and the correlation key with the compliance and
+   *    recent-changes payloads, so escaping it here would break that correlation. The uid charset
+   *    is what needs constraining (RuleUid accepts any string today).
+   */
   final private case class JsonRuleLine(
       name:             String,
       id:               RuleId,
@@ -831,6 +851,7 @@ object RuleLine {
 
   private given Transformer[RuleLine, JsonRuleLine] = Transformer
     .define[RuleLine, JsonRuleLine]
+    .withFieldComputed(_.category, x => escapeHTML(x.category))
     .withFieldComputed(_.reasons, _.reasons.map(r => escapeHTML(r)))
     .withFieldComputed(_.callback, _.callback.map(x => JsRaw(x.toJsCmd)))
     .withFieldComputed(_.checkboxCallback, _.checkboxCallback.map(x => JsRaw(x.toJsCmd)))
