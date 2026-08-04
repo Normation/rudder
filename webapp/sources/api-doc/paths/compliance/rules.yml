@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
   summary: Compliance details for all rules
-  description: Get current compliance of all the rules of a Rudder server
+  description:
+    'Get current compliance of all the rules of a Rudder server
+    
+    
+    This endpoint is deprecated and will be removed in version 10; use endpoint /rules/compliance instead.'
   operationId: getRulesComplianceOld
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml

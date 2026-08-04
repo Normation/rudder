@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: 2013-2024 Normation SAS
 get:
   summary: Compliance details by group (global)
-  description: Get compliance of a group with all rules that apply to a node within the group.
+  description:
+    'Get compliance of a group with all rules that apply to a node within the group.
+
+
+    This endpoint is deprecated and will be removed in version 10; use endpoint /groups/{targetOrNodeGroupId}/compliance/global instead.'
   operationId: getNodeGroupComplianceId
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
