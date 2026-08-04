@@ -1,14 +1,14 @@
-port module DirectiveRecentActivity exposing (..)
+port module GlobalPropertiesRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), string2Search)
 import Browser
 import Dict
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
-import Rudder.Table exposing (..)
-import Time exposing (Posix, Zone)
+import Rudder.Table exposing (updateData)
+import Time exposing (Zone)
 import TimeZone
 
 
@@ -18,12 +18,12 @@ port errorNotification : String -> Cmd msg
 port copy : String -> Cmd msg
 
 
-type DirectiveId
-    = DirectiveId String
+type GlobalPropertyId
+    = GlobalPropertyId String
 
 
 type alias Model =
-    { directiveId : DirectiveId
+    { globalPropertyId : GlobalPropertyId
     , activityTable : Rudder.Table.Model Activity Msg
     , contextPath : ContextPath
     , zone : Zone
@@ -37,7 +37,7 @@ type Msg
 
 
 init :
-    { directiveId : String
+    { globalPropertyId : String
     , contextPath : String
     , timeZone : String
     }
@@ -53,22 +53,22 @@ init flags =
 
         initModel : Model
         initModel =
-            { directiveId = DirectiveId flags.directiveId
-            , activityTable = initTable (ContextPath flags.contextPath) zone
+            { globalPropertyId = GlobalPropertyId flags.globalPropertyId
+            , activityTable = initTable zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }
 
         -- full text search on directive id to keep activity related to this directive
         search =
-            string2Search flags.directiveId
+            string2Search flags.globalPropertyId
 
         bodyParameters : BodyParameters
         bodyParameters =
             { search = search
 
             -- Keep only directive activity filtering on event log types
-            , filterTypes = [ "DirectiveAdded", "DirectiveDeleted", "DirectiveModified" ]
+            , filterTypes = [ "GlobalParameterAdded", "GlobalParameterDeleted", "GlobalParameterModified" ]
             }
 
         initActions =

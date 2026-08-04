@@ -92,7 +92,7 @@ init flags =
         initModel : Model
         initModel =
             { groupId = GroupId flags.groupId
-            , activityTable = initTable zone
+            , activityTable = initTable (ContextPath flags.contextPath) zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }

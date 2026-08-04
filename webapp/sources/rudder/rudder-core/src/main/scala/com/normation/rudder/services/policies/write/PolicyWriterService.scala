@@ -271,27 +271,25 @@ class PolicyWriterServiceImpl(
 
   // an utility that write text in a file and create file parents if needed
   implicit class CreateParentAndWrite(val file: File) {
-    def getPerms(isRootServer: Boolean):                            (Option[String], Set[PosixFilePermission], Set[PosixFilePermission]) = {
+    def getPerms(isRootServer: Boolean):                            (Set[PosixFilePermission], Set[PosixFilePermission]) = {
       if (isRootServer) {
-        (None, rootFilePerms, rootDirectoryPerms)
+        (rootFilePerms, rootDirectoryPerms)
       } else {
-        (groupOwner, defaultFilePerms, defaultDirectoryPerms)
+        (defaultFilePerms, defaultDirectoryPerms)
       }
     }
     import StandardOpenOption.*
     // open file mode for create or overwrite mode
-    def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                                = IOResult.attempt {
-      val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
-      createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
+    def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                = IOResult.attempt {
+      val (filePerms, dirPerms) = getPerms(isRootServer)
+      createParentsIfNotExist(file, Some(dirPerms), None)
       file.writeText(text)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
-      optGroupOwner.foreach(file.setGroup)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean): IO[SystemError, Unit] = IOResult.attempt {
-      val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
-      createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
+      val (filePerms, dirPerms) = getPerms(isRootServer)
+      createParentsIfNotExist(file, Some(dirPerms), None)
       file.writeByteArray(content)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
-      optGroupOwner.foreach(file.setGroup)
     }
   }
 

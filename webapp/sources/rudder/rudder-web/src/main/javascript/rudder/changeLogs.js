@@ -51,6 +51,30 @@ import * as htmlFormatter from '../libs/jsondiffpatch/lib/formatters/html.js'
  */
 function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone) {
 
+  /* Get the parameters form the url to fill the filter criteria request
+     *
+     * If the change log page is accessed by this url :
+     * http://localhost:8081/rudder-web/secure/configurationManager/changeLogs then the filter criteria to query the
+     * change logs will be filled from the html form.
+     *
+     * If the change log page is accessed by the same url with # fragment :
+     * http://localhost:8081/rudder-web/secure/configurationManager/changeLogs#{"search":{"value":"3278","regex":false,"fixed":[]},"startDate":"2026-07-30 00:00:00","endDate":"2026-07-30 17:16:37","draw":1,"start":0,"length":10 }
+     * then the filter criteria will be filled from this json fragment.
+     * The use case is the recent activity table provide links for each activity to navigate to the details in the
+     * change log page.
+     *
+     * Other examples of url with fragment:
+     * http://localhost:8081/rudder-web/secure/nodeManager/nodes#{"query":{"select":"node","composition":"and","where":[]}}
+     * http://localhost:8081/rudder-web/secure/configurationManager/directiveManagement#{"directiveId":"1c99b738-742b-4444-a964-0759c9fc5b74"}
+     */
+  const param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
+  function parse(param) {
+      if(Object.keys(param).length === 0)
+          return {};
+      else return JSON.parse(param);
+  }
+  const filterCriteria = parse(param);
+
   var columns = [ {
     "width"       : "10%"
   , "data"        : "id"
@@ -92,8 +116,19 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
     , "url" : contextPath + "/secure/api/eventlog"
     , "data" :
        function (d) {
-         d.startDate = $(".pickStartInput").val()
-         d.endDate = $(".pickEndInput").val()
+         if (filterCriteria.startDate === undefined) {
+           d.startDate = $(".pickStartInput").val()
+         } else {
+           d.startDate = filterCriteria.startDate
+         }
+         if (filterCriteria.endDate === undefined) {
+           d.endDate = $(".pickEndInput").val()
+         } else {
+           d.endDate = filterCriteria.endDate
+         }
+         if (filterCriteria.search !== undefined) {
+           d.search = filterCriteria.search
+         }
          return JSON.stringify( d );
        }
     }

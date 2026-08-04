@@ -204,10 +204,16 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
             "pageLength": 25
           });""") &
       JsRaw(s"""
-        /* Formating function for row details */
+
+          /* Formating function for row details */
           function fnFormatDetails(id) {
             const sOut = '<span id="'+id+'" class="parametersDescriptionDetails"/>';
             return sOut;
+          };
+
+          function fnFormatActivity(id) {
+            // FIXME : add some CSS for activity table from elm app
+            return '<span><ul class="ms-2"><li><b>Recent activity:</b></li></ul></span><div class="parametersDescriptionDetails"><div id="globalPropertiesRecentActivityApp"></div></div>'
           };
 
           ${jsVarNameForId(gridName)}.rows().nodes().to$$().each( function () {
@@ -231,12 +237,45 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
                     color = 'color2';
                   const row = ${jsVarNameForId(
           gridName
-        )}.row(this).child(fnFormatDetails(jsid), color + ' parametersDescription details').show();
+        )}.row(this);
+
+                  const globalPropertyName = jTr.find('td.name').find('b').html();
+
+                  // row child show is from datatable API
+                  const children = [fnFormatDetails(jsid)];
+
+                  if (globalPropertyName !== 'rudder') {
+                    /* Don't show recent activity for rudder global property.
+
+                       The 'rudder' global property is created by the system and cannot be modified so it doesn't have any
+                       activity logged therefore we don't want to add an empty table for this property.
+                    */
+                    children.push(fnFormatActivity(jsid));
+                  }
+
+                  row.child(children, color + ' parametersDescription details');
+                  row.show();
                   $$('#'+jsid).html($$('#description-'+jsid).html());
+
+
+                  const recentActivityMain = document.getElementById("globalPropertiesRecentActivityApp")
+                  const initValues = {
+                    globalPropertyId : globalPropertyName,
+                    contextPath : contextPath,
+                    timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
+                  };
+
+                  const app = Elm.GlobalPropertiesRecentActivity.init({node: recentActivityMain, flags: initValues});
+                  app.ports.errorNotification.subscribe(function(str) {
+                    createErrorNotification(str)
+                  });
                 }
-               }
-            } );
-          })""") // JsRaw ok, const
+              }
+           });
+          })
+
+
+      """) // JsRaw ok, const
     )
   }
 
