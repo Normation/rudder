@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+/usr/bin/rsync -a --delete --chown=root:root /var/rudder/share/policies/ /var/rudder/cfengine-community/inputs/
