@@ -51,11 +51,14 @@ init flags =
         zone =
             initTimeZone ()
 
+        contextPath =
+            ContextPath flags.contextPath
+
         initModel : Model
         initModel =
             { globalPropertyId = GlobalPropertyId flags.globalPropertyId
-            , activityTable = initTable zone
-            , contextPath = ContextPath flags.contextPath
+            , activityTable = initTable contextPath zone
+            , contextPath = contextPath
             , zone = zone
             }
 
