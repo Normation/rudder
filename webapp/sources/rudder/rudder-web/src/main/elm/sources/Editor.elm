@@ -189,7 +189,7 @@ mainInit initValues =
             , loadingTechniques = True
             , recClone = []
             , policyMode = "default"
-            , activityTable = initTable zone
+            , activityTable = initTable (ContextPath initValues.contextPath) zone
             }
     in
     ( model

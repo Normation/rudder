@@ -67,7 +67,7 @@ init flags =
             , ui = initUI
             , rulesTable = initTable
             , csvExportOptions = exportCsvOptions.csvExport
-            , activityTable = Activity.ActivityTable.initTable zone
+            , activityTable = Activity.ActivityTable.initTable (ContextPath flags.contextPath) zone
             }
 
         listCRActions =
