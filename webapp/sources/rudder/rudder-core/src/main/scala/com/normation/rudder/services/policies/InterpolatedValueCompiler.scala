@@ -37,17 +37,12 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.box.*
 import com.normation.errors.*
-import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineService
 import com.normation.rudder.services.policies.PropertyParserTokens.*
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValue
-import net.liftweb.common.*
 import zio.*
 import zio.syntax.*
 
@@ -64,21 +59,14 @@ import zio.syntax.*
  * ${rudder.xxx}
  * were "xxx" is the parameter to lookup.
  *
- * We handle 3 kinds of parameterizations:
- * 1/ ${rudder.param.XXX}
- *    where:
- *    - XXX is a parameter configured in Rudder
- *      (for now global, but support for node-contextualised is implemented)
- *    - XXX is case sensisite
- *    - XXX's value can contains other interpolation
- *
- * 2/ ${rudder.node.ACCESSOR}
+ * We handle 2 kinds of parameterizations:
+ * 1/ ${rudder.node.ACCESSOR}
  *    where:
  *    - "node" is a keyword ;
  *    - ACCESSOR is an accessor for that node, explained below.
  *    - the value can not contains other interpolation
  *
- * 3/ ${node.properties[keyone][keytwo]} or
+ * 2/ ${node.properties[keyone][keytwo]} or
  *   ${node.properties[keyone][keytwo] | node } or
  *    ${node.properties[keyone][keytwo] | default = XXXX }
  *
@@ -102,8 +90,11 @@ import zio.syntax.*
  * Accessor are keywords which allows to reach value in a context, exactly like
  * properties in object oriented programming.
  *
- * Accessors for parameters
- *    ${rudder.param.ACCESSOR} : replace by the value for the parameter with the name ACCESSOR
+ * Global parameters can not be interpolated anymore: `${rudder.param.NAME}` and
+ * `${rudder.parameters[NAME]}` were removed. A global parameter is a node property
+ * (it is set as a default value on each node), so `${node.properties[NAME]}` must be
+ * used instead - with the standard property inheritance semantic, ie a group or node
+ * override of that name wins.
  *
  * Accessors for node
  * ------------------
@@ -135,15 +126,6 @@ trait InterpolatedValueCompiler {
   def compile(value:      String): PureResult[InterpolationContext => IOResult[String]]
   def compileParam(value: String): PureResult[ParamInterpolationContext => IOResult[String]]
 
-  /**
-   *
-   * Parse a value to translate token to a valid value for the agent passed as parameter.
-   *
-   * Return a Box, where Full denotes a successful
-   * parsing of all values, and EmptyBox. an error.
-   */
-  def translateToAgent(value: String, agentType: AgentType): Box[String]
-
 }
 
 object PropertyParserTokens {
@@ -154,7 +136,7 @@ object PropertyParserTokens {
    * A token can be a plain string with no variable, or something
    * to interpolate. For now, we can interpolate two kind of variables:
    * - node information (thanks to a pointed path to the interesting property)
-   * - rudder parameters (only globals for now)
+   * - node properties
    */
   sealed trait Token extends Any // could be Either[CharSeq, Interpolation]
 
@@ -179,8 +161,6 @@ object PropertyParserTokens {
 
   // everything is expected to be lower case
   final case class NodeAccessor(path: List[String])                                                    extends AnyVal with Interpolation
-  // everything is expected to be lower case
-  final case class Param(path: List[String])                                                           extends AnyVal with Interpolation
   // here, we keep the case as it is given
   final case class Property(path: List[String], opt: Option[PropertyOption])                           extends Interpolation
   final case class RudderEngine(engine: String, method: List[String], opt: Option[List[EngineOption]]) extends Interpolation
@@ -204,30 +184,9 @@ trait AnalyseInterpolationWithPropertyService {
   }
 }
 
-trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
+trait AnalyseInterpolation[I <: GenericInterpolationContext] {
 
   def expandWithPropertyEngine(engineName: String, nameSpace: List[String], opt: Option[List[EngineOption]]): IOResult[String]
-
-  /*
-   * Number of time we allows to recurse for interpolated variable
-   * evaluated to other interpolated variables.
-   *
-   * It allows to detect cycle by brut force, but may raise false
-   * positive too:
-   *
-   * Ex: two variable calling the other one:
-   * a => b => a => b => a STOP
-   *
-   * Ex: a false positive:
-   *
-   * a => b => c => d => e => f => ... => "42"
-   *
-   * This is not a very big limitation, as we are not building
-   * a programming language, and users can easily resolve
-   * the problem by just making smaller cycle.
-   *
-   */
-  val maxEvaluationDepth = 5
 
   /*
    * The funny part that for each token adds the interpretation of the token
@@ -257,7 +216,6 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case v: NonRudderVar => s"$${${v.indexedPath}}".succeed
       case UnsafeRudderVar(s)    => s"$${${s}}".succeed
       case NodeAccessor(path)    => getNodeAccessorTarget(context, path).toIO
-      case Param(path)           => getRudderGlobalParam(context, path)
       case RudderEngine(e, m, o) => expandWithPropertyEngine(e, m, o)
       case Property(path, opt)   =>
         opt match {
@@ -282,11 +240,6 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
         }
     }
   }
-
-  /**
-   * Retrieve the global parameter from the node context.
-   */
-  def getRudderGlobalParam(context: I, path: List[String]): IOResult[String]
 
   /**
    * Get the targeted accessed node information, checking that it exists.
@@ -356,97 +309,21 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
 
 }
 
-class AnalyseParamInterpolation(p: PropertyEngineService)
-    extends AnalyseInterpolation[ParamInterpolationContext => IOResult[String], ParamInterpolationContext]
-    with AnalyseInterpolationWithPropertyService {
-
-  /**
-   * Retrieve the global parameter from the node context.
-   */
-  override def getRudderGlobalParam(context: ParamInterpolationContext, path: List[String]): IOResult[String] = {
-    val errmsg = s"Missing parameter '$${node.parameter[${path.mkString("][")}]}'"
-    path match {
-      // we should not reach that case since we enforce at leat one match of [...] in the parser
-      case Nil       => Unexpected(s"The syntax $${rudder.parameters} is invalid, only $${rudder.parameters[name]} is accepted").fail
-      case h :: tail =>
-        context.parameters.get(h) match {
-          case Some(value) =>
-            if (context.depth >= maxEvaluationDepth) {
-              Unexpected(
-                s"""Can not evaluted global parameter "${h}" because it uses an interpolation variable that depends upon """
-                + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""
-              ).fail
-            } else {
-              // we need to check if we were looking for a string or a json value
-              for {
-                firtLevel <- value(context.copy(depth = context.depth + 1))
-                res       <- (tail match {
-                               case Nil     => Right(firtLevel)
-                               case subpath =>
-                                 val config = ConfigFactory.parseString(s"""{"x":${firtLevel}}""")
-                                 val path   = ("x" :: subpath).mkString(".")
-                                 if (config.hasPath(path)) {
-                                   Right(GenericProperty.serializeToHocon(config.getValue(path)))
-                                 } else {
-                                   Left(Inconsistency(errmsg))
-                                 }
-                             }).toIO
-              } yield {
-                res
-              }
-            }
-          case _           => Unexpected(errmsg).fail
-        }
-    }
-  }
-
-  override def propertyEngineService: PropertyEngineService = p
-}
-
-class AnalyseNodeInterpolation(p: PropertyEngineService)
-    extends AnalyseInterpolation[ConfigValue, InterpolationContext] with AnalyseInterpolationWithPropertyService {
-
-  /**
-   * Retrieve the global parameter from the node context.
-   */
-  def getRudderGlobalParam(context: InterpolationContext, path: List[String]): IOResult[String] = {
-    val errmsg = s"Missing parameter '$${node.parameter[${path.mkString("][")}]}'"
-    path match {
-      // we should not reach that case since we enforce at leat one match of [...] in the parser
-      case Nil       => Left(Unexpected(s"The syntax $${rudder.parameters} is invalid, only $${rudder.parameters[name]} is accepted"))
-      case h :: tail =>
-        context.parameters.get(h) match {
-          case None       => Left(Unexpected(errmsg))
-          case Some(json) =>
-            tail match {
-              case Nil     => Right(GenericProperty.serializeToHocon(json))
-              // here, we need to parse the value in json and try to find the asked path
-              case subpath =>
-                {
-                  val path   = (GenericProperty.VALUE :: subpath).mkString(".")
-                  val config = GenericProperty.valueToConfig(json)
-                  if (config.hasPath(path)) {
-                    Right(GenericProperty.serializeToHocon(config.getValue(path)))
-                  } else {
-                    Left(
-                      Unexpected(
-                        s"Can not find property at paht ${subpath.mkString(".")} in '${GenericProperty.serializeToHocon(json)}'"
-                      )
-                    )
-                  }
-                }.chainError(errmsg)
-            }
-        }
-    }
-  }.toIO
+/*
+ * Both interpolation contexts (the one used to expand global parameter values, and the one used
+ * for node-facing values) are analysed exactly the same way: the only thing an analyser needs is
+ * the property engine service.
+ */
+class AnalyseInterpolationImpl[I <: GenericInterpolationContext](p: PropertyEngineService)
+    extends AnalyseInterpolation[I] with AnalyseInterpolationWithPropertyService {
 
   override def propertyEngineService: PropertyEngineService = p
 }
 
 class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends InterpolatedValueCompiler {
 
-  val analyseNode  = new AnalyseNodeInterpolation(p)
-  val analyseParam = new AnalyseParamInterpolation(p)
+  val analyseNode  = new AnalyseInterpolationImpl[InterpolationContext](p)
+  val analyseParam = new AnalyseInterpolationImpl[ParamInterpolationContext](p)
 
   /*
    * just call the parser on a value, and in case of successful parsing, interprete
@@ -460,41 +337,22 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
     PropertyParser.parse(value).map(t => analyseParam.parseToken(t))
   }
 
-  def translateToAgent(value: String, agent: AgentType): Box[String] = {
-    PropertyParser.parse(value).map(_.map(translate(agent, _)).mkString("")).toBox
-  }
-
-  // Transform a token to its correct value for the agent passed as parameter
-  def translate(agent: AgentType, token: Token): String = {
-    token match {
-      case CharSeq(s)         => s
-      case NodeAccessor(path) => s"$${rudder.node.${path.mkString(".")}}"
-      case v: NonRudderVar => s"$${${v.indexedPath}}"
-      case UnsafeRudderVar(s)    => s"$${${s}}"
-      case Param(name)           => s"$${rudder.param.${name}}" // FIXME: is this a bug ? name is a List[String]
-      case RudderEngine(e, m, o) =>
-        val opt = o match {
-          case Some(options) => options.map(o => s"| ${o.name} = ${o.value}").mkString(" ")
-          case None          => ""
-        }
-        // should not happen since a non expanded engine property should lead to an error
-        s"[missing value for: $${data.${e}[${m.mkString("][")}] ${opt}]"
-      case Property(path, opt)   =>
-        agent match {
-          case AgentType.Dsc          =>
-            s"$$($$node.properties[${path.mkString("][")}])"
-          case AgentType.CfeCommunity =>
-            s"$${node.properties[${path.mkString("][")}]}"
-        }
-    }
-  }
-
 }
 
 object PropertyParser {
 
   import fastparse.*
   import fastparse.NoWhitespace.*
+
+  /*
+   * Global parameters are not interpolable anymore, see `removedParameter`. A global parameter is
+   * set as a default property on each node, so `${node.properties[NAME]}` is the replacement -
+   * with the standard inheritance semantic, ie a group or node override of that name wins.
+   */
+  val removedParameterMessage: String = {
+    "global parameter interpolation was removed: use ${node.properties[NAME]} instead of " +
+    "${rudder.param.NAME} or ${rudder.parameters[NAME]}"
+  }
 
   def parse(value: String): PureResult[List[Token]] = {
     fastparse.parse(value, { case given P[?] => all }) match {
@@ -564,7 +422,7 @@ object PropertyParser {
   // an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
   // after "${rudder." there is no backtracking to an "otherProp" or string possible.
   def rudderVariable[A: P]: P[Interpolation] = P(
-    IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter)
+    IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | removedParameter)
   )
 
   def rudderEngine[A: P]: P[Interpolation] = P(
@@ -584,13 +442,16 @@ object PropertyParser {
     case (name, methods, opt) => RudderEngine(name, methods, opt)
   }
 
-  // a parameter old syntax looks like: ${rudder.param.PARAM_NAME}
-  def oldParameter[A: P]: P[Interpolation] = P(IgnoreCase("param") ~ space ~ "." ~/ space ~/ variableId).map { p =>
-    Param(p :: Nil)
-  }
-
-  // a parameter new syntax looks like: ${rudder.parameters[PARAM_NAME][SUB_NAME]}
-  def parameters[A: P]: P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames()).map(p => Param(p))
+  /*
+   * Global parameter interpolation was removed: both the old syntax `${rudder.param.PARAM_NAME}`
+   * and the new one `${rudder.parameters[PARAM_NAME][SUB_NAME]}` are now parsing errors.
+   * We still match them explicitly (instead of just dropping the rules) so that the user gets an
+   * actionable message telling what to use instead, and not a bare "expected one of ..." trace.
+   */
+  def removedParameter[A: P]: P[Interpolation] = P(
+    (IgnoreCase("parameters") ~ space ~ "[" | IgnoreCase("param") ~ space ~ ".") ~/
+    Fail(PropertyParser.removedParameterMessage)
+  )
 
   // a node property looks like: ${node.properties[.... Cut after "properties".
   def nodeProperty[A: P]: P[Interpolation] = {

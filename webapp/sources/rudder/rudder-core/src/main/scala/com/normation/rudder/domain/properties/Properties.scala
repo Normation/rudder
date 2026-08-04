@@ -163,6 +163,10 @@ object PropertyProvider {
 /*
  * Visibility of a property.
  * A property can be hidden or displayed. When hidden, it is skipped from API/UI list of properties.
+ * A hidden *global parameter* is moreover not written in the node `rudder-parameters.json` file:
+ * such a parameter is an internal one (typically set by a plugin), and it is already distributed to
+ * the node as a node property, so writing it there again is pure duplication - and these values can
+ * be big.
  */
 sealed abstract class Visibility(override val entryName: String) extends EnumEntry
 object Visibility                                                extends Enum[Visibility] {

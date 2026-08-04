@@ -77,12 +77,12 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.tenants.SecurityTag
-import com.typesafe.config.ConfigValue
 import java.time.Instant
 import scala.collection.immutable.TreeMap
 import zio.Chunk
@@ -144,18 +144,10 @@ object BundleOrder {
   }
 }
 
-sealed trait GenericInterpolationContext[PARAM] {
+sealed trait GenericInterpolationContext {
   def nodeInfo:         CoreNodeFact
   def policyServerInfo: CoreNodeFact
   def globalPolicyMode: GlobalPolicyMode
-  // parameters for this node
-  // must be a case SENSITIVE Map !!!!
-  def parameters:       Map[String, PARAM]
-  // the depth of the interpolation context evaluation
-  // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-  // for ex: param a => param b => param c => ..... => param a
-  // should not be evaluated
-  def depth:            Int
 }
 
 /**
@@ -166,16 +158,8 @@ sealed trait GenericInterpolationContext[PARAM] {
 final case class ParamInterpolationContext(
     nodeInfo:         CoreNodeFact,
     policyServerInfo: CoreNodeFact,
-    globalPolicyMode: GlobalPolicyMode,                                           // parameters for this node
-    // must be a case SENSITIVE Map !!!!
-
-    parameters:       Map[String, ParamInterpolationContext => IOResult[String]], // the depth of the interpolation context evaluation
-    // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-    // for ex: param a => param b => param c => ..... => param a
-    // should not be evaluated
-
-    depth:            Int = 0
-) extends GenericInterpolationContext[ParamInterpolationContext => IOResult[String]]
+    globalPolicyMode: GlobalPolicyMode
+) extends GenericInterpolationContext
 
 final case class InterpolationContext(
     nodeInfo:         CoreNodeFact,
@@ -184,14 +168,13 @@ final case class InterpolationContext(
     // environment variable for that server
     // must be a case insensitive Map !!!!
     nodeContext:      TreeMap[String, Variable],
-    // parameters for this node
+    // global parameters for that node, with their value expanded for it.
+    // They are NOT interpolable anymore (see PropertyParser#removedParameter): they are only kept
+    // here to be written down in the node `rudder-parameters.json` file.
+    // Can be removed along with the `rudder-parameters.json` in Rudder 10.0.
     // must be a case SENSITIVE Map !!!!
-    parameters:       Map[String, ConfigValue], // the depth of the interpolation context evaluation
-    // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-    // for ex: param a => param b => param c => ..... => param a
-    // should not be evaluated
-    depth:            Int
-) extends GenericInterpolationContext[ConfigValue]
+    parameters:       Map[String, GlobalParameter]
+) extends GenericInterpolationContext
 
 object InterpolationContext {
   implicit val caseInsensitiveString: Ordering[String] = new Ordering[String] {
@@ -201,33 +184,25 @@ object InterpolationContext {
   def apply(
       nodeInfo:         CoreNodeFact,
       policyServerInfo: CoreNodeFact,
-      globalPolicyMode: GlobalPolicyMode,         // environment variable for that server
+      globalPolicyMode: GlobalPolicyMode,      // environment variable for that server
       // must be a case insensitive Map !!!!
 
-      nodeContext:      Map[String, Variable],    // parameters for this node
+      nodeContext:      Map[String, Variable], // global parameters for that node
       // must be a case SENSITIVE Map !!!!
 
-      parameters:       Map[String, ConfigValue], // the depth of the interpolation context evaluation
-      // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-      // for ex: param a => param b => param c => ..... => param a
-      // should not be evaluated
-
-      depth:            Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq*), parameters, depth)
+      parameters:       Map[String, GlobalParameter]
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq*), parameters)
 }
 
+/*
+ * A global parameter, as it is written down in the node `rudder-parameters.json` file.
+ * Visibility is kept because hidden parameters are not written in that file.
+ */
 final case class ParameterForConfiguration(
-    name:  String,
-    value: String
+    name:       String,
+    value:      String,
+    visibility: Visibility = Visibility.default
 )
-
-case object ParameterForConfiguration {
-  def fromParameter(param: GlobalParameter): ParameterForConfiguration = {
-    // here, we need to go back to a string for resolution of
-    // things like ${rudder.param[foo] | default = ... }
-    ParameterForConfiguration(param.name, param.valueAsString)
-  }
-}
 
 /**
  * A Parameter Entry has a Name and a Value, and can be freely used within the promises
@@ -353,6 +328,7 @@ object NodeConfiguration {
 
     given JsonEncoder[NodeRunHook.ReportOn]      = DeriveJsonEncoder.gen[NodeRunHook.ReportOn]
     given JsonEncoder[NodeRunHook]               = DeriveJsonEncoder.gen[NodeRunHook]
+    given JsonEncoder[Visibility]                = JsonEncoder[String].contramap(_.entryName)
     given JsonEncoder[ParameterForConfiguration] =
       DeriveJsonEncoder.gen[ParameterForConfiguration]
   }

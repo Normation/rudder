@@ -51,7 +51,6 @@ import com.normation.rudder.services.policies.PropertyParser
 import com.normation.rudder.services.policies.PropertyParserTokens.CharSeq
 import com.normation.rudder.services.policies.PropertyParserTokens.NodeAccessor
 import com.normation.rudder.services.policies.PropertyParserTokens.NonRudderVar
-import com.normation.rudder.services.policies.PropertyParserTokens.Param
 import com.normation.rudder.services.policies.PropertyParserTokens.Property
 import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
 import com.normation.rudder.services.policies.PropertyParserTokens.Token
@@ -317,10 +316,6 @@ object ParameterType {
           )
         case NodeAccessor(path)              =>
           validatedPath(path).as(mkDatastate("rudder" :: "node" :: path))
-        case Param(path)                     =>
-          validatedPath(path).as(
-            mkDatastate("rudder" :: "param" :: path)
-          ) // "param" : same as in InterpolatedValueCompilerImpl#translate
         case Property(
               path,
               _ // templating options can be ignored because template is already rendered statically with default value when necessary
