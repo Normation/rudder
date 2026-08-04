@@ -11,6 +11,11 @@ ARCHIVE_NAME=rudder.tar.bz2
 # archive is directly under "rules" directory
 ARCHIVE_PATH="${RUDDER_POLICIES_DIRECTORY}/.."
 
+# Don't compress root policies, they are local
+if [ "${RUDDER_NODE_ID}" = "root" ]; then
+  exit 0;
+fi;
+
 if [ -z "${RUDDER_POLICIES_DIRECTORY}" ]; then
   #bad rules.new directory
   echo "The directory for node ${RUDDER_NODEID} new policies is empty"

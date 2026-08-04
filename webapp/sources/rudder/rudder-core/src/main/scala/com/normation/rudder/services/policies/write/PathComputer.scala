@@ -38,8 +38,6 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.errors.*
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -58,8 +56,6 @@ trait PathComputer {
       rootNodeId:     NodeId,
       allNodeConfigs: Map[NodeId, CoreNodeFact]
   ): PureResult[NodePoliciesPaths]
-
-  def getRootPath(agentType: AgentType): String
 }
 
 /**
@@ -72,8 +68,6 @@ class PathComputerImpl(
     relativeShareFolder: String, // "share"
 
     backupFolder: Option[String], // "/var/rudder/backup/"
-
-    communityAgentRootPath: String, // "/var/rudder/cfengine-community/inputs"
 
     chainDepthLimit: Int = 20 // max number of relay, to detect cycles
 ) extends PathComputer with Loggable {
@@ -88,8 +82,6 @@ class PathComputerImpl(
    *  the backup folder, the path were promises are backuped
    * Finish with no trailing /
    * Ex : /var/rudder/share/uuid-a/share/uuid-b/rules,/var/rudder/share/uuid-a/share/uuid-b/rules.new, /var/rudder/backup/uuid-a/share/uuid-b
-   * Caution: when used for root server, the computed path is not valid, however some magic catch it
-   * up after to correct the path
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
@@ -98,31 +90,15 @@ class PathComputerImpl(
       rootNodeId:     NodeId,
       allNodeConfigs: Map[NodeId, CoreNodeFact]
   ): PureResult[NodePoliciesPaths] = {
-    if (searchedNodeId == rootNodeId) {
-      Left(Inconsistency("ComputeBaseNodePath can not be used to get the (special) root paths"))
-    } else {
-      for {
-        path <- recurseComputePath(rootNodeId, searchedNodeId, "/" + searchedNodeId.value, allNodeConfigs, Nil)
-      } yield {
-        NodePoliciesPaths(
-          searchedNodeId,
-          FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix),
-          FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix),
-          backupFolder.map(x => FilenameUtils.normalize(x + path + promisesPrefix))
-        )
-      }
-    }
-  }
-
-  /**
-   * Return the path of the promises for the root (we directly write its promises in its path)
-   * @param agent
-   * @return
-   */
-  def getRootPath(agentType: AgentType): String = {
-    agentType match {
-      case CfeCommunity => communityAgentRootPath
-      case x            => throw new IllegalArgumentException("Unrecognized agent type: %s".format(x))
+    for {
+      path <- recurseComputePath(rootNodeId, searchedNodeId, "/" + searchedNodeId.value, allNodeConfigs, Nil)
+    } yield {
+      NodePoliciesPaths(
+        searchedNodeId,
+        FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix),
+        FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix),
+        backupFolder.map(x => FilenameUtils.normalize(x + path + promisesPrefix))
+      )
     }
   }
 
