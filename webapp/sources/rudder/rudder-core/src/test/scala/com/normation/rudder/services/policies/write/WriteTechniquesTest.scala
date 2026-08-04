@@ -377,7 +377,11 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       val rnc = cfg.copy(
         policies = policies(cfg.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
 
-        parameters = cfg.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+        // the hidden parameter must be in the `rudder_parameters` string-template bundle
+        // (common/1.0/rudder-parameters.cf) but NOT in rudder-parameters.json
+        parameters = cfg.parameters
+          + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+          + ParameterForConfiguration("hiddenParam", "hiddenParamValue", Hidden)
       )
 
       // Actually write the promise files for the root node

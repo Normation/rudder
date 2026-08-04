@@ -680,7 +680,7 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
       Map(
         ("CLOCK_FQDNNTP", Seq("true")),
         ("CLOCK_HWSYNC_ENABLE", Seq("true")),
-        ("CLOCK_NTPSERVERS", Seq("${rudder.param.ntpserver}")),
+        ("CLOCK_NTPSERVERS", Seq("${node.properties[ntpserver]}")),
         ("CLOCK_SYNCSCHED", Seq("240")),
         ("CLOCK_TIMEZONE", Seq("dontchange"))
       ),

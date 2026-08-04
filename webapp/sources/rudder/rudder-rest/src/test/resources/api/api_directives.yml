@@ -317,7 +317,7 @@ response:
             "longDescription":"",
             "techniqueName":"clockConfiguration",
             "techniqueVersion":"3.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Hardware clock (RTC)","vars":[{"var":{"name":"CLOCK_HWSYNC_ENABLE","value":"true"}},{"var":{"name":"CLOCK_SYNCSCHED","value":"240"}}]}},{"section":{"name":"Time synchronization (NTP)","vars":[{"var":{"name":"CLOCK_FQDNNTP","value":"true"}}],"sections":[{"section":{"name":"clock ntpservers","vars":[{"var":{"name":"CLOCK_NTPSERVERS","value":"${rudder.param.ntpserver}"}}]}}]}},{"section":{"name":"Time zone","vars":[{"var":{"name":"CLOCK_TIMEZONE","value":"dontchange"}}]}}]}},
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Hardware clock (RTC)","vars":[{"var":{"name":"CLOCK_HWSYNC_ENABLE","value":"true"}},{"var":{"name":"CLOCK_SYNCSCHED","value":"240"}}]}},{"section":{"name":"Time synchronization (NTP)","vars":[{"var":{"name":"CLOCK_FQDNNTP","value":"true"}}],"sections":[{"section":{"name":"clock ntpservers","vars":[{"var":{"name":"CLOCK_NTPSERVERS","value":"${node.properties[ntpserver]}"}}]}}]}},{"section":{"name":"Time zone","vars":[{"var":{"name":"CLOCK_TIMEZONE","value":"dontchange"}}]}}]}},
             "priority":5,
             "enabled":true,
             "system":false,
@@ -2186,7 +2186,7 @@ response:
                                               {
                                                 "var": {
                                                   "name": "CLOCK_NTPSERVERS",
-                                                  "value": "${rudder.param.ntpserver}"
+                                                  "value": "${node.properties[ntpserver]}"
                                                 }
                                               }
                                             ]

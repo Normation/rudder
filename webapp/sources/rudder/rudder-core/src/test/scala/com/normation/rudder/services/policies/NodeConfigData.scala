@@ -1150,7 +1150,7 @@ class TestNodeConfiguration(
       List(
         ("CLOCK_FQDNNTP", Seq("")), // testing mandatory value with default "true"
         ("CLOCK_HWSYNC_ENABLE", Seq("true")),
-        ("CLOCK_NTPSERVERS", Seq("${rudder.param.ntpserver}")),
+        ("CLOCK_NTPSERVERS", Seq("${node.properties[ntpserver]}")),
         ("CLOCK_SYNCSCHED", Seq("240")),
         ("CLOCK_TIMEZONE", Seq("dontchange"))
       )

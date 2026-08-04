@@ -832,7 +832,8 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
                               policies = policies,
                               nodeContext = context.nodeContext,
                               parameters = context.parameters.map {
-                                case (k, v) => ParameterForConfiguration(k, GenericProperty.serializeToHocon(v))
+                                case (k, v) =>
+                                  ParameterForConfiguration(k, GenericProperty.serializeToHocon(v.value), v.visibility)
                               }.toSet,
                               schedules = nodeSchedules
                             )

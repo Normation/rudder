@@ -82,16 +82,10 @@ class TestEditorTechnique extends Specification {
               |'@)""".stripMargin
           )
         }
-        "with rudder parameter interpolation" in {
-          translate("foo ${rudder.parameters[foo]} bar") must beRight(
-            """(@'
-              |foo 
-              |'@ + ([Rudder.Datastate]::Render('{{{' + @'
-              |vars.rudder.param.foo
-              |'@ + '}}}')) + @'
-              | bar
-              |'@)""".stripMargin
-          )
+        "with a removed rudder parameter interpolation" in {
+          // global parameters are not interpolable anymore, whatever the syntax
+          (translate("foo ${rudder.parameters[foo]} bar") must beLeft) and
+          (translate("foo ${rudder.param.foo} bar") must beLeft)
         }
         "with property interpolation" in {
           translate("foo ${node.properties[foo]} bar") must beRight(

@@ -15,7 +15,7 @@
 
 use std::{cmp::Ordering, fmt::Debug, str::FromStr, sync::OnceLock};
 
-use anyhow::{Error, Result, bail};
+use anyhow::{Error, Result, anyhow, bail};
 use nom::{
     Finish, IResult, Parser,
     branch::alt,
@@ -83,8 +83,12 @@ pub enum Expression {
     NcfConst(Box<Expression>),
     /// `${node.inventory[os]}`
     NodeInventory(Vec<Expression>),
-    // FIXME deprecated in techniques (in favor of technique parameters)
     /// `${rudder.parameters[NAME]}`
+    ///
+    /// Removed: global parameters can not be used in techniques anymore, technique parameters must
+    /// be used instead. The variant is kept so that the parser still recognizes the syntax and can
+    /// report an actionable error (see `check_no_global_parameter`) instead of silently treating it
+    /// as an unknown generic variable.
     GlobalParameter(Box<Expression>),
     // FIXME deprecated in techniques (in favor of technique parameters)
     /// `${node.property[KEY][SUBKEY]}`
@@ -214,6 +218,44 @@ impl Expression {
             }
         }
     }
+    /// Global parameters were removed from techniques, in favor of technique parameters.
+    ///
+    /// Both the server-side `${rudder.parameters[NAME]}` and the agent-side
+    /// `${rudder_parameters.NAME}` string-template bundle are refused. Unlike `lint`, whose findings
+    /// are only logged, this one is a hard error: a technique using them does not compile anymore.
+    pub fn check_no_global_parameter(&self) -> Result<()> {
+        // agent-side bundle, unknown to the parser, so it lands in a generic var
+        const AGENT_BUNDLE_PREFIX: &str = "rudder_parameters.";
+
+        fn removed(syntax: &str) -> Error {
+            anyhow!(
+                "'{syntax}' is not supported anymore: global parameters can not be used in techniques, use a technique parameter instead"
+            )
+        }
+
+        match self {
+            Self::GlobalParameter(_) => return Err(removed("${rudder.parameters[...]}")),
+            Self::GenericVar(v) => {
+                if let Some(Self::Scalar(name)) = v.first()
+                    && name.starts_with(AGENT_BUNDLE_PREFIX)
+                {
+                    return Err(removed("${rudder_parameters....}"));
+                }
+                for e in v {
+                    e.check_no_global_parameter()?
+                }
+            }
+            Self::Sequence(v) | Self::NodeProperty(v) | Self::NodeInventory(v) | Self::Sys(v) => {
+                for e in v {
+                    e.check_no_global_parameter()?
+                }
+            }
+            Self::Const(e) | Self::NcfConst(e) => e.check_no_global_parameter()?,
+            Self::Scalar(_) | Self::Empty => (),
+        }
+        Ok(())
+    }
+
     /// Look for errors in the expression
     //
     // A lot of unwrapping as we rely on the structure of the `vars.yml` static document
@@ -1086,5 +1128,37 @@ vars.bundle.plouf
 
         let e = Expression::from_str("${node.inventory[machine][machineType]}").unwrap();
         assert!(e.lint().is_ok());
+    }
+
+    #[test]
+    fn it_refuses_removed_global_parameters() {
+        for s in [
+            "${rudder.parameters[foo]}",
+            "prefix ${rudder.parameters[foo]} suffix",
+            "${rudder_parameters.rudder_file_edit_header}",
+            "${node.properties[${rudder.parameters[foo]}]}",
+        ] {
+            let e = Expression::from_str(s).unwrap();
+            assert!(
+                e.check_no_global_parameter().is_err(),
+                "'{s}' must be refused"
+            );
+        }
+    }
+
+    #[test]
+    fn it_accepts_expressions_without_global_parameters() {
+        for s in [
+            "${node.properties[foo]}",
+            "${sys.host}",
+            "${my_technique_parameter}",
+            "plain value",
+        ] {
+            let e = Expression::from_str(s).unwrap();
+            assert!(
+                e.check_no_global_parameter().is_ok(),
+                "'{s}' must be accepted"
+            );
+        }
     }
 }
