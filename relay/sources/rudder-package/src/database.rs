@@ -4,7 +4,7 @@
 use std::{
     collections::HashMap,
     fs::{self, *},
-    io::BufWriter,
+    io::{BufRead, BufWriter, Write},
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -220,8 +220,14 @@ impl Database {
         Ok(())
     }
 
-    pub fn disabled_plugins_save(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
-        let mut disabled = Vec::new();
+    /// Write the statuses of the plugins that are not enabled, one per line, for
+    /// [`Self::enabled_plugins_restore`] to read back.
+    ///
+    /// Where the snapshot is kept is the caller's business: we write to a stream it gives us,
+    /// usually our own stdout with the packaging redirecting it into a root-owned file. Opening
+    /// that file ourselves would mean handling, as root, a path in a directory we do not control.
+    pub fn disabled_plugins_save(&self, out: &mut impl Write, webapp: &mut Webapp) -> Result<()> {
+        const FAILED: &str = "Failed to write the plugins statuses";
         let enabled_jars = webapp.jars()?;
         for (name, p) in self.plugins.iter().sorted_by_key(|x| x.0) {
             if !p.metadata.jar_files.is_empty()
@@ -231,26 +237,10 @@ impl Database {
                     .iter()
                     .all(|j| enabled_jars.contains(j))
             {
-                disabled.push(format!("disabled {name}"));
+                writeln!(out, "disabled {name}").context(FAILED)?;
             }
         }
-        fs::write(
-            backup_path,
-            disabled
-                .iter()
-                .fold("".to_string(), |acc, s| format!("{acc}{s}\n")),
-        )
-        .with_context(|| {
-            format!(
-                "Failed to save the plugins statuses in the backup file {}",
-                backup_path.to_string_lossy()
-            )
-        })?;
-        info!(
-            "Plugins statuses saved in {}",
-            backup_path.to_string_lossy()
-        );
-        Ok(())
+        out.flush().context(FAILED)
     }
 
     fn apply_plugin_status_line_from_backup(&self, line: &str, webapp: &mut Webapp) -> Result<()> {
@@ -279,17 +269,12 @@ impl Database {
         }
     }
 
-    pub fn enabled_plugins_restore(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
-        for line in read_to_string(backup_path)
-            .with_context(|| {
-                format!(
-                    "Failed to read the status backup file in {}",
-                    backup_path.to_string_lossy()
-                )
-            })?
-            .lines()
-        {
-            if let Err(e) = self.apply_plugin_status_line_from_backup(line, webapp) {
+    /// Restore the plugin statuses read from `input`, usually our own stdin with the packaging
+    /// redirecting the snapshot into it. Empty input restores nothing.
+    pub fn enabled_plugins_restore(&self, input: impl BufRead, webapp: &mut Webapp) -> Result<()> {
+        for line in input.lines() {
+            let line = line.context("Failed to read the plugins statuses")?;
+            if let Err(e) = self.apply_plugin_status_line_from_backup(&line, webapp) {
                 warn!("{:?}", e)
             }
         }
@@ -368,28 +353,54 @@ mod tests {
     use super::*;
     use crate::{archive, versions::RudderVersion};
 
+    /// The statuses, as the packaging would redirect them into its snapshot file.
+    fn save(d: &Database, w: &mut Webapp) -> String {
+        let mut out = Vec::new();
+        d.disabled_plugins_save(&mut out, w).unwrap();
+        String::from_utf8(out).unwrap()
+    }
+
     #[test]
     fn test_save_plugin_statuses() {
         let temp_dir = TempDir::new().unwrap();
+        let (d, mut w) = test_database(&temp_dir);
+        assert_eq!(
+            save(&d, &mut w),
+            fs::read_to_string("./tests/status_backup_file/backup.expected").unwrap()
+        );
+    }
+
+    /// Set up a database and a webapp over a scratch copy of the test fixtures.
+    fn test_database(temp_dir: &TempDir) -> (Database, Webapp) {
         let database_path = temp_dir.path().join("database.json");
         let webapp_path = temp_dir.path().join("webappPath.json");
-        let backup_path = temp_dir.path().join("backup.json");
         fs::copy(
             "tests/status_backup_file/database.json",
             database_path.clone(),
         )
         .unwrap();
         fs::copy("tests/status_backup_file/webapp.xml", webapp_path.clone()).unwrap();
-        let mut w = Webapp::new(
+        let webapp = Webapp::new(
             webapp_path,
             RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
         );
-        let d = Database::read(Path::new(&database_path)).unwrap();
-        d.disabled_plugins_save(&backup_path, &mut w).unwrap();
-        assert_eq!(
-            fs::read_to_string(backup_path).unwrap(),
-            fs::read_to_string("./tests/status_backup_file/backup.expected").unwrap()
-        );
+        (Database::read(Path::new(&database_path)).unwrap(), webapp)
+    }
+
+    #[test]
+    fn test_restore_plugin_statuses_round_trip() {
+        let temp_dir = TempDir::new().unwrap();
+        let (d, mut w) = test_database(&temp_dir);
+
+        let saved = save(&d, &mut w);
+        d.enabled_plugins_restore(saved.as_bytes(), &mut w).unwrap();
+    }
+
+    #[test]
+    fn test_restore_ignores_an_empty_snapshot() {
+        let temp_dir = TempDir::new().unwrap();
+        let (d, mut w) = test_database(&temp_dir);
+        d.enabled_plugins_restore("".as_bytes(), &mut w).unwrap();
     }
 
     #[test]
