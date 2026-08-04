@@ -144,19 +144,17 @@ class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringT
   /*
    * We parametrize the output of file writing with a sub-directory name,
    * so that we can keep each write in it's own directory for debug.
+   * Returns the "/var/rudder/share" directory for that writer, along with the writer itself.
    */
   def getPromiseWriter(label: String): (File, PolicyWriterServiceImpl) = {
 
     // where the "/var/rudder/share" file is for tests:
     val SHARE = abstractRoot / s"share-${label}"
 
-    val rootGeneratedPromisesDir = SHARE / "root"
-
     val pathComputer = new PathComputerImpl(
       SHARE.getParent + "/",
       SHARE.getName,
-      Some(abstractRoot.getAbsolutePath + "/backup"),
-      rootGeneratedPromisesDir.getAbsolutePath
+      Some(abstractRoot.getAbsolutePath + "/backup")
     )
 
     val templateService = engine match {
@@ -178,7 +176,7 @@ class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringT
       WithoutSudo
     )
 
-    (rootGeneratedPromisesDir, promiseWriter)
+    (SHARE, promiseWriter)
   }
 
   //////////// end init ////////////
@@ -399,9 +397,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     }
 
     "correctly write the expected policies files with default installation" in {
-      val (rootPath, writer) = getPromiseWriter("root-default-install")
+      val (share, writer) = getPromiseWriter("root-default-install")
       (writeNodeConfigWithUserDirectives(writer, Nil) must beFull) and
-      compareWith(rootPath, "root-default-install")
+      compareWith(share / root.id.value, "root-default-install")
     }
 
     "correctly write the expected policies files with default installation but `.new` files exists" in {
@@ -422,12 +420,12 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           .appendLines("some more crap")
       }
 
-      val (rootPath, writer) = getPromiseWriter("root-default-install-crap")
+      val (share, writer) = getPromiseWriter("root-default-install-crap")
 
-      // add garbage in rootPath/root.new/promises.cf (for a template), rudder.json & rudder-directives.csv (b/c special),
-      // /inventory/1.0/test-inventory.pl (pure file).
+      // add garbage in the root `rules.new` directory: promises.cf (for a template), rudder.json &
+      // rudder-directives.csv (b/c special), /inventory/1.0/test-inventory.pl (pure file).
 
-      val newPolicies = new File(rootPath.getParentFile, "root.new")
+      val newPolicies = share / root.id.value / "rules.new/cfengine-community"
       newPolicies.mkdirs()
 
       List(
@@ -443,14 +441,14 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       addCrap(inventory.getAbsolutePath + "/test-inventory.pl")
 
       (writeNodeConfigWithUserDirectives(writer, Nil) must beFull) and
-      compareWith(rootPath, "root-default-install")
+      compareWith(share / root.id.value, "root-default-install")
     }
 
     "correctly write the expected policies files when 2 directives configured" in {
-      val (rootPath, writer) = getPromiseWriter("root-with-two-directives")
+      val (share, writer) = getPromiseWriter("root-with-two-directives")
       (writeNodeConfigWithUserDirectives(writer, Nil, clock, rpm) must beFull) and
       compareWith(
-        rootPath,
+        share / root.id.value,
         "root-with-two-directives",
         """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
         :: """.*add:default:==:.*"""                           // rpm reports
@@ -459,10 +457,10 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     }
 
     "correctly write the expected policies files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
-      val (rootPath, writer) = getPromiseWriter("root-with-one-multipolicy")
+      val (share, writer) = getPromiseWriter("root-with-one-multipolicy")
       (writeNodeConfigWithUserDirectives(writer, Nil, fileTemplate1, fileTemplate2, fileTemplate3) must beFull) and
       compareWith(
-        rootPath,
+        share / root.id.value,
         "root-with-one-multipolicy",
         """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
         :: """.*add:default:==:.*"""                           // rpm reports
@@ -496,7 +494,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     }
 
     "correctly write nothing (no quotes) when no groups" in {
-      val (rootPath, writer) = getPromiseWriter("group-1")
+      val (share, writer) = getPromiseWriter("group-1")
 
       // Actually write the promise files for the root node
       writer
@@ -513,7 +511,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         )
         .openOrThrowException("Can not write template!")
 
-      rootPath / "common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE / "test-rudder-groups/no-group.cf")
+      share / root.id.value / "rules/cfengine-community/common/1.0/rudder-groups.cf" must haveSameLinesAs(
+        EXPECTED_SHARE / "test-rudder-groups/no-group.cf"
+      )
     }
 
     "correctly write the classes and by_uuid array when groups" in {
@@ -524,7 +524,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       val rnc       = getRootNodeConfig(groupLib2)
 
       // Actually write the promise files for the root node
-      val (rootPath, writer) = getPromiseWriter("group-2")
+      val (share, writer) = getPromiseWriter("group-2")
 
       writer
         .writeTemplate(
@@ -540,7 +540,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         )
         .openOrThrowException("Can not write template!")
 
-      rootPath / "common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE / "test-rudder-groups/some-groups.cf")
+      share / root.id.value / "rules/cfengine-community/common/1.0/rudder-groups.cf" must haveSameLinesAs(
+        EXPECTED_SHARE / "test-rudder-groups/some-groups.cf"
+      )
     }
   }
 
@@ -561,9 +563,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     )
 
     "correctly get the expected policy files" in {
-      val (rootPath, writer) = getPromiseWriter("node-cfe-with-two-directives")
+      val (share, writer) = getPromiseWriter("node-cfe-with-two-directives")
       // Actually write the promise files for the root node
-      val written            = writer.writeTemplate(
+      val written         = writer.writeTemplate(
         root.id,
         Set(root.id, cfeNode.id),
         Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
@@ -577,7 +579,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
       (written must beFull) and
       compareWith(
-        rootPath.getParentFile / cfeNode.id.value,
+        share / cfeNode.id.value,
         "node-cfe-with-two-directives",
         """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
         :: """.*add:default:==:.*"""                           // rpm reports
@@ -601,9 +603,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     )
 
     "correctly get the expected policy files" in {
-      val (rootPath, writer) = getPromiseWriter("node-gen-var-def-override")
+      val (share, writer) = getPromiseWriter("node-gen-var-def-override")
       // Actually write the promise files for the root node
-      val written            = writer.writeTemplate(
+      val written         = writer.writeTemplate(
         root.id,
         Set(root.id, cfeNode.id),
         Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
@@ -616,7 +618,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       )
 
       (written must beFull) and
-      compareWith(rootPath.getParentFile / cfeNode.id.value, "node-gen-var-def-override", Nil)
+      compareWith(share / cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
 }
@@ -670,9 +672,9 @@ class WriteSystemTechniques500Test extends TechniquesTest {
     )
 
     "correctly get the expected policy files" in {
-      val (rootPath, writer) = getPromiseWriter("root-sys-var-false")
+      val (share, writer) = getPromiseWriter("root-sys-var-false")
       // Actually write the promise files for the root node
-      val written            = writer.writeTemplate(
+      val written         = writer.writeTemplate(
         root.id,
         Set(root.id, cfeNode.id),
         Map(root.id -> rnc),
@@ -685,7 +687,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
       )
 
       (written must beFull) and
-      compareWith(rootPath.getParentFile / root.id.value, "root-sys-var-false", Nil)
+      compareWith(share / root.id.value, "root-sys-var-false", Nil)
     }
   }
 
@@ -712,9 +714,9 @@ class WriteSystemTechniques500Test extends TechniquesTest {
     )
 
     "correctly get the expected policy files" in {
-      val (rootPath, writer) = getPromiseWriter("node-cfe-with-500-directives")
+      val (share, writer) = getPromiseWriter("node-cfe-with-500-directives")
       // Actually write the promise files for the root node
-      val written            = writer.writeTemplate(
+      val written         = writer.writeTemplate(
         root.id,
         Set(root.id, cfeNode.id),
         Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
@@ -727,7 +729,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
       )
 
       (written must beFull) and
-      compareWith(rootPath.getParentFile / cfeNode.id.value, "node-cfe-with-500-directives", Nil)
+      compareWith(share / cfeNode.id.value, "node-cfe-with-500-directives", Nil)
     }
   }
 
@@ -825,16 +827,16 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
     }
 
     "for a directive with a revision specified for technique" in {
-      val (rootPath, writer) = getPromiseWriter("technique-and-revisions")
-      val initCommit         = getCurrentCommitId.getName
+      val (share, writer) = getPromiseWriter("technique-and-revisions")
+      val initCommit      = getCurrentCommitId.getName
       updateTemplate(abstractRoot)
-      val head               = getCurrentCommitId.getName
+      val head            = getCurrentCommitId.getName
       // specify technique revision to use in policy
-      val revisedClock       = changeRev(clock, Revision(initCommit))
+      val revisedClock    = changeRev(clock, Revision(initCommit))
       (initCommit must be_!==(head)) and
       (writeNodeConfigWithUserDirectives(writer, revisedClock) must beFull) and
       compareWith(
-        rootPath,
+        share / root.id.value,
         "technique-and-revisions",
         """.*rudder_common_report\("ntpConfiguration".*@@.*"""              // clock reports
         :: s""".*directive1.*enforce.*merged.*3.0.*Clock Configuration.*""" // in rudder-directives.csv
