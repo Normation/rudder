@@ -1,0 +1,21 @@
+type: object
+required:
+  - name
+  - compliance
+  - complianceDetails
+properties:
+  name:
+    type: string
+    description: Name of the component
+    example: MOTD Configuration
+  compliance:
+    type: number
+    format: float
+    description: Directive compliance level
+    example: 100.0
+  complianceDetails:
+    $ref: 'compliance-details.yml'
+  components:
+    $ref: 'component-status-report.yml'
+  values:
+    $ref: 'compliance-values.yml'
