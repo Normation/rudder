@@ -119,11 +119,6 @@ class MockLdapFactStorage {
     "test"
   )
 
-  val removedDIT = new InventoryDit(
-    new DN("ou=Removed Inventories,ou=Inventories,cn=rudder-configuration"),
-    new DN("ou=Inventories,cn=rudder-configuration"),
-    "test"
-  )
   val pendingDIT = new InventoryDit(
     new DN("ou=Pending Inventories,ou=Inventories,cn=rudder-configuration"),
     new DN("ou=Inventories,cn=rudder-configuration"),
@@ -131,8 +126,8 @@ class MockLdapFactStorage {
   )
   val nodeDit    = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit  = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
-  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingDIT, acceptedDIT, removedDIT)
-  val inventoryMapper             = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT, removedDIT)
+  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingDIT, acceptedDIT)
+  val inventoryMapper             = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT)
   val ldapMapper                  = new LDAPEntityMapper(rudderDit, nodeDit, null, inventoryMapper)
   val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap, 100)
   val softwareGet                 = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldapRo, inventoryMapper)

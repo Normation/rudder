@@ -131,26 +131,21 @@ class TestInventory extends Specification {
 
   val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
 
-  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(
+  val acceptedNodesDitImpl: InventoryDit        = new InventoryDit(
     new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration"),
     softwareDN,
     "Accepted inventories"
   )
-  val pendingNodesDitImpl:  InventoryDit = new InventoryDit(
+  val pendingNodesDitImpl:  InventoryDit        = new InventoryDit(
     new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration"),
     softwareDN,
     "Pending inventories"
   )
-  val removedNodesDitImpl = new InventoryDit(
-    new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration"),
-    softwareDN,
-    "Removed Servers"
-  )
-  val inventoryDitService: InventoryDitService =
-    new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val inventoryDitService:  InventoryDitService =
+    new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
 
   val inventoryMapper: InventoryMapper =
-    new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl)
 
   val repo = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap, 5)
 
@@ -160,7 +155,7 @@ class TestInventory extends Specification {
 
   val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware, acceptedNodesDitImpl)
 
-  val allStatus: Seq[InventoryStatus] = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
+  val allStatus: Seq[InventoryStatus] = Seq(PendingInventory, AcceptedInventory)
 
   // shortcut to create a machine with the name has ID in the given status
   def machine(name: String, status: InventoryStatus):                                         MachineInventory = MachineInventory(
@@ -311,25 +306,9 @@ class TestInventory extends Specification {
       (
         repo.move(m.id, AcceptedInventory).isOK
         and (repo.getMachine(m.id).testRunGet must beEqualTo(m.copy(status = AcceptedInventory)))
-        and repo.move(m.id, RemovedInventory).isOK
-        and (repo.getMachine(m.id).testRunGet must beEqualTo(m.copy(status = RemovedInventory)))
       )
     }
 
-    ", when asked to move machine in removed inventory and a machine with the same id exists there, keep the one in removed and delete the one in accepted" in {
-      val m1 = machine("keepingMachine", AcceptedInventory)
-      val m2 = m1.copy(status = RemovedInventory, name = Some("modified"))
-
-      (
-        (repo.save(m1).isOK)
-        and (repo.save(m2).isOK)
-        and (repo.move(m1.id, RemovedInventory).isOK)
-        and {
-          val dn = inventoryDitService.getDit(AcceptedInventory).MACHINES.MACHINE.dn(m1.id)
-          repo.getMachine(m1.id).testRunGet === m2 and ldap.server.entryExists(dn.toString) === false
-        }
-      )
-    }
   }
 
   "Saving, finding and moving node" should {
@@ -340,14 +319,12 @@ class TestInventory extends Specification {
 
       val n1 = node("acceptedNode", AcceptedInventory, (mid, AcceptedInventory))
       val n2 = node("pendingNode", PendingInventory, (mid, AcceptedInventory))
-      val n3 = node("removedNode", RemovedInventory, (mid, AcceptedInventory))
 
       def toDN(n: NodeInventory) = inventoryDitService.getDit(n.main.status).NODES.NODE.dn(n.main.id.value)
 
       (
         repo.save(FullInventory(n1, None)).isOK
         and repo.save(FullInventory(n2, None)).isOK
-        and repo.save(FullInventory(n3, None)).isOK
         and {
           val res = (for {
             con   <- ldap
@@ -357,8 +334,7 @@ class TestInventory extends Specification {
           })
           res.testRun.forceGet must havePairs(
             AcceptedInventory -> Set(toDN(n1)),
-            PendingInventory  -> Set(toDN(n2)),
-            RemovedInventory  -> Set(toDN(n3))
+            PendingInventory  -> Set(toDN(n2))
           )
         }
       )
@@ -415,41 +391,6 @@ class TestInventory extends Specification {
         }
       )
     }
-
-    ", when moving from pending to accepted, moved back a machine from removed to accepted and correct other node container" in {
-      val m  = machine("harcoreMachine", RemovedInventory)
-      val n0 = node("h-n0", PendingInventory, (m.id, PendingInventory))
-      val n1 = node("h-n1", PendingInventory, (m.id, PendingInventory))
-      val n2 = node("h-n2", AcceptedInventory, (m.id, AcceptedInventory))
-      val n3 = node("h-n3", RemovedInventory, (m.id, RemovedInventory))
-
-      (
-        repo.save(m).isOK and repo.save(FullInventory(n0, None)).isOK and repo.save(FullInventory(n1, None)).isOK and
-        repo.save(FullInventory(n2, None)).isOK and repo.save(FullInventory(n3, None)).isOK
-        and repo.move(n0.main.id, PendingInventory, AcceptedInventory).isOK
-        and {
-          val FullInventory(node0, m0) = repo.get(n0.main.id, AcceptedInventory).testRunGet
-          val FullInventory(node1, m1) = repo.get(n1.main.id, PendingInventory).testRunGet
-          val FullInventory(node2, m2) = repo.get(n2.main.id, AcceptedInventory).testRunGet
-          val FullInventory(node3, m3) = repo.get(n3.main.id, RemovedInventory).testRunGet
-
-          // expected machine value
-          val machine = m.copy(status = AcceptedInventory)
-          val ms      = Some((machine.id, machine.status))
-
-          (
-            m0 === Some(machine) and m1 === Some(machine) and m2 === Some(machine) and m3 === Some(machine) and
-            node0 === n0
-              .copyWithMain(main => main.copy(status = AcceptedInventory))
-              .copy(machineId = Some((m.id, AcceptedInventory)))
-            and node1 === n1.copy(machineId = ms)
-            and node2 === n2.copy(machineId = ms)
-            and node3 === n3.copy(machineId = ms)
-          )
-        }
-      )
-    }
-
   }
 
   "Trying to add specific Windows" should {

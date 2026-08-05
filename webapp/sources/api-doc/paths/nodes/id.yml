@@ -102,7 +102,6 @@ delete:
   operationId: deleteNode
   parameters:
     - $ref: ../../components/parameters/node-id.yml
-    - $ref: ../../components/parameters/node-delete-mode.yml
   responses:
     "200":
       description: Nodes

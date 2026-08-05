@@ -62,7 +62,6 @@ import zio.syntax.*
 class CheckDIT(
     pendingNodesDit: InventoryDit,
     acceptedDit:     InventoryDit,
-    removedDit:      InventoryDit,
     rudderDit:       RudderDit,
     ldap:            LDAPConnectionProvider[RwLDAPConnection]
 ) extends BootstrapChecks {
@@ -86,7 +85,6 @@ class CheckDIT(
     // check that all base DN's entry are already in the LDAP
     val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN ::
       acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN ::
-      removedDit.BASE_DN :: removedDit.SOFTWARE_BASE_DN ::
       rudderDit.BASE_DN :: Nil
 
     (for {
@@ -109,7 +107,7 @@ class CheckDIT(
 
     // now, check that all DIT entries are here, add missing ones
     val ditEntries =
-      (pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries).toSet
+      (pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ rudderDit.getDITEntries).toSet
 
     (for {
       con <- ldap

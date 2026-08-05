@@ -186,8 +186,6 @@ object StorageChangeEventSave {
       import NodeFactChangeEvent.Noop as NoopCE
       import NodeFactChangeEvent.{Updated as UpdatedCE, *}
       s match {
-        case RemovedInventory  => // this case is ignored, we don't delete node based on status value
-          NodeFactChangeEventCC(NoopCE(nodeId, SelectFacts.all), cc)
         case PendingInventory  =>
           e match {
             case StorageChangeEventSave.Created(node, attrs)      => NodeFactChangeEventCC(NewPending(node, attrs), cc)
@@ -263,7 +261,6 @@ object StorageChangeEventDelete {
       }
 
       s match {
-        case RemovedInventory  => NodeFactChangeEventCC(NoopCE(cnf.id, SelectFacts.all), cc)
         case PendingInventory  => patternMatch(e, Refused(_, _))
         case AcceptedInventory => patternMatch(e, DeletedCE(_, _))
       }
@@ -301,9 +298,9 @@ trait NodeFactStorage {
 
   /*
    * Delete the node. Storage need to loop for any status and delete
-   * any reference to that node.
+   * any reference to that node. Delete doesn't have a SelectFacts, we can only delete the whole node.
    */
-  def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete]
+  def delete(nodeId: NodeId): IOResult[StorageChangeEventDelete]
 
   def getPending(nodeId:  NodeId)(implicit attrs: SelectFacts = SelectFacts.default): IOResult[Option[NodeFact]]
   def getAccepted(nodeId: NodeId)(implicit attrs: SelectFacts = SelectFacts.default): IOResult[Option[NodeFact]]
@@ -321,7 +318,7 @@ object NoopFactStorage extends NodeFactStorage {
     StorageChangeEventSave.Noop(nodeFact.id, attrs).succeed
   override def changeStatus(nodeId: NodeId, status: InventoryStatus):                       IOResult[StorageChangeEventStatus] =
     StorageChangeEventStatus.Noop(nodeId).succeed
-  override def delete(nodeId: NodeId)(implicit attrs: SelectFacts):                         IOResult[StorageChangeEventDelete] =
+  override def delete(nodeId: NodeId):                                                      IOResult[StorageChangeEventDelete] =
     StorageChangeEventDelete.Noop(nodeId).succeed
   override def getAllPending()(implicit @unused attrs:  SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
   override def getAllAccepted()(implicit @unused attrs: SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
@@ -474,35 +471,29 @@ class GitNodeFactStorageImpl(
   // We saving, we must ignore attrs that are "ignored" - ie in that case, if the source list is empty, we take the existing one
   // Save does not know about status change. If it's called with a status change, this leads to duplicated data.
   override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts): IOResult[StorageChangeEventSave] = {
-    if (nodeFact.rudderSettings.status == RemovedInventory) {
-      InventoryDataLogger.info(
-        s"Not persisting deleted node '${nodeFact.fqdn}' [${nodeFact.id.value}]: it has removed inventory status"
-      ) *> StorageChangeEventSave.Noop(nodeFact.id, attrs).succeed
-    } else {
-      val file = getFile(nodeFact.id, nodeFact.rudderSettings.status)
-      for {
-        old   <- fileToNode(file).map(Some(_)).catchAll(_ => None.succeed)
-        merged = SelectFacts.merge(nodeFact, old)
-        json  <- toJson(merged)
-        _     <- IOResult.attempt(file.write(json))
-        _     <- groupOwner match {
-                   case None     => ZIO.unit
-                   case Some(go) => IOResult.attempt(file.setGroup(go))
-                 }
-        _     <- ZIO.when(actuallyCommit) {
-                   commitAddFile(
-                     committer,
-                     toGitPath(file.toJava),
-                     s"Save inventory facts for ${merged.rudderSettings.status.name} node '${merged.fqdn}' (${merged.id.value})"
-                   )
-                 }
-      } yield {
-        old match {
-          case Some(o) =>
-            StorageChangeEventSave.Updated(o, nodeFact, attrs)
-          case None    =>
-            StorageChangeEventSave.Created(nodeFact, attrs)
-        }
+    val file = getFile(nodeFact.id, nodeFact.rudderSettings.status)
+    for {
+      old   <- fileToNode(file).map(Some(_)).catchAll(_ => None.succeed)
+      merged = SelectFacts.merge(nodeFact, old)
+      json  <- toJson(merged)
+      _     <- IOResult.attempt(file.write(json))
+      _     <- groupOwner match {
+                 case None     => ZIO.unit
+                 case Some(go) => IOResult.attempt(file.setGroup(go))
+               }
+      _     <- ZIO.when(actuallyCommit) {
+                 commitAddFile(
+                   committer,
+                   toGitPath(file.toJava),
+                   s"Save inventory facts for ${merged.rudderSettings.status.name} node '${merged.fqdn}' (${merged.id.value})"
+                 )
+               }
+    } yield {
+      old match {
+        case Some(o) =>
+          StorageChangeEventSave.Updated(o, nodeFact, attrs)
+        case None    =>
+          StorageChangeEventSave.Created(nodeFact, attrs)
       }
     }
   }
@@ -510,7 +501,7 @@ class GitNodeFactStorageImpl(
   // when we delete, we check for all path to also remove possible left-over
   // we may need to recreate pending/accepted directory, because git delete
   // empty directories.
-  override def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete] = {
+  override def delete(nodeId: NodeId): IOResult[StorageChangeEventDelete] = {
     def exists(nodeId: NodeId, status: InventoryStatus): IOResult[Option[File]] = {
       val file = getFile(nodeId, status)
       IOResult.attempt(file.exists).map {
@@ -523,8 +514,8 @@ class GitNodeFactStorageImpl(
          commitRmFile(committer, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
        } else {
          IOResult.attempt(file.delete())
-       }).flatMap(_ => fileToNode(file)(using attrs).map(Some(_)).catchAll(_ => None.succeed)).map {
-        case Some(n) => StorageChangeEventDelete.Deleted(n, attrs)
+       }).flatMap(_ => fileToNode(file)(using SelectFacts.all).map(Some(_)).catchAll(_ => None.succeed)).map {
+        case Some(n) => StorageChangeEventDelete.Deleted(n, SelectFacts.all)
         case None    => StorageChangeEventDelete.Noop(nodeId)
       }
     }
@@ -575,15 +566,7 @@ class GitNodeFactStorageImpl(
       )
     }
 
-    toStatus match {
-      case RemovedInventory =>
-        delete(nodeId)(using SelectFacts.none).map {
-          case StorageChangeEventDelete.Deleted(node, attrs) => StorageChangeEventStatus.Done(nodeId)
-          case StorageChangeEventDelete.DeletedNoInfo(node)  => StorageChangeEventStatus.Done(nodeId)
-          case StorageChangeEventDelete.Noop(nodeId)         => StorageChangeEventStatus.Noop(nodeId)
-        }
-      case x                => move(x)
-    }
+    move(toStatus)
   }
 
   /*
@@ -763,15 +746,11 @@ class LdapNodeFactStorage(
     for {
       s <- fullInventoryRepository.getStatus(nodeId).notOptional(s"Error: node with ID '${nodeId.value}' was not found'")
       _ <- if (s == status) ZIO.unit
-           else if (s == RemovedInventory) {
-             Inconsistency(
-               s"Error: node with ID '${nodeId.value}' is deleted, can not change its status to '${status.name}''"
-             ).fail
-           } else fullInventoryRepository.move(nodeId, s, status)
+           else fullInventoryRepository.move(nodeId, s, status)
     } yield StorageChangeEventStatus.Done(nodeId)
   }
 
-  override def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete] = {
+  override def delete(nodeId: NodeId): IOResult[StorageChangeEventDelete] = {
     def cleanLdapData(): UIO[Boolean] = {
       val cleanNode = (
         for {
@@ -801,16 +780,16 @@ class LdapNodeFactStorage(
 
     for {
       // get information for change event
-      p   <- getNodeFact(nodeId, PendingInventory, attrs)
-      a   <- getNodeFact(nodeId, AcceptedInventory, attrs)
+      p   <- getNodeFact(nodeId, PendingInventory, SelectFacts.all)
+      a   <- getNodeFact(nodeId, AcceptedInventory, SelectFacts.all)
       // in all case, delete everywhere
       mod <- cleanLdapData()
     } yield {
       (p, a) match {
         case (_, Some(x))    =>
-          StorageChangeEventDelete.Deleted(x, attrs)
+          StorageChangeEventDelete.Deleted(x, SelectFacts.all)
         case (Some(x), None) =>
-          StorageChangeEventDelete.Deleted(x, attrs)
+          StorageChangeEventDelete.Deleted(x, SelectFacts.all)
         case (None, None)    =>
           if (mod) {
             StorageChangeEventDelete.Noop(nodeId)

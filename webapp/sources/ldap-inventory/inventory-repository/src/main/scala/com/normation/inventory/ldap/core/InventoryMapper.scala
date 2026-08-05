@@ -110,8 +110,7 @@ object InventoryMapper {
 class InventoryMapper(
     ditService:  InventoryDitService,
     pendingDit:  InventoryDit,
-    acceptedDit: InventoryDit,
-    removedDit:  InventoryDit
+    acceptedDit: InventoryDit
 ) {
 
   ////////////////////////////////////////////////////////////

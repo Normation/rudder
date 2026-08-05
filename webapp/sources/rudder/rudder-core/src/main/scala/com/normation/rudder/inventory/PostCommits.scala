@@ -81,15 +81,15 @@ class PostCommitInventoryHooks[A](
     val hooks = (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
       nHooks    <- nodeFactRepo.getStatus(node.id)(using QueryContext.systemQC).flatMap {
-                     case PendingInventory  =>
+                     case Some(PendingInventory)  =>
                        val n = "node-inventory-received-pending"
                        RunHooks.getHooksPure(HOOKS_D + "/" + n, HOOKS_IGNORE_SUFFIXES).map(h => (n, h))
-                     case AcceptedInventory =>
+                     case Some(AcceptedInventory) =>
                        val n = "node-inventory-received-accepted"
                        RunHooks.getHooksPure(HOOKS_D + "/" + n, HOOKS_IGNORE_SUFFIXES).map(h => (n, h))
-                     case s                 =>
+                     case s                       =>
                        Inconsistency(
-                         s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] with status '${s.name}'"
+                         s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] with status deleted"
                        ).fail
                    }
       (n, hooks) = nHooks
@@ -135,9 +135,7 @@ class FactRepositoryPostCommit[A](
    */
   override def apply(inventory: Inventory, records: A): IOResult[A] = {
     (for {
-      optInfo <- if (inventory.node.main.status == RemovedInventory) None.succeed
-                 else
-                   nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(using QueryContext.systemQC)
+      optInfo <- nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(using QueryContext.systemQC)
       _       <- optInfo match {
                    case None =>
                      InventoryProcessingLogger.info(

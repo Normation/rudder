@@ -53,7 +53,6 @@ import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
@@ -874,8 +873,6 @@ object DisplayNode extends Loggable {
         }
 
         <div><label>Role:</label> Rudder {kind}</div>
-      case RemovedInventory  =>
-        <div><label>Role:</label> Deleted node</div>
       case PendingInventory  =>
         <div><label>Role:</label> Pending node</div>
     }
@@ -1362,7 +1359,7 @@ object DisplayNode extends Loggable {
     given cc: ChangeContext = qc.newCC()
 
     // only erase for Rudder 8.0
-    removeNodeService.removeNodePure(node.id, DeleteMode.Erase).toBox match {
+    removeNodeService.removeNodePure(node.id).toBox match {
       case Full(_) =>
         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         onSuccess(node)

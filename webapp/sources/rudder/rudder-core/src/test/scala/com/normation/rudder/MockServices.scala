@@ -131,6 +131,7 @@ import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
+import com.normation.rudder.services.nodes.*
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
@@ -2497,10 +2498,10 @@ class MockNodes(mockTenant: MockTenants) {
       })
     }
 
-    override def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete] = {
+    override def delete(nodeId: NodeId): IOResult[StorageChangeEventDelete] = {
       nodeFactBase.modify(b => {
         b.get(nodeId) match {
-          case Some(n) => (StorageChangeEventDelete.Deleted(n, attrs), b.removed(nodeId))
+          case Some(n) => (StorageChangeEventDelete.Deleted(n, SelectFacts.all), b.removed(nodeId))
           case None    => (StorageChangeEventDelete.Noop(nodeId), b)
         }
       })
@@ -3407,12 +3408,10 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     LDAP_INVENTORIES_SOFTWARE_BASEDN,
     "Pending inventories"
   )
-  val removedNodesDitImpl =
-    new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Removed Servers")
-  val rudderDit           = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
-  val nodeDit             = new NodeDit(LDAP_BASEDN)
+  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  val nodeDit   = new NodeDit(LDAP_BASEDN)
   val inventoryDitService: InventoryDitService =
-    new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
   val getSubGroupChoices = new DefaultSubGroupComparatorRepository(mockNodeGroups.groupsRepo)
   val instanceIdService  = new InstanceIdService(InstanceId("test-instance-id"))
   val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices, instanceIdService)

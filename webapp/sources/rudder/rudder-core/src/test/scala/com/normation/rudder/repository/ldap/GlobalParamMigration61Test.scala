@@ -73,25 +73,20 @@ class GlobalParamMigration61Test extends Specification {
 
   val mapper: LDAPEntityMapper = {
     val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
-    val acceptedNodesDitImpl: InventoryDit = new InventoryDit(
+    val acceptedNodesDitImpl: InventoryDit        = new InventoryDit(
       new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration"),
       softwareDN,
       "Accepted inventories"
     )
-    val pendingNodesDitImpl:  InventoryDit = new InventoryDit(
+    val pendingNodesDitImpl:  InventoryDit        = new InventoryDit(
       new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration"),
       softwareDN,
       "Pending inventories"
     )
-    val removedNodesDitImpl = new InventoryDit(
-      new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration"),
-      softwareDN,
-      "Removed Servers"
-    )
-    val inventoryDitService: InventoryDitService =
-      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    val inventoryDitService:  InventoryDitService =
+      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
 
-    val inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    val inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl)
 
     val rudderDit       = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val nodeDit         = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
