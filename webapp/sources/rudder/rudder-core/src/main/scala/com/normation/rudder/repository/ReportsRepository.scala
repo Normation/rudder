@@ -43,7 +43,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-import net.liftweb.common.Box
+import com.normation.rudder.tenants.QueryContext
 import org.joda.time.*
 
 /**
@@ -98,48 +98,44 @@ trait ReportsRepository {
   ): Seq[Reports]
 
   // databaseManager only
-  def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])]
+  def getReportsInterval(): IOResult[(Option[DateTime], Option[DateTime])]
 
-  def getDatabaseSize(databaseName: String): Box[Long]
+  def getDatabaseSize(databaseName: String): IOResult[Long]
   def reports: String
-  def deleteEntries(date: DateTime): Box[Int]
+  def deleteEntries(date: DateTime): IOResult[Int]
 
-  def deleteLogReports(date: DateTime): Box[Int]
+  def deleteLogReports(date: DateTime): IOResult[Int]
 
   // automaticReportLogger only
   /**
    * Get the highest id of any kind of reports.
    */
-  def getHighestId(): Box[Long]
-  def getLastHundredErrorReports(kinds: List[String]): Box[Seq[(Long, Reports)]]
+  def getHighestId(): IOResult[Long]
+  def getLastHundredErrorReports(kinds: List[String]): IOResult[Seq[(Long, Reports)]]
   // return the reports between the two ids, limited to limit number of reports, in asc order of id.
-  def getReportsByKindBetween(lower:    Long, upper: Option[Long], limit: Int, kinds: List[String]): Box[Seq[(Long, Reports)]]
+  def getReportsByKindBetween(lower:    Long, upper: Option[Long], limit: Int, kinds: List[String]): IOResult[Seq[(Long, Reports)]]
 
   /*
    * Count number of changes by rule by interval. Also return the id of the highest result_repair.
    */
-  def countChangeReportsByBatch(intervals: List[Interval]): Box[(Long, Map[RuleId, Map[Interval, Int]])]
+  def countChangeReportsByBatch(intervals: List[Interval]): IOResult[(Long, Map[RuleId, Map[Interval, Int]])]
 
   // nodechangesServices
-  /*
-   *  Count change reports by rules on interval of intervalSizeHour hour, starting at startTime
-   *  StartTime should be a 00:00:00 time.
-   */
-  def countChangeReports(startTime:            DateTime, intervalSizeHour: Int): Box[Map[RuleId, Map[Interval, Int]]]
-  def getChangeReportsOnInterval(lowestId:     Long, highestId:            Long): IOResult[Seq[ChangeForCache]]
-  def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval:           Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
-
-  // reportExecution only
-  // Return the max id before a datetime
-  def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Option[Long]]
+  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): IOResult[Seq[ChangeForCache]]
+  // the returned per-node reports are restricted to the nodes visible in the query context (a change report
+  // carries a node id; its tenant is the tenant of that node), so a tenant-restricted caller never sees other
+  // tenants' agent-report content.
+  def getChangeReportsByRuleOnInterval(
+      ruleId:   RuleId,
+      interval: Interval,
+      limit:    Option[Int]
+  )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]]
 
   /**
    * From an id and an end date (optionnal, if none, till now), return a list of AgentRun, and the max ID that has been considered
    */
-  def getReportsFromId(id: Long, endDate: DateTime): Box[(Seq[AgentRun], Long)]
+  def getReportsFromId(id: Long, endDate: DateTime): IOResult[(Seq[AgentRun], Long)]
 
-  def getReportsWithLowestId: Box[Option[(Long, Reports)]]
-
-  def getReportsWithLowestIdFromDate(from: DateTime): Box[Option[(Long, Reports)]]
+  def getReportsWithLowestId: IOResult[Option[(Long, Reports)]]
 
 }

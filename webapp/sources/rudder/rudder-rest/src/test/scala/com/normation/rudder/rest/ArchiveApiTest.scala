@@ -1042,7 +1042,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       // hidden properties are not copied in archive
       .map((g, id) => (g.copy(properties = g.properties.filter(_.visibility == Displayed)), id))
       .runNow
-    val serializedGroup     = JRGroup.fromGroup(group, categoryId, None).transformInto[JRGroupV21]
+    val serializedGroup     = JRGroup.fromGroup(group, categoryId, None, None).transformInto[JRGroupV21]
     (dest / "groups" / "category_1" / (group.name + ".json")).overwrite(serializedGroup.toJsonPretty)
 
     // now zip it

@@ -150,7 +150,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
              .makeNoop(accepted, savePreChecks = testSavePrechecks)
       x <- Ref.make(Map[NodeId, NodeStatusReport]())
       s  = new InMemoryNodeStatusReportStorage(x)
-    } yield (r, new NodeStatusReportRepositoryImpl(s, x))).runNow
+    } yield (r, new NodeStatusReportRepositoryImpl(s, x, r))).runNow
   }
 
   class TestFindNewStatusReports extends FindNewNodeStatusReports() {
@@ -188,7 +188,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     (for {
       r1 <- Ref.make(Map[NodeId, NodeStatusReport]())
       s   = new InMemoryNodeStatusReportStorage(r1)
-      x  <- NodeStatusReportRepositoryImpl.makeAndInit(s)
+      x  <- NodeStatusReportRepositoryImpl.makeAndInit(s, nodeFactRepo)
       y   = new TestFindNewStatusReports()
       r2 <- Ref.make(Chunk[NodeStatusReportUpdateHook]())
     } yield {

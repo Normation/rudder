@@ -45,6 +45,8 @@ import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantCheckLogic
 import zio.*
 
 /*
@@ -52,11 +54,18 @@ import zio.*
  * of the computation of a property from the node, group and global context.
  */
 
+/*
+ * A group's resolved property hierarchy together with the owning group's `SecurityTag`. Carrying the tag with
+ * the cached value lets the group-property cache tenant-filter reads at this layer WITHOUT a group-repository
+ * dependency (which would create a construction cycle). See `InMemoryPropertiesRepository`.
+ */
+final case class TenantScopedGroupProps(security: Option[SecurityTag], props: ResolvedNodePropertyHierarchy)
+
 trait PropertiesRepository {
 
   def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]]
 
-  def getAllGroupProps(): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]]
+  def getAllGroupProps()(implicit qc: QueryContext): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]]
 
   /*
    * Get all properties for node with given ID
@@ -83,21 +92,25 @@ trait PropertiesRepository {
   def deleteNode(nodeId: NodeId): IOResult[Unit]
 
   /*
-   * Get all properties for node with given ID
+   * Get all properties for group with given ID, if it is visible in the query context.
    */
-  def getGroupProps(groupId: NodeGroupId): IOResult[Option[ResolvedNodePropertyHierarchy]]
+  def getGroupProps(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]]
 
   /*
-   * Get a given property for a given node
+   * Get a given property for a given group, if it is visible in the query context.
    */
-  def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[PropertyHierarchy]]
+  def getGroupProp(groupId: NodeGroupId, propName: String)(implicit qc: QueryContext): IOResult[Option[PropertyHierarchy]]
 
   /*
-   * Save updated properties for nodes.
-   * The chunk is considered to be all of the node properties, so previous
-   * properties not in the new chunk will be deleted.
+   * Save updated properties for groups.
+   * The map is considered to be all of the group properties, so previous
+   * properties not in the new map will be deleted.
+   * Each entry carries its group's `SecurityTag` (see `TenantScopedGroupProps`) so that reads can be
+   * tenant-filtered at this layer: the cache is keyed by group id but the authoritative tenant decision
+   * travels with the entry, so no group-repository dependency is needed here (which would create a
+   * construction cycle).
    */
-  def saveGroupProps(props: Map[NodeGroupId, ResolvedNodePropertyHierarchy]): IOResult[Unit]
+  def saveGroupProps(props: Map[NodeGroupId, TenantScopedGroupProps]): IOResult[Unit]
 
   /*
    * Delete all properties for a node
@@ -106,20 +119,21 @@ trait PropertiesRepository {
 }
 
 object InMemoryPropertiesRepository {
-  def make(nodeFactRepo: NodeFactRepository): IOResult[InMemoryPropertiesRepository] = {
+  def make(nodeFactRepo: NodeFactRepository, checkTenant: TenantCheckLogic): IOResult[InMemoryPropertiesRepository] = {
     for {
       nodes  <- Ref.make(Map.empty[NodeId, ResolvedNodePropertyHierarchy])
-      groups <- Ref.make(Map.empty[NodeGroupId, ResolvedNodePropertyHierarchy])
+      groups <- Ref.make(Map.empty[NodeGroupId, TenantScopedGroupProps])
     } yield {
-      new InMemoryPropertiesRepository(nodeFactRepo, nodes, groups)
+      new InMemoryPropertiesRepository(nodeFactRepo, checkTenant, nodes, groups)
     }
   }
 }
 
 class InMemoryPropertiesRepository(
     nodeFactRepository: NodeFactRepository,
+    checkTenant:        TenantCheckLogic,
     nodeProps:          Ref[Map[NodeId, ResolvedNodePropertyHierarchy]],
-    groupProps:         Ref[Map[NodeGroupId, ResolvedNodePropertyHierarchy]]
+    groupProps:         Ref[Map[NodeGroupId, TenantScopedGroupProps]]
 ) extends PropertiesRepository {
 
   override def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
@@ -132,8 +146,10 @@ class InMemoryPropertiesRepository(
     }
   }
 
-  override def getAllGroupProps(): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]] = {
-    groupProps.get
+  override def getAllGroupProps()(implicit qc: QueryContext): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]] = {
+    groupProps.get.map(_.collect {
+      case (id, gp) if checkTenant.canSeeSecurityTag(gp.security) => (id, gp.props)
+    })
   }
 
   override def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
@@ -171,19 +187,22 @@ class InMemoryPropertiesRepository(
     nodeProps.update(_.removed(nodeId))
   }
 
-  override def getGroupProps(groupId: NodeGroupId): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
+  override def getGroupProps(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
     groupProps.get.map(
-      _.get(groupId)
+      _.get(groupId).collect { case gp if checkTenant.canSeeSecurityTag(gp.security) => gp.props }
     )
   }
 
-  override def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[PropertyHierarchy]] = {
+  override def getGroupProp(groupId: NodeGroupId, propName: String)(implicit
+      qc: QueryContext
+  ): IOResult[Option[PropertyHierarchy]] = {
     groupProps.get.map(
-      _.get(groupId).flatMap(_.resolved.find(_.prop.name == propName))
+      _.get(groupId).collect { case gp if checkTenant.canSeeSecurityTag(gp.security) => gp.props }
+        .flatMap(_.resolved.find(_.prop.name == propName))
     )
   }
 
-  override def saveGroupProps(props: Map[NodeGroupId, ResolvedNodePropertyHierarchy]): IOResult[Unit] = {
+  override def saveGroupProps(props: Map[NodeGroupId, TenantScopedGroupProps]): IOResult[Unit] = {
     groupProps.set(props)
   }
 

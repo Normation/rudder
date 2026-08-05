@@ -97,7 +97,7 @@ class EventLogDetailsGenerator(
 
   // convention: "X" means "ignore"
 
-  def displayDescription(event: EventLog): NodeSeq = {
+  def displayDescription(event: EventLog)(implicit qc: QueryContext): NodeSeq = {
     import linkUtil.*
     def crDesc(x: EventLog, actionName: NodeSeq) = {
       val id   = RuleId.parse((x.details \ "rule" \ "id").text).getOrElse(RuleId(RuleUid("")))
@@ -134,7 +134,7 @@ class EventLogDetailsGenerator(
         case "" =>
           (for {
             node <- nodeFactRepository
-                      .get(NodeId(id))(using QueryContext.systemQC)
+                      .get(NodeId(id))
                       .catchAll(err => {
                         EventLogsLoggerPure.debug(
                           s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}"

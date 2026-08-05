@@ -68,6 +68,7 @@ import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.eventlog.ModifyNodeGroup
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -78,6 +79,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.domain.secret.Secret
@@ -171,7 +173,6 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
-import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
@@ -1029,32 +1030,55 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val fakeNodeChangesService: NodeChangesService = new NodeChangesService {
     import org.joda.time.Interval
-    override def changesMaxAge:                  Int                        = 0
-    override def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)] = Full(
-      (1, ChangesByRule.of(mockRules.rules.clockRule.id -> Map(new Interval(0L, 1_000L) -> 1)))
-    )
+    // a rule restricted to zoneA+zoneB, seeded by `TestRestTenantFromFileDef`. It carries changes here so the
+    // tenant tests can assert that the /changes rule-visibility gate keeps visible rules and drops invisible
+    // ones. In the non-tenant runner this id is absent from the rule repo, so the gate drops it and the plain
+    // `api_changes.yml` expectations are unaffected.
+    val tenantRuleId:                            RuleId                          = RuleId(RuleUid("tenant-rule-1"))
+    override def changesMaxAge:                  Int                             = 0
+    override def countChangesByRuleByInterval(): IOResult[(Long, ChangesByRule)] = {
+      (
+        1L,
+        ChangesByRule.of(
+          mockRules.rules.clockRule.id -> Map(new Interval(0L, 1_000L) -> 1),
+          tenantRuleId                 -> Map(new Interval(0L, 1_000L) -> 3)
+        )
+      ).succeed
+    }
     override def getChangesForInterval(
         ruleId:   RuleId,
         interval: Interval,
         limit:    Option[Int]
-    ): Box[Seq[ResultRepairedReport]] = {
+    )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]] = {
       if (ruleId == mockRules.rules.clockRule.id) {
-        Full(
-          List(
-            ResultRepairedReport(
-              new DateTime(0),
-              ruleId,
-              mockDirectives.directives.clockDirective.id,
-              MockNodes.node1Node.id,
-              "0",
-              "Time synchronization (NTP)",
-              "",
-              new DateTime(0),
-              "ntp daemon installed, configured and running"
-            )
+        List(
+          ResultRepairedReport(
+            new DateTime(0),
+            ruleId,
+            mockDirectives.directives.clockDirective.id,
+            MockNodes.node1Node.id,
+            "0",
+            "Time synchronization (NTP)",
+            "",
+            new DateTime(0),
+            "ntp daemon installed, configured and running"
           )
-        )
-      } else Empty
+        ).succeed
+      } else if (ruleId == tenantRuleId) {
+        List(
+          ResultRepairedReport(
+            new DateTime(0),
+            ruleId,
+            DirectiveId(DirectiveUid("directive1")),
+            MockNodes.node1Node.id,
+            "0",
+            "Tenant component",
+            "",
+            new DateTime(0),
+            "tenant change"
+          )
+        ).succeed
+      } else Seq.empty[ResultRepairedReport].succeed
     }
   }
   val otpService = new TotpService {
@@ -1137,7 +1161,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     new PluginInternalApi(pluginsSystemService),
     new InventoryApi(mockInventoryFileWatcher, mockInventoryDir),
     new QuicksearchApi(quickSearchService, linkUtil),
-    new RecentChangesAPI(fakeNodeChangesService)
+    new RecentChangesAPI(fakeNodeChangesService, mockRules.ruleRepo)
   )
 
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, userService)

@@ -536,7 +536,9 @@ class RuleApiService14(
     val nodes                    = nodesLib.filterKeys(x => nodesIds.contains(x)).values
     val allTargets               = rule.targets.flatMap(groupLib.allTargets.get).map(_.toTargetInfo)
     val policyMode               = ComputePolicyMode.ruleMode(globalMode, directives.map(_._2), nodes.map(_.rudderSettings.policyMode))
-    val applicationStatus        = applicationService.isApplied(rule, groupLib, directiveLib, nodeAndServerIds, Some(nodesIds))
+    val nodeSecurity             = nodesLib.mapValues(_.rudderSettings.security).toMap
+    val applicationStatus        =
+      applicationService.isApplied(rule, groupLib, directiveLib, nodeAndServerIds, nodeSecurity, Some(nodesIds))
     val applicationStatusDetails = ApplicationStatus.details(rule, applicationStatus, allTargets, directives, nodes.isEmpty)
     RuleApplicationStatus(policyMode, applicationStatusDetails)
   }

@@ -49,8 +49,15 @@ import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccess
+import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.TenantPermission
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
@@ -139,7 +146,8 @@ class NodeStatusReportRepositoryTest extends Specification {
     (for {
       x <- Ref.make((n ++ moreReports.map(x => (x.nodeId, x))).toMap)
       s  = new Counter(new InMemoryNodeStatusReportStorage(x))
-    } yield (s, new NodeStatusReportRepositoryImpl(s, x))).runNow
+      r <- CoreNodeFactRepository.makeNoop(Map.empty)
+    } yield (s, new NodeStatusReportRepositoryImpl(s, x, r))).runNow
   }
 
   sequential
@@ -243,6 +251,49 @@ class NodeStatusReportRepositoryTest extends Specification {
     repo.saveNodeStatusReports((okReport :: Nil).map(x => (x.nodeId, x))).runNow
     counter.getCount("cc") === 2
     counter.get("cc") == okReport
+  }
+
+  // H7: NodeStatusReport carries no tenant tag of its own, so reads must be scoped to the nodes the caller
+  // can see (the cache holds every node's compliance). Otherwise a tenant-restricted user reads (and, via
+  // /compliance, counts) other tenants' compliance.
+  "tenant scoping of reads" should {
+    val zoneA = SecurityTag.ByTenants(Chunk(TenantId("zoneA")))
+    val zoneB = SecurityTag.ByTenants(Chunk(TenantId("zoneB")))
+    def taggedFact(id: String, tag: SecurityTag): CoreNodeFact =
+      NodeConfigData.fact1.modify(_.id).setTo(NodeId(id)).modify(_.rudderSettings.security).setTo(Some(tag))
+    // a query context restricted to read tenant `zoneA` only
+    val zoneAQc:                                  QueryContext = {
+      QueryContext.systemQC.copy(accessGrant =
+        TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.Read)))
+      )
+    }
+
+    // repository over two accepted nodes (node0 in zoneA, node1 in zoneB), each with a status report
+    val repo: NodeStatusReportRepository = {
+      implicit val cc: ChangeContext = ChangeContext.newForRudder()
+      (for {
+        nfr <- CoreNodeFactRepository.makeNoop(
+                 Map(NodeId("node0") -> taggedFact("node0", zoneA), NodeId("node1") -> taggedFact("node1", zoneB))
+               )
+        x   <- Ref.make(Map[NodeId, NodeStatusReport]())
+        s    = new InMemoryNodeStatusReportStorage(x)
+        r    = new NodeStatusReportRepositoryImpl(s, x, nfr)
+        _   <- r.saveNodeStatusReports(List(NodeId("node0"), NodeId("node1")).map(id => (id, nsr(id.value, NoRunNoExpectedReport))))
+      } yield r).runNow
+    }
+
+    "return every node's report for an admin (All) grant" in {
+      repo.getAll()(using QueryContext.systemQC).runNow.keySet must beEqualTo(Set(NodeId("node0"), NodeId("node1")))
+    }
+    "return only the caller's tenant nodes for a restricted grant" in {
+      repo.getAll()(using zoneAQc).runNow.keySet must beEqualTo(Set(NodeId("node0")))
+    }
+    "restrict getNodeStatusReports to the caller's tenant nodes (no existence oracle)" in {
+      repo
+        .getNodeStatusReports(Set(NodeId("node0"), NodeId("node1")))(using zoneAQc)
+        .runNow
+        .keySet must beEqualTo(Set(NodeId("node0")))
+    }
   }
 
 }

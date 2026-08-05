@@ -329,7 +329,8 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "In application"
+              "value": "Not applied",
+              "details": ""
             },
             "security": {
               "tenants": [
@@ -422,7 +423,8 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "In application"
+              "value": "Not applied",
+              "details": ""
             },
             "security": {
               "tenants": [
@@ -489,7 +491,8 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "In application"
+              "value": "Not applied",
+              "details": ""
             },
             "security": {
               "tenants": [

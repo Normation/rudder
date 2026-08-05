@@ -74,6 +74,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.utils.ParseMaxParallelism
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -147,12 +148,13 @@ class FetchAllInfoServiceImpl(
       rules:            Seq[Rule],
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      nodeAndServerIds: NodeAndServerIds
+      nodeAndServerIds: NodeAndServerIds,
+      nodeSecurity:     Map[NodeId, Option[SecurityTag]] // node tenant tags, for the rule<->node boundary in isApplied
   ): Set[RuleId] = {
     rules
       .filter(r => {
         ruleApplicationStatusService
-          .isApplied(r, groupLib, directiveLib, nodeAndServerIds) match {
+          .isApplied(r, groupLib, directiveLib, nodeAndServerIds, nodeSecurity) match {
           case _: AppliedStatus => true
           case _ => false
         }
@@ -296,12 +298,13 @@ class FetchAllInfoServiceImpl(
 
       ruleValTime0    <- currentTimeMillis
       // per-node info (is-policy-server + tenant security tag) is the single source of truth derived from
-      // the node facts; `getAppliedRuleIds` only needs the is-policy-server projection.
+      // the node facts.
       nodeInfos        =
         nodeFacts.view.mapValues(nf => NodeSecurityInfo(nf.rudderSettings.isPolicyServer, nf.rudderSettings.security)).toMap
       nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
 
-      activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, nodeAndServerIds)
+      activeRuleIds =
+        getAppliedRuleIds(allRules, groupLib, directiveLib, nodeAndServerIds, nodeInfos.view.mapValues(_.security).toMap)
 
       ruleVals                                 <- buildRuleVals(
                                                     activeRuleIds,

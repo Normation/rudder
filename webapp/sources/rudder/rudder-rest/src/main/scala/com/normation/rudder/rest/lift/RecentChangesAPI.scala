@@ -43,22 +43,26 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRRecentChanges
 import com.normation.rudder.apidata.JsonResponseObjects.JRResultRepairedReport
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ChangesApi
 import com.normation.rudder.rest.ChangesApi as API
 import com.normation.rudder.rest.RudderJsonResponse.syntax.*
 import com.normation.rudder.services.reports.NodeChangesService
+import com.normation.rudder.tenants.QueryContext
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
 import org.joda.time.Interval
+import zio.ZIO
 import zio.syntax.ToZio
 
 class RecentChangesAPI(
-    nodeChangesService: NodeChangesService
+    nodeChangesService: NodeChangesService,
+    roRuleRepository:   RoRuleRepository
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: API.type = API
@@ -74,10 +78,20 @@ class RecentChangesAPI(
     val schema: ChangesApi.GetRecentChanges.type = API.GetRecentChanges
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      nodeChangesService
-        .countChangesByRuleByInterval()
-        .toIO
-        .map((_, c) => c.transformInto[Map[RuleId, List[JRRecentChanges]]].map((k, v) => (k.serialize, v)))
+      implicit val qc: QueryContext = authzToken.qc
+      // counts are computed over all rules; only return those the caller can see (tenant scoping is enforced
+      // by the tenant-filtering rule repository).
+      (for {
+        visibleRules <- roRuleRepository.getIds()
+        changes      <- nodeChangesService.countChangesByRuleByInterval()
+      } yield {
+        changes._2
+          .transformInto[Map[RuleId, List[JRRecentChanges]]]
+          .view
+          .filterKeys(visibleRules.contains)
+          .map((k, v) => (k.serialize, v))
+          .toMap
+      })
         .chainError(s"Could not get recent changes for all rules")
         .toLiftResponseOne(params, schema, None)
     }
@@ -94,6 +108,8 @@ class RecentChangesAPI(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+      val rid = RuleId(RuleUid(ruleId))
       (for {
         startDate <- req.params.get("start") match {
                        case Some(start :: Nil) =>
@@ -107,8 +123,13 @@ class RecentChangesAPI(
                        case _                =>
                          Inconsistency("No end date defined").fail
                      }
+        // gate on rule visibility: an invisible rule yields no changes (no existence oracle). The reports
+        // themselves are additionally restricted to the caller's visible nodes in the repository.
+        rule      <- roRuleRepository.getOpt(rid)
         reports   <-
-          nodeChangesService.getChangesForInterval(RuleId(RuleUid(ruleId)), new Interval(startDate, endDate), Some(10000)).toIO
+          ZIO
+            .foreach(rule)(_ => nodeChangesService.getChangesForInterval(rid, new Interval(startDate, endDate), Some(10000)))
+            .map(_.getOrElse(Nil))
       } yield {
         reports.map(_.transformInto[JRResultRepairedReport])
       })

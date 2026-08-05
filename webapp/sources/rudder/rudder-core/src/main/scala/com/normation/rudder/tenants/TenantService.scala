@@ -387,8 +387,19 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
             case TenantStatus.Enabled(tenants) =>
               cc.accessGrant match {
                 case TenantAccessGrant.All           =>
-                  // for admin, use admin logic: admin can chose tenant
-                  action(updated)
+                  // for admin, use admin logic: admin can chose the tenant list, but (like the update path) it
+                  // must reference only EXISTING tenants - otherwise a phantom/dangling tenant tag is created.
+                  updated.security match {
+                    case Some(SecurityTag.ByTenants(ts)) =>
+                      val unknown = ts.filter(t => !tenants.contains(t))
+                      if (unknown.nonEmpty) {
+                        Inconsistency(
+                          s"Object '${updated.debugId}' can not be created with tenant(s) " +
+                          s"'${unknown.map(_.value).mkString(",")}' because they don't exist"
+                        ).fail
+                      } else action(updated)
+                    case _                               => action(updated) // None (admin-only) or Open: no tenant list to check
+                  }
                 case TenantAccessGrant.None          =>
                   // already manage above
                   error(updated)

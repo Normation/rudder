@@ -42,6 +42,7 @@ import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.tenants.*
 
 trait RuleApplicationStatusService {
   def isApplied(
@@ -49,6 +50,9 @@ trait RuleApplicationStatusService {
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
       nodeAndServerIds: NodeAndServerIds,          // the nodes visible in the caller's context, see NodeFactRepository.getNodeAndServerIds
+      // security tag of each candidate node, to apply the SAME rule<->node tenant boundary as policy
+      // generation (`RuleValService`): a rule only "applies" to a node its tenant scope can see
+      nodeSecurity:     Map[NodeId, Option[SecurityTag]],
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus
@@ -66,13 +70,20 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
       nodeAndServerIds: NodeAndServerIds,
+      nodeSecurity:     Map[NodeId, Option[SecurityTag]],
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus = {
 
     if (rule.isEnabled) {
       val isAllTargetsEnabled = rule.targets.flatMap(groupLib.allTargets.get(_)).filter(!_.isEnabled).isEmpty
-      val nodesList           = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, nodeAndServerIds))
+      // apply the rule<->node tenant boundary, exactly like policy generation does in RuleValService: keep a
+      // node only if the rule's tenant scope can see the node's tenant. For an untagged/Open rule the scope is
+      // `All` (fromSecurityScope), so this is a no-op for non-tenant setups.
+      val ruleScope           = TenantAccessGrant.fromSecurityScope(rule.security)
+      val nodesList           = appliedOnNodes
+        .getOrElse(groupLib.getNodeIds(rule.targets, nodeAndServerIds))
+        .filter(nodeId => ruleScope.canSee(nodeSecurity.getOrElse(nodeId, None)))
       if (nodesList.nonEmpty) {
         if (isAllTargetsEnabled) {
           val disabled = (rule.directiveIds

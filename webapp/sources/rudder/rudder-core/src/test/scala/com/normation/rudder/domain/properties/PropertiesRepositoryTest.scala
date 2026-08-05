@@ -39,9 +39,17 @@ package com.normation.rudder.domain.properties
 
 import com.normation.rudder.MockNodes
 import com.normation.rudder.MockTenants
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.properties.InMemoryPropertiesRepository
+import com.normation.rudder.properties.TenantScopedGroupProps
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccess
+import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.TenantId
 import com.normation.zio.UnsafeRun
+import com.softwaremill.quicklens.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -54,7 +62,7 @@ class PropertiesRepositoryTest extends Specification {
   private val mockTenants  = new MockTenants()
   private val mockNodes    = new MockNodes(mockTenants)
   private val nodeFactRepo = mockNodes.nodeFactRepo
-  private val repo         = InMemoryPropertiesRepository.make(nodeFactRepo).runNow
+  private val repo         = InMemoryPropertiesRepository.make(nodeFactRepo, mockTenants.checkTenant).runNow
 
   implicit private val qc: QueryContext = QueryContext.testQC
 
@@ -95,6 +103,43 @@ class PropertiesRepositoryTest extends Specification {
         Set(MockNodes.node1.id, MockNodes.node2.id),
         "simpleString"
       )).runNow must beEmpty
+    }
+  }
+
+  // N3/N5: group properties must be tenant-filtered at the repository level. Each cached entry carries its
+  // group's SecurityTag; a reader only sees an entry it can see (a ByTenants reader never sees another
+  // tenant's group, nor an untagged/admin-only one).
+  "PropertiesRepository group tenant filtering" should {
+    val groupA = NodeGroupId(NodeGroupUid("group-zoneA"))
+    val groupB = NodeGroupId(NodeGroupUid("group-zoneB"))
+    val tagA   = SecurityTag.ByTenants(Chunk(TenantId("zoneA")))
+    val tagB   = SecurityTag.ByTenants(Chunk(TenantId("zoneB")))
+    val groupProps: Map[NodeGroupId, TenantScopedGroupProps] = Map(
+      groupA -> TenantScopedGroupProps(Some(tagA), ResolvedNodePropertyHierarchy.empty),
+      groupB -> TenantScopedGroupProps(Some(tagB), ResolvedNodePropertyHierarchy.empty)
+    )
+
+    val qcA: QueryContext =
+      QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+
+    "an admin (All) sees every group's properties" in {
+      (repo.saveGroupProps(groupProps) *> repo.getAllGroupProps()(using QueryContext.testQC)).runNow.keySet must_=== Set(
+        groupA,
+        groupB
+      )
+    }
+
+    "a zoneA reader only sees zoneA group's properties, not zoneB's" in {
+      (repo.saveGroupProps(groupProps) *> repo.getAllGroupProps()(using qcA)).runNow.keySet must_=== Set(groupA)
+    }
+
+    "a zoneA reader can read the zoneA group but not the zoneB group (no existence oracle)" in {
+      val res = (for {
+        _ <- repo.saveGroupProps(groupProps)
+        a <- repo.getGroupProps(groupA)(using qcA)
+        b <- repo.getGroupProps(groupB)(using qcA)
+      } yield (a.isDefined, b.isDefined)).runNow
+      res must_=== ((true, false))
     }
   }
 }
