@@ -717,7 +717,8 @@ class ZipArchiveBuilderService(
         // we only archive non-system NodeGroups, other kind of special targets are ignored
         groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
-                   val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
+                   // archive export is an admin/system operation: no tenant node filtering (visibleNodes = None)
+                   val json = JRGroup.fromGroup(g, cat.id, None, None).toJsonPretty
                    for {
                      name <- findName(g.name, ".json", usedNames, basePath)
                      path  = basePath + "/" + name

@@ -101,6 +101,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       }
     }
   }
+  // The query context of the session user, used to scope the per-object details (group/node names and error
+  // text) rendered by this comet to what the user is allowed to see (M14). Fail closed if there is no
+  // resolvable user (the comet only renders for a logged-in user anyway). The overall generation status is
+  // system-global and stays unscoped.
+  private def userQc:                                                    QueryContext                                    = currentUser.map(_.qc).getOrElse(QueryContext.noneQC)
 
   override def registerWith: AsyncDeploymentActor = asyncDeploymentAgent
 
@@ -409,8 +414,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     val groupsErrors: Map[NodeGroup, String] = failures.toList match {
       case Nil      => Map.empty
       case statuses =>
-        // I'm not sure whose group it is. Maybe rudder?
-        val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id })(using QueryContext.todoQC).runNow
+        // scope group resolution to the session user: a group the user can not see is dropped here, so its
+        // name and property-error text are never rendered to another tenant (M14).
+        val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id })(using userQc).runNow
         groups.flatMap(g => failures.get(g.id).map(f => g -> f.getMessage)).toMap
     }
     groupsErrors.toList match {
@@ -463,7 +469,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       val btnId = nodeBtnId(node)
       scriptLinkButton(btnId, link)
     }
-    val allNodes = nodeFactRepo.getAll()(using QueryContext.systemQC).runNow // systemQC because rudder action
+    // scope node resolution to the session user: a node the user can not see is dropped here, so its hostname
+    // and property-error text are never rendered to another tenant (M14). The generation itself ran as a
+    // system action; this is a per-user render.
+    val allNodes = nodeFactRepo.getAll()(using userQc).runNow
     val nodesErrors:                   Map[MinimalNodeFactInterface, String] = nodeProperties.flatMap {
       case (_, _: SuccessNodePropertyHierarchy)     => None
       case (nodeId, f: FailedNodePropertyHierarchy) => allNodes.get(nodeId).map(_ -> f.getMessage)

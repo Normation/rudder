@@ -28,8 +28,15 @@ chooses the narrower list at creation time. This law makes event-log filtering s
 *pre-change* tag alongside each event and filter event reads by `grant.canSee(T_event)`. Because tags only
 grow, `T_event ⊆ T_now`, so anyone who can see an event can currently see the object (no leak), while a
 tenant added *after* a change never sees that change's pre-membership values (no historical-value leak).
-Deleting a whole tenant is safe (it is also removed from every grant), and reusing a tenant id is an intended
-recovery path for an accidentally deleted tenant (to be documented).
+**Tenant deletion is not cascading, and reusing a tenant id is an intended recovery path.** Deleting a tenant
+only removes it from the set of *declared* tenants; objects and nodes already tagged with that id keep their
+tag. While the id is undeclared those tags grant no access — `TenantService.refineTenantAccessGrant` strips
+undeclared ids from every user grant, so the tagged objects become admin-only. Recreating a tenant with the
+**same id** re-links all of them automatically. This is deliberate: it is the recovery path for an
+accidentally-deleted tenant, and it is why deletion does not scrub node/object tags. The operational
+consequence an administrator must be aware of — and which must therefore be surfaced in the tenant-deletion
+UI/API and not left as a silent side effect — is that reusing an id for a **different** customer hands them
+the previous tenant's still-tagged objects and nodes; a fresh id must be used in that case.
 
 ## Consequences
 

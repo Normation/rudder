@@ -37,17 +37,24 @@
 package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.AppliedStatus
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.NotAppliedNoTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
@@ -182,6 +189,34 @@ class RuleValServiceTenantTest extends Specification {
       // zoneB rule sees the zoneB group; among its members only the zoneB node survives the node filter
       ruleValService.getTargetedNodes(mkRule(tenants("zoneB"), bTgt), libB, nodeInfos) ===
       Set(nB)
+    }
+  }
+
+  // B2: the rule application STATUS must apply the same rule<->node tenant boundary as generation, otherwise a
+  // rule reports "applied" on nodes that generation would exclude.
+  "rule application status (isApplied) node-level tenant filter" should {
+    val appStatus        = new RuleApplicationStatusServiceImpl
+    val directiveLib     =
+      FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "", "", Nil, Nil, isSystem = false, security = None)
+    val nodeAndServerIds = NodeAndServerIds(Set(nA, nB, nAdmin), Set())
+    val nodeSecurity: Map[NodeId, Option[SecurityTag]] = nodeInfos.view.mapValues(_.security).toMap
+
+    // a rule is only `isEnabled` (hence eligible for an "applied" status) if it has at least one directive
+    def mkAppliedRule(security: Option[SecurityTag]) =
+      mkRule(security, openTgt).copy(directiveIds = Set(DirectiveId(DirectiveUid("d"))))
+
+    def status(rule: Rule) = appStatus.isApplied(rule, libOpen, directiveLib, nodeAndServerIds, nodeSecurity)
+
+    "report an untagged (admin) rule as applied (it reaches nodes)" in {
+      status(mkAppliedRule(None)) must beAnInstanceOf[AppliedStatus]
+    }
+
+    "report a single-tenant rule as applied (it reaches its own tenant's node)" in {
+      status(mkAppliedRule(tenants("zoneA"))) must beAnInstanceOf[AppliedStatus]
+    }
+
+    "report a rule whose tenant no node shares as NOT applied (it was wrongly 'applied' before B2)" in {
+      status(mkAppliedRule(tenants("zoneC"))) === NotAppliedNoTarget
     }
   }
 }

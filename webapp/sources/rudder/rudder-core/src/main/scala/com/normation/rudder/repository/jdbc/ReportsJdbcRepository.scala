@@ -44,19 +44,23 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import doobie.*
 import doobie.implicits.*
 import java.sql.Timestamp
 import net.liftweb.common.*
 import org.joda.time.*
 import org.joda.time.format.ISODateTimeFormat
+import zio.ZIO
 import zio.interop.catz.*
 import zio.syntax.*
 
-class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
+class ReportsJdbcRepository(doobie: Doobie, nodeFactRepository: NodeFactRepository) extends ReportsRepository with Loggable {
   import doobie.*
 
   val reports = "ruddersysevents"
@@ -163,8 +167,8 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
-  override def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
-    transactRunBox(xa => {
+  override def getReportsInterval(): IOResult[(Option[DateTime], Option[DateTime])] = {
+    transactIOResult("Could not fetch the reports interval from the database.")(xa => {
       (for {
         oldest <- query[DateTime]("""select executiontimestamp from ruddersysevents
                                    order by executionTimeStamp asc  limit 1""").option
@@ -173,15 +177,15 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       } yield {
         (oldest, newest)
       }).transact(xa)
-    }) ?~! "Could not fetch the reports interval from the database."
+    })
   }
 
-  override def getDatabaseSize(databaseName: String): Box[Long] = {
+  override def getDatabaseSize(databaseName: String): IOResult[Long] = {
     val q = query[Long](s"""select pg_total_relation_size('${databaseName}') as "size" """).unique
-    transactRunBox(xa => q.transact(xa)) ?~! "Could not compute the size of the database"
+    transactIOResult("Could not compute the size of the database")(xa => q.transact(xa))
   }
 
-  override def deleteEntries(date: DateTime): Box[Int] = {
+  override def deleteEntries(date: DateTime): IOResult[Int] = {
 
     val dateAt_0000 = date.toString("yyyy-MM-dd")
     val d1          = s"delete from ${reports} where executionTimeStamp < '${dateAt_0000}'"
@@ -196,79 +200,49 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                     | ${d3}
                     |]]""".stripMargin)
 
-    (for {
-      i <- transactRunEither(xa => (d1 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
+    for {
+      i <- transactIOResult("Could not delete entries in the database")(xa =>
+             (d1 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa)
+           )
       // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
-      _ <- {
-        (v1 :: v3 :: Nil).map { vacuum =>
-          transactRunEither(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa))
-        }.sequence
-      }
-    } yield {
-      i
-    }) match {
-      case Left(ex) =>
-        val msg = "Could not delete entries in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) => Full(i.sum)
-    }
+      _ <- ZIO.foreach(v1 :: v3 :: Nil)(vacuum => {
+             transactIOResult("Could not vacuum the database")(xa =>
+               (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa)
+             )
+           })
+    } yield i.sum
   }
 
-  override def deleteLogReports(date: DateTime): Box[Int] = {
+  override def deleteLogReports(date: DateTime): IOResult[Int] = {
     val dateAt = date.toString(ISODateTimeFormat.dateTimeNoMillis())
     val q      = s"delete from ${reports} where executionTimeStamp < '${dateAt}' and eventtype like 'log_%'"
 
     logger.debug(s"""Deleting log reports with SQL query: [[${q}]]""")
-    transactRunBox(xa => Update0(q, None).run.transact(xa))
+    transactIOResult("Could not delete log reports in the database")(xa => Update0(q, None).run.transact(xa))
   }
 
-  override def getHighestId(): Box[Long] = {
-    transactRunBox(xa => query[Long](s"""SELECT last_value FROM serial""").unique.transact(xa))
+  override def getHighestId(): IOResult[Long] = {
+    transactIOResult("Could not fetch the highest report id in the database")(xa =>
+      query[Long](s"""SELECT last_value FROM serial""").unique.transact(xa)
+    )
   }
 
-  override def getLastHundredErrorReports(kinds: List[String]): Box[Seq[(Long, Reports)]] = {
+  override def getLastHundredErrorReports(kinds: List[String]): IOResult[Seq[(Long, Reports)]] = {
     val events = kinds.map(k => s"eventtype='${k}'").mkString(" or ")
     val q      = query[(Long, Reports)](s"${idQuery} and (${events}) order by executiondate desc limit 100")
 
-    transactRunEither(xa => q.to[Vector].transact(xa)) match {
-      case Left(e)     =>
-        val msg = s"Could not fetch last hundred reports in the database. Reason is : ${e.getMessage}"
-        logger.error(msg)
-        Failure(msg, Full(e), Empty)
-      case Right(list) => Full(list)
-    }
+    transactIOResult("Could not fetch last hundred error reports in the database")(xa => q.to[Vector].transact(xa))
   }
 
-  override def getReportsWithLowestId: Box[Option[(Long, Reports)]] = {
+  override def getReportsWithLowestId: IOResult[Option[(Long, Reports)]] = {
     val q = query[(Long, Reports)](s"${idQuery} order by id asc limit 1")
-    transactRunBox(xa => q.option.transact(xa))
-  }
-
-  def getReportsWithLowestIdFromDate(from: DateTime): Box[Option[(Long, Reports)]] = {
-    val q =
-      query[(Long, Reports)](s"${idQuery} and executionTimeStamp >= '${new Timestamp(from.getMillis)}' order by id asc limit 1")
-    transactRunBox(xa => q.option.transact(xa))
-  }
-
-  /**
-    *  utilitary methods
-    */
-
-  // Get max ID before a datetime
-  def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Option[Long]] = {
-    val q = query[Long](
-      s"select max(id) as id from RudderSysEvents where id > ${fromId} and executionTimeStamp <  '${new Timestamp(before.getMillis)}'"
-    )
-    (transactRunBox(xa =>
-      q.option.transact(xa)
-    ) ?~! s"Could not fetch the highest id before date ${before.toString} in the database")
+    transactIOResult("Could not fetch the report with the lowest id in the database")(xa => q.option.transact(xa))
   }
 
   /**
    * From an id and an end date, return a list of AgentRun, and the max ID that has been considered
    */
-  override def getReportsFromId(lastProcessedId: Long, endDate: DateTime): Box[(Seq[AgentRun], Long)] = {
+  override def getReportsFromId(lastProcessedId: Long, endDate: DateTime): IOResult[(Seq[AgentRun], Long)] = {
 
     def getMaxId(fromId: Long, before: DateTime): ConnectionIO[Long] = {
       val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
@@ -360,47 +334,43 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
 
     // actual logic for getReportsfromId
-    transactRunBox(xa => {
+    transactIOResult("Could not fetch the last completed runs from database.")(xa => {
       (for {
         toId    <- getMaxId(lastProcessedId, endDate)
         reports <- getRuns(lastProcessedId, toId)
       } yield {
         (distinctRuns(reports), toId)
       }).transact(xa)
-    }) ?~! s"Could not fetch the last completed runs from database."
+    })
   }
 
   /**
     * returns the changes between startTime and now, using intervalInHour interval size
     */
 
-  override def countChangeReportsByBatch(intervals: List[Interval]): Box[(Long, Map[RuleId, Map[Interval, Int]])] = {
-    import com.normation.utils.Control.traverse
+  override def countChangeReportsByBatch(intervals: List[Interval]): IOResult[(Long, Map[RuleId, Map[Interval, Int]])] = {
     logger.debug(s"Fetching all changes for intervals ${intervals.mkString(",")}")
     val beginTime = System.currentTimeMillis()
-    val box: Box[Seq[Vector[(RuleId, Interval, Int, Long)]]] = traverse(intervals) { interval =>
-      (transactRunBox(xa => {
-        query[(RuleId, Int, Long)](
-          s"""select ruleid, count(*) as number, max(id)
+    for {
+      perInterval <- ZIO.foreach(intervals) { interval =>
+                       transactIOResult(s"Error when trying to retrieve change reports on interval ${interval.toString}")(xa => {
+                         query[(RuleId, Int, Long)](
+                           s"""select ruleid, count(*) as number, max(id)
           from ruddersysevents
           where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(
-              interval.getStartMillis
-            )}' and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)}'
+                               interval.getStartMillis
+                             )}' and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)}'
           group by ruleid;
       """
-        ).to[Vector].transact(xa)
-      }) ?~! s"Error when trying to retrieve change reports on interval ${interval.toString}").map { res =>
-        res.map { case (ruleid, count, highestId) => (ruleid, interval, count, highestId) }
-      }
-    }
-    val endQuery = System.currentTimeMillis()
-    logger.debug(s"Fetched all changes in intervals in ${(endQuery - beginTime)} ms")
-
-    for {
-      all <- box.map(_.flatten)
+                         ).to[Vector].transact(xa)
+                       }).map(res => res.map { case (ruleid, count, highestId) => (ruleid, interval, count, highestId) })
+                     }
     } yield {
+      val all      = perInterval.flatten
+      val endQuery = System.currentTimeMillis()
+      logger.debug(s"Fetched all changes in intervals in ${(endQuery - beginTime)} ms")
       if (all.isEmpty) {
-        (0, Map())
+        (0L, Map())
       } else {
         val highest = all.iterator.map(_._4).max
         val byRules = all.groupBy(_._1).map {
@@ -418,41 +388,6 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
-  override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
-    // special mapper to retrieve correct interval. It is dependant of starttime / intervalInHour
-    implicit val intervalMeta: Get[Interval] = Get[Int].tmap(
-      // the query will return interval number in the "interval" column. So interval=0 mean
-      // interval from startTime to startTime + intervalInHour hours, etc.
-      // here is the mapping to build an interval from its number
-      num => new Interval(startTime.plusHours(num * intervalInHour), startTime.plusHours((num + 1) * intervalInHour))
-    )
-
-    // be careful, extract from 'epoch' gives seconds, not millis
-    val mod   = intervalInHour * 3600
-    val start = startTime.getMillis / 1000
-    (
-      (transactRunBox(xa => {
-        query[(RuleId, Int, Interval)](
-          s"""select ruleid, count(*) as number, ( extract('epoch' from executiontimestamp)::bigint - ${start})/${mod} as interval
-          from ruddersysevents
-          where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp
-          group by ruleid, interval;
-      """
-        ).to[Vector].transact(xa)
-      }) ?~! "Error when trying to retrieve change reports").map { res =>
-        val groups = {
-          res
-            .groupBy(_._1)
-            .view
-            .mapValues(_.groupMapReduce(_._3)(_._2)((a, b) => a))
-            .toMap // head non empty due to groupBy, and seq == 1 by query
-        }
-        groups
-      },
-      intervalMeta
-    )._1 // tricking scalac for false positive unused warning on intervalMeta.
-  }
-
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): IOResult[Seq[ChangeForCache]] = {
     transactIOResult(s"Error we getting change reports on [${lowestId}, ${highestId}]")(xa => {
       query[ChangeForCache](s"""select ruleid, executiontimestamp from ruddersysevents where
@@ -465,7 +400,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       ruleId:   RuleId,
       interval: Interval,
       limit:    Option[Int]
-  ): Box[Seq[ResultRepairedReport]] = {
+  )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]] = {
     val limitFr = limit match {
       case Some(i) if (i > 0) => fr"limit ${i}"
       case _                  => Fragment.empty
@@ -477,7 +412,15 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       fr"and eventtype = ${Reports.RESULT_REPAIRED} and ruleid = ${ruleId}" ++
       fr"and executionTimeStamp >  ${start} and executionTimeStamp <= ${end}" ++
       fr"order by executionTimeStamp asc" ++ limitFr
-    transactRunBox(xa => q.query[ResultRepairedReport].to[Vector].transact(xa))
+    for {
+      reports <- transactIOResult("Could not fetch change reports by rule on interval in the database")(xa =>
+                   q.query[ResultRepairedReport].to[Vector].transact(xa)
+                 )
+      // a change report's tenant is its node's tenant; restrict to the nodes visible in `qc` (an `All` grant,
+      // e.g. systemQC, sees everything and skips the lookup).
+      res     <- if (qc.accessGrant == TenantAccessGrant.All) reports.succeed
+                 else nodeFactRepository.getNodeAndServerIds().map(v => reports.filter(r => v.nodeIds.contains(r.nodeId)))
+    } yield res
   }
 
   override def getReportsByKindBetween(
@@ -485,22 +428,22 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       upper: Option[Long],
       limit: Int,
       kinds: List[String]
-  ): Box[Seq[(Long, Reports)]] = {
+  ): IOResult[Seq[(Long, Reports)]] = {
     upper match {
       case Some(upper) if lower >= upper =>
-        Full(Nil)
+        Seq.empty[(Long, Reports)].succeed
       case None                          =>
         val q =
           s"${idQuery} and id >= '${lower}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-        transactRunBox(xa =>
+        transactIOResult(s"Could not fetch reports between ids ${lower} and ${upper} in the database.")(xa =>
           query[(Long, Reports)](q).to[Vector].transact(xa)
-        ) ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+        )
       case Some(upper)                   =>
         val q =
           s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-        transactRunBox(xa =>
+        transactIOResult(s"Could not fetch reports between ids ${lower} and ${upper} in the database.")(xa =>
           query[(Long, Reports)](q).to[Vector].transact(xa)
-        ) ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+        )
     }
   }
 }

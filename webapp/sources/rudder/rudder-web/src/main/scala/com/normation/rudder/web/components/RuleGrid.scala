@@ -358,7 +358,7 @@ class RuleGrid(
         val default = recentChanges.getCurrentValidIntervals(None).map((_, 0)).toMap
         val start   = System.currentTimeMillis
         for {
-          changes <- recentChanges.countChangesByRuleByInterval()
+          changes <- recentChanges.countChangesByRuleByInterval().toBox
         } yield {
           val nodeChanges = changes._2.defaultRulesWith(rules)(default)
           val after       = System.currentTimeMillis
@@ -475,6 +475,8 @@ class RuleGrid(
   ): List[Line] = {
 
     val nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
+    // per-node tenant tags, so the application status honours the same rule<->node boundary as generation
+    val nodeSecurity     = nodeFacts.mapValues(_.rudderSettings.security).toMap
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
@@ -533,6 +535,7 @@ class RuleGrid(
               groupsLib,
               directivesLib,
               nodeAndServerIds,
+              nodeSecurity,
               None
             )
           }

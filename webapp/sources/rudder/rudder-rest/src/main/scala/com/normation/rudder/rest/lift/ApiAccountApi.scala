@@ -251,6 +251,9 @@ class ApiAccountApiServiceV1(
 
   override def createAccount(data: NewRestApiAccount)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
+      // a user can not create an account with a wider tenant grant than the tenants it can write (the tenant
+      // grant is otherwise copied verbatim from the request body, so this is where delegation is bounded).
+      _    <- qc.accessGrant.delegableTo(data.tenants).toIO
       pair <- mapper.fromNewApiAccount(data)
       // check that that account doesn't already exist
       _    <- readApi.getById(pair._1.id).flatMap {
@@ -272,6 +275,12 @@ class ApiAccountApiServiceV1(
   ): IOResult[ApiAccountDetails.Public] = {
     for {
       a  <- getPublicApiAccount(id)
+      // same delegation bound as create: an update can not widen the account's tenant grant beyond the
+      // actor's writable tenants (only checked when the request actually changes `tenants`).
+      _  <- data.tenants match {
+              case Some(t) => qc.accessGrant.delegableTo(t).toIO.unit
+              case None    => ZIO.unit
+            }
       up <- mapper.update(a, data).toIO
       _  <- writeApi.save(up, ModificationId(uuidGen.newUuid), qc.actor)
     } yield up.transformInto[ApiAccountDetails.Public]

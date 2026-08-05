@@ -2110,9 +2110,21 @@ object JsonResponseObjects {
       security = None
     )
 
-    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId])(using
-        qc: QueryContext
+    // `visibleNodes` is the set of node ids the caller may see (from `nodeFactRepo.getNodeAndServerIds()(qc)`);
+    // `None` means "no tenant filter" (admin/system paths). We filter the serialized `nodeIds` to it so a group
+    // visible to a tenant does not leak the ids of member nodes in tenants the caller can not see.
+    def fromGroup(
+        group:        NodeGroup,
+        catId:        NodeGroupCategoryId,
+        crId:         Option[ChangeRequestId],
+        visibleNodes: Option[Set[NodeId]]
+    )(using
+        qc:           QueryContext
     ): JRGroup = {
+      val nodeIds = (visibleNodes match {
+        case None      => group.serverList
+        case Some(vis) => group.serverList.filter(vis.contains)
+      }).toList.map(_.value).sorted
       group
         .into[JRGroup]
         .enableBeanGetters
@@ -2121,7 +2133,7 @@ object JsonResponseObjects {
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.categoryId, catId.value)
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
-        .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
+        .withFieldConst(_.nodeIds, nodeIds)
         .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName).sorted)
         .withFieldComputed(_.properties, _.properties.filter(_.visibility == Displayed).map(JRProperty.fromGroupProp(_)))
         .withFieldComputed(_.target, x => GroupTarget(x.id).target)
@@ -2182,8 +2194,9 @@ object JsonResponseObjects {
      * Sort by ID, also in groups to keep diff easier
      */
     def fromCategory(
-        cat:    FullNodeGroupCategory,
-        parent: Option[NodeGroupCategoryId]
+        cat:          FullNodeGroupCategory,
+        parent:       Option[NodeGroupCategoryId],
+        visibleNodes: Option[Set[NodeId]] // caller's visible node ids for `nodeIds` filtering; None = no filter
     )(using qc: QueryContext): JRFullGroupCategory = {
       cat
         .into[JRFullGroupCategory]
@@ -2193,12 +2206,12 @@ object JsonResponseObjects {
         )
         .withFieldComputed(
           _.subCategories,
-          cat => cat.subCategories.map(c => fromCategory(c, Some(cat.id))).sortBy(_.id.value)
+          cat => cat.subCategories.map(c => fromCategory(c, Some(cat.id), visibleNodes)).sortBy(_.id.value)
         )
         .withFieldComputed(
           _.groups,
           cat => {
-            cat.ownGroups.values.toList.map(t => JRGroup.fromGroup(t.nodeGroup, cat.id, None)).sortBy(_.id)
+            cat.ownGroups.values.toList.map(t => JRGroup.fromGroup(t.nodeGroup, cat.id, None, visibleNodes)).sortBy(_.id)
           }
         )
         .withFieldComputed(

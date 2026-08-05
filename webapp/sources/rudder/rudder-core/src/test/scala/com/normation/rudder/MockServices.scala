@@ -2595,7 +2595,7 @@ class MockNodes(mockTenant: MockTenants) {
   }
 
   val propRepo: PropertiesRepository = {
-    InMemoryPropertiesRepository.make(nodeFactRepo).runNow
+    InMemoryPropertiesRepository.make(nodeFactRepo, mockTenant.checkTenant).runNow
   }
 
   object queryProcessor extends QueryProcessor {

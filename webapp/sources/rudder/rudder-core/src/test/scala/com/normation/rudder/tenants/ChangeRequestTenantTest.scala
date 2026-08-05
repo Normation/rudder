@@ -142,4 +142,22 @@ class ChangeRequestTenantTest extends Specification {
       checkTenant.checkChangeRequestModify(crZoneA, zoneAro.newCC()).either.runNow must beLeft
     }
   }
+
+  // B4: on create, the tenant tag an admin chooses must reference only EXISTING tenants (like the update path),
+  // otherwise a dangling/phantom tenant tag is created.
+  "[create] admin-chosen tenant tag must reference existing tenants" should {
+    val existing = TenantStatus.Enabled(Set(TenantId("zoneA"), TenantId("zoneB")))
+    def create(r: Rule): Either[?, ?] =
+      checkTenant.manageCreate(r, admin.newCC(), existing)(x => zio.ZIO.succeed(x)).either.runNow
+
+    "accept an admin creating an object tagged with an existing tenant" in {
+      create(rule("r", tenantTag("zoneA"))) must beRight
+    }
+    "reject an admin creating an object tagged with a non-existent tenant" in {
+      create(rule("r", tenantTag("zoneX"))) must beLeft
+    }
+    "accept an admin creating an admin-only (untagged) object" in {
+      create(rule("r", None)) must beRight
+    }
+  }
 }

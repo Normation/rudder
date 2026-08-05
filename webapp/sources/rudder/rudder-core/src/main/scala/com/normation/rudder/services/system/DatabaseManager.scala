@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.system
 
+import com.normation.box.*
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
@@ -80,15 +81,15 @@ class DatabaseManagerImpl(
 ) extends DatabaseManager with Loggable {
 
   def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
-    reportsRepository.getReportsInterval()
+    reportsRepository.getReportsInterval().toBox
   }
 
   def getDatabaseSize(): Box[Long] = {
-    reportsRepository.getDatabaseSize(reportsRepository.reports)
+    reportsRepository.getDatabaseSize(reportsRepository.reports).toBox
   }
 
   def deleteEntries(reports: DeleteCommand.Reports, complianceLevels: Option[DeleteCommand.ComplianceLevel]): Box[Int] = {
-    val nodeReports       = reportsRepository.deleteEntries(reports.date) ?~! "An error occurred while deleting reports"
+    val nodeReports       = reportsRepository.deleteEntries(reports.date).toBox ?~! "An error occurred while deleting reports"
     val nodeConfigs       =
       expectedReportsRepo.deleteNodeConfigIdInfo(reports.date) ?~! "An error occurred while deleting old node configuration IDs"
     val deleteNodeConfigs =
@@ -101,6 +102,6 @@ class DatabaseManagerImpl(
 
   override def deleteLogReports(since: Duration): Box[Int] = {
     val date = DateTime.now(DateTimeZone.UTC).minus(since.toMillis)
-    reportsRepository.deleteLogReports(date) ?~! "An error occurred while deleting log reports"
+    reportsRepository.deleteLogReports(date).toBox ?~! "An error occurred while deleting log reports"
   }
 }

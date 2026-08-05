@@ -92,7 +92,7 @@ class ReportsExecutionService(
         }
 
         // then find last reports id
-        reportsRepository.getHighestId() match {
+        reportsRepository.getHighestId().toBox match {
           case eb: EmptyBox =>
             val fail = eb ?~! "Could not get Reports with highest id from the RudderSysEvents table"
             logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
@@ -119,7 +119,7 @@ class ReportsExecutionService(
 
       // Executions status not initialized ... initialize it!
       case Full(None)                                 =>
-        reportsRepository.getReportsWithLowestId match {
+        reportsRepository.getReportsWithLowestId.toBox match {
           case Full(Some((id, report))) =>
             logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             idForCheck = id

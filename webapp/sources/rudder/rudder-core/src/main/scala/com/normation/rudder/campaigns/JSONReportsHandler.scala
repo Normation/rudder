@@ -71,7 +71,7 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
   def loop: IOResult[Unit] = {
     for {
       t0         <- currentTimeMillis
-      highestId  <- reportsRepository.getHighestId().toIO
+      highestId  <- reportsRepository.getHighestId()
       t1         <- currentTimeMillis
       _          <- CampaignLogger.Reports.trace(s"Got highest id of database in ${t1 - t0} ms")
       _          <- CampaignLogger.Reports.debug(s"looking for new json report to parse")
@@ -80,7 +80,7 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
       _          <- CampaignLogger.Reports.trace(s"Got parsed id in ${t2 - t1} ms")
       lowerId     = optLowerId.getOrElse(highestId)
       _          <- CampaignLogger.Reports.debug(s"Last parsed id was ${lowerId}, max id in database is ${highestId}")
-      reports    <- reportsRepository.getReportsByKindBetween(lowerId, None, 1000, List(Reports.REPORT_JSON)).toIO
+      reports    <- reportsRepository.getReportsByKindBetween(lowerId, None, 1000, List(Reports.REPORT_JSON))
       t3         <- currentTimeMillis
       _          <- CampaignLogger.Reports.trace(s"Got reports in ${t3 - t2} ms")
       _          <- reports.maxByOption(_._1) match {

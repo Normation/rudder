@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.zio.*
@@ -86,7 +87,7 @@ class ReportsTest extends DBCommon {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
-  lazy val repostsRepo = new ReportsJdbcRepository(doobie)
+  lazy val repostsRepo = new ReportsJdbcRepository(doobie, CoreNodeFactRepository.makeNoop(Map.empty).runNow)
 
   sequential
 

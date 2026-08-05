@@ -59,6 +59,10 @@ import zio.syntax.*
  * operations) or a `ChangeContext` - abbreviated `cc` - for change operation.
  */
 
+// A tenant/authorization denial, surfaced as a `SecurityError` so it is distinguishable (and auditable)
+// from an ordinary inconsistency or a "not found".
+final case class TenantSecurityError(msg: String) extends SecurityError
+
 /* `TenantAccessGrant` defines the list of tenants a user has access to.
  * For now, there is only three cases:
  * - access all or none objects in , whatever properties the node has
@@ -215,6 +219,37 @@ object TenantAccessGrant {
       case ByTenants(ts) =>
         val writable = ts.filter(_.grant.canWrite)
         if (writable.isEmpty) None else ByTenants(writable)
+    }
+
+    /*
+     * The tenant grant this actor is allowed to DELEGATE to something it creates or updates (e.g. an API
+     * account, whose `tenants` come from the request body). An actor may only delegate within the tenants it
+     * can WRITE, never wider than its own writable reach: `All` may delegate anything; `None` may delegate
+     * only `None`; a `ByTenants` actor may delegate only a subset of its writable tenant ids. We REJECT a
+     * wider request with a `SecurityError` (rather than silently narrowing) so the caller learns the grant
+     * was refused rather than quietly getting less than it asked for. This is the missing "the grant can not
+     * widen itself" check for delegation (see the API-account creation/update path).
+     */
+    def delegableTo(requested: TenantAccessGrant): PureResult[TenantAccessGrant] = {
+      def refuse: PureResult[TenantAccessGrant] = {
+        Left(
+          TenantSecurityError(
+            s"the requested tenant grant '${requested.serialize}' is wider than the actor's writable tenants " +
+            s"'${nsc.restrictToWrite.serialize}'; it can not be delegated"
+          )
+        )
+      }
+      nsc.restrictToWrite match {
+        case All           => Right(requested)
+        case None          => if (requested.isNone) Right(None) else refuse
+        case ByTenants(ws) =>
+          val writable = ws.map(_.id).toSet
+          requested match {
+            case All           => refuse
+            case None          => Right(None)
+            case ByTenants(rs) => if (rs.forall(a => writable.contains(a.id))) Right(requested) else refuse
+          }
+      }
     }
 
     // write semantics of `canSee`: only tenants with `rw` permission are considered.
