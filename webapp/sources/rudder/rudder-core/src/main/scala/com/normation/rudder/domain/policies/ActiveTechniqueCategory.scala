@@ -40,6 +40,7 @@ package com.normation.rudder.domain.policies
 import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 
 final case class ActiveTechniqueCategoryId(value: String) extends AnyVal
 
@@ -57,9 +58,10 @@ final case class ActiveTechniqueCategory(
 object ActiveTechniqueCategory {
   given HasSecurityTag[ActiveTechniqueCategory] with {
     extension (a: ActiveTechniqueCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.value
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): ActiveTechniqueCategory = a.copy(security = security)
     }
   }

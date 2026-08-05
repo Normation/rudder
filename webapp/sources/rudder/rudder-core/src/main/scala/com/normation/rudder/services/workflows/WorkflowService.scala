@@ -54,6 +54,7 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.AuthenticatedUser
 import net.liftweb.common.*
 import zio.syntax.ToZio
@@ -167,10 +168,12 @@ trait WorkflowLevelService {
   /*
    * These method allow to get change request impacting a rule/directive/etc.
    * Used to display information on them on corresponding update screens.
+   * They carry the caller's QueryContext so that only change requests the actor's tenant grant can see
+   * are returned (a change request is visible only if every object it touches is - see ChangeRequestTenant).
    */
-  def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]]
-  def getByNodeGroup(id: NodeGroupId, onlyPending:  Boolean): IOResult[Vector[ChangeRequest]]
-  def getByRule(id:      RuleUid, onlyPending:      Boolean): IOResult[Vector[ChangeRequest]]
+  def getByDirective(id: DirectiveUid, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]]
+  def getByNodeGroup(id: NodeGroupId, onlyPending:  Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]]
+  def getByRule(id:      RuleUid, onlyPending:      Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]]
 }
 
 // and default implementation is: no
@@ -203,13 +206,15 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
     this.level.map(_.getForGlobalParam(actor, change)).getOrElse(defaultWorkflowService.succeed)
   }
 
-  override def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+  override def getByDirective(id: DirectiveUid, onlyPending: Boolean)(implicit
+      qc: QueryContext
+  ): IOResult[Vector[ChangeRequest]] =
     this.level.map(_.getByDirective(id, onlyPending)).getOrElse(Vector().succeed)
 
-  override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+  override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]] =
     this.level.map(_.getByNodeGroup(id, onlyPending)).getOrElse(Vector().succeed)
 
-  override def getByRule(id: RuleUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+  override def getByRule(id: RuleUid, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]] =
     this.level.map(_.getByRule(id, onlyPending)).getOrElse(Vector().succeed)
 }
 

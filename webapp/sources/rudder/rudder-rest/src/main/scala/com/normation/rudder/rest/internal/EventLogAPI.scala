@@ -89,7 +89,8 @@ class EventLogAPI(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
+      implicit val prettify: Boolean      = params.prettify
+      implicit val qc:       QueryContext = authzToken.qc
 
       (for {
         restFilter  <- req.fromJson[RestEventLogFilter].toIO

@@ -435,7 +435,7 @@ response:
       }
     }
 ---
-description: LAW admin can change the tenant list (drop zoneB)
+description: LAW9 even admin can not narrow the tenant list (drop zoneB is refused)
 user: admin
 method: POST
 url: /api/latest/rules/law-rule-shared
@@ -451,44 +451,15 @@ body: >-
     }
   }
 response:
-  code: 200
+  code: 500
   content: >-
     {
       "action": "updateRule",
-      "id": "law-rule-shared",
-      "result": "success",
-      "data": {
-        "rules": [
-          {
-            "id": "law-rule-shared",
-            "displayName": "law shared rule",
-            "categoryId": "rootRuleCategory",
-            "shortDescription": "A rule for tenant testing",
-            "longDescription": "",
-            "directives": [
-              "directive1"
-            ],
-            "targets": [
-              "special:all"
-            ],
-            "enabled": true,
-            "system": false,
-            "tags": [],
-            "policyMode": "enforce",
-            "status": {
-              "value": "In application"
-            },
-            "security": {
-              "tenants": [
-                "zoneA"
-              ]
-            }
-          }
-        ]
-      }
+      "result": "error",
+      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[zoneA,zoneB]' to '[zoneA]': visibility can only grow (add tenants, or set 'open'), never shrink. To narrow the scope, create a new object with the wanted tenant list"
     }
 ---
-description: LAW admin confirms tenant list is now only zoneA
+description: LAW9 admin confirms the narrowing attempt left the tenant list untouched
 user: admin
 method: GET
 url: /api/latest/rules/law-rule-shared
@@ -522,12 +493,109 @@ response:
             },
             "security": {
               "tenants": [
-                "zoneA"
+                "zoneA",
+                "zoneB"
               ]
             }
           }
         ]
       }
+    }
+---
+description: LAW9 admin can not add a tenant that does not exist
+user: admin
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": {
+      "tenants": [
+        "zoneA",
+        "zoneB",
+        "zoneZ"
+      ]
+    }
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateRule",
+      "result": "error",
+      "errorDetails": "Inconsistency: Object 'law-rule-shared' security tag can not be updated to '[zoneA,zoneB,zoneZ]' because tenant(s) 'zoneZ' don't exist"
+    }
+---
+description: LAW9 admin can grow the tenant list to open
+user: admin
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": "open"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": "open"
+          }
+        ]
+      }
+    }
+---
+description: LAW9 an open object can not be narrowed back to a tenant list
+user: admin
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": {
+      "tenants": [
+        "zoneA",
+        "zoneB"
+      ]
+    }
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateRule",
+      "result": "error",
+      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[open]' to '[zoneA,zoneB]': visibility can only grow (add tenants, or set 'open'), never shrink. To narrow the scope, create a new object with the wanted tenant list"
     }
 ---
 description: cleanup lawParamAdmin

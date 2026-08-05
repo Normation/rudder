@@ -58,6 +58,7 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
@@ -309,7 +310,8 @@ object NodeFact {
       override def security: Option[SecurityTag] = a.rudderSettings.security
 
       // nodes are not system configuration objects: node writes are governed by tenant scoping only
-      override def isSystem: Boolean = false
+      override def isSystem:           Boolean            = false
+      override def tenantTagLifecycle: TenantTagLifecycle = TenantTagLifecycle.Reassignable
 
       override def debugId: String = a.id.value
 
@@ -1017,6 +1019,7 @@ object CoreNodeFact {
       override def security:                                             Option[SecurityTag] = a.rudderSettings.security
       // nodes are not system configuration objects: node writes are governed by tenant scoping only
       override def isSystem:                                             Boolean             = false
+      override def tenantTagLifecycle:                                   TenantTagLifecycle  = TenantTagLifecycle.Reassignable
       override def debugId:                                              String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): CoreNodeFact        =
         a.modify(_.rudderSettings.security).setTo(security)

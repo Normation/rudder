@@ -25,6 +25,7 @@ import com.normation.eventlog.EventLogRequest.PrincipalFilter
 import com.normation.eventlog.EventLogRequest.TypeFilter
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGeneratorImpl
 import enumeratum.Enum
 import enumeratum.EnumEntry.Lowercase
@@ -109,7 +110,15 @@ final case class EventLogDetails(
     val cause:          Option[Int] = None,
     val severity:       Int = 100,
     val reason:         Option[String],
-    val details:        Elem
+    val details:        Elem,
+    // The tenant security tag the event's object had *before* the change (creation records the created tag).
+    //
+    // `None` means the event is not tied to a taggable object, or predates tenants: it is then admin-only
+    // (fail-closed).
+    // Because object tags may only grow (see the object-tenant-tag-lifecycle ADR), anyone who
+    // can see the object today can see this event, and a tenant added later never sees older pre-membership
+    // values. It is used to filter event-log reads by the reader's tenant grant.
+    val securityTag:    Option[SecurityTag] = None
 )
 
 trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails), EventLog] {
@@ -168,6 +177,12 @@ trait EventLog {
    * Not all event log must have that id, but most should.
    */
   def modificationId: Option[ModificationId] = eventDetails.modificationId
+
+  /**
+   * The tenant security tag the changed object had before the change (see EventLogDetails.securityTag).
+   * Used to filter event-log reads by the reader's tenant grant.
+   */
+  def securityTag: Option[SecurityTag] = eventDetails.securityTag
 
   //// not in details
 

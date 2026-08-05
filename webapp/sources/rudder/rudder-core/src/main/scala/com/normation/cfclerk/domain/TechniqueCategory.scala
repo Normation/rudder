@@ -43,6 +43,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.XmlSafe
 import scala.collection.SortedSet
 import scala.xml.Elem
@@ -65,9 +66,10 @@ final case class TechniqueCategoryMetadata(name: String, description: String, is
 object TechniqueCategoryMetadata {
   given HasSecurityTag[TechniqueCategoryMetadata] with {
     extension (a: TechniqueCategoryMetadata) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.name
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.name
       override def updateSecurityContext(security: Option[SecurityTag]): TechniqueCategoryMetadata = a.copy(security = security)
     }
   }
@@ -253,9 +255,10 @@ final case class RootTechniqueCategory(
 object RootTechniqueCategory {
   given HasSecurityTag[RootTechniqueCategory] with {
     extension (a: RootTechniqueCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.toString
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.toString
       override def updateSecurityContext(security: Option[SecurityTag]): RootTechniqueCategory = a.copy(security = security)
     }
   }
@@ -276,9 +279,10 @@ final case class SubTechniqueCategory(
 object SubTechniqueCategory {
   given HasSecurityTag[SubTechniqueCategory] with {
     extension (a: SubTechniqueCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.toString
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.toString
       override def updateSecurityContext(security: Option[SecurityTag]): SubTechniqueCategory = a.copy(security = security)
     }
   }
