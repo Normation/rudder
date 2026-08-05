@@ -82,6 +82,14 @@ decodeParentProperty =
                             |> optional "parent" (map Just decodeParentProperty) Nothing
                             |> map ParentNode
 
+                    "target" ->
+                        succeed ParentTargetProperty
+                            |> required "id" string
+                            |> required "name" string
+                            |> required "valueType" string
+                            |> optional "parent" (map Just decodeParentProperty) Nothing
+                            |> map ParentTarget
+
                     "global" ->
                         map ParentGlobalProperty
                             (field "valueType" string)
