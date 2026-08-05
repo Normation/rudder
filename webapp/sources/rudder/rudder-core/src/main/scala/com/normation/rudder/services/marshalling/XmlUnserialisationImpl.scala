@@ -785,8 +785,13 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
                        .flatMap(x => Visibility.withNameInsensitiveOption(x.text))
                        .getOrElse(Visibility.default)
       security     = SecurityXml.getSecurity(entry)
+      scope       <- (globalParam \ "scope").headOption match {
+                       case None    => Right(None)
+                       case Some(x) => RuleTarget.unser(x.text).map(Some(_))
+                     }
       // TODO: no version in param for now
-      g           <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider, visibility, security)
+      g           <-
+        GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider, visibility, security, scope)
     } yield {
       g // TODO: no version in param for now
     }).chainError(s"${entryType} unserialisation failed")

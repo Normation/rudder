@@ -87,10 +87,17 @@ type alias ParentNodeProperty =
     { id : String, name : String, valueType : String, parent : Maybe ParentProperty }
 
 
+{-| A global parameter restricted to a target: `id` is the serialized target (ADR 29409).
+-}
+type alias ParentTargetProperty =
+    { id : String, name : String, valueType : String, parent : Maybe ParentProperty }
+
+
 type ParentProperty
     = ParentGlobal ParentGlobalProperty
     | ParentGroup ParentGroupProperty
     | ParentNode ParentNodeProperty
+    | ParentTarget ParentTargetProperty
 
 
 type SortOrder
@@ -262,6 +269,18 @@ getPossibleFormatsFromPropertyName model propertyName =
 
                     else
                         parent
+
+                ParentTarget prop ->
+                    let
+                        parent =
+                            case prop.parent of
+                                Just par ->
+                                    getOtherHierarchyValueType par
+
+                                Nothing ->
+                                    []
+                    in
+                    prop.valueType :: parent
 
         mergedValueTypes =
             List.Extra.find (\p -> p.name == propertyName) model.properties

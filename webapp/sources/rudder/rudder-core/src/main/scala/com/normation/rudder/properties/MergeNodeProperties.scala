@@ -162,6 +162,25 @@ object GroupProp {
   }
 }
 
+/*
+ * The scoped parameters (ADR 29409) as seen from one node: the ones whose target contains it, and
+ * the *names* of the ones whose target does not.
+ *
+ * A scope defines the domain of definition of a property name, not merely a default value: outside
+ * its scope the name does not exist on that node at all. So we need both halves - the second one to
+ * drop group and node overrides of a name that is scoped away from this node.
+ *
+ * The caller resolves the targets once for the whole fleet, see NodePropertiesService.
+ */
+final case class NodeScopedParameters(
+    inScope:    List[ParentProperty.Target],
+    outOfScope: Set[String]
+)
+
+object NodeScopedParameters {
+  val empty: NodeScopedParameters = NodeScopedParameters(Nil, Set.empty)
+}
+
 object MergeNodeProperties {
 
   /**
@@ -171,11 +190,12 @@ object MergeNodeProperties {
   def forNode(
       node:         CoreNodeFact,
       groupTargets: Iterable[FullGroupTarget],
-      globalParams: Map[String, GlobalParameter]
+      globalParams: Map[String, GlobalParameter],
+      scoped:       NodeScopedParameters = NodeScopedParameters.empty
   ): ResolvedNodePropertyHierarchy = {
     val groupProps = groupTargets.map(_.nodeGroup.toGroupProp).map(g => (g.groupId, g)).toMap
 
-    val properties = checkPropertyMerge(groupProps, globalParams).map(props => {
+    val properties = checkPropertyMerge(groupProps, globalParams, scoped.inScope).map(props => {
       Chunk
         .fromIterable(
           mergeDefaultNode(
@@ -186,7 +206,38 @@ object MergeNodeProperties {
         )
         .sortBy(_.prop.name)
     })
-    ResolvedNodePropertyHierarchy.from(properties)
+    ResolvedNodePropertyHierarchy.from(dropOutOfScope(properties, scoped.outOfScope))
+  }
+
+  /*
+   * Enforce the domain of definition of scoped names on one node (ADR 29409): a name scoped away
+   * from that node is removed whichever level defined it - the scoped parameter is already absent,
+   * but a group or the node itself may define the same name, and that value must not reach the
+   * node either.
+   *
+   * Errors about those names go too: a node must not fail its whole property resolution - and
+   * therefore its policy generation - because of a property it does not have.
+   */
+  private def dropOutOfScope(
+      resolved: Ior[PropertyHierarchyError, Chunk[PropertyHierarchy]],
+      names:    Set[String]
+  ): Ior[PropertyHierarchyError, Chunk[PropertyHierarchy]] = {
+    if (names.isEmpty) resolved
+    else {
+      val filtered = resolved.bimap(
+        {
+          case err: PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts => err.resolve(names)
+          case err => err
+        },
+        _.filterNot(p => names.contains(p.prop.name))
+      )
+      // dropping every conflict leaves an empty error, which is not an error anymore
+      filtered match {
+        case Ior.Both(PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts.empty, ok) => Ior.Right(ok)
+        case Ior.Left(PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts.empty)     => Ior.Right(Chunk.empty)
+        case other                                                                                    => other
+      }
+    }
   }
 
   /*
@@ -195,7 +246,11 @@ object MergeNodeProperties {
   def forGroup(
       group:        FullGroupTarget,
       allGroups:    Map[NodeGroupId, FullGroupTarget],
-      globalParams: Map[String, GlobalParameter]
+      globalParams: Map[String, GlobalParameter],
+      // scoped parameters are shown at group level like unscoped ones, so that a group overriding
+      // one displays what it overrides. This view is indicative: a group is not necessarily a
+      // subset of the scope, and the authoritative resolution is the per-node one (ADR 29409).
+      scopedParams: List[ParentProperty.Target] = Nil
   ): ResolvedNodePropertyHierarchy = {
     val groupProp     = group.nodeGroup.toGroupProp
     val allGroupProps = allGroups.map { case (id, g) => (id.serialize, g.nodeGroup.toGroupProp) }
@@ -251,15 +306,19 @@ object MergeNodeProperties {
           case n: ParentProperty.Node   => n.parentProperty.flatMap(findLastMatchingGroup)
           case g: ParentProperty.Group  =>
             g.parentProperty match {
-              case None                           => Some(g)
-              case Some(_: ParentProperty.Global) => Some(g)
-              case Some(parent)                   => findLastMatchingGroup(parent)
+              case None                                                            => Some(g)
+              // global and scoped parameters are roots: `g` is the last group of that line
+              case Some(_: ParentProperty.Global) | Some(_: ParentProperty.Target) => Some(g)
+              case Some(parent)                                                    => findLastMatchingGroup(parent)
             }
+          // a group is never resolved against scoped parameters (ADR 29409), so this is only
+          // reachable for defensive completeness
+          case _: ParentProperty.Target => None
           case _: ParentProperty.Global => None
         }
       }
 
-      checkPropertyMerge(otherProps, globalParams) match {
+      checkPropertyMerge(otherProps, globalParams, scopedParams) match {
         case Ior.Right(b) => Ior.Right(b)
         case withErr      =>
           withErr.left match {
@@ -387,7 +446,8 @@ object MergeNodeProperties {
    */
   def checkPropertyMerge(
       props:        Map[NodeGroupId, GroupProp],
-      globalParams: Map[String, GlobalParameter]
+      globalParams: Map[String, GlobalParameter],
+      scopedParams: List[ParentProperty.Target] = Nil
   ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
     /*
      * General strategy:
@@ -429,11 +489,16 @@ object MergeNodeProperties {
                 case Some(oldProp) => // merge prop and add old to parents
                   def recAppend(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
                     prop match {
-                      case _:     ParentProperty.Global => oldProp
-                      case group: ParentProperty.Group  =>
+                      case _:      ParentProperty.Global => oldProp
+                      case group:  ParentProperty.Group  =>
                         group.parentProperty match {
                           case None    => group.copy(parentProperty = Some(oldProp))
                           case Some(g) => group.copy(parentProperty = Some(recAppend(g)))
+                        }
+                      case target: ParentProperty.Target =>
+                        target.parentProperty match {
+                          case None    => target.copy(parentProperty = Some(oldProp))
+                          case Some(p) => target.copy(parentProperty = Some(recAppend(p)))
                         }
                     }
                   }
@@ -502,11 +567,24 @@ object MergeNodeProperties {
                      case (n, v) =>
                        (n, ParentProperty.Global(v) -> v.inheritMode)
                    }
+      scoped     = scopedRoots(scopedParams)
     } yield {
-      // here, we add global parameters as a first default
+      // levels, from the most default to the most specific: global < scoped < groups
       val mergedProps = merged.map(p => (p.value.name, p -> p.value.inheritMode)).toMap
-      overrideValues(globals.toMap :: mergedProps :: Nil).values.toList
+      overrideValues(globals.toMap :: scoped :: mergedProps :: Nil).values.toList
     }
+  }
+
+  /**
+   * The scoped parameters, as the roots they form in the hierarchy (ADR 29409).
+   *
+   * There is nothing to arbitrate here: a global parameter's name is unique in storage (its LDAP
+   * RDN *is* the name), so a name carries at most one parameter and therefore at most one scope.
+   */
+  private def scopedRoots(
+      scopedParams: List[ParentProperty.Target]
+  ): Map[String, (VertexParentProperty[?], Option[InheritMode])] = {
+    scopedParams.map(t => (t.value.name, (t: VertexParentProperty[?], t.value.inheritMode))).toMap
   }
 
   /**
@@ -646,6 +724,9 @@ object MergeNodeProperties {
         case n:    ParentProperty.Node   =>
           s"Node '${n.name}' (${n.id}) with value '${n.value.value.render(ConfigRenderOptions.concise())}'" :: n.parentProperty.toList
             .flatMap(message)
+        case t:    ParentProperty.Target =>
+          s"Scope '${t.id}' with value '${t.value.value.render(ConfigRenderOptions.concise())}'" :: t.parentProperty.toList
+            .flatMap(message)
         case glob: ParentProperty.Global =>
           s"Global property with value '${glob.value.value.render(ConfigRenderOptions.concise())}'" :: Nil
       }
@@ -657,6 +738,8 @@ object MergeNodeProperties {
           g.parentProperty.map(check(_, valueType)).getOrElse(true)
         case n:    ParentProperty.Node   =>
           n.parentProperty.map(check(_, valueType)).getOrElse(true)
+        case t:    ParentProperty.Target =>
+          t.parentProperty.map(check(_, valueType)).getOrElse(true)
         case glob: ParentProperty.Global =>
           true
       })

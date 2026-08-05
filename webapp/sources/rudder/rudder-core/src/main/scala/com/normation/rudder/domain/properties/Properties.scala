@@ -43,6 +43,7 @@ import com.normation.GitVersion.Revision
 import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
@@ -190,7 +191,8 @@ final case class PatchProperty(
     description: Option[String] = None,
     inheritMode: Option[InheritMode] = None,
     visibility:  Option[Visibility] = None,
-    security:    Option[Option[SecurityTag]] = None
+    security:    Option[Option[SecurityTag]] = None,
+    scope:       Option[Option[RuleTarget]] = None
 )
 
 /*
@@ -285,7 +287,8 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
         patchOne[String](GenericProperty.DESCRIPTION, p.description, _.toConfigValue)(_),
         patchOne[InheritMode](GenericProperty.INHERIT_MODE, p.inheritMode, _.value.toConfigValue)(_),
         (c: Config) => patchVisibility(c, p.visibility),
-        (c: Config) => patchSecurity(c, p.security)
+        (c: Config) => patchSecurity(c, p.security),
+        (c: Config) => patchScope(c, p.scope)
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
@@ -304,6 +307,7 @@ object GenericProperty {
   val INHERIT_MODE = "inheritMode" // options: inheritance mode
   val VISIBILITY   = "visibility"  // optional, if missing Visibility.default
   val SECURITY     = "security"    // optional, if missing None
+  val SCOPE        = "scope"       // optional, if missing the property applies to all nodes
 
   def getMode(config: Config):                            Option[InheritMode] = {
     if (config.hasPath(INHERIT_MODE)) {
@@ -437,6 +441,19 @@ object GenericProperty {
     case None                               => c
     case Some(v) if v == Visibility.default => c.withoutPath(GenericProperty.VISIBILITY)
     case Some(v)                            => c.withValue(GenericProperty.VISIBILITY, v.entryName.toConfigValue)
+  }
+
+  /*
+   * Patch the scope, with the semantic that Some(None) remove it.
+   * The target is stored with its usual string form, so that a future kind of target
+   * (a named one, for example) needs no change here nor any data migration.
+   */
+  final private[properties] def patchScope(c: Config, s: Option[Option[RuleTarget]]): Config = {
+    s match {
+      case None          => c
+      case Some(None)    => c.withoutPath(GenericProperty.SCOPE)
+      case Some(Some(t)) => c.withValue(GenericProperty.SCOPE, ConfigValueFactory.fromAnyRef(t.target))
+    }
   }
 
   /*
@@ -638,9 +655,10 @@ object GenericProperty {
       description: Option[String],
       visibility:  Option[Visibility],
       security:    Option[SecurityTag],
+      scope:       Option[RuleTarget] = None,
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): PureResult[Config] = {
-    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, visibility, security, options))
+    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, visibility, security, scope, options))
   }
 
   /**
@@ -656,6 +674,8 @@ object GenericProperty {
       visibility:  Option[Visibility],
       // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
       security:    Option[SecurityTag], // optional for backward compat. None means "no tenant"
+      // None means "no scope", ie the property is distributed to all nodes
+      scope:       Option[RuleTarget] = None,
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): Config = {
     val m              = new java.util.HashMap[String, ConfigValue]()
@@ -670,7 +690,8 @@ object GenericProperty {
     mode.foreach(x => m.put(INHERIT_MODE, ConfigValueFactory.fromAnyRef(x.value)))
     val withVisibility = GenericProperty.patchVisibility(ConfigFactory.parseMap(m, options.getOriginDescription), visibility)
     // `security.map(Some(_))`: None means "no tenant" (leave the path absent), Some(tag) sets it
-    GenericProperty.patchSecurity(withVisibility, security.map(Some(_)))
+    val withSecurity   = GenericProperty.patchSecurity(withVisibility, security.map(Some(_)))
+    GenericProperty.patchScope(withSecurity, scope.map(Some(_)))
   }
 
   def valueToConfig(value: ConfigValue): Config = {
@@ -931,6 +952,24 @@ object JsonPropertySerialisation {
  */
 final case class GlobalParameter(config: Config) extends GenericProperty[GlobalParameter] {
   override def fromConfig(c: Config): GlobalParameter = GlobalParameter(c)
+
+  /*
+   * The set of nodes this parameter is distributed to, or None for all of them.
+   * Only a global parameter can carry a scope: it is the root of the inheritance
+   * hierarchy, and lower levels are already restricted by construction.
+   *
+   * Total by construction: the scope is parsed where a `GlobalParameter` is built from an
+   * external representation - LDAP (`LDAPEntityMapper.entry2Parameter`) and the git archive
+   * (`XmlUnserialisationImpl`) both reject an unparsable target rather than reading it as
+   * "no scope", which would distribute the value to the whole fleet (ADR 29409). Every other
+   * builder takes an already-typed `RuleTarget`.
+   */
+  def scope: Option[RuleTarget] = {
+    if (config.hasPath(GenericProperty.SCOPE)) RuleTarget.unser(config.getString(GenericProperty.SCOPE)).toOption
+    else None
+  }
+
+  def withScope(t: Option[RuleTarget]): GlobalParameter = fromConfig(GenericProperty.patchScope(config, Some(t)))
 }
 
 object GlobalParameter {
@@ -962,10 +1001,11 @@ object GlobalParameter {
       description: String,
       provider:    Option[PropertyProvider],
       visibility:  Visibility,
-      security:    Option[SecurityTag]
+      security:    Option[SecurityTag],
+      scope:       Option[RuleTarget] = None
   ): PureResult[GlobalParameter] = {
     GenericProperty
-      .parseConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security)
+      .parseConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security, scope)
       .map(c => new GlobalParameter(c))
   }
   def apply(
@@ -977,9 +1017,13 @@ object GlobalParameter {
       provider:    Option[PropertyProvider],
       visibility:  Visibility,
       // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
-      security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
+      security:    Option[SecurityTag], // optional for backward compat. None means "no tenant"
+      // None means the parameter is distributed to all nodes (ADR 29409)
+      scope:       Option[RuleTarget] = None
   ): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security))
+    new GlobalParameter(
+      GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security, scope)
+    )
   }
 
 }

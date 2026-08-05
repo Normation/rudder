@@ -38,14 +38,19 @@
 package com.normation.rudder.properties
 
 import com.normation.errors.*
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.NodePropertiesLoggerPure
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.tenants.QueryContext
 import com.typesafe.config.ConfigRenderOptions
+import zio.*
 
 /*
  * This file contains a cache/in-memory repository for inherited node properties, ie the result
@@ -73,13 +78,16 @@ class NodePropertiesServiceImpl(
     given qc: QueryContext = QueryContext.systemQC
 
     for {
-      params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
-      groups      <- roNodeGroupRepository.getFullGroupLibrary()
-      nodes       <- nodeFactRepository.getAll().map(_.values)
-      mergedGroups = {
+      allParams       <- globalPropsRepo.getAllGlobalParameters()
+      groups          <- roNodeGroupRepository.getFullGroupLibrary()
+      nodes           <- nodeFactRepository.getAll().map(_.values)
+      // scopes are resolved to node ids once for the whole fleet, not once per node
+      splitParams     <- partitionScopedParams(allParams, groups)
+      (params, scoped) = splitParams
+      mergedGroups     = {
         groups.allGroups.map {
           case (gid, group) =>
-            val resolved = MergeNodeProperties.forGroup(group, groups.allGroups, params)
+            val resolved = MergeNodeProperties.forGroup(group, groups.allGroups, params, scoped.map(_._2))
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
                 NodePropertiesLoggerPure.logEffect.debug(
@@ -98,10 +106,14 @@ class NodePropertiesServiceImpl(
             gid -> resolved
         }
       }
-      mergedNodes  = {
+      mergedNodes      = {
         nodes
           .map(n => {
-            val resolved = MergeNodeProperties.forNode(n, groups.getGroupTarget(n).values, params)
+            // a name scoped away from that node must not reach it through a group or node
+            // override either, so we carry both halves of the split (ADR 29409)
+            val (in, out)  = scoped.partition { case (nodeIds, _) => nodeIds.contains(n.id) }
+            val nodeScoped = NodeScopedParameters(in.map(_._2), out.map(_._2.value.name).toSet)
+            val resolved   = MergeNodeProperties.forNode(n, groups.getGroupTarget(n).values, params, nodeScoped)
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
                 NodePropertiesLoggerPure.logEffect.debug(
@@ -120,8 +132,28 @@ class NodePropertiesServiceImpl(
             n.id -> resolved
           })
       }
-      _           <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
-      _           <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
+      _               <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
+      _               <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
     } yield ()
+  }
+
+  /*
+   * Split parameters between the unscoped ones - distributed to every node, as before - and the
+   * scoped ones, resolving each scope to its node ids once for the whole fleet (ADR 29409).
+   */
+  private def partitionScopedParams(
+      params: Seq[GlobalParameter],
+      groups: FullNodeGroupCategory
+  )(implicit qc: QueryContext): IOResult[(Map[String, GlobalParameter], List[(Set[NodeId], ParentProperty.Target)])] = {
+    // the qc does the tenant filtering, and policy servers are cached in the repository
+    nodeFactRepository.getNodeAndServerIds().map { ids =>
+      val split = params.toList.map { p =>
+        p.scope match {
+          case None    => Left((p.name, p))
+          case Some(t) => Right((groups.getNodeIds(Set(t), ids), ParentProperty.Target(t, p, None)))
+        }
+      }
+      (split.collect { case Left(x) => x }.toMap, split.collect { case Right(x) => x })
+    }
   }
 }

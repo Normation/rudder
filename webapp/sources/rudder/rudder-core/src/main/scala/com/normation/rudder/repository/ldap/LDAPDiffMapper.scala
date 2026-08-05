@@ -561,6 +561,12 @@ class LDAPDiffMapper(
                         Some(SimpleDiff(Some(oldParam.visibility), Visibility.withNameInsensitiveEither(value).toOption))
                       )
                     }
+                  case A_PARAMETER_SCOPE   =>
+                    nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
+                      // kept as the serialized target: the diff is only there to be displayed and
+                      // to trigger a deployment
+                      d.copy(modScope = Some(SimpleDiff(oldParam.scope.map(_.target), Some(value))))
+                    }
                   case "overridable"       => diff // ignore, it's for cleaning
                   case A_SECURITY_TAG      =>
                     updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>

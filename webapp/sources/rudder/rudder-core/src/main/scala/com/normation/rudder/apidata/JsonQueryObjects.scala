@@ -328,6 +328,10 @@ object JsonQueryObjects {
   ) {
     def updateParameter(parameter: GlobalParameter): GlobalParameter = {
       // provider from API is force set to default.
+      // `scope` is deliberately not settable from the API yet (ADR 29409): it is written by the
+      // producer of the parameter, and letting a user choose a target here would need its own
+      // authorization rule (which targets may a tenant scope a parameter to?). Leaving it out of
+      // the patch means an update of a scoped parameter keeps its scope, like hidden properties.
       val patched =
         parameter.patch(PatchProperty(id, value, Some(PropertyProvider.defaultPropertyProvider), description, inheritMode))
       security match {
