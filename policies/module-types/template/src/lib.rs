@@ -158,7 +158,7 @@ impl Template {
     }
 
     fn check_apply_inner(
-        mode: PolicyMode,
+        policy_mode: PolicyMode,
         p: &TemplateParameters,
         backup_dir: &Path,
     ) -> Result<TemplateReport> {
@@ -215,7 +215,7 @@ impl Template {
             p.show_content,
         );
 
-        let outcome = match (already_correct, mode) {
+        let outcome = match (already_correct, policy_mode) {
             (true, _) => {
                 let report = format!("File '{output_file_d}' was already correct");
                 TemplateReport::new(TemplateOutcome::Success, report, None)
@@ -286,19 +286,28 @@ impl ModuleType0 for Template {
         Ok(())
     }
 
-    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+    fn check_apply(
+        &mut self,
+        policy_mode: PolicyMode,
+        parameters: &Parameters,
+    ) -> CheckApplyResult {
         self.validate(parameters)?;
-        let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))
+            .context("Could not deserialize the module parameters")?;
 
-        let res = Self::check_apply_inner(mode, &p, &parameters.backup_dir);
+        let res = Self::check_apply_inner(policy_mode, &p, &parameters.backup_dir);
         if let Some(r) = p.report_file {
             fs::write(
-                r,
+                &r,
                 match &res {
                     Ok(report) => report.to_string(),
                     Err(e) => e.to_string(),
                 },
-            )?;
+            )
+            .context(format!(
+                "Could not write the module report file to '{}'",
+                r.display()
+            ))?;
         }
         res.and_then(|r| r.into())
     }

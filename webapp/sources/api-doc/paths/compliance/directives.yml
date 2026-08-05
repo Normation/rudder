@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: 2013-2023 Normation SAS
 get:
   summary: Compliance details for all directives
-  description: Get current compliance of all the nodes of a Rudder server
+  description:
+    'Get current compliance of all the directives of a Rudder server.
+    
+    
+    This endpoint is deprecated and will be removed in version 10; use endpoint /directives/compliance instead.'
   operationId: getDirectivesComplianceOld
   responses:
     "200":
