@@ -235,11 +235,16 @@ CREATE TABLE EventLog (
 , reason         text
 , eventType      text NOT NULL DEFAULT ''
 , data           xml NOT NULL DEFAULT ''
+  -- tenant security tag the event's object had *before* the change (creation records the created tag),
+  -- stored with the standard SecurityTag JSON serialization ("open" or {"tenants":[...]});
+  -- NULL means the event is not tied to a taggable object or predates tenants, and is then admin-only.
+, securityTag    jsonb
 );
 
 CREATE INDEX eventType_idx ON EventLog (eventType);
 CREATE INDEX creationDate_idx ON EventLog (creationDate);
 CREATE INDEX eventlog_fileFormat_idx ON eventlog (((((xpath('/entry//@fileFormat',data))[1])::text)));
+CREATE INDEX eventlog_securitytag_idx ON EventLog USING gin (securityTag);
 
 
 /*

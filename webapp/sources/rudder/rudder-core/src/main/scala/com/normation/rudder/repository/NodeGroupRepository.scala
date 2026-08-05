@@ -46,6 +46,7 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
 import scala.collection.immutable.SortedMap
@@ -227,9 +228,10 @@ final case class FullNodeGroupCategory(
 object FullNodeGroupCategory {
   given HasSecurityTag[FullNodeGroupCategory] with {
     extension (a: FullNodeGroupCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.value
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullNodeGroupCategory = a.copy(security = security)
     }
   }

@@ -81,6 +81,7 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
@@ -1073,7 +1074,7 @@ class WoLDAPNodeGroupRepository(
                                            "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
                                          }
                                        }
-                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup)
+                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup, oldGroup.security)
                       } yield {
                         change
                       }
@@ -1085,9 +1086,11 @@ class WoLDAPNodeGroupRepository(
   }
 
   protected def saveModifyNodeGroupDiff(
-      existing:  LDAPEntry,
-      con:       RwLDAPConnection,
-      nodeGroup: NodeGroup
+      existing:             LDAPEntry,
+      con:                  RwLDAPConnection,
+      nodeGroup:            NodeGroup,
+      // the group's tenant tag *before* the change, recorded on the event log (see the tag-lifecycle ADR)
+      preChangeSecurityTag: Option[SecurityTag]
   )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     given QueryContext = cc.toQC
     val entry          = mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
@@ -1103,7 +1106,13 @@ class WoLDAPNodeGroupRepository(
                         case None       => ZIO.unit
                         case Some(diff) =>
                           actionLogEffect
-                            .saveModifyNodeGroup(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
+                            .saveModifyNodeGroup(
+                              cc.modId,
+                              principal = cc.actor,
+                              modifyDiff = diff,
+                              reason = cc.message,
+                              securityTag = preChangeSecurityTag
+                            )
                             .chainError("Error when logging modification as an event")
                       }
       autoArchive  <-
@@ -1150,7 +1159,7 @@ class WoLDAPNodeGroupRepository(
         oldGroup <-
           mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.serialize}'")
         newGroup  = oldGroup.modify(_.serverList).setTo((oldGroup.serverList -- delete) ++ add)
-        result   <- saveModifyNodeGroupDiff(existing, con, newGroup)
+        result   <- saveModifyNodeGroupDiff(existing, con, newGroup, oldGroup.security)
       } yield {
         result
       }
@@ -1192,7 +1201,13 @@ class WoLDAPNodeGroupRepository(
       loggedAction  <- optDiff match {
                          case None       => ZIO.unit
                          case Some(diff) =>
-                           actionLogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = message)
+                           actionLogEffect.saveModifyNodeGroup(
+                             modId,
+                             principal = actor,
+                             modifyDiff = diff,
+                             reason = message,
+                             securityTag = oldGroup.security
+                           )
                        }
       res           <- getNodeGroup(nodeGroupId)(using cc.toQC)
       (nodeGroup, _) = res

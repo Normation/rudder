@@ -40,6 +40,8 @@ package com.normation.rudder.repository.jdbc
 import com.normation.eventlog.*
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.tenants.ReaderScope
+import com.normation.rudder.tenants.TenantId
 import doobie.*
 import doobie.specs2.analysisspec.IOChecker
 import java.time.*
@@ -60,6 +62,9 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
   sequential
 
   def transactor: Transactor[cats.effect.IO] = doobie.xaio
+
+  // admin reach (the default `ReaderScope.all`) adds no tenant restriction to the generated SQL,
+  // so these checks validate the base queries; tenant filtering (an extra WHERE clause) is exercised below.
 
   check(EventLogJdbcRepository.getLastEventByChangeRequestSQL("/", Nil))
   check(EventLogJdbcRepository.getLastEventByChangeRequestSQL("/", ChangeRequestLogsFilter.eventList))
@@ -139,6 +144,18 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
   )
   check(EventLogJdbcRepository.getEventLogByCriteriaSQL(None))
   check(EventLogJdbcRepository.getEventLogByCriteriaSQL(Some(defaultFilter)))
+
+  // Tenant-restricted visibility: the generated queries then include the tenant-visibility WHERE clause
+  // (a jsonb match on the `securitytag` column: `= '"open"'::jsonb` or `jsonb_exists_any` array overlap).
+  // These checks validate that this SQL is syntactically and type correct against a real PostgreSQL - the
+  // admin checks above never emit that clause.
+  {
+    val readerScope = ReaderScope.ofReadableTenants(Set(TenantId("zoneA"), TenantId("zoneB")))
+    check(EventLogJdbcRepository.getEventLogCountSQL(None, readerScope))
+    check(EventLogJdbcRepository.getEventLogByCriteriaSQL(None, readerScope))
+    check(EventLogJdbcRepository.getEventLogByCriteriaSQL(Some(defaultFilter), readerScope))
+  }
+
   check(
     EventLogJdbcRepository.saveEventLogSQL(
       ModificationId("f231ea1f-ed66-4666-837d-1d79558702b8"),

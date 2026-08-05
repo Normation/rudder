@@ -306,11 +306,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): IOResult[WorkflowService] = ???
 
-    def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
+    def getByDirective(id: DirectiveUid, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]] =
+      ???
 
-    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
+    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]] =
+      ???
 
-    def getByRule(id: RuleUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
+    def getByRule(id: RuleUid, onlyPending: Boolean)(implicit qc: QueryContext): IOResult[Vector[ChangeRequest]] = ???
   }
 
   def techRepo: TechniqueRepository = new TechniqueRepository {

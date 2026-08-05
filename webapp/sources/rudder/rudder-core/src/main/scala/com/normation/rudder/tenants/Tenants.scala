@@ -169,3 +169,18 @@ object TenantStatus {
   case object Disabled                       extends TenantStatus
   case class Enabled(tenants: Set[TenantId]) extends TenantStatus
 }
+
+/*
+ * How an object's tenant tag may evolve when an administrator changes it.
+ * - `Monotonic`: visibility can only GROW (none ⊂ byTenants(S ⊆ S') ⊂ open), never shrink. This is what
+ *   makes event-log filtering sound for configuration objects (rules, directives, groups, parameters):
+ *   an event is tagged with the pre-change tag, and monotonicity guarantees anyone who can see the event
+ *   can still see the object today. To narrow the scope, duplicate the object into a fresh one.
+ * - `Reassignable`: the tag may be changed to any (existing) tenant list, including a narrower one. This is
+ *   the model for nodes, which represent physical/virtual servers that must be freely reassignable between
+ *   tenants; node events are a separate, node-view-gated scope and do not rely on tag monotonicity.
+ */
+enum TenantTagLifecycle {
+  case Monotonic
+  case Reassignable
+}

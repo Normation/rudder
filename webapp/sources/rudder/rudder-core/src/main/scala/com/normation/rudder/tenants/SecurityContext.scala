@@ -182,26 +182,18 @@ object TenantAccessGrant {
       nsc == None
     }
 
-    // can that security tag be seen in that context, given the set of known tenants?
-    // (read semantics: a tenant access grants visibility as soon as it allows read - `r` or `rw`)
-    def canSee(tag: SecurityTag): Boolean = {
-      tag match {
-        case SecurityTag.ByTenants(tenants) =>
-          nsc match {
-            case All           => true
-            case None          => false
-            case ByTenants(ts) => ts.exists(a => a.grant.canRead && tenants.exists(_ == a.id))
-          }
-        case SecurityTag.Open               => true
-      }
-    }
+    /*
+     * View this grant through its read reach (see `ReaderScope`). Identity/zero-cost: `ReaderScope` is an
+     * opaque alias of `TenantAccessGrant`, so no wrapper is allocated. It is the single entry point for the
+     * read-visibility predicate; both `canSee` and the SQL filter (`TenantSql.readerScopeFragment`) go through
+     * it, so they can not drift. Read semantics live in `ReaderScope.canSee` (read = `r` or `rw`).
+     */
+    def toReaderScope: ReaderScope = ReaderScope(nsc)
 
-    def canSee(optTag: Option[SecurityTag]): Boolean = {
-      optTag match {
-        case Some(t)    => canSee(t)
-        case scala.None => nsc == TenantAccessGrant.All // only admin can see private nodes
-      }
-    }
+    // can that security tag be seen in that context? Delegates to the single predicate on ReaderScope.
+    def canSee(tag: SecurityTag): Boolean = toReaderScope.canSee(Some(tag))
+
+    def canSee(optTag: Option[SecurityTag]): Boolean = toReaderScope.canSee(optTag)
 
     def canSee[A: HasSecurityTag](n: A): Boolean = {
       canSee(n.security)
@@ -269,6 +261,94 @@ object TenantAccessGrant {
     }
   }
 
+}
+
+/*
+ * The read reach of an acting subject: which tenants the actor behind a `TenantAccessGrant` may READ. It is
+ * the single source of truth for the tenant read predicate: the in-memory check (`canSee`) and the SQL filter
+ * used by direct-SQL repositories that can not use the filtering proxies (`TenantSql.readerScopeFragment`)
+ * both go through it, so they can not drift.
+ *
+ * Zero-cost abstraction: `ReaderScope` is an OPAQUE alias of `TenantAccessGrant`. So viewing a grant as a
+ * read reach (`toReaderScope` / `ReaderScope(grant)`) is the identity - no wrapper is allocated - and `canSee`
+ * tests tenant membership by scanning the grant's tenant `Chunk` directly, without materializing any `Set` on
+ * the hot path. Being opaque, a `ReaderScope` only exposes the read operations below (not `restrictToWrite`,
+ * `canModify`, …), so the read intent can not be bypassed. The SQL path materializes the id set once per query
+ * via `readableTenantIds` (not the hot path).
+ *
+ * There is deliberately no "sees nothing" case: an `Open` tag is visible to everyone (even an actor with no
+ * tenant), so an actor with no readable tenant still sees `Open` but no `ByTenants` tag.
+ */
+opaque type ReaderScope = TenantAccessGrant
+
+object ReaderScope {
+  // an actor that may read everything (no tenant restriction)
+  val all: ReaderScope = TenantAccessGrant.All
+
+  // view a grant as a read reach - identity, no allocation
+  def apply(grant: TenantAccessGrant): ReaderScope = grant
+
+  // build a read reach from a bare set of readable tenant ids (for callers that don't start from a grant,
+  // e.g. tests). Allocates - not for the hot path.
+  def ofReadableTenants(ids: Set[TenantId]): ReaderScope =
+    TenantAccessGrant.ByTenants(Chunk.fromIterable(ids.map(id => TenantAccess(id, TenantPermission.Read))))
+
+  /*
+   * Does the actor (whose readable tenants are the read-permitted entries of `grantTenants`) share at least
+   * one tenant with an object tagged `tagTenants`? This is the innermost hot-path test, so it is a hand-rolled
+   * indexed scan: no `Set` is materialized and no closure is allocated (unlike `exists`/`contains`, whose
+   * captured lambdas rely on JIT escape analysis to avoid allocation). Tenant lists are tiny, so the O(n*m)
+   * scan is cheaper than building a Set. Both chunks are array-backed, so indexing is O(1).
+   *
+   * Early exit uses a `found` flag in the loop guards (the zio-core idiom, e.g. `Chunk.exists`), not a
+   * `return`: `return` is a non-local return in Scala and is avoided in this FP codebase.
+   */
+  private def sharesReadableTenant(grantTenants: Chunk[TenantAccess], tagTenants: Chunk[TenantId]): Boolean = {
+    var found = false
+    var i     = 0
+    while (!found && i < grantTenants.length) {
+      val access = grantTenants(i)
+      if (access.grant.canRead) {
+        // compare the underlying String ids: `TenantId` is a value class, so comparing `TenantId` values
+        // would re-box `access.id`; comparing `.value` (a plain String) stays allocation-free.
+        val accessId = access.id.value
+        var j        = 0
+        while (!found && j < tagTenants.length) {
+          found = tagTenants(j).value == accessId
+          j += 1
+        }
+      }
+      i += 1
+    }
+    found
+  }
+
+  extension (scope: ReaderScope) {
+    // can the acting subject read an object carrying this security tag? A missing tag (None) is admin-only
+    // (fail closed). Allocation-free: the grant's tenant chunk is scanned directly, no intermediate Set.
+    def canSee(tag: Option[SecurityTag]): Boolean = (scope: TenantAccessGrant) match {
+      case TenantAccessGrant.All           => true
+      case TenantAccessGrant.None          =>
+        tag match {
+          case Some(SecurityTag.Open) => true
+          case _                      => false
+        }
+      case TenantAccessGrant.ByTenants(ts) =>
+        tag match {
+          case Some(SecurityTag.Open)              => true
+          case Some(SecurityTag.ByTenants(tagIds)) => sharesReadableTenant(ts, tagIds)
+          case scala.None                          => false
+        }
+    }
+
+    // The readable tenant ids for SQL rendering; `None` means unrestricted (All). Materializes a Set
+    // (allocating) - intended for the once-per-query SQL path, NOT the hot in-memory `canSee` path.
+    def readableTenantIds: Option[Set[TenantId]] = (scope: TenantAccessGrant) match {
+      case TenantAccessGrant.All           => scala.None
+      case TenantAccessGrant.None          => Some(Set.empty)
+      case TenantAccessGrant.ByTenants(ts) => Some(ts.collect { case a if a.grant.canRead => a.id }.toSet)
+    }
+  }
 }
 
 /*

@@ -45,11 +45,15 @@ import com.normation.eventlog.EventLogRequest.Direction.Asc
 import com.normation.eventlog.EventLogRequest.Direction.Desc
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
+import com.normation.rudder.db.TenantSql
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.ncf.eventlogs.EditorTechniqueEventLogsFilter
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.ReaderScope
+import com.normation.rudder.tenants.TenantCheckLogic
 import doobie.*
 import doobie.free.connection
 import doobie.free.preparedstatement
@@ -61,6 +65,7 @@ import doobie.util.log.Parameters.NonBatch
 import scala.annotation.nowarn
 import scala.xml.*
 import zio.interop.catz.*
+import zio.syntax.*
 
 /**
  * The EventLog repository
@@ -71,7 +76,8 @@ import zio.interop.catz.*
  */
 class EventLogJdbcRepository(
     doobie:                       Doobie,
-    override val eventLogFactory: EventLogFactory
+    override val eventLogFactory: EventLogFactory,
+    checkTenant:                  TenantCheckLogic
 ) extends EventLogRepository with NamedZioLogger {
 
   import com.normation.rudder.repository.jdbc.EventLogJdbcRepository.*
@@ -123,6 +129,9 @@ class EventLogJdbcRepository(
     }
   }
 
+  // CR-scoped: this returns the workflow history (add/step/decline events) of a single change request.
+  // Those events carry no object tag; access is gated at a higher level by the visibility of the change
+  // request itself (see the change-validation tenant filtering), so no per-event tenant filter is applied.
   def getEventLogByChangeRequest(
       changeRequest:   ChangeRequestId,
       xpath:           String,
@@ -139,7 +148,7 @@ class EventLogJdbcRepository(
     }
 
     val q = s"""
-      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag
       from eventlog
       where cast (xpath('${xpath}', data) as varchar[]) = ?
       ${eventFilter} ${order} ${limit}
@@ -175,6 +184,8 @@ class EventLogJdbcRepository(
     })
   }
 
+  // CR-scoped (last workflow event per change request): gated by change-request visibility, not by a
+  // per-event tenant tag (CR/workflow events carry none). See getEventLogByChangeRequest.
   def getLastEventByChangeRequest(
       xpath:           String,
       eventTypeFilter: List[EventLogFilter] = Nil
@@ -195,8 +206,8 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = {
-    val q = getEventLogCountSQL(filter)
+  def getEventLogCount(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Long] = {
+    val q = getEventLogCountSQL(filter, checkTenant.readerScope)
 
     transactIOResult(s"Error when retrieving event logs count with request: ${q}")(xa => {
       (for {
@@ -207,8 +218,8 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = {
-    val q = getEventLogByCriteriaSQL(filter)
+  def getEventLogByCriteria(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Seq[EventLog]] = {
+    val q = getEventLogByCriteriaSQL(filter, checkTenant.readerScope)
 
     transactIOResult(s"Error when retrieving event logs for change request with request: ${q}")(xa => {
       (for {
@@ -241,8 +252,10 @@ class EventLogJdbcRepository(
     }
     val from  = extendedFilter.getOrElse(fr"from eventlog")
 
-    val q = sql"""select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data """ ++
+    val q = {
+      sql"""select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag """ ++
       from ++ where ++ order ++ limit
+    }
 
     transactIOResult(s"Error when retrieving event logs for change request with request: ${q}")(xa => {
       (for {
@@ -253,10 +266,10 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
+  def getEventLogWithChangeRequest(id: Int)(implicit qc: QueryContext): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
 
     val select = sql"""
-      SELECT E.eventtype, E.id, E.modificationid, E.principal, E.creationdate, E.causeid, E.severity, E.reason, E.data, CR.id as changeRequestId
+      SELECT E.eventtype, E.id, E.modificationid, E.principal, E.creationdate, E.causeid, E.severity, E.reason, E.data, E.securitytag, CR.id as changeRequestId
       FROM EventLog E LEFT JOIN changeRequest CR on E.modificationId = CR.modificationId
       where E.id = ${id}
     """
@@ -265,7 +278,8 @@ class EventLogJdbcRepository(
       (for {
         optEntry <- select.query[(String, EventLogDetails, Option[Int])].option
       } yield {
-        optEntry.map {
+        // fail closed: only return the event if the actor's tenant grant can see its (pre-change) tag
+        optEntry.filter { case (_, details, _) => checkTenant.canSeeSecurityTag(details.securityTag) }.map {
           case (tpe, details, crid) =>
             (toEventLog((tpe, details)), crid.flatMap(i => if (i > 0) Some(ChangeRequestId(i)) else None))
         }
@@ -273,12 +287,17 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogById(id: Long): IOResult[EventLog] = {
+  def getEventLogById(id: Long)(implicit qc: QueryContext): IOResult[EventLog] = {
     val q = Query[Long, (String, EventLogDetails)](s"""
-      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag
       from eventlog where id = ?
     """).toQuery0(id)
     transactIOResult(s"Error when getting event log with id ${id}")(xa => q.unique.map(toEventLog).transact(xa))
+      // fail closed: an event whose tag the actor's tenant grant can not see is reported as absent
+      .flatMap(ev => {
+        if (checkTenant.canSeeSecurityTag(ev.securityTag)) ev.succeed
+        else Inconsistency(s"Event log with id '${id}' was not found").fail
+      })
   }
 }
 
@@ -286,14 +305,14 @@ object EventLogJdbcRepository {
 
   def saveEventLogSQL(modId: ModificationId, eventLog: EventLog, elt: Elem): Update0 = {
     sql"""
-            insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
+            insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid, securitytag)
             values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
-                   ${eventLog.severity}, $elt, ${eventLog.eventDetails.reason}, ${eventLog.cause}
+                   ${eventLog.severity}, $elt, ${eventLog.eventDetails.reason}, ${eventLog.cause}, ${eventLog.securityTag}
                   )
           """.update
   }
 
-  private def filterToFromAndWhere(filter: Option[EventLogRequest]) = {
+  private def filterToFromAndWhere(filter: Option[EventLogRequest], readerScope: ReaderScope) = {
     val interval = filter.flatMap(f => {
       (f.startDate, f.endDate) match {
         case (None, None)             => None
@@ -322,7 +341,10 @@ object EventLogJdbcRepository {
 
     val search = filter.flatMap(f => f.search).flatMap(toFragment)
 
-    val where = Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search)
+    val tenant = TenantSql.readerScopeFragment(readerScope, "securitytag")
+
+    val where =
+      Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search, tenant)
 
     val fromWithSearchFragment = {
       fr"""
@@ -336,6 +358,7 @@ object EventLogJdbcRepository {
           |         severity,
           |         reason,
           |         data,
+          |         securitytag,
           |         UNNEST(xpath('string(//entry)',data))::text as filter
           |  from eventlog
           |) as temp1
@@ -350,8 +373,11 @@ object EventLogJdbcRepository {
     (fromWithSearch.getOrElse(regularFrom), where)
   }
 
-  def getEventLogCountSQL(filter: Option[EventLogRequest]): Query0[Long] = {
-    val (from, where) = filterToFromAndWhere(filter)
+  def getEventLogCountSQL(
+      filter:      Option[EventLogRequest],
+      readerScope: ReaderScope = ReaderScope.all
+  ): Query0[Long] = {
+    val (from, where) = filterToFromAndWhere(filter, readerScope)
     sql"""
          |  SELECT count(*)
          |  ${from}
@@ -359,7 +385,10 @@ object EventLogJdbcRepository {
          |""".stripMargin.query[Long]
   }
 
-  def getEventLogByCriteriaSQL(filter: Option[EventLogRequest]): Query0[(String, EventLogDetails)] = {
+  def getEventLogByCriteriaSQL(
+      filter:      Option[EventLogRequest],
+      readerScope: ReaderScope = ReaderScope.all
+  ): Query0[(String, EventLogDetails)] = {
     val order   = filter.flatMap(_.order.map(toFragment))
     val orderBy = order
       .map(fr"ORDER BY" ++ _)
@@ -369,10 +398,10 @@ object EventLogJdbcRepository {
 
     val offset = filter.map(f => fr"OFFSET" ++ Fragment.const(f.start.toString)).getOrElse(Fragment.empty)
 
-    val (from, where) = filterToFromAndWhere(filter)
+    val (from, where) = filterToFromAndWhere(filter, readerScope)
 
     sql"""
-         |  SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+         |  SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag
          |  ${from}
          |  ${where}
          |  ${orderBy}
@@ -396,7 +425,7 @@ object EventLogJdbcRepository {
     val xpathFr = Fragment.const(xpath)
     val subquery: Fragment = {
       fr"""
-        SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+        SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag
           , CAST (xpath('$xpathFr', data) AS varchar[]) AS crids
           , row_number() OVER (
             PARTITION BY CAST (xpath('$xpathFr', data) AS varchar[])
@@ -408,7 +437,7 @@ object EventLogJdbcRepository {
 
     val result = {
       fr"""
-        SELECT crids, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+        SELECT crids, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, securitytag
         FROM ( $subquery ) lastEvents WHERE rownumber <= 1
       """.query[(List[String], String, EventLogDetails)]
     }

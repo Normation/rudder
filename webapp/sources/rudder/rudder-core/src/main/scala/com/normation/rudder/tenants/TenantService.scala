@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.domain.workflows.ChangeRequest
 import com.softwaremill.quicklens.*
 import scala.collection.MapView
 import zio.*
@@ -145,6 +146,18 @@ trait TenantCheckLogic {
   ): IOResult[Option[A]]
 
   /*
+   * The acting subject's tenant read reach, for direct-SQL repositories that can NOT use the filtering
+   * proxies above (they must filter inside the query itself, e.g. so paging and counts stay correct).
+   * Instead of a proxy, they get the reader scope as a value and render it to SQL (see
+   * `TenantSql.readerScopeFragment`). `canSeeSecurityTag` is the matching in-memory check for rows read
+   * outside such a filtered query. Both derive from the same `ReaderScope`, so the SQL and in-memory
+   * decisions can not drift.
+   */
+  def readerScope(using qc: QueryContext): ReaderScope
+
+  def canSeeSecurityTag(tag: Option[SecurityTag])(using qc: QueryContext): Boolean
+
+  /*
    * Check if the existing object `A` can be updated with the new object `B` given change context.
    * It the tenant feature is disabled, then we just don't change
    *  In case it can, a possibly updated version of the security tag to set to `A` is provided. Else, it's an error.
@@ -200,6 +213,22 @@ trait TenantCheckLogic {
    * `HasSecurityTag` object to check (e.g. policy server targets). Fails unless the grant is all-tenants.
    */
   def checkAdmin(cc: ChangeContext): IOResult[Unit]
+
+  /*
+   * A change request is, tenant-wise, a compound MODIFY over every configuration object it touches: seeing
+   * (or acting on) the whole request implies seeing (or acting on) each of those objects. Its visibility and
+   * writability are therefore the AND / fail-closed combination over those objects (see
+   * `ChangeRequest.securityTags`): a request that touches an object the actor can not see/modify is entirely
+   * invisible / not actionable to them. Objects with no tenant (and rollback / empty requests) are admin-only.
+   */
+  def isChangeRequestVisible(cr: ChangeRequest)(implicit qc: QueryContext): Boolean
+
+  /*
+   * Authorize a write action on a whole change request (submit / validate / deploy / decline / rename): fails
+   * unless the actor may modify every object it touches. This is enforced on top of the role check and is
+   * fail-closed; the per-object write is still checked again at commit time by the repositories.
+   */
+  def checkChangeRequestModify(cr: ChangeRequest, cc: ChangeContext): IOResult[Unit]
 
 }
 
@@ -305,6 +334,11 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
     else cache.get.map(_.get(id).filter(qc.accessGrant.canSee(_)))
   }
 
+  override def readerScope(using qc: QueryContext): ReaderScope = qc.accessGrant.toReaderScope
+
+  override def canSeeSecurityTag(tag: Option[SecurityTag])(using qc: QueryContext): Boolean =
+    readerScope.canSee(tag)
+
   override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
       existing:     Option[A],
       updated:      B,
@@ -313,14 +347,19 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
   )(
       action:       B => IOResult[C]
   ): IOResult[C] = {
-    // only id to avoid giving too much info in error in that case
-    def error[X: HasSecurityTag](x: X) = {
-      val tag = x.security match {
-        case None                            => '*'
+    def showTag(security: Option[SecurityTag]): String = {
+      security match {
+        case None                            => "*"
         case Some(SecurityTag.Open)          => "open"
         case Some(SecurityTag.ByTenants(ts)) => ts.map(_.value).mkString(",")
       }
-      Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
+    }
+
+    // only id to avoid giving too much info in error in that case
+    def error[X: HasSecurityTag](x: X) = {
+      Inconsistency(
+        s"Object '${x.debugId}' [${showTag(x.security)}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})"
+      ).fail
     }
 
     // a write operation only considers the tenants on which the user has write ('rw') permission:
@@ -378,21 +417,72 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
                  error(e)
                } else if (writeGrant == TenantAccessGrant.All) {
                  // only admin (all-tenants write grant) is allowed to change the tenant list of an object.
-                 (e.security, updated.security) match {
-                   // no tenants in updated: existing security info is cleared (admin only)
-                   case (_, None)                            => updated.succeed
-                   // if b is open, it's ok
-                   case (_, Some(SecurityTag.Open))          => updated.succeed
-                   // if both have identical tags, it's ok
-                   case (Some(a), Some(b)) if (a == b)       => updated.succeed
-                   // case where the tags are different: update only if the tenant exists.
-                   case (_, Some(SecurityTag.ByTenants(ts))) =>
-                     if (ts.forall(t => tenants.contains(t))) {
-                       updated.succeed
-                     } else {
-                       Inconsistency(
-                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
-                       ).fail
+                 // How the tag may evolve depends on the object's tenant-tag lifecycle (see TenantTagLifecycle):
+                 //  - Monotonic (configuration objects): visibility can only GROW, never shrink
+                 //    (none ⊂ byTenants(S ⊆ S') ⊂ open). This is what makes historical data (event logs tagged
+                 //    with the pre-change tag) sound: anyone who can see an event can still see the object today.
+                 //    To narrow an object's scope, duplicate it into a fresh object with the wanted tenant list.
+                 //  - Reassignable (nodes): the tag may be set to any existing tenant list, including a narrower
+                 //    one, because a node (a server) must be freely reassignable between tenants.
+                 def monotonicityError = {
+                   Inconsistency(
+                     s"Security tag of object '${updated.debugId}' can not change from '[${showTag(e.security)}]' to " +
+                     s"'[${showTag(updated.security)}]': visibility can only grow (add tenants, or set 'open'), never " +
+                     s"shrink. To narrow the scope, create a new object with the wanted tenant list"
+                   ).fail
+                 }
+
+                 updated.tenantTagLifecycle match {
+                   case TenantTagLifecycle.Monotonic =>
+                     (e.security, updated.security) match {
+                       // identical tags: nothing changes
+                       case (a, b) if (a == b)                        => updated.succeed
+                       // growing to open (top of the lattice) is always allowed
+                       case (_, Some(SecurityTag.Open))               => updated.succeed
+                       // an open object can not be narrowed (open → open was handled above)
+                       case (Some(SecurityTag.Open), _)               => monotonicityError
+                       // clearing the tag would narrow visibility back to admin-only
+                       // (none → none was handled by the identical-tags case above)
+                       case (_, None)                                 => monotonicityError
+                       // from none or a tenant list to a tenant list: tenants can only be added, and added ones must exist
+                       case (before, Some(SecurityTag.ByTenants(ts))) =>
+                         val previous = before match {
+                           case Some(SecurityTag.ByTenants(prev)) => prev.toSet
+                           case _                                 => Set.empty[TenantId]
+                         }
+                         val unknown  = ts.filter(t => !previous.contains(t) && !tenants.contains(t))
+                         if (!previous.subsetOf(ts.toSet)) {
+                           monotonicityError
+                         } else if (unknown.nonEmpty) {
+                           Inconsistency(
+                             s"Object '${updated.debugId}' security tag can not be updated to '[${ts.map(_.value).mkString(",")}]' " +
+                             s"because tenant(s) '${unknown.map(_.value).mkString(",")}' don't exist"
+                           ).fail
+                         } else {
+                           updated.succeed
+                         }
+                     }
+
+                   case TenantTagLifecycle.Reassignable =>
+                     // admin may reassign to any tenant list (including a narrower one); the only constraint is
+                     // that every referenced tenant must exist.
+                     (e.security, updated.security) match {
+                       // clearing the tag or opening it are always allowed for a reassignable object
+                       case (_, None)                            => updated.succeed
+                       case (_, Some(SecurityTag.Open))          => updated.succeed
+                       // identical tags: nothing changes
+                       case (Some(a), Some(b)) if (a == b)       => updated.succeed
+                       // any other tenant list is accepted as long as the referenced tenants exist
+                       case (_, Some(SecurityTag.ByTenants(ts))) =>
+                         val unknown = ts.filter(t => !tenants.contains(t))
+                         if (unknown.isEmpty) {
+                           updated.succeed
+                         } else {
+                           Inconsistency(
+                             s"Object '${updated.debugId}' security tag's tenant can not be updated to " +
+                             s"'${unknown.map(_.value).mkString(",")}' because it does not exist"
+                           ).fail
+                         }
                      }
                  }
                } else {
@@ -448,6 +538,22 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
     ZIO
       .unless(cc.accessGrant == TenantAccessGrant.All)(
         Inconsistency("This operation on a system object is only allowed to an administrator").fail
+      )
+      .unit
+  }
+
+  override def isChangeRequestVisible(cr: ChangeRequest)(implicit qc: QueryContext): Boolean = {
+    ChangeRequest.securityTags(cr).forall(tag => qc.accessGrant.canSee(tag))
+  }
+
+  override def checkChangeRequestModify(cr: ChangeRequest, cc: ChangeContext): IOResult[Unit] = {
+    val writeGrant = cc.accessGrant.restrictToWrite
+    ZIO
+      .unless(ChangeRequest.securityTags(cr).forall(tag => writeGrant.canSee(tag)))(
+        Inconsistency(
+          s"Change request #${cr.id.value} '${cr.info.name}' can not be acted upon in the current security context: " +
+          s"it changes objects your tenants do not all allow to modify"
+        ).fail
       )
       .unit
   }

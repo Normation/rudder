@@ -43,6 +43,7 @@ import com.normation.eventlog.EventLogRequest.Column.ID
 import com.normation.eventlog.EventLogRequest.Direction.Desc
 import com.normation.eventlog.EventLogRequest.Order
 import com.normation.rudder.services.eventlog.EventLogService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.StaticResourceRewrite
 import com.normation.rudder.web.lift.JsCommands.*
 import com.normation.rudder.web.snippet.WithNonce
@@ -70,7 +71,7 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
 
   given StaticResourceRewrite = staticResourceRewrite
 
-  def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
+  def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]])(implicit qc: QueryContext): NodeSeq = {
     // common part between last events and interval
     def displayEvents(events: Box[Seq[EventLog]]): JsCmd = {
       events match {

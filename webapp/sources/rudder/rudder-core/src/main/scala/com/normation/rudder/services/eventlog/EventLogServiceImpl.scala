@@ -49,6 +49,7 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.tenants.QueryContext
 import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.*
@@ -65,7 +66,7 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
    * @param filter the filter case class
    * @return the list of event logs for users.
    */
-  override def getUserEventLogs(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = {
+  override def getUserEventLogs(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Seq[EventLog]] = {
     (for {
       events <-
         repository
@@ -78,7 +79,7 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
     }).catchSystemErrors
   }
 
-  override def getUserEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = {
+  override def getUserEventLogCount(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Long] = {
     (for {
       events <- repository
                   .getEventLogCount(Some(filter.getOrElse(EventLogRequest.emptyFilter).addUserFilters))

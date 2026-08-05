@@ -330,36 +330,65 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       res.runNow must beEqualTo(zoneA.accessGrant.toSecurityTag)
     }
 
-    "allow an admin (grant '*') to update the tenant list" in {
+    // an admin can GROW the tenant list (add a tenant), because visibility is only allowed to increase
+    // (monotonic-growth law). Here zoneA -> zoneA + zoneB.
+    "allow an admin (grant '*') to grow the tenant list" in {
       given cc: ChangeContext = ChangeContext.newForRudder()
       given qc: QueryContext  = cc.toQC
 
+      val zoneAB = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
       // groupWithTenantId is in zoneA
-      val res = for {
+      val res    = for {
         _ <- tenantRepo.setTenantEnabled(true)
         g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
-        h  = g.copy(security = zoneB.accessGrant.toSecurityTag)
+        h  = g.copy(security = zoneAB)
         _ <- woGroupRepo.update(h)
         i <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
       } yield i.security
 
-      res.runNow must beEqualTo(zoneB.accessGrant.toSecurityTag)
+      res.runNow must beEqualTo(zoneAB)
+    }
+
+    // even an admin can NOT narrow the tenant list (drop a tenant): visibility can only grow.
+    // groupWithTenantId is now zoneA + zoneB (from the growth test above).
+    "refuse even an admin narrowing the tenant list (drop a tenant)" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      given qc: QueryContext  = cc.toQC
+
+      val res = for {
+        _ <- tenantRepo.setTenantEnabled(true)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
+        h  = g.copy(security = zoneA.accessGrant.toSecurityTag) // drop zoneB
+        _ <- woGroupRepo.update(h)
+      } yield ()
+
+      res.either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(
+          "Security tag of object 'test-group-node1' can not change from '[zoneA,zoneB]' to '[zoneA]': " +
+          "visibility can only grow (add tenants, or set 'open'), never shrink. " +
+          "To narrow the scope, create a new object with the wanted tenant list"
+        )
+      )
     }
   }
-  // only admin can change the tenant list, so the "tenant does not exist" check is for an admin
-  "get an error if an admin updates to a destination tenant ID that does not exist" in {
+  // only admin can change the tenant list, so the "tenant does not exist" check is for an admin.
+  // The added tenant must exist; growing zoneA+zoneB -> zoneA+zoneB+zoneC fails because zoneC is unknown.
+  "get an error if an admin grows to a destination tenant ID that does not exist" in {
     given cc: ChangeContext = ChangeContext.newForRudder()
     given qc: QueryContext  = cc.toQC
 
-    val res = for {
+    val zoneABC = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"), TenantId("zoneC"))))
+    val res     = for {
       _ <- tenantRepo.setTenantEnabled(true)
       g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
-      h  = g.copy(security = zoneC.accessGrant.toSecurityTag)
+      h  = g.copy(security = zoneABC)
       _ <- woGroupRepo.update(h)
     } yield ()
 
     res.either.runNow.left.map(_.msg) must beLeft(
-      beEqualTo("Object 'test-group-node1' security tag's tenant can not be updated to 'zoneC' because it does not exist")
+      beEqualTo(
+        "Object 'test-group-node1' security tag can not be updated to '[zoneA,zoneB,zoneC]' because tenant(s) 'zoneC' don't exist"
+      )
     )
   }
 

@@ -831,7 +831,8 @@ class WoLDAPDirectiveRepository(
                                      cc.modId,
                                      principal = cc.actor,
                                      modifyDiff = diff,
-                                     reason = cc.message
+                                     reason = cc.message,
+                                     securityTag = oldAtAndDir.flatMap(_._2.security)
                                    )
                                })
       autoArchive           <- ZIO.when(autoExportOnModify && optDiff.isDefined && !directive.isSystem) {

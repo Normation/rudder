@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import java.time.Instant
 import zio.json.*
 
@@ -81,7 +82,8 @@ object ActiveTechnique {
       override def security: Option[SecurityTag] = a.security
 
       // an active technique is "system" when it carries the system policy type
-      override def isSystem: Boolean = a.policyTypes.isSystem
+      override def isSystem:           Boolean            = a.policyTypes.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle = TenantTagLifecycle.Monotonic
 
       override def debugId: String = a.id.value
 

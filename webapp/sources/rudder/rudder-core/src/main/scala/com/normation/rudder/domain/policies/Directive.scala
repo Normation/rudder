@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import scala.xml.*
 import zio.json.*
 
@@ -223,9 +224,10 @@ final case class Directive(
 object Directive {
   given HasSecurityTag[Directive] with {
     extension (a: Directive) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.debugString
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.debugString
       override def updateSecurityContext(security: Option[SecurityTag]): Directive = a.copy(security = security)
     }
   }
