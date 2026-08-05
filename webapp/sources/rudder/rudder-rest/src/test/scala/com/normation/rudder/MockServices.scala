@@ -254,7 +254,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     override def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[RuntimeFlags] = 8.succeed
     def registerChangeCallbackAction(callback:       NodeFactChangeEventCallback): IOResult[Unit] = ???
-    def getStatus(id:                                NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
+    def getStatus(id:                                NodeId)(implicit qc:   QueryContext): IOResult[Option[InventoryStatus]] = ???
     def get(nodeId:                                  NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
     def slowGet(
         nodeId: NodeId

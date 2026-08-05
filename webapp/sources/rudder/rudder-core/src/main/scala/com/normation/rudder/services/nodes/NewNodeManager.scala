@@ -35,7 +35,7 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.services.servers
+package com.normation.rudder.services.nodes
 
 import com.normation.errors.BoxToIO
 import com.normation.errors.Inconsistency

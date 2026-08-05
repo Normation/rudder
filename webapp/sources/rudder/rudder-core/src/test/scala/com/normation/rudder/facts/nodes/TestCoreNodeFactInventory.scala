@@ -124,7 +124,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       } yield r
     }
 
-    override def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete] = {
+    override def delete(nodeId: NodeId): IOResult[StorageChangeEventDelete] = {
       for {
         _ <- callStack.update(s"delete ${nodeId}" :: _)
         r <- backend.delete(nodeId)

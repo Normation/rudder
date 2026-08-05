@@ -57,25 +57,20 @@ import zio.json.ast.*
 class TestNodeUnserialisation extends Specification {
   val mapper: InventoryMapper = {
     val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
-    val acceptedNodesDitImpl: InventoryDit = new InventoryDit(
+    val acceptedNodesDitImpl: InventoryDit        = new InventoryDit(
       new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration"),
       softwareDN,
       "Accepted inventories"
     )
-    val pendingNodesDitImpl:  InventoryDit = new InventoryDit(
+    val pendingNodesDitImpl:  InventoryDit        = new InventoryDit(
       new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration"),
       softwareDN,
       "Pending inventories"
     )
-    val removedNodesDitImpl = new InventoryDit(
-      new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration"),
-      softwareDN,
-      "Removed Servers"
-    )
-    val inventoryDitService: InventoryDitService =
-      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    val inventoryDitService:  InventoryDitService =
+      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
 
-    new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl)
   }
 
   val dsc61Ldif: String = {

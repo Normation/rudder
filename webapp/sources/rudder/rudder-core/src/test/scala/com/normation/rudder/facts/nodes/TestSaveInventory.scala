@@ -686,21 +686,6 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
     }
   }
 
-  "Changing status to deleted" should {
-    implicit val status = SelectNodeStatus.Any
-
-    "correctly delete node and value in repos" in {
-      resetLog
-      val e = factRepo.changeStatus(nodeId, RemovedInventory).runNow
-
-      (e.event must beAnInstanceOf[NodeFactChangeEvent.Deleted]) and
-      (checkPendingNodeExists(nodeId) must beFalse) and
-      (checkAcceptedNodeExists(nodeId) must beFalse) and
-      (factRepo.get(nodeId).runNow must beNone) and
-      (getLogName must beEqualTo(Chunk("deleted")).eventually(2, 100.millis.asScala))
-    }
-  }
-
 }
 
 object Cert {

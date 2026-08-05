@@ -42,18 +42,16 @@ import com.unboundid.ldap.sdk.DN
 
 /**
  * Example of a DIT service in a configuration where there is
- * three types of inventories: accepted, pending and removed ones (we
- * could imagine that in that configuration scheme, refused
- * inventories are simply erased to save space).
+ * two types of inventories: accepted and pending ones.
  */
-class InventoryDitServiceImpl(pending: InventoryDit, accepted: InventoryDit, removed: InventoryDit) extends InventoryDitService {
+class InventoryDitServiceImpl(pending: InventoryDit, accepted: InventoryDit) extends InventoryDitService {
   /*
    * Sort dit by their base dn. If two base_dn share a common root,
    * the longer one comes first, for ex:
    * rootDns = [  "dc=test,dc=com" , "dc=test", "dc=bar" ]
    */
   private val baseDns =
-    Seq(pending, accepted, removed).map(dit => (dit.BASE_DN, dit)).sortWith((x, y) => x._1.compareTo(y._1) >= 0)
+    Seq(pending, accepted).map(dit => (dit.BASE_DN, dit)).sortWith((x, y) => x._1.compareTo(y._1) >= 0)
 
   override def getDit(dn: DN): Option[InventoryDit] = {
     baseDns.foldLeft(Option.empty[InventoryDit]) {
@@ -66,13 +64,11 @@ class InventoryDitServiceImpl(pending: InventoryDit, accepted: InventoryDit, rem
   def getDit(status: InventoryStatus): InventoryDit = status match {
     case PendingInventory  => pending
     case AcceptedInventory => accepted
-    case RemovedInventory  => removed
   }
 
   def getInventoryStatus(dit: InventoryDit): InventoryStatus = {
     if (dit == pending) PendingInventory
     else if (dit == accepted) AcceptedInventory
-    else if (dit == removed) RemovedInventory
     else throw new IllegalArgumentException("DIT with name '%s' is not associated with any inventory status".format(dit.name))
   }
 
