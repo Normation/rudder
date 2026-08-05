@@ -162,6 +162,9 @@ getParentPropertyDisplay pp =
         ParentNode { id, name, valueType, parent } ->
             ("<span>Value of type: <strong>" ++ valueType ++ "</strong> in node " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>") :: (Maybe.withDefault [] <| Maybe.map getParentPropertyDisplay parent)
 
+        ParentTarget { id, name, valueType, parent } ->
+            ("<span>Value of type: <strong>" ++ valueType ++ "</strong> for global parameter " ++ "\"" ++ name ++ "\" scoped to <em>" ++ id ++ "</em></span>") :: (Maybe.withDefault [] <| Maybe.map getParentPropertyDisplay parent)
+
 
 getInheritedPropertyWarning : Property -> Html Msg
 getInheritedPropertyWarning property =

@@ -1334,12 +1334,15 @@ object JsonResponseObjects {
       description:     String,
       inheritMode:     Option[InheritMode],
       provider:        Option[PropertyProvider],
-      security:        Option[SecurityTag]
+      security:        Option[SecurityTag],
+      // serialized RuleTarget the parameter is restricted to, absent when it applies to all
+      // nodes (ADR 29409)
+      scope:           Option[String]
   )
 
   object JRGlobalParameter {
     import GenericProperty.*
-    def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None, None)
+    def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None, None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId])(using qc: QueryContext): JRGlobalParameter = {
       JRGlobalParameter(
         crId.map(_.value.toString),
@@ -1348,7 +1351,8 @@ object JsonResponseObjects {
         p.description,
         p.inheritMode,
         p.provider,
-        qc.accessGrant.visibleSecurityTag(p.security)
+        qc.accessGrant.visibleSecurityTag(p.security),
+        p.scope.map(_.target)
       )
     }
 
@@ -1432,14 +1436,24 @@ object JsonResponseObjects {
         valueType: String,
         parent:    Option[JRParentPropertyDetails]
     ) extends JRParentPropertyDetails
+    // a global parameter restricted to a target (ADR 29409): `id` is the serialized target
+    @jsonHint("target")
+    final case class JRParentTargetDetails(
+        name:      String,
+        id:        String,
+        valueType: String,
+        parent:    Option[JRParentPropertyDetails]
+    ) extends JRParentPropertyDetails
 
     def fromParentProperty(p: ParentProperty[?]): JRParentPropertyDetails = {
       def serializeValueType(v: ConfigValue): String = v.valueType.name().toLowerCase().capitalize
       p match {
-        case g: ParentProperty.Group =>
+        case g: ParentProperty.Group  =>
           JRParentGroupDetails(g.name, g.id, serializeValueType(g.value.value), g.parentProperty.map(fromParentProperty))
-        case n: ParentProperty.Node  =>
+        case n: ParentProperty.Node   =>
           JRParentNodeDetails(n.name, n.id, serializeValueType(n.value.value), n.parentProperty.map(fromParentProperty))
+        case t: ParentProperty.Target =>
+          JRParentTargetDetails(t.name, t.id, serializeValueType(t.value.value), t.parentProperty.map(fromParentProperty))
         case ParentProperty.Global(value) =>
           JRParentGlobalDetails(serializeValueType(value.value))
       }
@@ -1573,20 +1587,28 @@ object JsonResponseObjects {
     ): Option[JRPropertyHierarchy] = {
       def renderHtml(nodeParentProperty: ParentProperty[?]): List[String] = {
         nodeParentProperty match {
-          case n: ParentProperty.Node  =>
+          case n: ParentProperty.Node   =>
             n.parentProperty
               .map(renderHtml)
               .getOrElse(Nil) :::
             (s"<p>from <b>node '${n.name}' (${n.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
                                                                  else identity[String])
                 .apply(n.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case g: ParentProperty.Group =>
+          case g: ParentProperty.Group  =>
             g.parentProperty
               .map(renderHtml)
               .getOrElse(Nil) :::
             (s"<p>from <b>group '${g.name}' (${g.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
                                                                   else identity[String])
                 .apply(g.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
+          case t: ParentProperty.Target =>
+            t.parentProperty
+              .map(renderHtml)
+              .getOrElse(Nil) :::
+            (s"<p>from <b>global property '${t.name}' scoped to '${t.id}'</b>:<pre>${(if (escapeHtml)
+                                                                                        xml.Utility.escape(_: String)
+                                                                                      else identity[String])
+                .apply(t.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
           case ParentProperty.Global(v) =>
             s"<p>from <b>global property '${v.name}'</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
                                                                  else identity[String])
@@ -1637,12 +1659,25 @@ object JsonResponseObjects {
         resolvedValue: ConfigValue,
         parent:        Option[JRParentProperty]
     ) extends JRParentProperty
+
+    // a global parameter restricted to a target (ADR 29409): `id` is the serialized target
+    @jsonHint("target")
+    final case class JRParentTarget(
+        name:          String,
+        id:            String,
+        value:         ConfigValue,
+        resolvedValue: ConfigValue,
+        parent:        Option[JRParentProperty]
+    ) extends JRParentProperty
+
     def fromParentProperty(p: ParentProperty[?]): JRParentProperty = {
       p match {
-        case n: ParentProperty.Node  =>
+        case n: ParentProperty.Node   =>
           JRParentNode(n.name, n.id, n.value.value, n.resolvedValue.value, n.parentProperty.map(fromParentProperty))
-        case g: ParentProperty.Group =>
+        case g: ParentProperty.Group  =>
           JRParentGroup(g.name, g.id, g.value.value, g.resolvedValue.value, g.parentProperty.map(fromParentProperty))
+        case t: ParentProperty.Target =>
+          JRParentTarget(t.name, t.id, t.value.value, t.resolvedValue.value, t.parentProperty.map(fromParentProperty))
         case _ =>
           JRParentGlobal(p.value.value)
       }

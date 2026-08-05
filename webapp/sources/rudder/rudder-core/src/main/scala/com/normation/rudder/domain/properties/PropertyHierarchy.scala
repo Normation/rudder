@@ -6,6 +6,7 @@ import cats.data.Ior
 import cats.syntax.semigroup.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.properties.GroupProp
 import enumeratum.Enum
@@ -21,6 +22,7 @@ sealed trait ParentPropertyKind(override val entryName: String) extends EnumEntr
 object ParentPropertyKind extends Enum[ParentPropertyKind] with EnumCodec[ParentPropertyKind] {
   case object Node   extends ParentPropertyKind("node")
   case object Group  extends ParentPropertyKind("group")
+  case object Target extends ParentPropertyKind("target")
   case object Global extends ParentPropertyKind("global")
 
   override def values: IndexedSeq[ParentPropertyKind] = findValues
@@ -78,6 +80,28 @@ object ParentProperty {
       case None    => value
       case Some(v) =>
         GroupProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
+    }
+  }
+
+  /*
+   * A global parameter restricted to a target (ADR 29409). It sits between the global
+   * level and the groups: it overrides the unscoped parameter of the same name, and is
+   * overridden by group and node properties.
+   * `value` is the already-combined value when several scopes contribute to that name
+   * (see MergeNodeProperties.combineScopedParams).
+   */
+  final case class Target(
+      scope:              RuleTarget,
+      override val value: GlobalParameter,
+      parentProperty:     Option[VertexParentProperty[?]]
+  ) extends VertexParentProperty[GlobalParameter] {
+    override val name:          String                           = value.name
+    override def id:            String                           = scope.target
+    override val kind:          ParentPropertyKind               = ParentPropertyKind.Target
+    override val resolvedValue: GenericProperty[GlobalParameter] = parentProperty match {
+      case None    => value
+      case Some(v) =>
+        GlobalParameter(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
     }
   }
 

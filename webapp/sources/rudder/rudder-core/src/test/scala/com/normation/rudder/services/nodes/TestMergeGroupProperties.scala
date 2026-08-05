@@ -48,6 +48,7 @@ import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -69,6 +70,7 @@ import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.properties.GroupProp.*
 import com.normation.rudder.properties.MergeNodeProperties
+import com.normation.rudder.properties.NodeScopedParameters
 import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
@@ -121,6 +123,7 @@ class TestMergeGroupProperties extends Specification {
       def recAppendParent(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
         prop match {
           case global: ParentProperty.Global => global
+          case target: ParentProperty.Target => target
           case group:  ParentProperty.Group  =>
             group.parentProperty match {
               case None        => group.copy(parentProperty = Some(ParentProperty.Global(globalParam)))
@@ -131,6 +134,7 @@ class TestMergeGroupProperties extends Specification {
       def recAppend(prop: ParentProperty[?]):             ParentProperty[?]       = {
         prop match {
           case global: ParentProperty.Global => global
+          case target: ParentProperty.Target => target
           case group:  ParentProperty.Group  =>
             group.parentProperty match {
               case None        => group.copy(parentProperty = Some(ParentProperty.Global(globalParam)))
@@ -516,6 +520,111 @@ class TestMergeGroupProperties extends Specification {
       .checkPropertyMerge(Map.empty, Map("foo" -> g.toGP("foo", None)))
       .map(_.map(n => NodePropertyHierarchy(nodeId1, n)))
     merged must beRight(List(g.toG("foo", None, nodeId1)))
+  }
+
+  /*
+   * Scoped global parameters (ADR 29409): a global parameter restricted to a target sits
+   * between the global level and the groups.
+   */
+  "scoped parameters" should {
+
+    val scope1 = GroupTarget(parent1.id)
+    val scope2 = GroupTarget(parent2.id)
+
+    def scoped(name: String, value: ConfigValue, target: RuleTarget, mode: Option[InheritMode] = None) =
+      ParentProperty.Target(target, value.toGP(name, mode).withScope(Some(target)), None)
+
+    "override the unscoped parameter of the same name" >> {
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map.empty,
+          Map("foo" -> "global".toConfigValue.toGP("foo", None)),
+          List(scoped("foo", "scoped".toConfigValue, scope1))
+        )
+      merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
+        (l.size must beEqualTo(1)) and
+        (l.head.resolvedValue.valueAsString must beEqualTo("scoped")) and
+        (l.head.kind.entryName must beEqualTo("target"))
+      })
+    }
+
+    "keep the unscoped parameter as the parent of the scoped one" >> {
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map.empty,
+          Map("foo" -> "global".toConfigValue.toGP("foo", None)),
+          List(scoped("foo", "scoped".toConfigValue, scope1))
+        )
+      merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
+        l.head must beLike { case t: ParentProperty.Target => t.parentProperty must beSome[VertexParentProperty[?]] }
+      })
+    }
+
+    // a node outside the scope simply gets no scoped parameter: the caller filters, and the
+    // engine then only sees the global one
+    "leave a node out of scope with the global value only" >> {
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(Map.empty, Map("foo" -> "global".toConfigValue.toGP("foo", None)), Nil)
+      merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
+        (l.head.resolvedValue.valueAsString must beEqualTo("global")) and
+        (l.head.kind.entryName must beEqualTo("global"))
+      })
+    }
+
+    "be overridden by a group property" >> {
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map(parent1.id -> parent1.toGroupProp),
+          Map.empty,
+          List(scoped("foo", "scoped".toConfigValue, scope1))
+        )
+      // parent1 defines foo=bar1
+      merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
+        (l.head.resolvedValue.valueAsString must beEqualTo("bar1")) and
+        (l.head.kind.entryName must beEqualTo("group"))
+      })
+    }
+
+    // there is no "two scopes for one name" case to test: a global parameter's name is unique in
+    // storage (its LDAP RDN is the name), so a name carries at most one scope
+    "keep distinct names coming from distinct scopes" >> {
+      val merged = MergeNodeProperties.checkPropertyMerge(
+        Map.empty,
+        Map.empty,
+        List(scoped("foo", "a".toConfigValue, scope1), scoped("bar", "b".toConfigValue, scope2))
+      )
+      merged.toEither must beRight((l: List[VertexParentProperty[?]]) => l.size must beEqualTo(2))
+    }
+
+    /*
+     * A scope is the domain of definition of the *name*, not just a default value: a node outside
+     * the scope must not get that name from a group nor from itself. Otherwise a node excluded
+     * from a benchmark target still receives its configuration through an override.
+     */
+    def resolve(node: NodeFact, groups: List[NodeGroup], scoped: NodeScopedParameters) = {
+      MergeNodeProperties.forNode(node.toCore, groups.map(_.toTarget), Map.empty, scoped)
+    }
+
+    "drop a group override of a name scoped away from that node" >> {
+      // parent1 defines foo=bar1, and the node is not in foo's scope
+      val node     = NodeFact.fromCompat(nodeInfo.modify(_.node.properties).setTo(Nil), Left(AcceptedInventory), Seq(), None)
+      val resolved = resolve(node, List(parent1), NodeScopedParameters(Nil, Set("foo")))
+      resolved.resolved.exists(_.prop.name == "foo") must beFalse
+    }
+
+    "drop the node's own override of a name scoped away from that node" >> {
+      // nodeInfo carries its own `foo` property
+      val node     = NodeFact.fromCompat(nodeInfo, Left(AcceptedInventory), Seq(), None)
+      val resolved = resolve(node, Nil, NodeScopedParameters(Nil, Set("foo")))
+      resolved.resolved.exists(_.prop.name == "foo") must beFalse
+    }
+
+    "keep a group override for a node that is in scope" >> {
+      val node     = NodeFact.fromCompat(nodeInfo.modify(_.node.properties).setTo(Nil), Left(AcceptedInventory), Seq(), None)
+      val inScope  = NodeScopedParameters(List(scoped("foo", "scoped".toConfigValue, scope1)), Set.empty)
+      val resolved = resolve(node, List(parent1), inScope)
+      resolved.resolved.find(_.prop.name == "foo").map(_.prop.valueAsString) must beSome("bar1")
+    }
   }
 
   /*

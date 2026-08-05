@@ -122,6 +122,8 @@ object RudderLDAPConstants extends Loggable {
   // Parameters
   val A_PARAMETER_NAME  = "parameterName"
   val A_PARAMETER_VALUE = "parameterValue"
+  // serialized RuleTarget restricting the nodes the parameter is distributed to (ADR 29409)
+  val A_PARAMETER_SCOPE = "parameterScope"
 
   // Web properties
   val A_PROPERTY_NAME  = "propertyName"
@@ -238,7 +240,7 @@ object RudderLDAPConstants extends Loggable {
   OC.createObjectClass(
     OC_PARAMETER,
     must = Set(A_PARAMETER_NAME),
-    may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PROPERTY_PROVIDER)
+    may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PROPERTY_PROVIDER, A_PARAMETER_SCOPE)
   )
 
   OC.createObjectClass(OC_PROPERTY, must = Set(A_PROPERTY_NAME), may = Set(A_PROPERTY_VALUE, A_DESCRIPTION))

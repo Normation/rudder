@@ -319,6 +319,9 @@ class GlobalParameterSerialisationImpl(xmlVersion: String) extends GlobalParamet
       ++ { param.inheritMode.map(m => <inheritMode>{m.value}</inheritMode>).getOrElse(NodeSeq.Empty) } ++
       <description>{param.description}</description>
       ++ { param.provider.map(p => <provider>{p.value}</provider>).getOrElse(NodeSeq.Empty) }
+      // the scope must survive an archive round-trip: losing it would silently widen the
+      // parameter back to the whole fleet (ADR 29409)
+      ++ { param.scope.map(t => <scope>{t.target}</scope>).getOrElse(NodeSeq.Empty) }
       ++ { SecurityXml.toXml(param) }
     )
   }
