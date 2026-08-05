@@ -40,6 +40,7 @@ import better.files.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.services.nodes.CleanUpNodePolicyFiles
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
@@ -114,7 +115,7 @@ class TestRemoveNodeService extends Specification with AfterAll {
    */
   "Policy directory should be cleaned" >> {
     startFS.foreach(_.createDirectories())
-    cleanUp.run(NodeId("nodeXX"), DeleteMode.Erase, None, Set()).runNow
+    cleanUp.run(NodeId("nodeXX"), None, Set()).runNow
     val files = varRudderShare.collectChildren(_ => true).toList.map(_.pathAsString)
 
     files must containTheSameElementsAs(expected.map(_.pathAsString))

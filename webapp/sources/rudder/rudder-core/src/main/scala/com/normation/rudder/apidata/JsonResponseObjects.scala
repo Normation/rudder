@@ -149,10 +149,10 @@ object JsonResponseObjects {
   ) derives JsonEncoder
 
   object JRNodeInfo {
-    implicit def transformer(implicit status: InventoryStatus): Transformer[NodeInfo, JRNodeInfo] = Transformer
+    implicit def transformer(implicit status: JRInventoryStatus): Transformer[NodeInfo, JRNodeInfo] = Transformer
       .define[NodeInfo, JRNodeInfo]
       .enableBeanGetters
-      .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+      .withFieldConst(_.status, status)
       .withFieldComputed(_.osName, _.osDetails.os.name)
       .withFieldComputed(_.osVersion, _.osDetails.version)
       .withFieldComputed(
@@ -178,10 +178,10 @@ object JsonResponseObjects {
     implicit val srvTransformer: Transformer[Srv, JRNodeChangeStatus] =
       Transformer.define[Srv, JRNodeChangeStatus].enableOptionDefaultsToNone.buildTransformer
 
-    implicit def nodeInfoTransformer(implicit status: InventoryStatus): Transformer[NodeInfo, JRNodeChangeStatus] = Transformer
+    implicit def nodeInfoTransformer(implicit status: JRInventoryStatus): Transformer[NodeInfo, JRNodeChangeStatus] = Transformer
       .define[NodeInfo, JRNodeChangeStatus]
       .enableBeanGetters
-      .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+      .withFieldConst(_.status, status)
       .withFieldComputed(_.osName, _.osDetails.os.name)
       .withFieldComputed(_.osVersion, n => Some(n.osDetails.version))
       .withFieldComputed(
@@ -196,11 +196,11 @@ object JsonResponseObjects {
       )
       .buildTransformer
 
-    implicit def fullInventoryTransformer(implicit status: InventoryStatus): Transformer[FullInventory, JRNodeChangeStatus] = {
+    implicit def fullInventoryTransformer(implicit status: JRInventoryStatus): Transformer[FullInventory, JRNodeChangeStatus] = {
       Transformer
         .define[FullInventory, JRNodeChangeStatus]
         .enableBeanGetters
-        .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+        .withFieldConst(_.status, status)
         .withFieldComputed(_.id, _.node.main.id)
         .withFieldComputed(_.hostname, _.node.main.hostname)
         .withFieldComputed(_.osName, _.node.main.osDetails.os.name)

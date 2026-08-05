@@ -34,11 +34,10 @@
  *
  *************************************************************************************
  */
-package com.normation.rudder.services.servers
+package com.normation.rudder.services.nodes
 
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -73,8 +72,6 @@ class PurgeDeletedNodesImpl(
       _              <- NodeLoggerPure.Delete.trace(s"Found ${deletedEntries.length} older than ${date}")
 
       ids <- ZIO.foreach(deletedEntries)(e => deletedDit.NODES.NODE.idFromDN(e.dn).toIO)
-
-      _ <- ZIO.foreach(ids)(id => fullNodeRepo.delete(id, RemovedInventory))
     } yield {
       ids
     }

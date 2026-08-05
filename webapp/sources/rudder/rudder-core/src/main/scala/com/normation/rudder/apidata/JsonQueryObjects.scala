@@ -75,7 +75,6 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.normation.rudder.services.servers.AllowedNetwork
-import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.ConfigValue
 import enumeratum.Enum
@@ -112,9 +111,6 @@ object JsonQueryObjects {
   import JsonResponseObjects.JRRuleTarget
 
   // Node
-  final case class JQDeleteMode(
-      mode: Option[DeleteMode]
-  )
   final case class JQClasses(
       classes: Option[List[String]]
   )
@@ -583,10 +579,7 @@ trait RudderJsonDecoders {
   import JsonResponseObjects.JRRuleTarget.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
 
-  implicit val deleteModeDecoder:   JsonDecoder[DeleteMode]   =
-    JsonDecoder[String].mapOrFail(DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
-  implicit val jqDeleteModeDecoder: JsonDecoder[JQDeleteMode] = DeriveJsonDecoder.gen[JQDeleteMode]
-  implicit val classesDecoder:      JsonDecoder[JQClasses]    = DeriveJsonDecoder.gen[JQClasses].orElse((_, _) => JQClasses(None))
+  implicit val classesDecoder: JsonDecoder[JQClasses] = DeriveJsonDecoder.gen[JQClasses].orElse((_, _) => JQClasses(None))
 
   implicit val nodeIdChunkDecoder:        JsonDecoder[JQNodeIdChunk]               = DeriveJsonDecoder.gen[JQNodeIdChunk]
   implicit val nodeStatusActionDecoder:   JsonDecoder[JQNodeStatusAction]          =
@@ -813,14 +806,6 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
     }
   }
 
-  def extractDeleteMode(req: Req): PureResult[Option[DeleteMode]] = {
-    if (req.json_?) {
-      parseJson[JQDeleteMode](req).map(_.mode)
-    } else {
-      extractDeleteModeFromParams(req.params)
-    }
-  }
-
   def extractClasses(req: Req): PureResult[List[String]] = {
     if (req.json_?) {
       parseJson[JQClasses](req).map(_.classes.getOrElse(List.empty))
@@ -1042,12 +1027,6 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
     } yield {
       query
     }
-  }
-
-  def extractDeleteModeFromParams(
-      params: Map[String, List[String]]
-  ): PureResult[Option[DeleteMode]] = {
-    params.parseString("mode", DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
   }
 
   def extractClassesFromParams(

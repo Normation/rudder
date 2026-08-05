@@ -64,17 +64,12 @@ class InventoryDigestServiceV1(
       case Some(storedNodeFact) =>
         val keyStatus = storedNodeFact.rudderSettings.keyStatus
 
-        (storedNodeFact.rudderSettings.status match {
-          case RemovedInventory => // if inventory was deleted, don't care, use new one
+        (keyStatus match {
+          case UndefinedKey => // Trust On First Use (TOFU) (user may have reseted, etc)
             extractKey(receivedInventory.node)
-          case _                => // in other case, check is the key update is valid
-            keyStatus match {
-              case UndefinedKey => // Trust On First Use (TOFU) (user may have reseted, etc)
-                extractKey(receivedInventory.node)
 
-              case CertifiedKey => // Certified node always use stored inventory key
-                storedNodeFact.rudderAgent.securityToken.succeed
-            }
+          case CertifiedKey => // Certified node always use stored inventory key
+            storedNodeFact.rudderAgent.securityToken.succeed
         }).map(st => (st, keyStatus))
 
       case _ =>

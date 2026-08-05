@@ -46,6 +46,7 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DefaultDetailLevel
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.JRInventoryStatus.RemovedInventory
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.ZioJsonExtractor
@@ -99,13 +100,12 @@ import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreSerializer
 import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreValue
+import com.normation.rudder.services.nodes.NewNodeManager
+import com.normation.rudder.services.nodes.RemoveNodeService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.Csv.toCsv
@@ -149,7 +149,6 @@ class NodeApi(
     userPropertyService:   UserPropertyService,
     inheritedProperties:   NodeApiInheritedProperties,
     uuidGen:               StringUuidGenerator,
-    deleteDefaultMode:     DeleteMode,
     complianceService:     ComplianceAPIService
 ) extends LiftApiModuleProvider[API] {
 
@@ -338,9 +337,7 @@ class NodeApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        optDeleteMode <- restExtractor.extractDeleteMode(req).toIO
-        deleteMode     = optDeleteMode.getOrElse(deleteDefaultMode)
-        deleted       <- nodeApiService.deleteNode(NodeId(id), deleteMode)
+        deleted <- nodeApiService.deleteNode(NodeId(id))
       } yield {
         deleted
       }).chainError("Error when deleting Nodes").toLiftResponseList(params, schema)
@@ -527,7 +524,7 @@ class NodeApi(
             .map(id => {
               JRNodeIdStatus(
                 id,
-                nodes.get(id).map(_.rudderSettings.status).getOrElse(RemovedInventory).transformInto[JRInventoryStatus]
+                nodes.get(id).map(_.rudderSettings.status.transformInto[JRInventoryStatus]).getOrElse(RemovedInventory)
               )
             })
         }
@@ -1106,7 +1103,7 @@ class NodeApiService(
   }
 
   def pendingNodeDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
-    implicit val status: InventoryStatus = PendingInventory
+    implicit val status: JRInventoryStatus = JRInventoryStatus.PendingInventory
     for {
       pendingNodes <- nodeFactRepository.getAll()(using qc, SelectNodeStatus.Pending)
       nodeFact     <- pendingNodes.get(nodeId).notOptional(s"Could not find pending Node ${nodeId.value}")
@@ -1120,7 +1117,7 @@ class NodeApiService(
       action: NodeStatusAction
   )(implicit cc: ChangeContext): IOResult[Chunk[JRNodeChangeStatus]] = {
     def actualNodeDeletion(id: NodeId)(implicit cc: ChangeContext) = {
-      implicit val status: InventoryStatus = RemovedInventory
+      implicit val status: JRInventoryStatus = RemovedInventory
       for {
         nodeFact <- nodeFactRepository
                       .get(id)(using cc.toQC)
@@ -1133,7 +1130,7 @@ class NodeApiService(
 
     (action match {
       case AcceptNode =>
-        implicit val status: InventoryStatus = AcceptedInventory
+        implicit val status: JRInventoryStatus = JRInventoryStatus.AcceptedInventory
         newNodeManager
           .acceptAll(ids)
           .map(l => Chunk.fromIterable(l.map(cnf => NodeFact.fromMinimal(cnf).toFullInventory.transformInto[JRNodeChangeStatus])))
@@ -1188,12 +1185,8 @@ class NodeApiService(
                      case Some(i) => Some(i).succeed
                      case None    => getNodeDetails(nodeId, detailLevel, PendingInventory)
                    }
-      orDeleted <- orPending match {
-                     case Some(i) => Some(i).succeed
-                     case None    => getNodeDetails(nodeId, detailLevel, RemovedInventory)
-                   }
     } yield {
-      orDeleted
+      orPending
     }).notOptional(s"Node with ID '${nodeId.value}' was not found in Rudder")
       .chainError(s"An error was encountered when looking for node with ID '${nodeId.value}'")
   }
@@ -1239,10 +1232,6 @@ class NodeApiService(
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
                    case AcceptedInventory => acceptedNodeQueryProcessor.process(query).toIO
-                   case _                 =>
-                     Inconsistency(
-                       s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}"
-                     ).fail
                  }
       res     <- listNodes(state, detailLevel, Some(nodeIds.toSeq))
     } yield {
@@ -1458,11 +1447,11 @@ class NodeApiService(
     }
   }
 
-  def deleteNode(id: NodeId, mode: DeleteMode)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
-    implicit val status: InventoryStatus = RemovedInventory
+  def deleteNode(id: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
+    implicit val status: JRInventoryStatus = RemovedInventory
 
     for {
-      info <- removeNodeService.removeNodePure(id, mode)(using qc.newCC())
+      info <- removeNodeService.removeNodePure(id)(using qc.newCC())
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

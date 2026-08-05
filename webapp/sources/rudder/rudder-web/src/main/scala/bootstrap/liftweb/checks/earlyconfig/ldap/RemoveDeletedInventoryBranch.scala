@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2026 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,27 +35,39 @@
  *************************************************************************************
  */
 
-package com.normation.inventory.domain
+package bootstrap.liftweb.checks.earlyconfig.ldap
 
-/**
- * Defined the status of a machine or
- * server.
- * For now, we only have three:
- * - accepted
- * - pending
- * - removed
+import bootstrap.liftweb.BootstrapChecks
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.logger.MigrationLoggerPure
+import com.normation.zio.*
+import com.unboundid.ldap.sdk.DN
+import zio.*
+
+/*
+ * Remove unused (since 8.0) Removed Inventory branch.
+ * Migration added in 9.2, can be deleted in 10.0.
  */
-sealed abstract class InventoryStatus(val name: String)
+class RemoveDeletedInventoryBranch(
+    ldap: LDAPConnectionProvider[RwLDAPConnection]
+) extends BootstrapChecks {
 
-object InventoryStatus {
-  def apply(name: String): Option[InventoryStatus] = name.toLowerCase match {
-    case "accepted" => Some(AcceptedInventory)
-    case "pending"  => Some(PendingInventory)
-    case _          => None
+  override def description: String = "If the old ou=Removed Inventories still exists, delete it"
+
+  val removedInventoriesDN = new DN("ou=Removed Inventories,ou=Inventories,cn=rudder-configuration")
+
+  override def checks(): Unit = {
+    (for {
+      con <- ldap
+      res <- con.exists(removedInventoriesDN)
+      _   <- ZIO.when(res)(con.delete(removedInventoriesDN))
+    } yield ())
+      .catchAll(err => {
+        MigrationLoggerPure.error(
+          s"Error when deleting old deleted branch 'ou=Removed Inventories,ou=Inventories,cn=rudder-configuration': ${err.fullMsg} "
+        )
+      })
+      .runNow
   }
 }
-
-case object AcceptedInventory extends InventoryStatus("accepted")
-case object PendingInventory  extends InventoryStatus("pending")
-
-//to be extended to "suspicious inventory" and other alike
