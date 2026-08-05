@@ -41,6 +41,7 @@ import com.normation.GitVersion.Revision
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import zio.json.*
 
 final case class RuleUid(value: String) extends AnyVal {
@@ -109,7 +110,8 @@ object Rule {
     extension (a: Rule) {
       override def security: Option[SecurityTag] = a.security
 
-      override def isSystem: Boolean = a.isSystem
+      override def isSystem:           Boolean            = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle = TenantTagLifecycle.Monotonic
 
       override def debugId: String = a.id.debugString
 

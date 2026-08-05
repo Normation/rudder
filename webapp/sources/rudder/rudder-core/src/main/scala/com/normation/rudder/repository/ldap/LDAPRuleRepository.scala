@@ -309,7 +309,13 @@ class WoLDAPRuleRepository(
                            case None       => ZIO.unit
                            case Some(diff) =>
                              actionLogger
-                               .saveModifyRule(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
+                               .saveModifyRule(
+                                 cc.modId,
+                                 principal = cc.actor,
+                                 modifyDiff = diff,
+                                 reason = cc.message,
+                                 securityTag = oldRule.security
+                               )
                          }
         autoArchive   <- ZIO.when(autoExportOnModify && optDiff.isDefined && !rule.isSystem) {
                            for {

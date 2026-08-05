@@ -50,6 +50,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import doobie.*
@@ -308,6 +309,24 @@ object Doobie {
 
   implicit val eventActorCompositeRead:  Read[EventActor]  = Read[String].map(s => EventActor(s))
   implicit val eventActorCompositeWrite: Write[EventActor] = Write[String].contramap(_.name)
+
+  /*
+   * Serialisation of security tag in json using the standard SecurityTag JSON serialization:
+   * `"open"` or `{"tenants":[...]}`), combined with doobie's automatic Option handling: a SQL NULL
+   *  maps to `None` ("no tag / admin-only" / before 9.2).
+   *
+   * A stored value that fails to parse falls back to the admin-only empty-tenants tag (fail closed).
+   */
+  implicit val securityTagMeta: Meta[SecurityTag] = {
+    Meta.Advanced
+      .other[PGobject]("jsonb")
+      .timap(o => o.getValue.fromJson[SecurityTag].getOrElse(SecurityTag.empty)) { tag =>
+        val o = new PGobject
+        o.setType("jsonb")
+        o.setValue(tag.toJson)
+        o
+      }
+  }
 
 }
 

@@ -201,7 +201,8 @@ class WoLDAPParameterRepository(
                                 cc.modId,
                                 principal = cc.actor,
                                 modifyDiff = diff,
-                                reason = cc.message
+                                reason = cc.message,
+                                securityTag = oldParameter.security
                               )
                               .chainError("Error when logging modification as an event")
                         }

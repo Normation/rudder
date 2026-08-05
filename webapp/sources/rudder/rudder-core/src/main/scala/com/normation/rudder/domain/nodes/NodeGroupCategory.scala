@@ -41,6 +41,7 @@ import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import zio.json.JsonCodec
 
 /**
@@ -73,9 +74,10 @@ final case class NodeGroupCategory(
 object NodeGroupCategory {
   given HasSecurityTag[NodeGroupCategory] with {
     extension (a: NodeGroupCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.value
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): NodeGroupCategory = a.copy(security = security)
     }
   }

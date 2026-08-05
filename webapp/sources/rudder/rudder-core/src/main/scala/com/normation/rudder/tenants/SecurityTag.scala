@@ -56,6 +56,12 @@ trait HasSecurityTag[A] {
     // each instance states explicitly whether its type has a system notion (and how it is computed).
     def isSystem: Boolean
 
+    // How this object's tenant tag may evolve when an administrator changes it (see TenantTagLifecycle):
+    // `Monotonic` (configuration objects: visibility can only grow, for event-log soundness) or
+    // `Reassignable` (nodes: freely reassignable between tenants). There is no default: each instance states
+    // it explicitly, so a new taggable type can not silently inherit the wrong lifecycle.
+    def tenantTagLifecycle: TenantTagLifecycle
+
     // update the security context of the object, returning is updated
     def updateSecurityContext(security: Option[SecurityTag]): A
 
@@ -124,7 +130,8 @@ object SecurityTag {
   given JsonEncoder[SecurityTag] = codecSecurityTag.encoder
   given JsonDecoder[SecurityTag] = codecSecurityTag.decoder
 
-  // XML serialization / deserialisation for events
+  // XML serialization / deserialisation for object marshalling (archives, git, technique metadata).
+  // Note: the event-log `securitytag` column uses the JSON codec above (jsonb), not this XML form.
   import scala.xml.*
 
   def toXml(opt: Option[SecurityTag]): NodeSeq = {

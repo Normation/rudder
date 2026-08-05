@@ -40,6 +40,7 @@ package com.normation.rudder.rule.category
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import net.liftweb.common.*
 
 /**
@@ -173,9 +174,10 @@ final case class RuleCategory(
 object RuleCategory {
   given HasSecurityTag[RuleCategory] with {
     extension (a: RuleCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.value
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): RuleCategory = a.copy(security = security)
     }
   }

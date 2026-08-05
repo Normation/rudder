@@ -493,7 +493,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = ???
 
-    override def getEventLogById(id: Long): IOResult[EventLog] = {
+    override def getEventLogById(id: Long)(implicit qc: QueryContext): IOResult[EventLog] = {
       ???
     }
 
@@ -505,7 +505,9 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
 
-    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
+    override def getEventLogWithChangeRequest(id: Int)(implicit
+        qc: QueryContext
+    ): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
       ZIO.none
     }
 
@@ -550,9 +552,10 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         reason:    Option[String]
     ): IOResult[EventLog] = ZIO.succeed(null)
 
-    override def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = ZIO.succeed(null)
+    override def getEventLogByCriteria(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Seq[EventLog]] =
+      ZIO.succeed(null)
 
-    override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = ZIO.succeed(0L)
+    override def getEventLogCount(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Long] = ZIO.succeed(0L)
   }
 
   val techniqueWriter = new TechniqueWriterImpl(

@@ -314,14 +314,14 @@ trait SetupLdapRepositories {
       new EditorTechniqueXmlSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
     )
 
-    override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
+    override def saveEventLog(modId: ModificationId, eventLog: EventLog):     IOResult[EventLog] = eventLog.succeed
     override def getEventLogByCriteria(
         criteria:       Option[doobie.Fragment],
         limit:          Option[Int],
         orderBy:        List[doobie.Fragment],
         extendedFilter: Option[doobie.Fragment]
     ): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long): IOResult[EventLog] = ???
+    override def getEventLogById(id: Long)(implicit qc:        QueryContext): IOResult[EventLog] = ???
 
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
@@ -331,16 +331,19 @@ trait SetupLdapRepositories {
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
 
-    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getEventLogWithChangeRequest(id: Int)(implicit
+        qc: QueryContext
+    ): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
 
     override def getLastEventByChangeRequest(
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Map[ChangeRequestId, EventLog]] = ???
 
-    override def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = ???
+    override def getEventLogByCriteria(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Seq[EventLog]] =
+      ???
 
-    override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = ???
+    override def getEventLogCount(filter: Option[EventLogRequest])(implicit qc: QueryContext): IOResult[Long] = ???
   }
 
   // git archiver are not used because of the guard, still need to be declared.
