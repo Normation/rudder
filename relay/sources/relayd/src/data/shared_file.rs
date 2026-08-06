@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr};
+use std::{
+    collections::HashMap,
+    fmt,
+    path::{Path, PathBuf},
+    str,
+    str::FromStr,
+};
 
 use anyhow::Error;
 use openssl::{
@@ -60,20 +66,37 @@ impl SharedFile {
         // This is the documented constraint for file_id
         // More than enough for node ids too but we don't have a precise spec
         let check = Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap();
-        if !check.is_match(&source_id) {
-            return Err(
-                RudderError::InvalidSharedFile(format!("invalid source_id: {source_id}",)).into(),
-            );
-        }
-        if !check.is_match(&target_id) {
-            return Err(
-                RudderError::InvalidSharedFile(format!("invalid target_id: {target_id}",)).into(),
-            );
-        }
-        if !check.is_match(&file_id) {
-            return Err(
-                RudderError::InvalidSharedFile(format!("invalid file_id: {file_id}")).into(),
-            );
+        let check_id = |kind: &str, id: &str| -> Result<(), Error> {
+            if !check.is_match(id) {
+                return Err(RudderError::InvalidSharedFile(format!("invalid {kind}: {id}")).into());
+            }
+            // All three ids are used as path components. `.` and `..` match the regex above
+            // but name a directory instead of a file, which would move the path out of the
+            // directory it is built from.
+            if Path::new(id).file_name().is_none() {
+                return Err(RudderError::InvalidSharedFile(format!(
+                    "{kind} must be a file name: {id}"
+                ))
+                .into());
+            }
+            Ok(())
+        };
+        check_id("source_id", &source_id)?;
+        check_id("target_id", &target_id)?;
+        check_id("file_id", &file_id)?;
+        // The metadata of a shared file is stored next to it as `<file_id>.metadata`, so a
+        // file id using that extension would collide with the metadata of another file:
+        // its content would overwrite it, and the cleanup job would read that
+        // content as metadata. Mirrors the extension check done when walking the
+        // directory, ignoring case in case of a case-insensitive filesystem.
+        if Path::new(&file_id)
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("metadata"))
+        {
+            return Err(RudderError::InvalidSharedFile(format!(
+                "file_id must not use the reserved .metadata extension: {file_id}"
+            ))
+            .into());
         }
         Ok(SharedFile {
             source_id,
@@ -253,6 +276,57 @@ mod tests {
             "file/../passwd".to_string(),
         )
         .is_err());
+    }
+
+    #[test]
+    fn it_rejects_ids_which_are_not_file_names() {
+        // `.` and `..` are directories, not files, and move the path they are built into
+        for id in [".", ".."] {
+            assert!(
+                SharedFile::new(id.to_string(), "target".to_string(), "file".to_string()).is_err()
+            );
+            assert!(
+                SharedFile::new("source".to_string(), id.to_string(), "file".to_string()).is_err()
+            );
+            assert!(
+                SharedFile::new("source".to_string(), "target".to_string(), id.to_string())
+                    .is_err()
+            );
+        }
+
+        // Leading and trailing dots are otherwise allowed
+        assert!(SharedFile::new(
+            "source".to_string(),
+            "target".to_string(),
+            "...".to_string(),
+        )
+        .is_ok());
+        assert!(SharedFile::new(
+            "source".to_string(),
+            "target".to_string(),
+            ".hidden".to_string(),
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn it_rejects_file_ids_colliding_with_a_metadata_file() {
+        let new = |file_id: &str| {
+            SharedFile::new(
+                "source".to_string(),
+                "target".to_string(),
+                file_id.to_string(),
+            )
+        };
+
+        // Would overwrite the metadata of the `file` shared file
+        assert!(new("file.metadata").is_err());
+        assert!(new("file.METADATA").is_err());
+        assert!(new("file.properties.metadata").is_err());
+
+        // Dots are allowed, only the `.metadata` extension is reserved
+        assert!(new("application.properties").is_ok());
+        assert!(new("file.metadata.properties").is_ok());
     }
 
     #[test]

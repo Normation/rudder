@@ -61,6 +61,21 @@ pub mod handlers {
     use super::*;
     use crate::JobConfig;
 
+    /// Status to answer for a failed request, logged at the level matching its cause: an
+    /// invalid id in the request path comes from the client, anything else is unexpected.
+    fn error_status(e: &Error) -> StatusCode {
+        match e.downcast_ref::<RudderError>() {
+            Some(RudderError::InvalidSharedFile(_)) => {
+                warn!("invalid request: {}", e);
+                StatusCode::BAD_REQUEST
+            }
+            _ => {
+                error!("error while processing request: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        }
+    }
+
     pub async fn put(
         target_id: String,
         source_id: String,
@@ -91,10 +106,7 @@ pub mod handlers {
             .await
             {
                 Ok(x) => x,
-                Err(e) => {
-                    error!("error while processing request: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                }
+                Err(e) => error_status(&e),
             },
         ))
     }
@@ -119,10 +131,7 @@ pub mod handlers {
             "".to_string(),
             match super::head(target_id, source_id, file_id, params, job_config.clone()).await {
                 Ok(x) => x,
-                Err(e) => {
-                    error!("error while processing request: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                }
+                Err(e) => error_status(&e),
             },
         ))
     }
@@ -218,7 +227,7 @@ pub async fn put_local(
     while read > 1 {
         read = stream.read_line(&mut raw_meta)?;
     }
-    let meta = Metadata::from_str(&raw_meta)?;
+    let mut meta = Metadata::from_str(&raw_meta)?;
 
     let base_path = job_config
         .cfg
@@ -268,11 +277,17 @@ pub async fn put_local(
         }
     };
 
+    // The expiration date is computed by the server from the `ttl` parameter, it always
+    // overrides any `expires` sent by the client. Set the field instead of appending a
+    // line, as the uploaded metadata may already contain one, which would make the
+    // stored metadata unparsable (duplicate header) and hence never expire.
+    meta.expires = Some(expires);
+
     // Everything is correct, let's store the file
     fs::create_dir_all(&base_path).await?;
     fs::write(
         &base_path.join(format!("{}.metadata", file.file_id)),
-        format!("{}expires={}\n", meta, expires),
+        meta.to_string(),
     )
     .await?;
     fs::write(&base_path.join(file.file_id), file_content).await?;
