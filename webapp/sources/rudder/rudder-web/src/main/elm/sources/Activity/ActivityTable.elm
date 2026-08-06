@@ -4,6 +4,7 @@ import Activity.DataTypes exposing (Activity, ActivityMsg, ContextPath(..))
 import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Html exposing (Html, a, text)
 import Html.Attributes exposing (class, href)
+import Json.Encode exposing (Value, bool, encode, int, list, object, string)
 import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions)
@@ -29,27 +30,29 @@ initTable (ContextPath contextPath) timezone =
         idWithLink : Activity -> Html msg
         idWithLink activity =
             let
-                search id =
-                    "{\"value\":\"" ++ String.fromInt id ++ "\",\"regex\":false,\"fixed\":[]}"
+                search =
+                    object
+                        [ ( "value", activity.id |> String.fromInt |> string )
+                        , ( "regex", bool False )
+                        , ( "fixed", list bool [] )
+                        ]
+
+                json =
+                    object
+                        [ ( "search", search )
+                        , ( "startDate", string (posixToStringWithHoursMinutesAndSecondsTo0 timezone activity.date) )
+                        , ( "endDate", string (posixToStringWithoutTimeZoneOffset timezone activity.date) )
+                        , ( "draw", int 1 )
+                        , ( "start", int 0 )
+                        , ( "length", int 10 )
+                        ]
+                        |> encode 0
             in
             a
                 [ href
                     (contextPath
                         ++ "/secure/configurationManager/changeLogs#"
-                        ++ "{\"search\":"
-                        ++ search activity.id
-                        ++ ",\"startDate\":"
-                        ++ "\""
-                        ++ posixToStringWithHoursMinutesAndSecondsTo0 timezone activity.date
-                        ++ "\""
-                        ++ ",\"endDate\":"
-                        ++ "\""
-                        ++ posixToStringWithoutTimeZoneOffset timezone activity.date
-                        ++ "\""
-                        ++ ",\"draw\":1"
-                        ++ ",\"start\":0"
-                        ++ ",\"length\":10"
-                        ++ " }"
+                        ++ json
                     )
                 ]
                 [ text (String.fromInt activity.id) ]
