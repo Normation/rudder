@@ -665,7 +665,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
         $("#triggerBtn" + defaultOrInventory).prop('disabled', null).blur();
         $textAction.html("Trigger agent " + defaultOrInventory.toLowerCase());
         $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
-        $("#report" + defaultOrInventory).remove("pre" + "#response" + defaultOrInventory).html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
+        $("#report" + defaultOrInventory).remove("pre" + "#response" + defaultOrInventory).html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + escapeHTML(errorThrown) +'</b>' +'<br>' + escapeHTML(jqXHR.responseText) + '</div>');
         $("#report" + defaultOrInventory).addClass("border-fail");
         $("#visibilityOutput" + defaultOrInventory).show();
         showOrHideBtn();
