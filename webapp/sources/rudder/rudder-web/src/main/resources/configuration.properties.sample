@@ -204,17 +204,17 @@ rudder.batch.reportscleaner.frequency=daily
 # Defaults: minute=0, hour=0, day=Sunday
 
 
-# Which minute the cleaner should be run on.
+# Which minute database cleaners (reports, vacuum) should be run on.
 # Values  : [0-59]
 # Default : 0
 rudder.batch.databasecleaner.runtime.minute=0
 
-# Which hour the cleaner should be run on.
+# Which hour database cleaners (reports, vacuum) should be run on.
 # Values : [0-23]
 # Default : 0
 rudder.batch.databasecleaner.runtime.hour=0
 
-# Which day the cleaner should be run on.
+# Which day reports cleaner should be run on.
 # Values : monday | tuesday | wednesday | thursday | friday | saturday | sunday
 # Default : sunday
 rudder.batch.databasecleaner.runtime.day=sunday

@@ -205,6 +205,9 @@ CREATE TABLE NodeLastCompliance (
 , details             jsonb NOT NULL
 );
 
+ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_threshold = 0);
+ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05);
+
 
 
 /*

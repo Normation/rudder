@@ -38,14 +38,19 @@
 package bootstrap.liftweb.checks.earlyconfig.db
 
 import bootstrap.liftweb.*
+import cats.syntax.apply.*
 import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie
 import com.normation.zio.*
+import doobie.*
 import doobie.implicits.*
+import doobie.syntax.string.*
 import zio.interop.catz.*
 
 /*
- * During 8.1 cycle, we added a score that is applied to every nodes to give a better understanding
+ * During 8.1 cycle, we added a score that is applied to every nodes to give a better understanding.
+ *
+ * For maintenance purpose we added an autovacuum in 9.0
  */
 class CheckTableNodeLastCompliance(
     doobie: Doobie
@@ -53,7 +58,7 @@ class CheckTableNodeLastCompliance(
 
   import doobie.*
 
-  override def description: String = "Check if table 'NodeLastCompliance' exists"
+  override def description: String = "Check if table 'NodeLastCompliance' exists and has autovacuum settings"
 
   def createTable: IOResult[Unit] = {
 
@@ -66,10 +71,20 @@ class CheckTableNodeLastCompliance(
     transactIOResult(s"Error with 'NodeLastCompliance' table creation")(xa => sql1.update.run.transact(xa)).unit
   }
 
+  def setAutovacuumSettings: IOResult[Unit] = {
+    val sql1 = sql"ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_threshold = 0)"
+    val sql2 = sql"ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05)"
+
+    transactIOResult(s"Error setting autovacuum_vacuum_threshold on 'NodeLastCompliance'")(xa =>
+      (sql1.update.run *> sql2.update.run).transact(xa)
+    ).unit
+  }
+
   override def checks(): Unit = {
     val prog = {
       for {
         _ <- createTable
+        _ <- setAutovacuumSettings
       } yield ()
     }
 

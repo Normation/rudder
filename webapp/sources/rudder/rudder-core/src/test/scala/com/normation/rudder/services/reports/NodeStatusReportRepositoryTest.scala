@@ -132,6 +132,8 @@ class NodeStatusReportRepositoryTest extends Specification {
     override def delete(nodes: Iterable[NodeId]): IOResult[Unit] = {
       s.delete(nodes)
     }
+
+    override def vacuum(): IOResult[Unit] = ZIO.unit
   }
 
   def initServices(moreReports: NodeStatusReport*): (Counter, NodeStatusReportRepository) = {
