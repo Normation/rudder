@@ -50,7 +50,7 @@ import zio.syntax.*
  * The engine used to fill policy templates (".st" files) during policy generation:
  * - StringTemplate: the historical engine, based on the (mutable, synchronized)
  *   StringTemplate 3 library with the ampersand lexer;
- * - Fastparse: the new in-house engine (see AmpersandTemplate), an immutable AST
+ * - Fastparse: the new in-house engine (see FastparseTemplateParser), an immutable AST
  *   parsed with fastparse and rendered as a pure function.
  * Both accept the same template syntax; the choice is done once at service init
  * with the `rudder.policy.template.engine` property in rudder-web.properties.
@@ -144,7 +144,7 @@ class FastparsePolicyTemplateService extends PolicyTemplateService {
   override val engine: PolicyTemplateEngine = PolicyTemplateEngine.Fastparse
 
   override def parse(name: String, content: String): IOResult[PreparedTemplate] = {
-    AmpersandTemplate
+    FastparseTemplateParser
       .parse(content)
       .map(PreparedTemplate.FastparseTemplate.apply)
       .toIO
@@ -164,7 +164,7 @@ class FastparsePolicyTemplateService extends PolicyTemplateService {
       case PreparedTemplate.FastparseTemplate(ast) =>
         (for {
           t0     <- currentTimeNanos
-          result <- AmpersandTemplate.fill(ast, templateName, variables, replaceId).toIO
+          result <- FastparseTemplateParser.fill(ast, templateName, variables, replaceId).toIO
           t1     <- currentTimeNanos
           // rendering is one pure step: variable handling and stringification are not distinguishable
           _      <- timer.fill.update(_ + t1 - t0)
