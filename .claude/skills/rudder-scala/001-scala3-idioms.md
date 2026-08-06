@@ -94,25 +94,24 @@ object AcceptationDateTime {
 
 ## Type-directed development: no stringly-typed code
 
-We let **types describe the domain**. A new concept gets a new type — we do **not**
-thread bare `String`/`Int`/`Boolean`/`Map[String, String]` around to stand for domain
-notions. This makes signatures self-documenting, prevents mixing up a `NodeId` with a
-`RuleId`, and lets "parse, don't validate" ([`201`](201-parse-dont-validate.md)) anchor
-invariants on the type.
-
-- Modelling a new thing? Define a type for it (and put its `parse`/`serialize`/codec in
-  the companion).
-- A parameter that is "an id", "a name", "a token", "a path"… is a *type*, not a
-  `String`. If you're about to write `def f(x: String, y: String)`, stop and name them.
+This is
+[principle 6 — name domain concepts as types, and propose the zero-cost form](../rudder-principles/SKILL.md#6-name-domain-concepts-as-types--and-propose-the-zero-cost-form)
+in Scala. Concretely: a new concept gets a new type, with its `parse`/`serialize`/codec in
+the companion ([`201`](201-parse-dont-validate.md)) — we do **not** thread bare
+`String`/`Int`/`Boolean`/`Map[String, String]` around to stand for domain notions. If
+you're about to write `def f(x: String, y: String)`, stop and name them.
 
 ### Choosing the wrapper: `opaque type` > value class > raw
 
 For a concept backed by a **single** underlying value, in order of preference:
 
-1. **`opaque type`** — the preferred form for **new** wrappers. A true zero-cost
-   newtype (no runtime allocation) that still presents a typed API and keeps invariants
-   true. Expose construction/behaviour via the companion + `extension` (as
-   `AcceptationDateTime` above).
+1. **`opaque type`** — the preferred form for **new** wrappers, and **the zero-cost
+   abstraction to propose** under principle 6: a true newtype with *no runtime
+   allocation*, that still presents a typed API and keeps invariants true. Expose
+   construction/behaviour via the companion + `extension` (as `AcceptationDateTime`
+   above). Since it costs nothing at runtime, the hot-path objection
+   ([principle 7](../rudder-principles/SKILL.md#7-weigh-hot-path-cost--while-planning-not-after))
+   does not apply to it — say so when you propose it.
    ```scala
    opaque type TenantId = String
    object TenantId {
@@ -159,7 +158,7 @@ whenever the change is strictly equivalent** (a plain `implicit val`/`implicit d
 the rewrite isn't a no-op — e.g. `implicit class` extension wrappers (use an
 [`extension`](#extension-methods) instead, which is a different shape, not a mechanical
 swap) or implicit conversions, where semantics or resolution could shift. Keep such
-rewrites within the [up-merge](000-coding-philosophy.md#concurrent-branches--up-merge)
+rewrites within the [up-merge](../rudder-principles/SKILL.md#working-in-a-long-lived-codebase)
 budget: don't churn an entire legacy file just to convert implicits.
 
 ## Style reminders
