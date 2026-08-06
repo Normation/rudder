@@ -3495,6 +3495,7 @@ dependencies = [
  "rustix 1.0.8",
  "serde",
  "serde_json",
+ "shlex",
  "uzers",
  "wait-timeout",
 ]
