@@ -42,6 +42,8 @@
 }
 
 /* <WRAPPER TOP> */
+.rudder-table-wrapper-top,
+.rudder-table-wrapper-bottom,
 .dataTables_wrapper_top,
 .dataTables_wrapper_bottom {
   float            : left;
@@ -50,21 +52,26 @@
   padding          : 5px 10px;
   background-color : rudder.$bg-light-gray;
 }
+.rudder-table-wrapper-top,
 .dataTables_wrapper_top {
   border-bottom    : none;
 }
+.rudder-template .template-main .main-table .rudder-table-wrapper-top.table-filter,
 .rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter{
   display: flex;
   margin-top : 15px;
   padding: 10px 15px 0px 15px;
 }
+.rudder-template .template-main .main-table .rudder-table-wrapper-top.table-filter > .form-group,
 .rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter > .form-group{
   min-width: 300px;
   margin-bottom: 10px;
 }
+.rudder-template .template-main .main-table  .rudder-table-wrapper-top.table-filter > .form-group + .form-group,
 .rudder-template .template-main .main-table  .dataTables_wrapper_top.table-filter > .form-group + .form-group{
   margin-left: 15px;
 }
+.rudder-template .template-main .main-table .rudder-table-wrapper-top.table-filter > .end,
 .rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter > .end{
   margin: 0 0 10px auto;
 }
@@ -85,6 +92,7 @@
 /* </WRAPPER TOP> */
 
 /* <TABLE> */
+.rudder-table,
 .dataTable{
   width         : 100%;
   border        : 1px solid rudder.$border-color-default;
@@ -92,6 +100,7 @@
   margin-bottom : 0px;
 }
 
+// nested table: not a rudder-table
 .dataTable .dataTable {
   border-bottom: none !important;
   border-right: none;
@@ -101,6 +110,7 @@
 /* </TABLE> */
 
 /* <THEAD> */
+.rudder-table tr.head,
 .dataTable tr.head,
 .dt-scroll-head thead > tr {
   border-bottom : 1px solid rudder.$border-color-default;
@@ -109,6 +119,7 @@
 /* </THEAD> */
 
 /* <TH> */
+// unused ?
 .dataTable tr.head th .DataTables_sort_wrapper,
 .dt-scroll-head thead > tr th .DataTables_sort_wrapper{
   top: 1px;
@@ -120,6 +131,7 @@
   position: absolute;
 }
 
+.rudder-table tr.head th,
 .dataTable tr.head th,
 .dt-scroll-head thead > tr th{
   padding: 10px 6px;
@@ -127,6 +139,9 @@
   cursor: pointer;
   transition-duration: .2s;
 }
+.rudder-table tr.head th.sorting,
+.rudder-table tr.head th.sorting_asc,
+.rudder-table tr.head th.sorting_desc,
 .dataTable tr.head th.sorting,
 .dataTable tr.head th.sorting_asc,
 .dataTable tr.head th.sorting_desc,
@@ -135,6 +150,7 @@
 .dt-scroll-head thead > tr th.sorting_desc{
   white-space: pre;
 }
+.rudder-table tr.head th.sorting:after,
 .dataTable tr.head th.sorting:after,
 .dt-scroll-head thead > tr th.sorting:after{
   content: "";
@@ -142,6 +158,10 @@
   min-width: 12px;
   margin-left: 6px;
 }
+.rudder-table tr.head th.sorting_asc:after,
+.rudder-table tr.head th.sorting_desc:after,
+.rudder-table tr.head th.dt-ordering-asc span.dt-column-order:after,
+.rudder-table tr.head th.dt-ordering-desc span.dt-column-order:after,
 .dataTable tr.head th.sorting_asc:after,
 .dataTable tr.head th.sorting_desc:after,
 .dataTable tr.head th.dt-ordering-asc span.dt-column-order:after,
@@ -166,28 +186,36 @@
   position: relative;
   top: 1px;
 }
+.rudder-table tr.head th.sorting_asc:after,
+.rudder-table tr.head th.dt-ordering-asc span.dt-column-order:after,
 .dataTable tr.head th.sorting_asc:after,
 .dataTable tr.head th.dt-ordering-asc span.dt-column-order:after,
 .dataTable thead > tr th.dt-ordering-asc span.dt-column-order:after,
 .dt-scroll-head thead > tr th.sorting_asc:after{
   content: "\f0d8";
 }
+.rudder-table tr.head th.sorting_desc:after,
+.rudder-table tr.head th.dt-ordering-desc span.dt-column-order:after,
 .dataTable tr.head th.sorting_desc:after,
 .dataTable tr.head th.dt-ordering-desc span.dt-column-order:after,
 .dataTable thead > tr th.dt-ordering-desc span.dt-column-order:after,
 .dt-scroll-head thead > tr th.sorting_desc:after{
   content: "\f0d7";
 }
+.rudder-table .rudder-table tr.head th,
 .dataTable .dataTable tr.head th {
   padding: 4px 6px;
   font-size: 0.9em;
 }
+.rudder-table tr.head th.sorting,
 .dataTable tr.head th.sorting,
 .dt-scroll-head thead > tr th.dt-orderable-desc,
 .dt-scroll-head thead > tr th.dt-orderable-asc,
 .dt-scroll-head thead > tr th.sorting{
   color: rudder.$txt-secondary;
 }
+.rudder-table tr.head th.sorting.sorting_desc,
+.rudder-table tr.head th.sorting.sorting_asc,
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc,
 .dt-scroll-head thead > tr th.dt-ordering-desc,
@@ -196,6 +224,11 @@
 .dt-scroll-head thead > tr th.sorting_desc{
   color: rudder.$txt-primary;
 }
+.rudder-table tr.head th.sorting:hover,
+.rudder-table tr.head th.sorting.sorting_desc:hover,
+.rudder-table tr.head th.sorting.sorting_asc:hover,
+.rudder-table tr.head th.dt-orderable-desc:hover,
+.rudder-table tr.head th.dt-orderable-asc:hover,
 .dataTable tr.head th.sorting:hover,
 .dataTable tr.head th.sorting.sorting_desc:hover,
 .dataTable tr.head th.sorting.sorting_asc:hover,
@@ -304,45 +337,57 @@ td.listclose:after {
 /* </TH> */
 
 /* <TBODY><TR> */
+.rudder-table > tbody > tr,
 .dataTable > tbody > tr {
   border-top: 1px solid transparent;
 }
+.rudder-table > tbody > tr.details,
 .dataTable > tbody > tr.details{
   border-top: 1px solid #f1f1f1;
   background-color: inherit !important;
   position: relative;
 }
+.rudder-table > tbody > tr.color2,
 .dataTable > tbody > tr.color2{
   background-color: rudder.$bg-light-gray;
 }
+.rudder-table > tbody > tr:hover,
 .dataTable > tbody > tr:hover{
   background-color: rudder.$bg-gray;
 }
+//unused
 .dataTable > tbody > tr.eventLogDescription {
   border-top: 1px solid transparent;
   border-bottom: 1px solid rudder.$border-color-default;
   background-color: #FFF !important;
 }
+// compliance ?
 .dataTable > tbody > tr.opened {
   border-top: 1px solid rudder.$border-color-default !important;
   border-bottom: 1px solid #c0d4e4;
   background-color: rudder.$bg-info;
 }
 
+// compliance ?
 .dataTable > tbody > tr.opened + tr.details + tr{
   border-top: 1px solid #e4e4e4;
 }
 /* <TBODY><TR><TD> */
+.rudder-table > tbody > tr > td,
 .dataTable > tbody > tr > td{
   padding: 6px;
 }
+.rudder-table > tbody > tr > td.details,
 .dataTable > tbody > tr > td.details{
   padding: 0;
 }
+.rudder-table > tbody > tr > td:has(> .value-container),
 .dataTable > tbody > tr > td:has(> .value-container){
   padding-top: 0;
   padding-bottom: 0;
 }
+.rudder-table > tbody > tr > td > .value-container,
+ .rudder-table > tbody > tr > td > .needs-validation > .value-container,
 .dataTable > tbody > tr > td > .value-container,
 .dataTable > tbody > tr > td > .needs-validation > .value-container{
   white-space: pre-line;
@@ -356,13 +401,16 @@ td.listclose:after {
     display: block;
   }
 }
+.rudder-table > tbody > tr > td.listclose,
 .dataTable > tbody > tr > td.listclose{
   position: relative;
 }
+.rudder-table > tbody > tr > td .rudder-label.label-sm,
 .dataTable > tbody > tr > td .rudder-label.label-sm{
   margin-right: 6px;
 }
 
+.rudder-table > tbody > tr > td .label-text,
 .dataTable > tbody > tr > td .label-text {
   cursor: help;
   padding: 4px 0;
@@ -370,9 +418,11 @@ td.listclose:after {
   float: initial;
   margin-left: 0;
 }
+.rudder-table > tbody > tr > td .label-text:before,
 .dataTable > tbody > tr > td .label-text:before {
   margin-left: 4px;
 }
+// compliance / nested table
 .dataTable .innerDetails {
   display: none;
   background : rudder.$bg-light-gray;
@@ -409,6 +459,7 @@ tr.parametersDescription {
 /* </TBODY></TR></TD> */
 
 /* <WRAPPER BOTTOM> */
+.rudder-table-wrapper-bottom
 .dataTables_wrapper_bottom {
   border-top : none;
   display: flex;
@@ -499,6 +550,8 @@ tr.parametersDescription {
 
 /* </WRAPPER BOTTOM> */
 
+.rudder-table > tbody > tr > td.dataTables_empty,
+.rudder-table > tbody > tr > td .empty,
 .dataTable > tbody > tr > td.dataTables_empty,
 .dataTable > tbody > tr > td .empty{
   color: rudder.$txt-secondary;
@@ -657,6 +710,7 @@ tr.parametersDescription {
   width: 100%;
   text-align: left;
 }
+// technical logs table: unused ?
 .dtrg-group td::before {
   content : "Run start date: ";
 }
@@ -669,10 +723,13 @@ table.dataTable tr.dtrg-group td {
 td.greyBackground, th.greyBackground {
   background-color : rudder.$bg-light-gray;
 }
+// nodes table
+.rudder-table td a.text-danger,
 .dataTable td a.text-danger{
   color: rudder.$warning;
   margin-left: 4px;
 }
+.rudder-table td a.text-danger:hover,
 .dataTable td a.text-danger:hover{
   color: #ffa918;
 }
