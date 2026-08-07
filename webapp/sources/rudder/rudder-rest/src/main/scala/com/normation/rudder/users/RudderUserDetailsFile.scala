@@ -83,17 +83,23 @@ sealed abstract class PasswordEncoderType(override val entryName: String) extend
 object PasswordEncoderType extends Enum[PasswordEncoderType] {
   case object BCRYPT   extends PasswordEncoderType("BCRYPT")   {
     val defaultCost = 12
+    // From OWASP recommendations
+    val minimumCost = 10
 
     // 16 bytes = 128 bits
     val saltSize = 16
   }
   case object ARGON2ID extends PasswordEncoderType("ARGON2ID") {
-    // Defaults for user-controlled settings
+    // Defaults and minimums for user-controlled settings. The minimums are the ones of the
+    // lowest configuration OWASP considers acceptable (m=19MiB, t=2, p=1), and they are also
+    // above the values BouncyCastle refuses outright (t=0 and p=0 make it throw).
     // 19 MiB, from OWASP recommendations
     val minimumMemory      = Argon2Memory(19 * 1024)
     // 128 MiB
     val defaultMemory      = Argon2Memory(128 * 1024)
+    val minimumIterations  = Argon2Iterations(2)
     val defaultIterations  = Argon2Iterations(3)
+    val minimumParallelism = Argon2Parallelism(1)
     val defaultParallelism = Argon2Parallelism(1)
   }
 
@@ -128,7 +134,6 @@ object RudderPasswordEncoder {
 
   private val secureRandom = new SecureRandom()
 
-  // Proper password hash functions
   class bcryptEncoder(cost: Int)                          extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
@@ -157,10 +162,10 @@ object RudderPasswordEncoder {
         encoderParams,
         salt = Chunk.fromArray(salt)
       )
-      Argon2Hash.generate(hashParams, rawPassword.toString.getBytes)
+      Argon2Hash.generate(hashParams, rawPassword)
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
-      Argon2Hash.checkPassword(rawPassword.toString.getBytes, encodedPassword) match {
+      Argon2Hash.checkPassword(rawPassword, encodedPassword) match {
         case Left(e)                  =>
           ApplicationLoggerPure.Auth.logEffect.warn(s"Error while checking Argon2 hash: $e")
           false
@@ -195,7 +200,7 @@ case class RudderPasswordEncoder(
 
     // We could (and likely should) use RudderPasswordProvider for encoding but we need to store the algorithm to use
     // (as DelegatingPasswordEncoder does) based on the user configuration.
-    subPasswordEncoder(rawPassword.toString).encode(rawPassword)
+    passwordEncoderDispatcher.dispatch(PasswordEncoderType.DEFAULT).encode(rawPassword)
   }
 
   override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {

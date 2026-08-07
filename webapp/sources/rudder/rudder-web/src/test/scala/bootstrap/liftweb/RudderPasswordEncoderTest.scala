@@ -134,6 +134,16 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
           val altEncoder       = RudderPasswordEncoder.argon2Encoder(altEncoderParams)
           assert(altEncoder.matches(pass, pass_argon2))(isTrue)
         }
+        // like the bcrypt encoder: an unusable stored hash fails the login, it does not fail the request
+        test("fails instead of throwing on a hash with cost parameters BouncyCastle refuses") {
+          assert(encoder.matches(pass, "$argon2id$v=19$m=19,t=3,p=0$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ"))(isFalse)
+        }
+        // the encoding itself is `Argon2Hash`'s job and is pinned in Argon2Test; here we only check
+        // a non-ASCII password survives the encoder end to end
+        test("round-trips a non-ASCII password") {
+          val nonAscii = "pâßwörd-日本語"
+          assert(encoder.matches(nonAscii, encoder.encode(nonAscii)))(isTrue)
+        }
       }
     )
   }
