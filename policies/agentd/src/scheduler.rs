@@ -68,7 +68,7 @@ impl Schedule {
                 name
             );
         }
-        if interval_begin > interval_end {
+        if interval_begin >= interval_end {
             bail!(
                 "{} configuration: interval end must be after interval begin",
                 name
@@ -489,6 +489,24 @@ mod tests {
             .with_time(NaiveTime::from_hms_opt(h, m, s).unwrap())
             .single()
             .unwrap()
+    }
+
+    #[test]
+    fn test_zero_width_interval_rejected() {
+        // A zero-width interval (begin == end) would make next_run panic on
+        // `seed % interval_duration`, so it must be rejected at build time.
+        let conf = ScheduleConfiguration {
+            command: "echo ok".to_string(),
+            period: Duration::from_secs(300),
+            interval_begin: Duration::from_secs(120),
+            interval_end: Some(Duration::from_secs(120)),
+            max_execution_duration: Duration::from_mins(60),
+            max_concurrent_executions: 1,
+        };
+        assert!(
+            Schedule::from_schedule_configuration("agent", &conf).is_err(),
+            "interval_begin == interval_end must be rejected"
+        );
     }
 
     #[test]
