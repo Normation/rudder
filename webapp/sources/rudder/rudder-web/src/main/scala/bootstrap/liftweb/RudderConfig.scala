@@ -3437,6 +3437,15 @@ object RudderConfigInit {
       )
     }
 
+    lazy val nodeStatusReportVacuum: NodeStatusReportVacuum = {
+      val lastComplianceVacuumFull = new NodeLastComplianceVacuumFull(doobie)
+      NodeStatusReportVacuum.make(
+        lastComplianceVacuumFull,
+        hour = RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR,
+        minute = RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE
+      )
+    }
+
     lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl,
       techniqueStatusService,
@@ -3986,6 +3995,7 @@ object RudderConfigInit {
     cleanOldInventoryBatch.start()
     gitFactRepoGC.start()
     gitConfigRepoGC.start()
+    nodeStatusReportVacuum.start()
     rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
     userCleanupBatch.start()
 

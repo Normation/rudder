@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2024 Normation SAS
+ * Copyright 2026 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -30,67 +30,47 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
  *
  *************************************************************************************
  */
 
-package bootstrap.liftweb.checks.earlyconfig.db
+package com.normation.rudder.repository.jdbc
 
-import bootstrap.liftweb.*
 import cats.syntax.apply.*
 import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie
-import com.normation.zio.*
 import doobie.*
 import doobie.implicits.*
-import doobie.syntax.string.*
+import zio.*
 import zio.interop.catz.*
 
-/*
- * During 8.1 cycle, we added a score that is applied to every nodes to give a better understanding.
- *
- * For maintenance purpose we added an autovacuum in 9.0
+/**
+ * Interface for vacuuming/maintaining on a table:
+ * this is a Postgres-specific maintenance operation, which can be combined,
+ * e.g. as batch database maintenance operations defined in the webapp
  */
-class CheckTableNodeLastCompliance(
-    doobie: Doobie
-) extends BootstrapChecks {
+sealed trait JdbcVacuum {
+  def vacuum(): IOResult[Unit]
+}
+
+private class JdbcVacuumFull(table: String)(doobie: Doobie) extends JdbcVacuum {
 
   import doobie.*
 
-  override def description: String = "Check if table 'NodeLastCompliance' exists and has autovacuum settings"
+  override def vacuum(): IOResult[Unit] = {
+    val query = s"VACUUM FULL ${table}"
 
-  def createTable: IOResult[Unit] = {
-
-    val sql1 = sql"""CREATE TABLE IF NOT EXISTS NodeLastCompliance (
-      nodeId text NOT NULL CHECK (nodeId <> '') primary key
-    , computationDateTime timestamp with time zone NOT NULL
-    , details jsonb NOT NULL
-    );"""
-
-    transactIOResult(s"Error with 'NodeLastCompliance' table creation")(xa => sql1.update.run.transact(xa)).unit
-  }
-
-  def setAutovacuumSettings: IOResult[Unit] = {
-    val sql1 = sql"ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_threshold = 0)"
-    val sql2 = sql"ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05)"
-
-    transactIOResult(s"Error setting autovacuum_vacuum_threshold on 'NodeLastCompliance'")(xa =>
-      (sql1.update.run *> sql2.update.run).transact(xa)
+    transactIOResult(s"error when vacuuming full table ${table}")(xa =>
+      (FC.setAutoCommit(true) *> Update0(query, None).run <* FC.setAutoCommit(false)).transact(xa)
     ).unit
   }
-
-  override def checks(): Unit = {
-    val prog = {
-      for {
-        _ <- createTable
-        _ <- setAutovacuumSettings
-      } yield ()
-    }
-
-    // Actually run the migration. Since we will need in other bootstrap checks
-    // that the table exists, do not run it async.
-    prog.catchAll(err => BootstrapLogger.error(s"Error when trying to create tables: ${err.fullMsg}")).runNow
-  }
-
 }
+
+/**
+ * Postgres VACUUM FULL implementation for NodeLastCompliance:
+ * rewrites the entire table, acquiring a lock, but clears more disk space.
+ *
+ * Full vacuum has been reported to be very fast on this specific table,
+ * full vacuum should be safe addition to table auto-vacuum
+ */
+class NodeLastComplianceVacuumFull(doobie: Doobie) extends JdbcVacuumFull("NodeLastCompliance")(doobie)
