@@ -40,6 +40,7 @@
 
 package com.normation.rudder.users
 
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Base64
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator
@@ -50,6 +51,8 @@ import zio.Chunk
 // * RFC9106: https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
 // * OWASP Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
 // * Argon2 1.3 specs: https://www.cryptolux.org/images/0/0d/Argon2.pdf
+
+// Below are the settings used for encoding new passwords.
 
 /// Argon2 hash type. Use "id", the recommended variant in most cases.
 private val variant = Argon2Variant(Argon2Parameters.ARGON2_id)
@@ -177,7 +180,7 @@ object Argon2EncoderParams {
 
   // Build parameters for Bouncy Castle
   def buildParams(param: Argon2EncoderParams, salt: Array[Byte]): Argon2Parameters = {
-    new Argon2Parameters.Builder(variant.toInt)
+    new Argon2Parameters.Builder(param.variant.toInt)
       .withVersion(param.version.toInt)
       .withIterations(param.iterations.toInt)
       .withMemoryAsKB(param.memory.toInt)
@@ -211,6 +214,15 @@ case class Argon2Hash(
 object Argon2Hash {
   private val pattern = """\$argon2id\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)""".r
 
+  /*
+   * `String#getBytes` without a charset uses the platform default, which depends on the JVM and its
+   * options (and changed with JDK 18), and a non-ASCII password hashed on one setup would then stop
+   * matching on another.
+   */
+  private def passwordBytes(password: CharSequence): Array[Byte] = {
+    password.toString.getBytes(StandardCharsets.UTF_8)
+  }
+
   def toShadowString(hash: Argon2Hash): Argon2HashString = {
     val encoder     = Base64.getEncoder.withoutPadding
     val encodedSalt = encoder.encodeToString(hash.params.salt.toArray)
@@ -230,10 +242,13 @@ object Argon2Hash {
             Argon2Hash(
               Argon2HashParams(
                 Argon2EncoderParams(
+                  variant = variant,
+                  version = Argon2Version(version.toInt),
                   memory = Argon2Memory(memory.toInt),
                   iterations = Argon2Iterations(iterations.toInt),
                   parallelism = Argon2Parallelism(parallelism.toInt),
-                  version = Argon2Version(version.toInt)
+                  hashSize = Argon2HashSize(hash.length),
+                  saltSize = Argon2SaltSize(salt.length)
                 ),
                 Chunk.fromArray(salt)
               ),
@@ -242,14 +257,15 @@ object Argon2Hash {
           )
         } catch {
           case e: Exception =>
-            Left(s"Invalid password hash format $hashString: ${e.getMessage}")
+            Left(s"Invalid password hash format: ${e.getMessage}")
         }
-      case _                                                                           => Left(s"Could not parse argon2id hash string: $hashString")
+      // the hash is not in the message: it is logged, and a password hash is a secret
+      case _                                                                           => Left("Could not parse argon2id hash string")
     }
   }
 
-  def generate(params: Argon2HashParams, password: Array[Byte]): Argon2HashString = {
-    val hashValue = Argon2HashParams.computeHash(params, password)
+  def generate(params: Argon2HashParams, password: CharSequence): Argon2HashString = {
+    val hashValue = Argon2HashParams.computeHash(params, passwordBytes(password))
     val hash      = Argon2Hash(params, Chunk.fromArray(hashValue))
     Argon2Hash.toShadowString(hash)
   }
@@ -259,9 +275,18 @@ object Argon2Hash {
     MessageDigest.isEqual(storedHash.value.toArray, presentedHash)
   }
 
-  def checkPassword(rawPassword: Array[Byte], argon2String: Argon2HashString): Either[String, Boolean] = {
+  def checkPassword(rawPassword: CharSequence, argon2String: Argon2HashString): Either[String, Boolean] = {
     for {
       storedHash <- parseShadowString(argon2String)
-    } yield comparePassword(rawPassword, storedHash)
+      // The cost parameters are read from the stored hash, and BouncyCastle refuses some of them by
+      // throwing (`p=0`, `t=0`; note that a too small memory is clamped, not refused). Like the bcrypt
+      // encoder, a hash we can't compute must fail the password check, not the whole request.
+      // The message purposely does not include the hash, so it stays out of the logs.
+      isValid    <- try {
+                      Right(comparePassword(passwordBytes(rawPassword), storedHash))
+                    } catch {
+                      case e: Exception => Left(s"Could not check password against argon2id hash: ${e.getMessage}")
+                    }
+    } yield isValid
   }
 }
