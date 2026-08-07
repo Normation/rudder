@@ -460,13 +460,19 @@ final case class JsonUserFormData(
 object JsonUserFormData {
   given (using encoder: PasswordEncoder): UserPasswordEncoder[SecretUserPassword] = encoder.encode(_)
 
+  /*
+   * An empty password means "keep the password unchanged"
+   */
+  private def isPasswordUnchanged(json: JsonUserFormData): Boolean = json.password.strip().isEmpty
+
   given transformer(using passwordEncoder: UserPasswordEncoder[SecretUserPassword]): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
       .withFieldComputed(
         _.password,
         json => {
-          if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          if (isPasswordUnchanged(json)) UserPassword.unknown
+          else if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
           else UserPassword.fromSecret(json.password).transformInto[HashedUserPassword]
         }
       )
@@ -479,7 +485,11 @@ object JsonUserFormData {
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(
         _.password,
-        json => if (json.isPreHashed) UserPassword.unsafeHashed(json.password) else UserPassword.fromSecret(json.password)
+        json => {
+          if (isPasswordUnchanged(json)) UserPassword.unknown
+          else if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          else UserPassword.fromSecret(json.password)
+        }
       )
       .buildTransformer
   }

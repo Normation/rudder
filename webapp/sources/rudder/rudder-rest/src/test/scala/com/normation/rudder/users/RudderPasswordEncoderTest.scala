@@ -35,9 +35,8 @@
  *************************************************************************************
  */
 
-package bootstrap.liftweb
+package com.normation.rudder.users
 
-import com.normation.rudder.users.*
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
@@ -85,6 +84,34 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
           encoderType <- PasswordEncoderType.values
         } yield testEncoder(dispatcher, encoderType)
       ),
+      // defense in depth: we never store the hash of an empty password, but a hand-edited
+      // rudder-users.xml could hold one, and it must still not open a session. The check lives in
+      // RudderPasswordEncoder, which is the encoder Spring authenticates with.
+      suiteAll("RudderPasswordEncoder blank password") {
+        val encoder = RudderPasswordEncoder(dispatcher)
+        val blanks  = List("", " ", "   ", "\t", "\n")
+
+        test("refuses a blank password against a hash of that same blank password") {
+          val checks = for {
+            blank       <- blanks
+            encoderType <- PasswordEncoderType.values
+          } yield encoder.matches(blank, dispatcher.dispatch(encoderType).encode(blank))
+          assert(checks)(forall(isFalse))
+        }
+        test("refuses a blank password against a hash of the empty password") {
+          val hashes = PasswordEncoderType.values.map(t => dispatcher.dispatch(t).encode(""))
+          assert(blanks.flatMap(blank => hashes.map(encoder.matches(blank, _))))(forall(isFalse))
+        }
+        test("refuses a blank password against an unparseable stored hash") {
+          assert(blanks.map(encoder.matches(_, "not-a-hash")))(forall(isFalse))
+        }
+        test("still accepts a correct non-blank password") {
+          val pass = "ue4Eep1oth3mie0aev7fi4oop.aef1eNa4AiDoh2"
+          assert(PasswordEncoderType.values.map(t => encoder.matches(pass, dispatcher.dispatch(t).encode(pass))))(
+            forall(isTrue)
+          )
+        }
+      },
       suiteAll("BCRYPT specific") {
         val encoder       = RudderPasswordEncoder.bcryptEncoder(10)
         val pass          = "admin"
