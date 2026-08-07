@@ -36,9 +36,8 @@
 
 package com.normation.rudder.batch
 
-import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
-import com.normation.rudder.services.reports.NodeStatusReportStorage
+import com.normation.rudder.repository.jdbc.JdbcVacuum
 import com.normation.utils.CronParser.*
 import com.normation.zio.*
 import zio.*
@@ -47,16 +46,16 @@ import zio.*
  * A scheduler which runs vacuum on the NodeLastCompliance table
  */
 class NodeStatusReportVacuum(
-    storage:        NodeStatusReportStorage,
+    vacuum:         JdbcVacuum,
     schedule:       Schedule[Any, Any, Any],
     scheduleString: String
 ) {
 
-  private val vacuum: UIO[Unit] = {
+  private val progAction: UIO[Unit] = {
     for {
-      _ <- ReportLoggerPure.Repository.debug("Starting NodeLastCompliance table vacuum")
+      _ <- ScheduledJobLoggerPure.debug("Starting NodeLastCompliance table vacuum")
       _ <-
-        storage
+        vacuum
           .vacuum()
           .catchAll(err =>
             ScheduledJobLoggerPure.error(s"Error when vacuuming NodeLastCompliance database table: ${err.fullMsg}")
@@ -71,7 +70,7 @@ class NodeStatusReportVacuum(
     ScheduledJobLoggerPure.info(
       s"Automatic vacuum of NodeLastCompliance table is ${scheduleString}"
     ) *>
-    vacuum.schedule(schedule).unit
+    progAction.schedule(schedule).unit
   }
 
   // start cron
@@ -84,13 +83,13 @@ object NodeStatusReportVacuum {
   /*
    * It is assumed to run daily, and take hour and minute
    */
-  def make(storage: NodeStatusReportStorage, hour: Int, minute: Int): NodeStatusReportVacuum = {
+  def make(vacuum: JdbcVacuum, hour: Int, minute: Int): NodeStatusReportVacuum = {
     val dailyCronString            = s"0 ${minute} ${hour} * * ?"
     val cron                       = dailyCronString.toCron
     // never schedule if it fails
     val (schedule, scheduleString) = cron
       .map(c => (c.toSchedule, s"scheduled every day at hour ${hour} and minute ${minute}"))
       .getOrElse((Schedule.stop, "not scheduled"))
-    new NodeStatusReportVacuum(storage, schedule, scheduleString)
+    new NodeStatusReportVacuum(vacuum, schedule, scheduleString)
   }
 }

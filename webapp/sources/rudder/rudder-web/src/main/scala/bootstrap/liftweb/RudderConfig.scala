@@ -3438,9 +3438,9 @@ object RudderConfigInit {
     }
 
     lazy val nodeStatusReportVacuum: NodeStatusReportVacuum = {
-      val storage = new JdbcNodeStatusReportStorage(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+      val lastComplianceVacuumFull = new NodeLastComplianceVacuumFull(doobie)
       NodeStatusReportVacuum.make(
-        storage,
+        lastComplianceVacuumFull,
         hour = RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR,
         minute = RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE
       )

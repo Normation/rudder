@@ -42,7 +42,7 @@ SET client_min_messages='warning';
 
 
 -- Enforce support for standard string (unescaped \)
-ALTER database rudder SET standard_conforming_strings=true;
+alter database rudder set standard_conforming_strings=true;
 
 
 /*
@@ -61,9 +61,9 @@ ALTER database rudder SET standard_conforming_strings=true;
 
 -- create the table for the reports sent
 
-CREATE SEQUENCE serial START 101;
+create sequence serial start 101;
 
-CREATE TABLE Users (
+create TABLE Users (
   id             text PRIMARY KEY NOT NULL CHECK (id <> '')
 , creationDate   timestamp with time zone NOT NULL
 , status         text NOT NULL
@@ -75,7 +75,7 @@ CREATE TABLE Users (
 , otherInfo      jsonb -- general additional user info
 );
 
-CREATE TABLE UserSessions (
+create TABLE UserSessions (
   userId       text NOT NULL CHECK (userId <> '')
 , sessionId    text NOT NULL CHECK (sessionId <> '')
 , creationDate timestamp with time zone NOT NULL
@@ -89,7 +89,7 @@ CREATE TABLE UserSessions (
 );
 
 
-CREATE TABLE RudderSysEvents (
+create TABLE RudderSysEvents (
   id                 bigint PRIMARY KEY default nextval('serial')
 , executionDate      timestamp with time zone NOT NULL
 , nodeId             text NOT NULL CHECK (nodeId <> '')
@@ -105,12 +105,12 @@ CREATE TABLE RudderSysEvents (
 );
 
 
-CREATE INDEX executionTimeStamp_idx       ON RudderSysEvents (executionTimeStamp);
-CREATE INDEX composite_node_execution_idx ON RudderSysEvents (nodeId, executionTimeStamp);
-CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
+create index executionTimeStamp_idx       on RudderSysEvents (executionTimeStamp);
+create index composite_node_execution_idx on RudderSysEvents (nodeId, executionTimeStamp);
+create index ruleId_idx                   on RudderSysEvents (ruleId);
 
-CREATE INDEX endRun_control_idx ON RudderSysEvents (id) WHERE eventType = 'control' and component = 'end';
-CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
+create index endRun_control_idx on RudderSysEvents (id) WHERE eventType = 'control' and component = 'end';
+create index changes_executionTimeStamp_idx on RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
 
 /*
  * That table store the agent execution times for each nodes.
@@ -118,7 +118,7 @@ CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeSta
  * that the run completed (we got an "execution END" report)
  * or not.
  */
-CREATE TABLE ReportsExecution (
+create TABLE ReportsExecution (
   nodeId       text NOT NULL
 , date         timestamp with time zone NOT NULL
 , nodeConfigId text
@@ -128,11 +128,11 @@ CREATE TABLE ReportsExecution (
 , PRIMARY KEY(nodeId, date)
 );
 
-CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
-CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
-CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputationdate) where compliancecomputationdate IS NULL;
+create index reportsexecution_date_idx on ReportsExecution (date);
+create index reportsexecution_nodeid_nodeconfigid_idx on ReportsExecution (nodeId, nodeConfigId);
+create index reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputationdate) where compliancecomputationdate IS NULL;
 
-ALTER TABLE reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
+alter table reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
 
 /*
  *************************************************************************************
@@ -147,17 +147,17 @@ ALTER TABLE reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
  * so what we can answer the question: what is the last config id for that node ?
  * The date helps now if we should have received report for that node.
  */
-CREATE TABLE nodes_info (
+create TABLE nodes_info (
   node_id    text PRIMARY KEY CHECK (node_id <> '')
   -- configs ids are a dump of json: [{"configId":"xxxx", "dateTime": "iso-date-time"} ]
 , config_ids text
 );
 
-ALTER TABLE nodes_info set (autovacuum_vacuum_threshold = 0);
+alter table nodes_info set (autovacuum_vacuum_threshold = 0);
 
 
 -- Create the table for the node configuration
-CREATE TABLE nodeConfigurations (
+create TABLE nodeConfigurations (
   nodeId            text NOT NULL CHECK (nodeId <> '')
 , nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 , beginDate         timestamp with time zone NOT NULL
@@ -180,10 +180,10 @@ CREATE TABLE nodeConfigurations (
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
 );
 
-CREATE INDEX nodeConfigurations_nodeId ON nodeConfigurations (nodeId);
-CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId);
+create index nodeConfigurations_nodeId on nodeConfigurations (nodeId);
+create index nodeConfigurations_nodeConfigId on nodeConfigurations (nodeConfigId);
 
-ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
+alter table nodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -193,7 +193,7 @@ ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
-CREATE TABLE NodeLastCompliance (
+create TABLE NodeLastCompliance (
   nodeId              text NOT NULL CHECK (nodeId <> '') primary key
 
 -- the time when the compliance was computed. Used to know if it's sill valid or should be cleaned/ignored
@@ -205,8 +205,12 @@ CREATE TABLE NodeLastCompliance (
 , details             jsonb NOT NULL
 );
 
-ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_threshold = 0);
-ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05);
+-- with the trigger for autovacuum being: autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor × reltuples
+-- (default is 50 + 0.2 * rows)
+-- we can make it purely proportional with only the scale_factor as % of rows
+-- so expect vacuum for 100 nodes every 5 updates with these:
+alter table NodeLastCompliance set (autovacuum_vacuum_threshold = 0);
+alter table NodeLastCompliance set (autovacuum_vacuum_scale_factor = 0.05);
 
 
 
@@ -218,9 +222,9 @@ ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05);
  *************************************************************************************
  */
 
-CREATE SEQUENCE eventLogIdSeq START 1;
+create sequence eventLogIdSeq start 1;
 
-CREATE TABLE EventLog (
+create TABLE EventLog (
   id             integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
 , creationDate   timestamp with time zone NOT NULL DEFAULT 'now'
 , severity       integer NOT NULL DEFAULT 100
@@ -232,17 +236,17 @@ CREATE TABLE EventLog (
 , data           xml NOT NULL DEFAULT ''
 );
 
-CREATE INDEX eventType_idx ON EventLog (eventType);
-CREATE INDEX creationDate_idx ON EventLog (creationDate);
-CREATE INDEX eventlog_fileFormat_idx ON eventlog (((((xpath('/entry//@fileFormat',data))[1])::text)));
+create index eventType_idx on EventLog (eventType);
+create index creationDate_idx on EventLog (creationDate);
+create index eventlog_fileFormat_idx on eventlog (((((xpath('/entry//@fileFormat',data))[1])::text)));
 
 
 /*
  * That table is used when a migration between
  * event log format is needed.
  */
-CREATE SEQUENCE MigrationEventLogId start 1;
-CREATE TABLE MigrationEventLog (
+create sequence MigrationEventLogId start 1;
+create TABLE MigrationEventLog (
   id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
 , detectionTime       timestamp with time zone NOT NULL
 , detectedFileFormat  integer
@@ -262,12 +266,12 @@ CREATE TABLE MigrationEventLog (
  */
 
 
-CREATE TABLE RudderProperties(
+create TABLE RudderProperties(
   name  text PRIMARY KEY
 , value text
 );
 
-ALTER TABLE rudderproperties set (autovacuum_vacuum_threshold = 0);
+alter table rudderproperties set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -276,14 +280,14 @@ ALTER TABLE rudderproperties set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
-CREATE TABLE gitCommit(
+create TABLE gitCommit(
   gitcommit text PRIMARY KEY
 , modificationid text
 );
 
-CREATE SEQUENCE ChangeRequestId start 1;
+create sequence ChangeRequestId start 1;
 
-CREATE TABLE ChangeRequest(
+create TABLE ChangeRequest(
   id        integer PRIMARY KEY default(nextval('ChangeRequestId'))
 , name text CHECK (name <> '')
 , description text
@@ -292,18 +296,18 @@ CREATE TABLE ChangeRequest(
 , modificationId text
 );
 
-CREATE TABLE Workflow(
+create TABLE Workflow(
   id integer references ChangeRequest(id)
 , state text
 );
 
-CREATE TABLE StatusUpdate (
+create TABLE StatusUpdate (
   key    text PRIMARY KEY
 , lastId bigint NOT NULL
 , date   timestamp with time zone NOT NULL
 );
 
-ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
+alter table statusupdate set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -317,7 +321,7 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
-CREATE TYPE campaignEventState AS enum ('scheduled', 'pre-hooks', 'running', 'post-hooks', 'finished', 'skipped', 'deleted', 'failure');
+create type campaignEventState as enum ('scheduled', 'pre-hooks', 'running', 'post-hooks', 'finished', 'skipped', 'deleted', 'failure');
 
 CREATE TABLE CampaignEvents (
   campaignId   text
@@ -353,7 +357,7 @@ CREATE TABLE NodeFacts (
 );
 
 
-CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E', 'F', 'X');
+create type score as enum ('A', 'B', 'C', 'D', 'E', 'F', 'X');
 
 Create table GlobalScore (
   nodeId  text primary key

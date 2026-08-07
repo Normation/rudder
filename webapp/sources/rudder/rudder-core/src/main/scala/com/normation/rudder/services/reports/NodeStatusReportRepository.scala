@@ -38,7 +38,6 @@
 package com.normation.rudder.services.reports
 
 import cats.data.NonEmptyList
-import cats.syntax.apply.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
@@ -103,9 +102,6 @@ trait NodeStatusReportStorage {
 
   // this method erase these node status reports
   def delete(nodes: Iterable[NodeId]): IOResult[Unit]
-
-  // this method vacuums the node status reports as storage maintenance operation (e.g. postgres jdbc)
-  def vacuum(): IOResult[Unit]
 }
 
 object NodeStatusReportRepositoryImpl {
@@ -236,10 +232,6 @@ class InMemoryNodeStatusReportStorage(storage: Ref[Map[NodeId, NodeStatusReport]
   override def delete(nodeIds: Iterable[NodeId]): IOResult[Unit] = {
     storage.update(_ -- nodeIds)
   }
-
-  override def vacuum(): IOResult[Unit] = {
-    ZIO.unit
-  }
 }
 
 /*
@@ -290,15 +282,6 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
 
     ComplianceLoggerPure.debug(s"Deleting compliance state for ${nodes.size} nodes from base") *>
     transactIOResult(s"error when saving compliance for nodes")(xa => query.transact(xa)).unit
-  }
-
-  override def vacuum(): IOResult[Unit] = {
-    val query = "vacuum full NodeLastCompliance"
-
-    ComplianceLoggerPure.debug(s"Vacuuming full NodeLastCompliance table") *>
-    transactIOResult(s"error when vacuuming full NodeLastCompliance table")(xa =>
-      (FC.setAutoCommit(true) *> Update0(query, None).run <* FC.setAutoCommit(false)).transact(xa)
-    ).unit
   }
 
 }
