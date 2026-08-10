@@ -68,12 +68,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
      * http://localhost:8081/rudder-web/secure/configurationManager/directiveManagement#{"directiveId":"1c99b738-742b-4444-a964-0759c9fc5b74"}
      */
   const param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
-  function parse(param) {
-      if(Object.keys(param).length === 0)
-          return {};
-      else return JSON.parse(param);
-  }
-  const filterCriteria = parse(param);
+  const filterCriteria = Object.keys(param).length === 0 ? {} : JSON.parse(param);
 
   var columns = [ {
     "width"       : "10%"
