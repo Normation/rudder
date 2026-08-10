@@ -119,6 +119,103 @@ fn it_shares_files() {
     remove_file(format!("{file}.metadata")).unwrap();
 }
 
+/// The metadata of a shared file is stored as `<file_id>.metadata`, so an upload using
+/// such a file id would overwrite the metadata of another file of the same source.
+#[test]
+fn it_refuses_a_file_id_colliding_with_a_metadata_file() {
+    let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
+
+    thread::spawn(move || {
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
+    });
+    assert!(common::start_api(api_port).is_ok());
+
+    let client = reqwest::blocking::Client::new();
+
+    let dir = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b";
+    // Targets the metadata of the `file` shared file
+    let file_id = "file.metadata";
+
+    let signature = read_to_string(format!("{dir}/file2.sign")).unwrap();
+    let content = read_to_string(format!("{dir}/file2.source")).unwrap();
+    let victim = read_to_string(format!("{dir}/file.metadata")).unwrap();
+
+    let upload = client.put(format!(
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/{file_id}?ttl=1d"))
+        .body(format!("{signature}\n{content}"))
+        .send().unwrap();
+    // An invalid id is a client error
+    assert_eq!(400, upload.status());
+
+    // The metadata of the `file` shared file is left untouched
+    assert_eq!(
+        victim,
+        read_to_string(format!("{dir}/file.metadata")).unwrap()
+    );
+}
+
+/// The uploaded metadata may already contain an `expires` header. It must not end up
+/// duplicated in the stored metadata, which would make it unparsable, and hence prevent
+/// the file from ever expiring.
+#[test]
+fn it_overrides_client_provided_expiration() {
+    let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
+
+    thread::spawn(move || {
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
+    });
+    assert!(common::start_api(api_port).is_ok());
+
+    let client = reqwest::blocking::Client::new();
+
+    let dir = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b";
+    // A file id of its own, to avoid interfering with the other tests, containing a dot
+    // as it is allowed and common in practice.
+    let file_id = "file3.properties";
+
+    let signature = read_to_string(format!("{dir}/file2.sign")).unwrap();
+    let content = read_to_string(format!("{dir}/file2.source")).unwrap();
+    // The signature only covers the file content, so adding a header does not invalidate it.
+    let body = format!("{signature}expires=1580941341\n\n{content}");
+
+    let upload = client.put(format!(
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/{file_id}?ttl=1d"))
+        .body(body)
+        .send().unwrap();
+    assert_eq!(200, upload.status());
+
+    let raw = read_to_string(format!("{dir}/{file_id}.metadata")).unwrap();
+
+    // Exactly one expiration date, the one computed by the server from the ttl
+    assert_eq!(1, raw.lines().filter(|l| l.starts_with("expires=")).count());
+    let metadata = Metadata::from_str(&raw).unwrap();
+    let expiration = (chrono::Utc::now() + chrono::Duration::days(1)).timestamp();
+    assert!((expiration - metadata.expires.unwrap()).abs() < 500);
+
+    // The stored metadata is still usable to answer HEAD requests
+    let head = client.head(format!(
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/{file_id}?hash={}",
+        metadata.hash.hex()))
+        .send().unwrap();
+    assert_eq!(200, head.status());
+
+    // Remove leftover
+    remove_file(format!("{dir}/{file_id}")).unwrap();
+    remove_file(format!("{dir}/{file_id}.metadata")).unwrap();
+}
+
 #[test]
 fn it_rejects_too_large_shared_file_upload() {
     let cli_cfg = CliConfiguration::new("tests/files/config/", false);
