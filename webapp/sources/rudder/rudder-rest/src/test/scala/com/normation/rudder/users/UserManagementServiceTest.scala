@@ -164,7 +164,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         "test"
       )
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
@@ -184,7 +184,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         "test"
       )
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
@@ -204,7 +204,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         "test"
       )
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
@@ -224,7 +224,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         "test"
       )
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
