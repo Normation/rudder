@@ -35,9 +35,8 @@
  *************************************************************************************
  */
 
-package bootstrap.liftweb
+package com.normation.rudder.users
 
-import com.normation.rudder.users.*
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
@@ -85,6 +84,39 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
           encoderType <- PasswordEncoderType.values
         } yield testEncoder(dispatcher, encoderType)
       ),
+      suiteAll("RudderPasswordEncoder blank password") {
+        val encoder = RudderPasswordEncoder(dispatcher)
+
+        test("refuses an empty password against a hash of the empty password") {
+          val checks = PasswordEncoderType.values.map(t => encoder.matches("", dispatcher.dispatch(t).encode("")))
+          assert(checks)(forall(isFalse))
+        }
+        test("refuses a whitespace-only password against a hash of that same password") {
+          val checks = for {
+            pass        <- List(" ", "   ", "\t", " \n ")
+            encoderType <- PasswordEncoderType.values
+          } yield encoder.matches(pass, dispatcher.dispatch(encoderType).encode(pass))
+          assert(checks)(forall(isFalse))
+        }
+        test("refuses an empty password against an unparseable stored hash") {
+          assert(encoder.matches("", "not-a-hash"))(isFalse)
+        }
+        test("refuses a null password") {
+          assert(encoder.matches(null, dispatcher.dispatch(PasswordEncoderType.BCRYPT).encode("")))(isFalse)
+        }
+        test("still accepts a correct non-blank password") {
+          val pass = "ue4Eep1oth3mie0aev7fi4oop.aef1eNa4AiDoh2"
+          assert(PasswordEncoderType.values.map(t => encoder.matches(pass, dispatcher.dispatch(t).encode(pass))))(
+            forall(isTrue)
+          )
+        }
+        test("still accepts a correct password with leading and trailing spaces") {
+          val pass = "  ue4Eep1oth3mie0aev7fi4oop.aef1eNa4AiDoh2  "
+          assert(PasswordEncoderType.values.map(t => encoder.matches(pass, dispatcher.dispatch(t).encode(pass))))(
+            forall(isTrue)
+          )
+        }
+      },
       suiteAll("BCRYPT specific") {
         val encoder       = RudderPasswordEncoder.bcryptEncoder(10)
         val pass          = "admin"

@@ -56,6 +56,7 @@ import com.normation.zio.*
 import enumeratum.*
 import java.io.InputStream
 import java.security.SecureRandom
+import org.apache.commons.lang3.StringUtils
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
@@ -104,7 +105,11 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
 }
 
 class PasswordEncoderDispatcher(bcryptCost: Int, argon2Params: Argon2EncoderParams) {
-  def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
+  /*
+   * The returned encoders are the raw hash algorithms: they don't enforce any Rudder password policy
+   * They must only be used through `RudderPasswordEncoder`, which is why this stays package-private.
+   */
+  private[users] def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
     encoderType match {
       case PasswordEncoderType.BCRYPT   => RudderPasswordEncoder.bcryptEncoder(bcryptCost)
       case PasswordEncoderType.ARGON2ID =>
@@ -128,8 +133,7 @@ object RudderPasswordEncoder {
 
   private val secureRandom = new SecureRandom()
 
-  // Proper password hash functions
-  class bcryptEncoder(cost: Int)                          extends PasswordEncoder {
+  private[users] class bcryptEncoder(cost: Int)                          extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       secureRandom.nextBytes(salt)
@@ -148,7 +152,7 @@ object RudderPasswordEncoder {
       }
     }
   }
-  class argon2Encoder(encoderParams: Argon2EncoderParams) extends PasswordEncoder {
+  private[users] class argon2Encoder(encoderParams: Argon2EncoderParams) extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(encoderParams.saltSize.toInt)
       secureRandom.nextBytes(salt)
@@ -199,6 +203,8 @@ case class RudderPasswordEncoder(
   }
 
   override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+    // Defense in depth: a blank password must never authenticate, whatever is stored for the user.
+    !StringUtils.isBlank(rawPassword) &&
     subPasswordEncoder(encodedPassword).matches(rawPassword, encodedPassword)
   }
 

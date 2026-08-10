@@ -151,6 +151,88 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
       )
     }
 
+    // an empty password must never be hashed and stored: it would be a valid hash of the empty
+    // string, and anybody could then log in as that user with an empty password.
+    "keep the password already in the file when the new one is an empty cleartext password" in {
+      val exec = UserManagementIO.replaceXml(
+        userXml,
+        UserManagementService.updateUserXmlRewriteRule(
+          "user1",
+          JsonUserFormData("user1", "", Some(List("perm1")), isPreHashed = false, None, None, None),
+          passwordEncoder
+        ),
+        "test"
+      )
+      exec must beRight(
+        beEqualToIgnoringSpace(
+          <authentication hash="sha-1" case-sensitivity="true">
+            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
+            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+          </authentication>
+        )
+      )
+    }
+
+    "keep the password already in the file when the new one is a blank cleartext password" in {
+      val exec = UserManagementIO.replaceXml(
+        userXml,
+        UserManagementService.updateUserXmlRewriteRule(
+          "user1",
+          JsonUserFormData("user1", "   ", Some(List("perm1")), isPreHashed = false, None, None, None),
+          passwordEncoder
+        ),
+        "test"
+      )
+      exec must beRight(
+        beEqualToIgnoringSpace(
+          <authentication hash="sha-1" case-sensitivity="true">
+            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
+            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+          </authentication>
+        )
+      )
+    }
+
+    "keep the password already in the file when the new one is an empty pre-hashed password" in {
+      val exec = UserManagementIO.replaceXml(
+        userXml,
+        UserManagementService.updateUserXmlRewriteRule(
+          "user1",
+          JsonUserFormData("user1", "", Some(List("perm1")), isPreHashed = true, None, None, None),
+          passwordEncoder
+        ),
+        "test"
+      )
+      exec must beRight(
+        beEqualToIgnoringSpace(
+          <authentication hash="sha-1" case-sensitivity="true">
+            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
+            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+          </authentication>
+        )
+      )
+    }
+
+    "keep the password already in the file when the new one is a blank pre-hashed password" in {
+      val exec = UserManagementIO.replaceXml(
+        userXml,
+        UserManagementService.updateUserXmlRewriteRule(
+          "user1",
+          JsonUserFormData("user1", " \t ", Some(List("perm1")), isPreHashed = true, None, None, None),
+          passwordEncoder
+        ),
+        "test"
+      )
+      exec must beRight(
+        beEqualToIgnoringSpace(
+          <authentication hash="sha-1" case-sensitivity="true">
+            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
+            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+          </authentication>
+        )
+      )
+    }
+
     "lead to an error is user doesn't exists" in {
       val exec = UserManagementIO.replaceXml(
         userXml,
