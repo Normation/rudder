@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use std::{
+    io::ErrorKind,
     path::Path,
     time::{Duration, SystemTime},
 };
@@ -10,7 +11,7 @@ use anyhow::Error;
 use futures::{future, StreamExt};
 use inotify::{Inotify, WatchMask};
 use tokio::{
-    fs::{read_dir, remove_file},
+    fs::{read_dir, remove_file, ReadDir},
     sync::mpsc,
     time::interval,
 };
@@ -28,45 +29,55 @@ pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), E
         timer.tick().await;
 
         debug!("cleaning {:?}", path);
-        let sys_time = SystemTime::now();
 
-        let mut files = match read_dir(path.clone()).await {
+        let files = match read_dir(path.clone()).await {
             Ok(f) => f,
             Err(e) => {
                 error!("list file: {}", e);
                 continue;
             }
         };
-        loop {
-            let entry = match files.next_entry().await {
-                Ok(Some(e)) => e,
-                // Nothing to do
-                Ok(None) => break,
-                Err(e) => {
-                    error!("entry error: {}", e);
-                    continue;
-                }
-            };
-            let metadata = match entry.metadata().await {
-                Ok(m) => m,
-                Err(e) => {
-                    error!("metadata error: {}", e);
-                    continue;
-                }
-            };
+        remove_old_files(files, cfg.retention).await;
+    }
+}
 
-            let since = sys_time
-                .duration_since(metadata.modified().unwrap_or(sys_time))
-                // An error indicates a file in the future, let's approximate it to now
-                .unwrap_or_else(|_| Duration::new(0, 0));
+/// Removes the listed files that have not been touched for `retention`.
+///
+/// Gives up the pass on a listing error rather than trying the next entry: the directory is
+/// listed again at the next tick anyway, while retrying here spins at full speed for as long
+/// as the error lasts.
+async fn remove_old_files(mut files: ReadDir, retention: Duration) {
+    let sys_time = SystemTime::now();
 
-            if since > cfg.retention {
-                let path = entry.path();
-                debug!("removing old file: {:?}", path);
-                remove_file(path)
-                    .await
-                    .unwrap_or_else(|e| error!("removal error: {}", e));
+    loop {
+        let entry = match files.next_entry().await {
+            Ok(Some(e)) => e,
+            // Nothing to do
+            Ok(None) => break,
+            Err(e) => {
+                error!("entry error, stopping this cleanup: {}", e);
+                break;
             }
+        };
+        let metadata = match entry.metadata().await {
+            Ok(m) => m,
+            Err(e) => {
+                error!("metadata error: {}", e);
+                continue;
+            }
+        };
+
+        let since = sys_time
+            .duration_since(metadata.modified().unwrap_or(sys_time))
+            // An error indicates a file in the future, let's approximate it to now
+            .unwrap_or_else(|_| Duration::new(0, 0));
+
+        if since > retention {
+            let path = entry.path();
+            debug!("removing old file: {:?}", path);
+            remove_file(path)
+                .await
+                .unwrap_or_else(|e| error!("removal error: {}", e));
         }
     }
 }
@@ -89,38 +100,67 @@ async fn list_files(
         timer.tick().await;
         debug!("listing {:?}", path);
 
-        let tx = tx.clone();
-        let sys_time = SystemTime::now();
-
-        let mut files = match read_dir(path.clone()).await {
+        let files = match read_dir(path.clone()).await {
             Ok(f) => f,
             Err(e) => {
                 error!("list file: {}", e);
                 continue;
             }
         };
+        send_new_files(files, cfg.limit, &tx).await?;
+    }
+}
 
-        // Max number of files to handle at each tick
-        let mut limit = cfg.limit;
-        while limit > 0 {
-            limit -= 1;
-            if let Some(entry) = files.next_entry().await? {
-                let metadata = entry.metadata().await?;
-                let since = sys_time
-                    .duration_since(metadata.modified().unwrap_or(sys_time))
-                    // An error indicates a file in the future, let's approximate it to now
-                    .unwrap_or_else(|_| Duration::new(0, 0));
+/// Sends the files that have been waiting for a while, up to `limit` of them.
+///
+/// An error on a given entry is logged and skipped, as this listing is the only mechanism
+/// catching up on the files inotify missed: it has to survive a transient error. Processed
+/// files are deleted concurrently, so entries are expected to be gone by the time we look
+/// at them.
+async fn send_new_files(
+    mut files: ReadDir,
+    limit: u64,
+    tx: &mpsc::Sender<ReceivedFile>,
+) -> Result<(), Error> {
+    let sys_time = SystemTime::now();
 
-                if since > Duration::from_secs(30) {
-                    let path = entry.path();
-                    debug!("list: {:?}", path);
-                    tx.clone().send(path).await?;
-                }
-            } else {
-                break;
+    // Max number of files to handle at each tick
+    for _ in 0..limit {
+        let entry = match files.next_entry().await {
+            Ok(Some(e)) => e,
+            // Nothing left to list
+            Ok(None) => break,
+            Err(e) => {
+                error!("entry error, skipping it: {}", e);
+                continue;
             }
+        };
+
+        let metadata = match entry.metadata().await {
+            Ok(m) => m,
+            // Already processed and removed since it was listed, nothing to do
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                debug!("skipping {:?}: {}", entry.path(), e);
+                continue;
+            }
+            Err(e) => {
+                error!("metadata error: {}", e);
+                continue;
+            }
+        };
+
+        let since = sys_time
+            .duration_since(metadata.modified().unwrap_or(sys_time))
+            // An error indicates a file in the future, let's approximate it to now
+            .unwrap_or_else(|_| Duration::new(0, 0));
+
+        if since > Duration::from_secs(30) {
+            let path = entry.path();
+            debug!("list: {:?}", path);
+            tx.send(path).await?;
         }
     }
+    Ok(())
 }
 
 fn watch_stream<P: AsRef<Path>>(path: P) -> inotify::EventStream<Vec<u8>> {
@@ -165,14 +205,86 @@ async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) ->
 #[cfg(test)]
 mod tests {
     use std::{
-        fs::{rename, File},
+        fs::{remove_file as remove_file_sync, rename, File},
         path::PathBuf,
         str::FromStr,
     };
 
+    use filetime::{set_file_mtime, FileTime};
     use tempfile::tempdir;
 
     use super::*;
+
+    #[tokio::test]
+    async fn it_removes_files_older_than_the_retention() {
+        let dir = tempdir().unwrap();
+
+        let old = dir.path().join("2021-06-24T10:10:51+00:00@root.log");
+        let recent = dir.path().join("2021-06-24T10:10:52+00:00@root.log");
+        let vanished = dir.path().join("2021-06-24T10:10:53+00:00@root.log");
+        for file in [&old, &recent, &vanished] {
+            File::create(file).unwrap();
+        }
+        for file in [&old, &vanished] {
+            set_file_mtime(file, FileTime::from_unix_time(1_580_941_341, 0)).unwrap();
+        }
+
+        // An entry whose file is gone by the time we look at it must not stop the pass
+        let files = read_dir(dir.path()).await.unwrap();
+        remove_file_sync(&vanished).unwrap();
+
+        remove_old_files(files, Duration::from_secs(30)).await;
+
+        assert!(!old.exists());
+        assert!(recent.exists());
+    }
+
+    /// Files are removed as soon as they are processed, so an entry can be gone by the time
+    /// its metadata is read. This used to end the listing task for good, silently, leaving
+    /// the files inotify missed unprocessed until the retention sweep deleted them.
+    #[tokio::test]
+    async fn it_keeps_listing_after_a_file_disappeared() {
+        let dir = tempdir().unwrap();
+
+        let waiting = dir.path().join("2021-06-24T10:10:51+00:00@root.log");
+        let processed = dir.path().join("2021-06-24T10:10:52+00:00@root.log");
+        for file in [&waiting, &processed] {
+            File::create(file).unwrap();
+            // Only files left untouched for 30s are picked up
+            set_file_mtime(file, FileTime::from_unix_time(1_580_941_341, 0)).unwrap();
+        }
+
+        // The entries are read when the directory is opened, so removing a file now leaves a
+        // listed entry without a file behind it, as a concurrent removal does
+        let files = read_dir(dir.path()).await.unwrap();
+        remove_file_sync(&processed).unwrap();
+
+        let (tx, mut rx) = mpsc::channel(10);
+        send_new_files(files, 50, &tx).await.unwrap();
+
+        // The remaining file is still sent for processing, whatever the listing order
+        assert_eq!(rx.recv().await.unwrap(), waiting);
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn it_only_lists_files_waiting_for_a_while() {
+        let dir = tempdir().unwrap();
+
+        let waiting = dir.path().join("2021-06-24T10:10:51+00:00@root.log");
+        File::create(&waiting).unwrap();
+        set_file_mtime(&waiting, FileTime::from_unix_time(1_580_941_341, 0)).unwrap();
+
+        // Just written, may still be incomplete
+        File::create(dir.path().join("2021-06-24T10:10:52+00:00@root.log")).unwrap();
+
+        let files = read_dir(dir.path()).await.unwrap();
+        let (tx, mut rx) = mpsc::channel(10);
+        send_new_files(files, 50, &tx).await.unwrap();
+
+        assert_eq!(rx.recv().await.unwrap(), waiting);
+        assert!(rx.try_recv().is_err());
+    }
 
     #[tokio::test]
     async fn it_watches_files() {
