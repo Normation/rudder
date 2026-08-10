@@ -86,7 +86,7 @@ impl HttpClientBuilder {
 
     pub fn no_verify(self) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with no certificate verification");
-        Ok(HttpClient::System(
+        Ok(HttpClient::NoVerify(
             self.builder.danger_accept_invalid_certs(true).build()?,
         ))
     }
