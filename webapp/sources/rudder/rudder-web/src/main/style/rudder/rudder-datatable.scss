@@ -404,6 +404,15 @@ tr.parametersDescription {
   .parametersDescriptionDetails {
     padding:15px;
   }
+
+  & + tr.parametersDescription{
+    border-top: none !important;
+  }
+
+  .parameterRecentActivityTable {
+    padding:15px;
+    border: 1px solid rudder.$border-color-default;
+  }
 }
 
 /* </TBODY></TR></TD> */

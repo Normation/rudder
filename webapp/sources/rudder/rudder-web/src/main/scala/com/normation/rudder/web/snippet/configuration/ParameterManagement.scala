@@ -106,7 +106,9 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
         ".parameterLine [class]" #> Text("cursorPointer") &
         ".name *" #> (<b>{param.name}</b> ++ tenantsBadge(param)) &
         ".value *" #> <pre class="json-beautify">{param.valueAsString}</pre> &
-        ".description *" #> <span><ul class="ms-2"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
+        ".description *" #> <span><ul class="ms-2"><li><b>Description: </b>{
+          Text(if (param.description == "") "-" else param.description)
+        }</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".change *" #> <div>{
           if (param.provider.isEmpty || param.provider == Some(PropertyProvider.defaultPropertyProvider)) {
@@ -212,8 +214,7 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
           };
 
           function fnFormatActivity(id) {
-            // FIXME : add some CSS for activity table from elm app
-            return '<span><ul class="ms-2"><li><b>Recent activity:</b></li></ul></span><div class="parametersDescriptionDetails"><div id="globalPropertiesRecentActivityApp"></div></div>'
+            return '<span><ul class="ms-2"><li><b>Recent activity:</b></li></ul></span><div class="box-body"><div id="globalPropertiesRecentActivityApp"></div></div>'
           };
 
           ${jsVarNameForId(gridName)}.rows().nodes().to$$().each( function () {
@@ -258,17 +259,20 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
                   $$('#'+jsid).html($$('#description-'+jsid).html());
 
 
-                  const recentActivityMain = document.getElementById("globalPropertiesRecentActivityApp")
-                  const initValues = {
-                    globalPropertyId : globalPropertyName,
-                    contextPath : contextPath,
-                    timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
-                  };
-
-                  const app = Elm.GlobalPropertiesRecentActivity.init({node: recentActivityMain, flags: initValues});
-                  app.ports.errorNotification.subscribe(function(str) {
-                    createErrorNotification(str)
-                  });
+                  if (globalPropertyName !== 'rudder') {
+                    const recentActivityMain = document.getElementById("globalPropertiesRecentActivityApp")
+                    const initValues = {
+                      globalPropertyId : globalPropertyName,
+                      contextPath : contextPath,
+                      timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
+                    };
+  
+                    const app = Elm.GlobalPropertiesRecentActivity.init({node: recentActivityMain, flags: initValues});
+                    app.ports.errorNotification.subscribe(function(str) {
+                      createErrorNotification(str)
+                    });
+                  }
+                  
                 }
               }
            });
