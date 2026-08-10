@@ -795,74 +795,68 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_BCRYPT_COST: Int = {
-    val defaultValue = PasswordEncoderType.BCRYPT.defaultCost
+  /*
+   * Cost parameters of password hashes: every one of them makes the hashes we create weaker when
+   * set too low, and some values are plainly refused by BouncyCastle (a `p=0` argon2 parallelism
+   * makes it throw when hashing). A value below the minimum is way more likely to be a
+   * configuration mistake (a unit confusion, a value copied from a test setup) than a deliberate
+   * choice, so keep the default and tell the user, like for a missing value.
+   */
+  private def passwordCostParam(property: String, defaultValue: Int, minimumValue: Int, unit: String = ""): Int = {
+    val u = if (unit.isEmpty) "" else s" ${unit}"
     try {
-      val cost = config.getInt("rudder.bcrypt.cost")
-      // avoid user insecure misconfiguration
-      if (cost <= 10) {
+      val value = config.getInt(property)
+      if (value < minimumValue) {
         ApplicationLogger.warn(
-          s"Property 'rudder.bcrypt.cost' was configured to value ${cost} <= 10 which is insecure. Reverting to default cost: $defaultValue."
+          s"Property '${property}' is configured to ${value}${u}, which is lower than the minimum secure value of ${minimumValue}${u}. Using the default value instead: ${defaultValue}${u}."
         )
         defaultValue
-      } else cost
+      } else value
     } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.debug(
-          s"Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to $defaultValue."
-        )
-        defaultValue
-    }
-  }
-
-  val RUDDER_ARGON2_MEMORY: Argon2Memory = {
-    val defaultValue = PasswordEncoderType.ARGON2ID.defaultMemory
-    val minimumValue = PasswordEncoderType.ARGON2ID.minimumMemory
-    try {
-      val value = config.getInt("rudder.argon2.memory")
-      // There is a high likelihood of units confusion.
-      if (value < minimumValue.toInt) {
+      // an empty or non-numeric value is a configuration mistake, like a value below the minimum
+      case _: ConfigException.WrongType =>
         ApplicationLogger.warn(
-          s"Property 'rudder.argon2.memory' has a value lower than $minimumValue KiB. This is likely a configuration mistake, using $defaultValue KiB instead"
+          s"Property '${property}' is empty or is not an integer in rudder.configFile. Using the default value instead: ${defaultValue}${u}."
         )
         defaultValue
-      } else {
-        Argon2Memory(value)
-      }
-    } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.debug(
-          s"Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default memory to $defaultValue bytes."
+      case _: ConfigException =>
+        ApplicationLogger.info(
+          s"Property '${property}' is absent in rudder.configFile. Using the default value: ${defaultValue}${u}."
         )
         defaultValue
     }
   }
 
-  val RUDDER_ARGON2_ITERATIONS: Argon2Iterations = {
-    val defaultValue = PasswordEncoderType.ARGON2ID.defaultIterations
-    try {
-      Argon2Iterations(config.getInt("rudder.argon2.iterations"))
-    } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.debug(
-          s"Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to $defaultValue."
-        )
-        defaultValue
-    }
-  }
+  val RUDDER_BCRYPT_COST: Int = passwordCostParam(
+    "rudder.bcrypt.cost",
+    PasswordEncoderType.BCRYPT.defaultCost,
+    PasswordEncoderType.BCRYPT.minimumCost
+  )
 
-  val RUDDER_ARGON2_PARALLELISM: Argon2Parallelism = {
-    val defaultValue = PasswordEncoderType.ARGON2ID.defaultParallelism
-    try {
-      Argon2Parallelism(config.getInt("rudder.argon2.parallelism"))
-    } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.debug(
-          s"Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to $defaultValue."
-        )
-        defaultValue
-    }
-  }
+  val RUDDER_ARGON2_MEMORY: Argon2Memory = Argon2Memory(
+    passwordCostParam(
+      "rudder.argon2.memory",
+      PasswordEncoderType.ARGON2ID.defaultMemory.toInt,
+      PasswordEncoderType.ARGON2ID.minimumMemory.toInt,
+      "KiB"
+    )
+  )
+
+  val RUDDER_ARGON2_ITERATIONS: Argon2Iterations = Argon2Iterations(
+    passwordCostParam(
+      "rudder.argon2.iterations",
+      PasswordEncoderType.ARGON2ID.defaultIterations.toInt,
+      PasswordEncoderType.ARGON2ID.minimumIterations.toInt
+    )
+  )
+
+  val RUDDER_ARGON2_PARALLELISM: Argon2Parallelism = Argon2Parallelism(
+    passwordCostParam(
+      "rudder.argon2.parallelism",
+      PasswordEncoderType.ARGON2ID.defaultParallelism.toInt,
+      PasswordEncoderType.ARGON2ID.minimumParallelism.toInt
+    )
+  )
 
   val RUDDER_ARGON2_PARAMS = Argon2EncoderParams(
     RUDDER_ARGON2_MEMORY,
