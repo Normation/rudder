@@ -47,6 +47,7 @@ import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Logger
+import org.apache.commons.lang3.StringUtils
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -460,13 +461,19 @@ final case class JsonUserFormData(
 object JsonUserFormData {
   given (using encoder: PasswordEncoder): UserPasswordEncoder[SecretUserPassword] = encoder.encode(_)
 
+  /*
+   * A blank password means "keep the password unchanged"
+   */
+  private def isPasswordUnchanged(json: JsonUserFormData): Boolean = StringUtils.isBlank(json.password)
+
   given transformer(using passwordEncoder: UserPasswordEncoder[SecretUserPassword]): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
       .withFieldComputed(
         _.password,
         json => {
-          if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          if (isPasswordUnchanged(json)) UserPassword.unknown
+          else if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
           else UserPassword.fromSecret(json.password).transformInto[HashedUserPassword]
         }
       )
@@ -479,7 +486,11 @@ object JsonUserFormData {
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(
         _.password,
-        json => if (json.isPreHashed) UserPassword.unsafeHashed(json.password) else UserPassword.fromSecret(json.password)
+        json => {
+          if (isPasswordUnchanged(json)) UserPassword.unknown
+          else if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          else UserPassword.fromSecret(json.password)
+        }
       )
       .buildTransformer
   }
