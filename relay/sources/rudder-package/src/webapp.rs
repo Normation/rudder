@@ -228,6 +228,7 @@ impl Webapp {
             systemctl
                 .arg("--no-ask-password")
                 .arg("restart")
+                .arg("--")
                 .arg("rudder-jetty");
             let _ = CmdOutput::new(&mut systemctl)
                 .context("Restarting the rudder-jetty service with systemctl")?;

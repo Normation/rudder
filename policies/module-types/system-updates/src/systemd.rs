@@ -35,7 +35,8 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
     );
 
     let mut c = Command::new("systemctl");
-    c.arg("restart").args(services);
+    // `--` prevents service names from being parsed as options
+    c.arg("restart").arg("--").args(services);
     let res = res.step(ResultOutput::command(
         c,
         CommandBehavior::FailOnErrorCode,
@@ -50,10 +51,12 @@ pub fn systemd_get_restartable_services(services: &[String]) -> Vec<String> {
     for service in services {
         let output = Command::new("systemctl")
             .arg("show")
-            .arg(service)
             .arg("--property")
             .arg("RefuseManualStop")
             .arg("--value")
+            // `--` prevents the service name from being parsed as an option
+            .arg("--")
+            .arg(service)
             .output();
 
         let output = match output {
