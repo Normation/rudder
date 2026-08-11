@@ -126,36 +126,32 @@ object PolicyWriterServiceImpl {
   val rootFilePerms:         Set[PosixFilePermission] = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE)
   val rootDirectoryPerms:    Set[PosixFilePermission] = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, OWNER_EXECUTE)
 
-  def createParentsIfNotExist(file: File, optPerms: Option[Set[PosixFilePermission]], optGroupOwner: Option[String]): Unit = {
+  def createParentsIfNotExist(file: File, optPerms: Option[Set[PosixFilePermission]]): Unit = {
     file.parentOption.foreach { parent =>
       if (!parent.exists) {
-        createParentsIfNotExist(parent, optPerms, optGroupOwner)
+        createParentsIfNotExist(parent, optPerms)
         try {
           parent.createDirectory()
         } catch {
           case _: FileAlreadyExistsException => // too late, does nothing
         }
         optPerms.foreach(parent.setPermissions)
-        optGroupOwner.foreach(parent.setGroup)
       }
     }
-
   }
 
   def moveFile(
-      src:           File,
-      dest:          File,
-      mvOptions:     Option[File.CopyOptions],
-      optPerms:      Option[Set[PosixFilePermission]],
-      optGroupOwner: Option[String]
+      src:       File,
+      dest:      File,
+      mvOptions: Option[File.CopyOptions],
+      optPerms:  Option[Set[PosixFilePermission]]
   ): Any = {
-    createParentsIfNotExist(dest, optPerms, optGroupOwner)
+    createParentsIfNotExist(dest, optPerms)
     // must use FileUtils on different fs, see: https://issues.rudder.io/issues/19218
     mvOptions match {
       case Some(opts) => src.moveTo(dest)(using opts)
       case None       => FileUtils.moveDirectory(src.toJava, dest.toJava)
     }
-    // optGroupOwner.foreach(dest.setGroup(_))
   }
 
   // some file path to write in destination agent input directory:
@@ -255,7 +251,6 @@ class PolicyWriterServiceImpl(
     HOOKS_D:                    String,
     HOOKS_IGNORE_SUFFIXES:      List[String],
     implicit val charset:       Charset,
-    groupOwner:                 Option[String],
     sudoRun:                    SudoRun
 ) extends PolicyWriterService {
   import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.*
@@ -283,13 +278,13 @@ class PolicyWriterServiceImpl(
     // open file mode for create or overwrite mode
     def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                = IOResult.attempt {
       val (filePerms, dirPerms) = getPerms(isRootServer)
-      createParentsIfNotExist(file, Some(dirPerms), None)
+      createParentsIfNotExist(file, Some(dirPerms))
       file.writeText(text)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean): IO[SystemError, Unit] = IOResult.attempt {
       val (filePerms, dirPerms) = getPerms(isRootServer)
-      createParentsIfNotExist(file, Some(dirPerms), None)
+      createParentsIfNotExist(file, Some(dirPerms))
       file.writeByteArray(content)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
     }
   }
@@ -1141,9 +1136,9 @@ class PolicyWriterServiceImpl(
           (ZIO
             .foreachParDiscard(sortedFolder) {
               case folder @ NodePoliciesPaths(nodeId, baseFolderAgent, newFolderAgent, backupFolderAgent) =>
-                val (optGroupOwner, perms)                = {
-                  if (nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms)
-                  else (groupOwner, defaultDirectoryPerms)
+                val perms                                 = {
+                  if (nodeId == Constants.ROOT_POLICY_SERVER_ID) rootDirectoryPerms
+                  else defaultDirectoryPerms
                 }
                 val (baseFolder, newFolder, backupFolder) = nodeId match {
                   case Constants.ROOT_POLICY_SERVER_ID =>
@@ -1155,10 +1150,10 @@ class PolicyWriterServiceImpl(
                 }
                 for {
                   _ <- PolicyGenerationLoggerPure.trace(s"Backuping old policies from '${baseFolder}' to '${backupFolder} ")
-                  _ <- backupNodeFolder(baseFolder, backupFolder, backupMvOpt, optGroupOwner, perms)
+                  _ <- backupNodeFolder(baseFolder, backupFolder, backupMvOpt, perms)
                   _ <- newFolders.update(folder :: _)
                   _ <- PolicyGenerationLoggerPure.trace(s"Copying new policies into '${baseFolder}'")
-                  _ <- moveNewNodeFolder(newFolder, baseFolder, newMvOpt, optGroupOwner, perms)
+                  _ <- moveNewNodeFolder(newFolder, baseFolder, newMvOpt, perms)
                 } yield ()
             }
             .withParallelism(maxParallelism))
@@ -1174,14 +1169,14 @@ class PolicyWriterServiceImpl(
                         PolicyGenerationLoggerPure
                           .error(s"Error when moving policies to their node folder. Error was: ${err.fullMsg}")
                       case Some(x) =>
-                        val (optGroupOwner, perms) = {
-                          if (folder.nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms)
-                          else (groupOwner, defaultDirectoryPerms)
+                        val perms = {
+                          if (folder.nodeId == Constants.ROOT_POLICY_SERVER_ID) rootDirectoryPerms
+                          else defaultDirectoryPerms
                         }
                         PolicyGenerationLoggerPure.error(
                           s"Error when moving policies to their node folder. Restoring old policies on folder ${folder.baseFolder}. Error was: ${err.fullMsg}"
                         ) *>
-                        restoreBackupNodeFolder(folder.baseFolder, x, backupMvOpt, optGroupOwner, perms).catchAll(err =>
+                        restoreBackupNodeFolder(folder.baseFolder, x, backupMvOpt, perms).catchAll(err =>
                           PolicyGenerationLoggerPure.error(s"could not restore old policies into ${folder.baseFolder} ")
                         )
                     }
@@ -1288,11 +1283,10 @@ class PolicyWriterServiceImpl(
    * Move the machine policies folder to the backup folder if it's not None, else ignore backup.
    */
   private def backupNodeFolder(
-      nodeFolder:    File,
-      backupFolder:  Option[File],
-      mvOptions:     Option[File.CopyOptions],
-      optGroupOwner: Option[String],
-      perms:         Set[PosixFilePermission]
+      nodeFolder:   File,
+      backupFolder: Option[File],
+      mvOptions:    Option[File.CopyOptions],
+      perms:        Set[PosixFilePermission]
   ): IOResult[Unit] = {
     backupFolder match {
       case None    => // just delete base
@@ -1313,7 +1307,7 @@ class PolicyWriterServiceImpl(
               }
             }
             PolicyGenerationLogger.trace(s"Backup old '${nodeFolder}' into ${backupFolder}")
-            moveFile(nodeFolder, d, mvOptions, Some(perms), optGroupOwner)
+            moveFile(nodeFolder, d, mvOptions, Some(perms))
           }
         }
     }
@@ -1324,11 +1318,10 @@ class PolicyWriterServiceImpl(
    *  var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules.new/ into var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules
    */
   private def moveNewNodeFolder(
-      src:           File,
-      dest:          File,
-      mvOptions:     Option[File.CopyOptions],
-      optGroupOwner: Option[String],
-      perms:         Set[PosixFilePermission]
+      src:       File,
+      dest:      File,
+      mvOptions: Option[File.CopyOptions],
+      perms:     Set[PosixFilePermission]
   ): IOResult[Unit] = {
 
     for {
@@ -1341,7 +1334,7 @@ class PolicyWriterServiceImpl(
                       IOResult.attempt(dest.delete(false, File.LinkOptions.noFollow))
                     }
                _ <- IOResult.attempt {
-                      moveFile(src, dest, mvOptions, Some(perms), optGroupOwner)
+                      moveFile(src, dest, mvOptions, Some(perms))
                     }.chainError(s"Error when moving newly generated policies to node directory")
                // force deletion of dandling new promise folder
                _ <- ZIO.whenZIO(IOResult.attempt(src.parent.isDirectory && src.parent.pathAsString.endsWith("rules.new"))) {
@@ -1361,11 +1354,10 @@ class PolicyWriterServiceImpl(
    * @param backupFolder
    */
   private def restoreBackupNodeFolder(
-      nodeFolder:    String,
-      backupFolder:  String,
-      mvOptions:     Option[File.CopyOptions],
-      optGroupOwner: Option[String],
-      perms:         Set[PosixFilePermission]
+      nodeFolder:   String,
+      backupFolder: String,
+      mvOptions:    Option[File.CopyOptions],
+      perms:        Set[PosixFilePermission]
   ): IOResult[Unit] = {
     IOResult.attemptZIO {
       val src = File(backupFolder)
@@ -1373,7 +1365,7 @@ class PolicyWriterServiceImpl(
         val dest = File(nodeFolder)
         // force deletion of invalid promises
         dest.delete(false, File.LinkOptions.noFollow)
-        moveFile(src, dest, mvOptions, Some(perms), optGroupOwner)
+        moveFile(src, dest, mvOptions, Some(perms))
         ZIO.unit
       } else {
         PolicyGenerationLoggerPure.error(s"Could not find freshly backup policies at '${backupFolder}'") *>

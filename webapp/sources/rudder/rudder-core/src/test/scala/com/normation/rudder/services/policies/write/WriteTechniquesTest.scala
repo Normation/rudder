@@ -174,7 +174,6 @@ class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringT
       "/we-don-t-want-hooks-here",
       hookIgnore,
       StandardCharsets.UTF_8,
-      None,
       WithoutSudo
     )
 
