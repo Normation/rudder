@@ -363,6 +363,12 @@ class TestInventoryParsing extends Specification with Loggable {
       )
     }
 
+    "Correctly parse the inventory agent version from VERSIONCLIENT" in {
+      val inventory = parseRun("fusion-inventories/8.3/AGENT1-c6642a36-b1ed-43e4-a7b7-7d0e1f85063e.ocs")
+
+      inventory.version.map(_.value) === Some("FusionInventory-Agent_v2.6")
+    }
+
     "Correctly parse the version from AGENT_VERSION when available" in {
       val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-with-agent-version.ocs")
 
