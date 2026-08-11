@@ -342,12 +342,6 @@ rudder.policy.distribution.port.https=443
 #   way of doing that and letting node knowing where to go look for their policies.
 # - policies generated for Rudder Root Server go into ***/var/rudder/cfengine-community/inputs***
 
-#
-# Group owner for generated policy files. Default: rudder-policy-reader
-#
-rudder.generated.policies.group.owner=rudder-policy-reader
-
-#
 # Engine used to fill the policy templates (".st" files) during policy generation.
 # Both engines accept the same template syntax:
 # - 'string-template':  the historical engine, based on the StringTemplate 3 library (default)

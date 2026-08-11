@@ -956,17 +956,6 @@ object RudderParsedProperties {
         "rudder"
     }
   }
-  val RUDDER_GROUP_OWNER_GENERATED_POLICIES:  String   = {
-    try {
-      config.getString("rudder.generated.policies.group.owner")
-    } catch {
-      case ex: Exception =>
-        ApplicationLogger.info(
-          "Property 'rudder.generated.policies.group.owner' is absent or empty in rudder.configFile. Default to 'rudder-policy-reader'."
-        )
-        "rudder-policy-reader"
-    }
-  }
   val RUDDER_GENERATED_POLICIES_ROOT_PATH:    String   = {
     try {
       config.getString("rudder.generated.policies.rootserver.path")
@@ -3337,7 +3326,6 @@ object RudderConfigInit {
         HOOKS_D,
         HOOKS_IGNORE_SUFFIXES,
         RUDDER_CHARSET.value,
-        Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES),
         RUN_WITH_SUDO_HOOKS
       )
     }
