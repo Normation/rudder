@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-/usr/bin/chown :rudder-policy-reader -R /var/rudder/share
