@@ -38,7 +38,7 @@ package com.normation.rudder.users
 import com.normation.errors.*
 import com.normation.utils.DateFormaterService
 import enumeratum.*
-import enumeratum.EnumEntry.Lowercase
+import enumeratum.EnumEntry.LowerCamelcase
 import java.time.Instant
 import zio.*
 import zio.json.enumeratum.EnumCodec
@@ -89,7 +89,7 @@ object TotpEnforcementLevel {
  * Per-user enrollment state.
  * This is the one exposed where we need to know if user OTP is defined or not yet
  */
-sealed trait TotpUserStatus extends EnumEntry with Lowercase
+sealed trait TotpUserStatus extends EnumEntry with LowerCamelcase
 object TotpUserStatus       extends Enum[TotpUserStatus] with EnumCodec[TotpUserStatus] {
   case object EnrollmentNeeded    extends TotpUserStatus
   // derived from global enforcement level
