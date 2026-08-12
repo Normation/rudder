@@ -55,13 +55,13 @@ class OtpApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.OtpStatus   => OtpStatus
-      case API.OtpGenerate => OtpGenerate
+      case API.GetOtpStatus => GetOtpStatus
+      case API.GenerateOtp  => GenerateOtp
     }
   }
 
-  object OtpStatus extends LiftApiModule0 {
-    val schema: API.OtpStatus.type = API.OtpStatus
+  object GetOtpStatus extends LiftApiModule0 {
+    val schema: API.GetOtpStatus.type = API.GetOtpStatus
 
     override def process0(
         version:    ApiVersion,
@@ -76,8 +76,8 @@ class OtpApi(
     }
   }
 
-  object OtpGenerate extends LiftApiModule0 {
-    val schema: API.OtpGenerate.type = API.OtpGenerate
+  object GenerateOtp extends LiftApiModule0 {
+    val schema: API.GenerateOtp.type = API.GenerateOtp
 
     override def process0(
         version:    ApiVersion,

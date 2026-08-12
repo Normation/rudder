@@ -96,6 +96,17 @@ case class TotpSecretData(
     value: TotpSecret,
     uri:   URI
 ) derives JsonEncoder
+object TotpSecretData {
+  def make(userId: UserId, secret: TotpSecret): IOResult[TotpSecretData] = {
+    val uri: IOResult[URI] = {
+      val query = s"secret=${secret.exposeSecret()}&issuer=Rudder"
+      // this URI constructor handles encoding
+      IOResult.attempt(URI("otpauth", "totp", s"/Rudder:${userId.value}", query, null))
+    }
+
+    uri.map(TotpSecretData(secret, _))
+  }
+}
 
 case class TotpSecretContainer(
     secret: TotpSecretData
@@ -132,9 +143,9 @@ class InMemoryVerificationTotpService(
       _      <- validator.validateUserCanCreateTotp(userId)
       secret <- generator.generate
       _      <- in.update(_.updated(userId, secret)) // just forget previously generated secret
-      uri    <- totpUri(userId.value, secret)
+      res    <- TotpSecretData.make(userId, secret)
     } yield {
-      TotpSecretData(secret, uri)
+      res
     }
   }
 
@@ -190,12 +201,6 @@ class InMemoryVerificationTotpService(
       .getByUserId(userId)
       .map(_.as(TotpUserStatus.Enrolled).getOrElse(TotpUserStatus.default(globalLevel)))
   }
-}
-
-private def totpUri(userId: String, secret: TotpSecret): IOResult[URI] = {
-  val query = s"secret=${secret.exposeSecret()}&issuer=Rudder"
-  // this URI constructor handles encoding
-  IOResult.attempt(URI("otpauth", "totp", s"/Rudder:${userId}", query, null))
 }
 
 object OtpJavaTotpService {
