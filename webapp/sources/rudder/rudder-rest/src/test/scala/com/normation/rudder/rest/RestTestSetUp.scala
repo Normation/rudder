@@ -1084,11 +1084,11 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]] = Map.empty.succeed
     override def getUserStatus(userId: UserId): IOResult[TotpUserStatus] = TotpUserStatus.EnrollmentNotNeeded.succeed
     override def getGlobalStatus(): IOResult[Boolean] = false.succeed
+    override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = TotpSecretData.make(userId, TotpSecret("secret"))
 
-    override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = ???
-    override def verifyGenerated(userId:    UserId, code: String): IOResult[Totp] = ???
-    override def reset(userId:              UserId): IOResult[Unit] = ???
-    override def verify(userId:             UserId, code: String): IOResult[Unit] = ???
+    override def verifyGenerated(userId: UserId, code: String): IOResult[Totp] = ???
+    override def reset(userId:           UserId): IOResult[Unit] = ???
+    override def verify(userId:          UserId, code: String): IOResult[Unit] = ???
   }
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
@@ -1159,7 +1159,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     new PluginInternalApi(pluginsSystemService),
     new InventoryApi(mockInventoryFileWatcher, mockInventoryDir),
     new QuicksearchApi(quickSearchService, linkUtil),
-    new RecentChangesAPI(fakeNodeChangesService, mockRules.ruleRepo)
+    new RecentChangesAPI(fakeNodeChangesService, mockRules.ruleRepo),
+    new OtpApi(otpService)
   )
 
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, userService)

@@ -1,0 +1,28 @@
+description: Get OTP status for current user
+method: GET
+url: /secure/api/otp/status
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getOtpStatus",
+      "result":"success",
+      "data":"enrollmentNotNeeded"
+    }
+---
+description: Generate a new OTP secret for current user
+method: POST
+url: /secure/api/otp/generate
+response:
+  code: 200
+  content: >-
+    {
+      "action":"generateOtp",
+      "result":"success",
+      "data":{
+        "secret":{
+          "value":"secret",
+          "uri":"otpauth://totp/Rudder:test-user?secret=secret&issuer=Rudder"
+        }
+      }
+    }
