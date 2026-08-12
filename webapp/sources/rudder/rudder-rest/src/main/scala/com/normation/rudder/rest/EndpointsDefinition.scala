@@ -1847,14 +1847,14 @@ sealed trait OtpApi extends EnumEntry with EndpointSchema with InternalApi with 
 }
 object OtpApi       extends Enum[OtpApi] with ApiModuleProvider[OtpApi]                   {
 
-  case object OtpStatus extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
+  case object GetOtpStatus extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get OTP status for current user"
     val (action, path) = GET / "otp" / "status"
     val authz: List[AuthorizationType] = Nil
   }
 
-  case object OtpGenerate extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
+  case object GenerateOtp extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Generate a new OTP secret for current user"
     val (action, path) = POST / "otp" / "generate"
