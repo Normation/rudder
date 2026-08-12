@@ -956,17 +956,6 @@ object RudderParsedProperties {
         "rudder"
     }
   }
-  val RUDDER_GENERATED_POLICIES_ROOT_PATH:    String   = {
-    try {
-      config.getString("rudder.generated.policies.rootserver.path")
-    } catch {
-      case ex: Exception =>
-        ApplicationLogger.info(
-          s"Property 'rudder.generated.policies.rootserver.path' is absent or empty in rudder.configFile. Default to '${Constants.CFENGINE_COMMUNITY_PROMISES_PATH}'."
-        )
-        Constants.CFENGINE_COMMUNITY_PROMISES_PATH
-    }
-  }
 
   val RUDDER_RELAY_API: String = config.getString("rudder.server.relay.api")
 
@@ -2723,8 +2712,7 @@ object RudderConfigInit {
     lazy val pathComputer    = new PathComputerImpl(
       Constants.NODE_PROMISES_PARENT_DIR_BASE,
       Constants.NODE_PROMISES_PARENT_DIR,
-      RUDDER_DIR_BACKUP,
-      RUDDER_GENERATED_POLICIES_ROOT_PATH
+      RUDDER_DIR_BACKUP
     )
 
     /*

@@ -913,23 +913,15 @@ class PolicyWriterServiceImpl(
       case (agentInfo, config) =>
         val agentType = agentInfo.agentType
         for {
-          paths <- if (rootNodeConfigId == config.nodeInfo.id) {
-                     NodePoliciesPaths(
-                       config.nodeInfo.id,
-                       pathComputer.getRootPath(agentType),
-                       pathComputer.getRootPath(agentType) + newsFileExtension,
-                       Some(pathComputer.getRootPath(agentType) + backupFileExtension)
-                     ).succeed
-                   } else {
-                     pathComputer
-                       .computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeInfos)
-                       .map {
-                         case NodePoliciesPaths(id, base, news, backup) =>
-                           val postfix = agentType.toRulesPath
-                           NodePoliciesPaths(id, base + postfix, news + postfix, backup.map(_ + postfix))
-                       }
-                       .toIO
-                   }
+          paths <-
+            pathComputer
+              .computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeInfos)
+              .map {
+                case NodePoliciesPaths(id, base, news, backup) =>
+                  val postfix = agentType.toRulesPath
+                  NodePoliciesPaths(id, base + postfix, news + postfix, backup.map(_ + postfix))
+              }
+              .toIO
         } yield {
           AgentNodeConfiguration(config, agentInfo, paths)
         }
