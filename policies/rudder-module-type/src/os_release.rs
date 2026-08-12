@@ -26,6 +26,12 @@ use std::{
 /// memory consumption.
 const MAX_SIZE: u64 = 50 * 1024;
 
+/// Where the distribution describes itself, in the order the specification reads them.
+///
+/// Public, as a caller that reports what it found, or did not find, needs to be able to name the
+/// files rather than repeat the list.
+pub const OS_RELEASE_PATHS: [&str; 2] = ["/etc/os-release", "/usr/lib/os-release"];
+
 fn is_enclosed_with(line: &str, pattern: char) -> bool {
     line.starts_with(pattern) && line.ends_with(pattern)
 }
@@ -139,19 +145,24 @@ impl OsRelease {
     /// > looking at `/etc/`. A relative symlink instead of an absolute symlink is necessary to avoid
     /// > breaking the link in a chroot or initrd environment.
     pub fn new() -> io::Result<OsRelease> {
-        let etc = Path::new("/etc/os-release");
-        let usr = Path::new("/usr/lib/os-release");
-        let file = match (etc.exists(), usr.exists()) {
-            (true, _) => Some(etc),
-            (false, true) => Some(usr),
-            _ => None,
-        };
-        if let Some(path) = file {
+        if let Some(path) = Self::path() {
             let file = BufReader::new(File::open(path)?.take(MAX_SIZE));
             Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
         } else {
             Ok(OsRelease::default())
         }
+    }
+
+    /// The file [`Self::new`] reads: the first of [`OS_RELEASE_PATHS`] that exists, or nothing
+    /// when neither does, in which case a generic system is described.
+    ///
+    /// Public so that a caller can tell which file described the system, or say that none did,
+    /// without duplicating the precedence above.
+    pub fn path() -> Option<&'static Path> {
+        OS_RELEASE_PATHS
+            .iter()
+            .map(Path::new)
+            .find(|path| path.exists())
     }
 
     pub fn from_string(s: &str) -> OsRelease {

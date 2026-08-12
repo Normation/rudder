@@ -10,17 +10,20 @@ license.workspace = true
 
 [dependencies]
 rudder_module_type = { path = "../../rudder-module-type" }
+rudder_cli = { path = "../../rudder-cli" }
 quick-xml = { version = "0.41.0", features = ["serialize"] }
 sysinfo = "0.39"
 serde = { version = "1", features = ["derive"] }
-hostname = "0.4"
 anyhow = "1"
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 clap = { version = "4.3.11", features = ["derive"] }
-chrono = "0.4"
 regex = "1"
-
-[target.'cfg(unix)'.dependencies]
-uname-rs = "0.1"
+jiff = "0.2.35"
+nix = { version = "0.31", default-features = false, features = [
+  "feature",
+  "hostname",
+  "user",
+] }
 
 [dev-dependencies]
 pretty_assertions = "1"
