@@ -56,17 +56,24 @@ class PathComputerTest extends Specification {
   val pathComputer = new PathComputerImpl(
     Constants.NODE_PROMISES_PARENT_DIR_BASE,
     Constants.NODE_PROMISES_PARENT_DIR,
-    Some("/var/rudder/backup/"),
-    Constants.CFENGINE_COMMUNITY_PROMISES_PATH
+    Some("/var/rudder/backup/")
   )
 
   ////////////////////////// test //////////////////////////
 
   "The paths for " should {
-    "the root node should raise an error" in {
-      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[
-        Left[Inconsistency, ?]
-      ]
+    "the root node should be like for any other node" in {
+      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must
+      beEqualTo(
+        Right(
+          NodePoliciesPaths(
+            root.id,
+            "/var/rudder/share/root/rules",
+            "/var/rudder/share/root/rules.new",
+            Some("/var/rudder/backup/root/rules")
+          )
+        )
+      )
     }
 
     "the nodeConfig should be " in {
