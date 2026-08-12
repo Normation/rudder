@@ -187,7 +187,7 @@ class FusionInventoryParser(
         // idems for VMs and applications
         val vms          = List[MachineInventory]()
         val applications = List[Software]()
-        val version      = processVersion(doc \\ ("Request") \ ("VERSIONCLIENT"))
+        val version      = processVersion(doc \\ "VERSIONCLIENT")
 
         Inventory(
           inventoryName,
