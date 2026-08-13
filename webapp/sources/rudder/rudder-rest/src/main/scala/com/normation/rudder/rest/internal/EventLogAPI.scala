@@ -40,6 +40,9 @@ package com.normation.rudder.rest.internal
 import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.domain.eventlog.AddRuleEventType
+import com.normation.rudder.domain.eventlog.DeleteRuleEventType
+import com.normation.rudder.domain.eventlog.ModifyRuleEventType
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.repository.EventLogRepository
@@ -57,6 +60,7 @@ import com.normation.zio.UnsafeRun
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import zio.NonEmptyChunk
 import zio.ZIO
 import zio.syntax.*
 
@@ -76,6 +80,7 @@ class EventLogAPI(
       case EventLogApi.GetEventLogs       => GetEventLogs
       case EventLogApi.GetEventLogDetails => GetEventLogDetails
       case EventLogApi.RollbackEventLog   => RollbackEventLog
+      case EventLogApi.GetRuleEventLogs   => GetRuleEventLogs
     }
   }
 
@@ -178,6 +183,55 @@ class EventLogAPI(
           params,
           schema,
           None
+        )
+    }
+  }
+
+  object GetRuleEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetRuleEventLogs.type = EventLogApi.GetRuleEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val prettify: Boolean      = params.prettify
+      implicit val qc:       QueryContext = authzToken.qc
+
+      (for {
+        restFilter  <- req.fromJson[RestEventLogFilter].toIO
+        // the value of the typeFilter field in the query is unused
+        queryFilter  = restFilter.toEventLogRequest
+        // typeFilter is replaced with the list of eventlog types that concern rules
+        filter       = queryFilter.copy(typeFilter = {
+                         Some(
+                           EventLogRequest.TypeFilter(
+                             include = Some(NonEmptyChunk(AddRuleEventType, DeleteRuleEventType, ModifyRuleEventType)),
+                             exclude = None
+                           )
+                         )
+                       })
+        totalRecord <- coreService.getUserEventLogCount(filter = None)
+        totalFilter <- coreService.getUserEventLogCount(filter = Some(filter))
+        events      <- coreService.getUserEventLogs(filter = Some(filter))
+        res          = EventLogSlice(events, totalRecord, totalFilter)
+      } yield {
+        (restFilter.draw, res)
+      }).chainError("Error when fetching event logs")
+        .either
+        .runNow
+        .fold(
+          err => RudderJsonResponse.generic.internalError(RestEventLogError(err.fullMsg)),
+          {
+            case (draw, EventLogSlice(events, totalRecord, totalFilter)) =>
+              RudderJsonResponse.LiftJsonResponse(
+                RestEventLogSuccess(draw, totalRecord, totalFilter, events.map(_.transformInto[RestEventLog])),
+                params.prettify,
+                200
+              )
+          }
         )
     }
   }
