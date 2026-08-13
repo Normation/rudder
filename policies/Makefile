@@ -8,7 +8,7 @@ check-methods-unix:
 check-methods-windows:
 	$(MAKE) cargo-test PACKAGE=lib FEATURES=test-windows
 
-check: lint check-modules
+check: lint lint-windows check-modules
 	cd rudderc && make check
 	$(MAKE) cargo-test PACKAGE=agent
 	$(MAKE) cargo-test PACKAGE=agentd
