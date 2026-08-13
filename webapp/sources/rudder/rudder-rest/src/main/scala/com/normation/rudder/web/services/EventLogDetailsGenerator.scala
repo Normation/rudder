@@ -260,6 +260,8 @@ class EventLogDetailsGenerator(
     }
   }
 
+  // todo start
+
   def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit qc: QueryContext): NodeSeq = {
 
     (for {
@@ -944,7 +946,14 @@ class EventLogDetailsGenerator(
                     </ul>{
                     (
                       "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
-                      "#token" #> mapSimpleDiff(apiAccountDiff.modToken) &
+                      "#token" #> {
+                        apiAccountDiff.modToken match {
+                          case Some(_) =>
+                            <ul class="evlogviewpad"><li><b>Token regenerated</b></li></ul>
+                          case None    =>
+                            <ul class="evlogviewpad"><li><b>Token unchanged</b></li></ul>
+                        }
+                      } &
                       "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
                       "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
                       "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
@@ -1146,6 +1155,8 @@ class EventLogDetailsGenerator(
     }).merge.runNow
 
   }
+
+  // todo end
 
   def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[List[NodeProperty]]] = {
     event match {
@@ -1500,7 +1511,6 @@ class EventLogDetailsGenerator(
       <ul class="evlogviewpad">
         <li><b>Rudder ID: </b><value id="id"/></li>
         <li><b>Name:&nbsp;</b><value id="name"/></li>
-        <li><b>Token:&nbsp;</b><value id="token"/></li>
         <li><b>Description:&nbsp;</b><value id="description"/></li>
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>
