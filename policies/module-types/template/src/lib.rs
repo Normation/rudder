@@ -10,6 +10,7 @@ use rudder_module_type::diff::diff;
 
 use anyhow::{Context, Result, anyhow, bail};
 use rudder_module_type::cfengine::called_from_agent;
+use rudder_module_type::encoding::unicode_file_to_string;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     atomic_file_write::atomic_write, backup::Backup, parameters::Parameters, rudder_debug,
@@ -192,7 +193,9 @@ impl Template {
         // Check if already correct
         let mut content = String::new();
         let already_correct = if already_present {
-            content = read_to_string(output_file)
+            // The managed file is user-facing: accept a BOM or UTF-16LE so we can
+            // still compare (and repair) files not written by us.
+            content = unicode_file_to_string(output_file)
                 .with_context(|| format!("Failed to read file {output_file_d}"))?;
             if content == output {
                 true

@@ -379,10 +379,14 @@ pub mod encoding {
                     .with_context(|| format!("Invalid UTF16 file '{name}'")),
                 _ => bail!("Invalid UTF16 file '{name}': missing byte"),
             },
-            Some(Some(BomType::UTF8)) | Some(None) => {
+            // `None` means the reader could not conclude, which happens when the file is
+            // shorter than any BOM (an empty file in particular). Treat it as plain UTF-8.
+            Some(Some(BomType::UTF8)) | Some(None) | None => {
                 String::from_utf8(buf).with_context(|| format!("Invalid UTF8 file '{name}'"))
             }
-            _ => bail!("Could not decode data: unsupported encoding"),
+            Some(Some(bom)) => {
+                bail!("Could not decode file '{name}': unsupported encoding '{bom:?}'")
+            }
         }
     }
 
@@ -441,6 +445,17 @@ pub mod encoding {
         }
 
         #[test]
+        fn test_unicode_file_to_string_short_files() {
+            // Too short for a BOM to be detected, but still valid UTF-8.
+            let dir = tempfile::tempdir().unwrap();
+            for content in ["", "a"] {
+                let path = dir.path().join("short.txt");
+                std::fs::write(&path, content).unwrap();
+                assert_eq!(unicode_file_to_string(&path).unwrap(), content);
+            }
+        }
+
+        #[test]
         fn test_encode_data_to_utf16_bom() {
             let data = encode_unicode_data("# éoùçà\n", Encoding::UTF16LE);
             let utf_16_with_bom = std::fs::read("src/test/utf16-bom.txt").unwrap();
@@ -469,6 +484,7 @@ pub mod encoding {
 /// (larger files, std-like interface, etc.), but this is enough for our current needs.
 pub mod atomic_file_write {
     use std::fs;
+    #[cfg(unix)]
     use std::fs::OpenOptions;
     use std::io::Write;
     use std::path::Path;
@@ -487,7 +503,10 @@ pub mod atomic_file_write {
         // Rename the temporary file to the destination
         fs::rename(&tmp_path, dst)?;
 
-        // Ensure the directory entry is flushed to disk
+        // Ensure the directory entry is flushed to disk.
+        // Windows does not allow opening a directory as a file, and `MoveFileEx` is
+        // already durable there, so this is Unix-only.
+        #[cfg(unix)]
         if let Some(parent) = dst.parent() {
             let dir = OpenOptions::new().read(true).open(parent)?;
             dir.sync_all()?;
@@ -510,40 +529,5 @@ pub mod atomic_file_write {
             let read_content = fs::read(&file_path).unwrap();
             assert_eq!(read_content, content);
         }
-    }
-}
-
-pub mod utf16_file {
-    use anyhow::Result;
-    use std::{
-        fs::{File, write},
-        io::{Read, Seek, SeekFrom, Write},
-        path::Path,
-    };
-
-    pub fn read_utf16_file(path: &Path) -> Result<String> {
-        let mut file = File::open(path)?;
-        let mut buffer = Vec::new();
-
-        file.seek(SeekFrom::Start(2))?;
-        file.read_to_end(&mut buffer)?;
-        let data = String::from_utf16(
-            &buffer
-                .chunks(2)
-                .map(|chunk| u16::from_ne_bytes([chunk[0], chunk.get(1).copied().unwrap_or(0)]))
-                .collect::<Vec<u16>>(),
-        )?;
-
-        Ok(data)
-    }
-
-    pub fn write_utf16_file(path: &Path, buffer: &str) -> Result<()> {
-        let mut utf8_buf = Vec::new();
-        for b in buffer.encode_utf16() {
-            utf8_buf.write_all(&b.to_le_bytes())?;
-        }
-        write(path, utf8_buf)?;
-
-        Ok(())
     }
 }

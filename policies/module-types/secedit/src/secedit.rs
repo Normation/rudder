@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
+use rudder_module_type::encoding::{Encoding, unicode_file_to_string, write_file};
 use rudder_module_type::parameters::Parameters;
-use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult,
@@ -109,8 +109,9 @@ impl Secedit {
         config.write_to_opt(&mut buf, opt)?;
         let data = String::from_utf8(buf)?;
 
+        // `secedit.exe /import` expects a UTF-16LE file.
         let config = temp_dir.path().join("config.ini");
-        write_utf16_file(&config, &data)?;
+        write_file(&data, &config, Encoding::UTF16LE)?;
 
         let db = temp_dir
             .path()
@@ -175,17 +176,16 @@ fn get_default_config() -> Result<Ini> {
     };
     let defltbase = Path::new("C:\\Windows\\inf\\defltbase.inf");
 
-    // TODO: update to new utf16 handling implementation.
-    let utf8_file = read_utf16_file(defltbase)?;
+    let content = unicode_file_to_string(defltbase)?;
 
-    let cleaned = utf8_file.trim_end_matches(['\r', '\n', '\x1A']);
+    let cleaned = content.trim_end_matches(['\r', '\n', '\x1A']);
     let default = Ini::load_from_str_opt(cleaned, opt)?;
 
     Ok(default)
 }
 
 fn parse_config(path: &Path) -> Result<Ini> {
-    let data = read_utf16_file(path)?;
+    let data = unicode_file_to_string(path)?;
     let opt = ParseOption {
         enabled_escape: false,
         enabled_quote: false,
@@ -219,7 +219,7 @@ fn invoke_with_args(args: Vec<&str>) -> Result<()> {
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stdout);
         let log_file = Path::new("C:\\Windows\\security\\logs\\scesrv.log");
-        let log = read_utf16_file(log_file)?;
+        let log = unicode_file_to_string(log_file)?;
         bail!("{msg}\nlog:\n{log}");
     }
 
