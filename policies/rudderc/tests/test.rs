@@ -5,6 +5,10 @@
 //!
 //! Warning: As testing commands change working directory, these tests should not
 //! start parallel jobs.
+//!
+//! Even if some cases target Windows, they only run on Unix for now.
+
+#![cfg(unix)]
 
 use std::{
     env,
@@ -20,7 +24,6 @@ const WINDOWS_TEST_LIB: &str = "target/agent-windows/Rudder";
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compile and tests all files in `cases/test`. This tests the testing feature itself.
-#[cfg(unix)]
 #[test_resources("tests/cases/test/*_unix/*.yml")]
 fn test_unix(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();
@@ -49,7 +52,6 @@ fn test_unix(filename: &str) {
 
 /// Compile and tests all files in `cases/test`. This tests the testing feature itself.
 /// Even if tests for Windows, they only work on Linux for now
-#[cfg(unix)]
 #[test_resources("tests/cases/test/*_windows/*.yml")]
 fn test_windows(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();

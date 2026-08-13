@@ -29,6 +29,13 @@ lint: version
 	cargo fmt --all -- --check
 	cargo clippy --message-format json --all-targets --examples --tests -- --deny warnings > target/cargo-clippy.json
 
+# Lint the build for another target from Linux. Only runs clippy (no linking),
+# so it does not need a cross toolchain, only the target's std library.
+# Callers set CROSS_TARGET and CROSS_PACKAGES ("-p crate1 -p crate2 ...").
+lint-cross: version
+	rustup target add $(CROSS_TARGET)
+	cargo clippy --locked --target $(CROSS_TARGET) --all-targets $(CROSS_PACKAGES) -- --deny warnings
+
 clean:
 	cargo clean
 	rm -rf target
