@@ -15,13 +15,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.93.0
 
       - name: rudder-module-template tests
-        run: make cargo-test PACKAGE=rudder-module-template
+        run: make lint cargo-test PACKAGE=rudder-module-template
       - name: rudder-module-scheduler tests
-        run: make cargo-test PACKAGE=rudder-module-scheduler
+        run: make lint cargo-test PACKAGE=rudder-module-scheduler
       - name: rudder-module-secedit tests
-        run: make cargo-test PACKAGE=rudder-module-secedit
+        run: make lint cargo-test PACKAGE=rudder-module-secedit
       - name: rudder-module-system-updates tests
-        run: make cargo-test PACKAGE=rudder-module-system-updates
+        run: make lint cargo-test PACKAGE=rudder-module-system-updates
 
     permissions:
       contents: read
