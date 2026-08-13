@@ -260,8 +260,6 @@ class EventLogDetailsGenerator(
     }
   }
 
-  // todo start
-
   def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit qc: QueryContext): NodeSeq = {
 
     (for {
@@ -1155,8 +1153,6 @@ class EventLogDetailsGenerator(
     }).merge.runNow
 
   }
-
-  // todo end
 
   def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[List[NodeProperty]]] = {
     event match {
