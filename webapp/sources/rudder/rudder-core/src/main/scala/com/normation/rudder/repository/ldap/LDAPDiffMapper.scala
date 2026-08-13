@@ -71,6 +71,7 @@ import com.unboundid.ldif.LDIFAddChangeRecord
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import scala.util.control.NonFatal
 import zio.json.*
@@ -597,7 +598,7 @@ class LDAPDiffMapper(
           val e = LDAPEntry(add.toAddRequest().toEntry)
           for {
             param <- mapper.entry2ApiAccount(e)
-          } yield AddApiAccountDiff(param)
+          } yield AddApiAccountDiff(param.transformInto[ApiAccountNoToken])
         case _ => Left(Err.UnexpectedObject(s"Bad change record type for requested action 'Add Api Account': ${change}"))
       }
     } else {
@@ -628,7 +629,10 @@ class LDAPDiffMapper(
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
                                   d.copy(modToken = {
                                     Some(
-                                      SimpleDiff(oldAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse(""), value)
+                                      SimpleDiff(
+                                        (oldAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse("").substring(0, 6) ++ "******"),
+                                        (value.substring(0, 6) ++ "******")
+                                      )
                                     )
                                   })
                                 }
