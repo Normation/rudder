@@ -5,8 +5,8 @@ import Activity.ApiCalls exposing (getActivities, processActivityApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), string2Search)
 import Browser
 import Dict
-import Html exposing (Html, div)
-import Html.Attributes exposing (class)
+import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (class, colspan, rowspan)
 import Rudder.Table exposing (updateData)
 import Time exposing (Zone)
 import TimeZone
@@ -84,14 +84,20 @@ init flags =
 {- Table of the recent activity -}
 
 
-table : Model -> Html Msg
-table model =
-    div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view model.activityTable) ]
+tableView : Rudder.Table.Model Activity Msg -> Html Msg
+tableView tableModel =
+    if Rudder.Table.getRows tableModel == [] then
+        text "-"
+
+    else
+        div
+            [ class "main-table" ]
+            [ div [ class "parameterRecentActivityTable" ] [ Html.map RudderTableMsg (Rudder.Table.view tableModel) ] ]
 
 
 view : Model -> Html Msg
 view model =
-    table model
+    tableView model.activityTable
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

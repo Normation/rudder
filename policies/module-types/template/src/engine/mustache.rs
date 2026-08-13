@@ -3,8 +3,8 @@
 
 use crate::engine::{Mode, TemplateEngine};
 use anyhow::{Context, Result};
+use rudder_module_type::encoding::unicode_file_to_string;
 use serde_json::Value;
-use std::fs;
 use std::path::Path;
 
 pub(crate) struct MustacheEngine;
@@ -23,7 +23,7 @@ impl TemplateEngine for MustacheEngine {
     ) -> Result<String> {
         let template = match (template_path, template_string) {
             // The lib has a `compile_path` method, but it requires a mustache file extension.
-            (Some(p), _) => &fs::read_to_string(p)
+            (Some(p), _) => &unicode_file_to_string(p)
                 .with_context(|| format!("Failed to read template {}", p.display()))?,
             (_, Some(s)) => s,
             _ => unreachable!(),

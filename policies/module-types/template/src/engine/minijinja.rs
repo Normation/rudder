@@ -5,8 +5,9 @@ use crate::engine::{Mode, TemplateEngine};
 use anyhow::{Context, Result, anyhow};
 use minijinja::UndefinedBehavior;
 use rudder_module_type::cli::{FileError, FileRange};
+use rudder_module_type::encoding::unicode_file_to_string;
 use serde_json::Value;
-use std::{fs::read_to_string, path::Path};
+use std::path::Path;
 
 mod filters;
 
@@ -83,7 +84,7 @@ impl TemplateEngine for MiniJinjaEngine {
 
         let (template_name, template) = match (template_path, template_string) {
             (Some(p), _) => {
-                let template = read_to_string(p)
+                let template = unicode_file_to_string(p)
                     .with_context(|| format!("Failed to read template {}", p.display()))?;
                 let template_name = p.file_name().unwrap().to_string_lossy().into_owned();
                 (template_name, template)
