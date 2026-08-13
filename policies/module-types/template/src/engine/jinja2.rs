@@ -63,6 +63,8 @@ impl TemplateEngine for Jinja2Engine {
         #[cfg(target_family = "windows")]
         {
             let mut perms = fs::metadata(&template_script_path)?.permissions();
+            // The lint warns about world-writable files on Unix, which does not apply here.
+            #[allow(clippy::permissions_set_readonly_false)]
             perms.set_readonly(false);
             fs::set_permissions(&template_script_path, perms)?;
         }
