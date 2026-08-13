@@ -1,6 +1,6 @@
 module Rules.ViewRepairedReports exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -27,9 +27,9 @@ columns model =
         :: []
 
 
-options : RuleId -> Model -> List (Html Msg)
-options ruleId model =
-    List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges c) ]) <| Maybe.withDefault [] (Dict.get ruleId.value model.changes)
+options : List Changes -> List (Html Msg)
+options changes =
+    List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges c) ]) <| changes
 
 
 technicalLogsTab : Model -> RuleDetails -> Html Msg
@@ -37,10 +37,22 @@ technicalLogsTab model details =
     let
         col =
             columns model
+
+        tableTitle =
+            case Dict.get details.rule.id.value model.changes of
+                Just changes ->
+                    div [ class "table-title" ]
+                        [ div [ class "input-group w-auto" ]
+                            [ label [ class "input-group-text", for "dateRange" ] [ i [ class "fa fa-calendar" ] [] ]
+                            , select [ id "dateRange", onInput (\s -> GetRepairedReport details.rule.id (Maybe.withDefault 0 (String.toInt s))), class "form-select" ] (options changes)
+                            ]
+                        ]
+
+                Nothing ->
+                    text ""
     in
     div [ class "tab-table-content" ]
-        [ div [ class "table-title" ]
-            [ h4 [] [ text "Recent changes ", select [ onInput (\s -> GetRepairedReport details.rule.id (Maybe.withDefault 0 (String.toInt s))), class "form-control" ] (options details.rule.id model) ] ]
+        [ tableTitle
         , div [ class "table-header" ]
             [ input
                 [ type_ "text"
