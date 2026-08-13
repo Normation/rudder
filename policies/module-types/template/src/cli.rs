@@ -6,6 +6,7 @@ use crate::{Engine, compute_diff_or_warning};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
+use rudder_module_type::encoding::unicode_file_to_string;
 use serde_json::Value;
 use std::fs;
 use std::fs::read_to_string;
@@ -60,7 +61,7 @@ impl Cli {
 
         let mut content = String::new();
         let already_correct = if already_present {
-            content = read_to_string(&cli.out)
+            content = unicode_file_to_string(&cli.out)
                 .with_context(|| format!("Failed to read file {}", cli.out.display()))?;
             content == output
         } else {

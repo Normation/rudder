@@ -4,10 +4,11 @@
 use base64::prelude::*;
 use minijinja::{Error, ErrorKind};
 use regex::Regex;
+use rudder_module_type::encoding::unicode_file_to_string;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use shlex::try_quote;
-use std::{ffi::OsStr, fs::read_to_string, path::Path};
+use std::{ffi::OsStr, path::Path};
 use urlencoding::decode;
 
 pub fn b64encode(plain: String) -> String {
@@ -119,16 +120,18 @@ pub fn regex_replace(
     Ok(r.replacen(&data, n, re).to_string())
 }
 
-/// `lookup(kind, ...)`. Only `file` is supported: it reads a
-/// file's raw UTF-8 content at render time on the node.
+/// `lookup(kind, ...)`. Only `file` is supported: it reads a file's content at
+/// render time on the node. UTF-8 (with or without BOM) and UTF-16LE with a BOM
+/// are accepted, as the looked-up file is user-provided.
 pub fn lookup(kind: String, path: String) -> Result<String, Error> {
     match kind.as_str() {
-        "file" => read_to_string(&path).map_err(|e| {
+        "file" => unicode_file_to_string(&path).map_err(|e| {
+            // `anyhow::Error` is not a `std::error::Error`, so inline the cause chain
+            // instead of attaching it as a source.
             Error::new(
                 ErrorKind::InvalidOperation,
-                format!("cannot read file: {path}"),
+                format!("cannot read file: {path}: {e:#}"),
             )
-            .with_source(e)
         }),
         other => Err(Error::new(
             ErrorKind::InvalidOperation,
@@ -145,6 +148,8 @@ mod tests {
     #[cfg(target_family = "unix")]
     use rudder_module_type::{Outcome, PolicyMode};
     use std::fs;
+    #[cfg(target_family = "unix")]
+    use std::fs::read_to_string;
     use tempfile::tempdir;
 
     #[cfg(target_family = "unix")]
