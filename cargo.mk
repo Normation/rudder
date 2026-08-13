@@ -44,6 +44,12 @@ else
 TARGET_OPT=
 endif
 
+ifdef PACKAGE
+PACKAGE_OPT=--package=$(PACKAGE)
+else
+PACKAGE_OPT=
+endif
+
 ifdef FEATURES
 FEATURES_OPT=--features=$(FEATURES)
 else
@@ -97,19 +103,14 @@ cargo-install-release: cargo-release
 	install -m 755 target/release/$(BIN) $(DESTDIR)/bin/$(BIN)
 
 cargo-test: rust-version cargo-nextest
-ifdef PACKAGE
-	cargo nextest run --package $(PACKAGE) $(FEATURES_OPT) --locked --no-tests pass --jobs $(JOBS)
-else
-	@echo "Please specify PACKAGE=crate_name"
-	@exit 1
-endif
+	cargo nextest run $(PACKAGE_OPT) $(FEATURES_OPT) --locked --no-tests pass --jobs $(JOBS)
 
 dev-doc:
 	cargo doc --no-deps --document-private-items --features=apt
 
 lint:
 	cargo fmt --all -- --check
-	cargo clippy --all-targets --examples --tests --locked -- --deny warnings
+	cargo clippy $(TARGET_OPT) $(PACKAGE_OPT) --all-targets --locked -- --deny warnings
 
 clean:
 	find . -name "*.cdx.*" -exec rm {} \;
@@ -121,4 +122,4 @@ veryclean: clean
 	rm -rf ~/.rustup ~/.cargo
 
 # rustup does not support parallel installs
-.NOTPARALLEL: cargo-release cargo-test cargo-sbom
+.NOTPARALLEL: cargo-release cargo-test cargo-sbom lint-cross
