@@ -72,7 +72,7 @@ init flags =
             }
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath Nothing) ]
+            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 

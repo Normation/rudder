@@ -40,9 +40,7 @@ package com.normation.rudder.rest.internal
 import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.domain.eventlog.AddRuleEventType
-import com.normation.rudder.domain.eventlog.DeleteRuleEventType
-import com.normation.rudder.domain.eventlog.ModifyRuleEventType
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.repository.EventLogRepository
@@ -77,10 +75,12 @@ class EventLogAPI(
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
     EventLogApi.endpoints.map {
-      case EventLogApi.GetEventLogs       => GetEventLogs
-      case EventLogApi.GetEventLogDetails => GetEventLogDetails
-      case EventLogApi.RollbackEventLog   => RollbackEventLog
-      case EventLogApi.GetRuleEventLogs   => GetRuleEventLogs
+      case EventLogApi.GetEventLogs          => GetEventLogs
+      case EventLogApi.GetEventLogDetails    => GetEventLogDetails
+      case EventLogApi.RollbackEventLog      => RollbackEventLog
+      case EventLogApi.GetRuleEventLogs      => GetRuleEventLogs
+      case EventLogApi.GetDirectiveEventLogs => GetDirectiveEventLogs
+      case EventLogApi.GetGroupEventLogs     => GetGroupEventLogs
     }
   }
 
@@ -187,6 +187,62 @@ class EventLogAPI(
     }
   }
 
+  def getEventLogsOfGivenTypes(req: Req, params: DefaultParams, include: NonEmptyChunk[EventLogType])(using
+      qc: QueryContext
+  ): LiftResponse = {
+
+    given prettify: Boolean = params.prettify
+
+    (for {
+      restFilter  <- req.fromJson[RestEventLogFilter].toIO
+      // the value of the typeFilter field in the query is unused
+      queryFilter  = restFilter.toEventLogRequest
+      // typeFilter is replaced with a filter that includes all event logs whose types belong to the 'include' list
+      filter       = queryFilter.copy(typeFilter = {
+                       Some(EventLogRequest.TypeFilter(include = Some(include), exclude = None))
+                     })
+      totalRecord <- coreService.getUserEventLogCount(filter = None)
+      totalFilter <- coreService.getUserEventLogCount(filter = Some(filter))
+      events      <- coreService.getUserEventLogs(filter = Some(filter))
+      res          = EventLogSlice(events, totalRecord, totalFilter)
+    } yield {
+      (restFilter.draw, res)
+    }).chainError(s"Error when fetching event logs of types ${include.mkString(",")}")
+      .either
+      .runNow
+      .fold(
+        err => RudderJsonResponse.generic.internalError(RestEventLogError(err.fullMsg)),
+        {
+          case (draw, EventLogSlice(events, totalRecord, totalFilter)) =>
+            RudderJsonResponse.LiftJsonResponse(
+              RestEventLogSuccess(draw, totalRecord, totalFilter, events.map(_.transformInto[RestEventLog])),
+              params.prettify,
+              200
+            )
+        }
+      )
+  }
+
+  object GetDirectiveEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetDirectiveEventLogs.type = EventLogApi.GetDirectiveEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddDirectiveEventType, DeleteDirectiveEventType, ModifyDirectiveEventType)
+      )
+    }
+  }
+
   object GetRuleEventLogs extends LiftApiModule0 {
     val schema: EventLogApi.GetRuleEventLogs.type = EventLogApi.GetRuleEventLogs
 
@@ -197,42 +253,33 @@ class EventLogAPI(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val prettify: Boolean      = params.prettify
-      implicit val qc:       QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
-      (for {
-        restFilter  <- req.fromJson[RestEventLogFilter].toIO
-        // the value of the typeFilter field in the query is unused
-        queryFilter  = restFilter.toEventLogRequest
-        // typeFilter is replaced with the list of eventlog types that concern rules
-        filter       = queryFilter.copy(typeFilter = {
-                         Some(
-                           EventLogRequest.TypeFilter(
-                             include = Some(NonEmptyChunk(AddRuleEventType, DeleteRuleEventType, ModifyRuleEventType)),
-                             exclude = None
-                           )
-                         )
-                       })
-        totalRecord <- coreService.getUserEventLogCount(filter = None)
-        totalFilter <- coreService.getUserEventLogCount(filter = Some(filter))
-        events      <- coreService.getUserEventLogs(filter = Some(filter))
-        res          = EventLogSlice(events, totalRecord, totalFilter)
-      } yield {
-        (restFilter.draw, res)
-      }).chainError("Error when fetching event logs")
-        .either
-        .runNow
-        .fold(
-          err => RudderJsonResponse.generic.internalError(RestEventLogError(err.fullMsg)),
-          {
-            case (draw, EventLogSlice(events, totalRecord, totalFilter)) =>
-              RudderJsonResponse.LiftJsonResponse(
-                RestEventLogSuccess(draw, totalRecord, totalFilter, events.map(_.transformInto[RestEventLog])),
-                params.prettify,
-                200
-              )
-          }
-        )
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddRuleEventType, DeleteRuleEventType, ModifyRuleEventType)
+      )
+    }
+  }
+
+  object GetGroupEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetGroupEventLogs.type = EventLogApi.GetGroupEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddNodeGroupEventType, DeleteNodeGroupEventType, ModifyNodeGroupEventType)
+      )
     }
   }
 
