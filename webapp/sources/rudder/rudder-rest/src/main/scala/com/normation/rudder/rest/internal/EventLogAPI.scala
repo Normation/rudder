@@ -75,12 +75,13 @@ class EventLogAPI(
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
     EventLogApi.endpoints.map {
-      case EventLogApi.GetEventLogs          => GetEventLogs
-      case EventLogApi.GetEventLogDetails    => GetEventLogDetails
-      case EventLogApi.RollbackEventLog      => RollbackEventLog
-      case EventLogApi.GetRuleEventLogs      => GetRuleEventLogs
-      case EventLogApi.GetDirectiveEventLogs => GetDirectiveEventLogs
-      case EventLogApi.GetGroupEventLogs     => GetGroupEventLogs
+      case EventLogApi.GetEventLogs                => GetEventLogs
+      case EventLogApi.GetEventLogDetails          => GetEventLogDetails
+      case EventLogApi.RollbackEventLog            => RollbackEventLog
+      case EventLogApi.GetRuleEventLogs            => GetRuleEventLogs
+      case EventLogApi.GetDirectiveEventLogs       => GetDirectiveEventLogs
+      case EventLogApi.GetGroupEventLogs           => GetGroupEventLogs
+      case EventLogApi.GetEditorTechniqueEventLogs => GetEditorTechniqueEventLogs
     }
   }
 
@@ -279,6 +280,26 @@ class EventLogAPI(
         req,
         params,
         NonEmptyChunk(AddNodeGroupEventType, DeleteNodeGroupEventType, ModifyNodeGroupEventType)
+      )
+    }
+  }
+
+  object GetEditorTechniqueEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetEditorTechniqueEventLogs.type = EventLogApi.GetEditorTechniqueEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddEditorTechniqueEventType, DeleteEditorTechniqueEventType, ModifyEditorTechniqueEventType)
       )
     }
   }
