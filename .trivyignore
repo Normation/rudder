@@ -1,13 +1,14 @@
-# TODO: fix/annotate
+ # Scala
+CVE-2026-5588 # bouncycastle: BC-JAVA: PKIX draft CompositeVerifier accepts empty signature sequence as valid
+CVE-2025-11226 # ch.qos.logback/logback-core: Conditional arbitrary code execution in logback-core
+CVE-2025-58369 # FS2 half-shutdown of socket during TLS handshake may result in spin loop
+CVE-2025-48976 # apache-commons-fileupload: Apache Commons FileUpload DoS via part headers
+CVE-2025-48924 # commons-lang/commons-lang: Uncontrolled Recursion vulnerability in Apache Commons Lang
+CVE-2026-41720 # Spring LDAP has Authentication Bypass with Empty Password
 
-# Scala
-CVE-2026-5588
-CVE-2025-11226
-CVE-2025-58369
-CVE-2025-48976
-CVE-2025-48924
-GHSA-2p49-hgcm-8545
-CVE-2026-29074
-CVE-2024-1899
-CVE-2025-9910
+# npm
+CVE-2024-1899 # Showdown vulnerable to Regular Expression Denial of Service (ReDoS) in link/anchor parsing, no release patch
+CVE-2025-9910 # jsondiffpatch is vulnerable to Cross-site Scripting (XSS) via HtmlFormatter::nodeBegin
+CVE-2026-59710 # showdown: Showdown: Stored Cross-Site Scripting via unescaped table header ID attributes, no release patch
+CVE-2026-59711 # showdown: Showdown: Cross-site scripting via unescaped metadata title, no release patch
 
