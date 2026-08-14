@@ -272,6 +272,13 @@ object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi]
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
 
+  case object GetDirectiveEventLogs extends EventLogApi with InternalApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get directive-related event logs based on filters"
+    val (action, path) = POST / "eventlog" / "directives"
+    val authz: List[AuthorizationType] = AuthorizationType.Directive.Read :: Nil
+  }
+
   def endpoints: List[EventLogApi] = values.toList.sortBy(_.z)
 
   def values = findValues
