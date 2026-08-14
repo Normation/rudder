@@ -236,6 +236,7 @@ class InMemoryUserRepositoryTest extends UserRepositoryTest {
 // this one use postgres and will run only with -Dtest.postgres="true"
 @RunWith(classOf[JUnitRunner])
 class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
+
   import doobie.*
 
   override def doJdbcTest = doDatabaseConnection
@@ -243,6 +244,7 @@ class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
   // format: off
   org.slf4j.LoggerFactory.getLogger("sql").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   org.slf4j.LoggerFactory.getLogger("application.user").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+
   // format: on
   override def afterAll(): Unit = {
     cleanDb()
@@ -321,6 +323,23 @@ class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
       ).map(_.map(_._1)) must beRight(
         containTheSameElementsAs(users)
       )
+    }
+  }
+
+  "update query" >> {
+
+    "for user info" in {
+      transactRunEither(
+        repo.updateUserInfo("user1", None, None, None).transact(_)
+      ) must beRight
+
+      transactRunEither(
+        repo.updateUserInfo("user1", Some(None), Some(None), None).transact(_)
+      ) must beRight
+
+      transactRunEither(
+        repo.updateUserInfo("user1", Some(Some("name")), Some(Some("email")), None).transact(_)
+      ) must beRight
     }
   }
 }
