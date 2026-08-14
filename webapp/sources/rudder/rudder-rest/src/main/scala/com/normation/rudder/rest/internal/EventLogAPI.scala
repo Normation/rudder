@@ -80,6 +80,7 @@ class EventLogAPI(
       case EventLogApi.RollbackEventLog      => RollbackEventLog
       case EventLogApi.GetRuleEventLogs      => GetRuleEventLogs
       case EventLogApi.GetDirectiveEventLogs => GetDirectiveEventLogs
+      case EventLogApi.GetGroupEventLogs     => GetGroupEventLogs
     }
   }
 
@@ -258,6 +259,26 @@ class EventLogAPI(
         req,
         params,
         NonEmptyChunk(AddRuleEventType, DeleteRuleEventType, ModifyRuleEventType)
+      )
+    }
+  }
+
+  object GetGroupEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetGroupEventLogs.type = EventLogApi.GetGroupEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddNodeGroupEventType, DeleteNodeGroupEventType, ModifyNodeGroupEventType)
       )
     }
   }
