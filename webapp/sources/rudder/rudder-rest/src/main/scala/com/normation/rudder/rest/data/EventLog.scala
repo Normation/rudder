@@ -198,6 +198,8 @@ object RestEventLogRollback {
   object Action       extends Enum[Action] {
     case object After  extends Action
     case object Before extends Action
+    // revert only the item the event log is about, and not everything that happened since
+    case object Item   extends Action
 
     override def values: IndexedSeq[Action] = findValues
 

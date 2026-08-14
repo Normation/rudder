@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011-2013 Normation SAS
+ * Copyright 2026 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -45,10 +45,23 @@ import com.normation.rudder.tenants.*
 import org.eclipse.jgit.lib.PersonIdent
 import zio.syntax.*
 
-class ModificationService(
+/**
+ * Restore one configuration item to the state it had before a given change.
+ *
+ * Kept apart from `ModificationService`: restoring the whole configuration replaces every object at
+ * once and is therefore done with a system context, while restoring a single item only touches that
+ * item and must run under the change context - hence the tenant grant - of the user asking for it.
+ * It is meant to get its own endpoint, subject to the read rights on the item itself.
+ */
+trait ItemRollbackService {
+
+  def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using cc: ChangeContext): IOResult[GitCommitId]
+}
+
+class ItemRollbackServiceImpl(
     gitModificationRepository: GitModificationRepository,
-    itemArchiveManager:        ItemArchiveManager
-) {
+    itemRollbackRepository:    ItemRollbackRepository
+) extends ItemRollbackService {
 
   def getCommitsfromEventLog(eventLog: EventLog): IOResult[Option[GitCommitId]] = {
     eventLog.modificationId match {
@@ -69,36 +82,13 @@ class ModificationService(
   // the state just *before* a change is the parent of the commit that change led to
   private def parentOf(commit: GitCommitId): GitCommitId = GitCommitId(commit.value + "^")
 
-  def restoreToEventLog(
-      eventLog:         EventLog,
-      commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
-  ): IOResult[GitCommitId] = {
+  override def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using cc: ChangeContext): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, "after")(using
-                    QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
-                  )
+      // an item restore is about that one event log, so it is both the only event rolled back and the target
+      rollback <- itemRollbackRepository.rollbackItem(parentOf(commit), commiter, Seq(eventLog), eventLog)
     } yield {
       rollback
     }
   }
-
-  def restoreBeforeEventLog(
-      eventLog:         EventLog,
-      commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
-  ): IOResult[GitCommitId] = {
-    for {
-      commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, "before")(using
-                    QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
-                  )
-    } yield {
-      rollback
-    }
-  }
-
 }

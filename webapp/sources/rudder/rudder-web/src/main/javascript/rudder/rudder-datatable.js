@@ -1581,15 +1581,17 @@ function createChangesTable(gridId, data, contextPath, refresh) {
 
 }
 
-function setupRollbackBlock(id) {
-  var rollbackId = 'rollback' + id;
-  var confirmId = 'confirm' + id;
-  var btnId = 'restoreBtn' + id;
-  var rollbackBlock = document.getElementById("rollbackBlock");
-  var returnedHTML = rollbackBlock.innerHTML.replace(/{{rollbackId}}/g, rollbackId)
-                        .replace(/{{restoreBtnId}}/g, btnId)
-                        .replace(/{{confirmId}}/g, confirmId);
-  return returnedHTML
+function buildRollbackBlock(id) {
+  const block = $("#rollbackDisplay").clone();
+  block.html((_, h) => h
+    .replace(/{{rollbackItemId}}/g,          'rollbackItem' + id)
+    .replace(/{{rollbackBtnId}}/g,           'rollbackBtn' + id)
+    .replace(/{{confirmItemId}}/g,           'confirmItem' + id)
+    .replace(/{{rollbackConfigurationId}}/g, 'rollbackConfiguration' + id)
+    .replace(/{{restoreBtnId}}/g,            'restoreBtn' + id)
+    .replace(/{{confirmConfigurationId}}/g,  'confirmConfiguration' + id)
+  ).attr("id","rollbackDisplay" + id);
+  return block;
 }
 
 function getRadioChecked(radios, validate = s => s) {
@@ -1624,8 +1626,12 @@ function confirmRollback(id, action) {
 }
 
 function cancelRollback(id) {
-  $('#confirm'+id).empty().removeClass();
-  $('#rollback'+id).removeClass("d-none").addClass("d-flex");
+  $('#confirmConfiguration'+id).empty().removeClass();
+  $('#rollbackConfiguration'+id).removeClass("d-none").addClass("d-flex");
+}
+function cancelRollbackItem(id) {
+  $('#confirmItem'+id).empty().removeClass();
+  $('#rollbackItem'+id).removeClass("d-none").addClass("d-flex");
 }
 function computeCompliancePercentFromString(complianceString) {
   var complianceArray = complianceString.split(",").map(Number);

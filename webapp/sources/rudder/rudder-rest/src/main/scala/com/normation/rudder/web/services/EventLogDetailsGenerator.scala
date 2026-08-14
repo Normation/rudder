@@ -38,6 +38,7 @@ package com.normation.rudder.web.services
 
 import cats.implicits.*
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventLog
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.*
@@ -65,7 +66,9 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
+import com.normation.rudder.services.modification.ItemRollbackService
 import com.normation.rudder.services.modification.ModificationService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
@@ -87,6 +90,7 @@ class EventLogDetailsGenerator(
     nodeFactRepository:  NodeFactRepository,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
+    itemRollbackService: ItemRollbackService,
     linkUtil:            LinkUtil,
     diffDisplayer:       DiffDisplayer
 ) extends Loggable {
@@ -1663,22 +1667,55 @@ class EventLogDetailsGenerator(
   )
 
   trait RollBackAction {
-    def name:   String
-    def op:     String
-    def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId]
+    def name:                   String
+    def op:                     String
+    // the rollback is done in the change context of the user asking for it, so that it is subject
+    // to their tenant access grant and not to a system one
+    def action(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    )(using cc: ChangeContext): IOResult[GitCommitId]
     def selectRollbackedEventsRequest(id: Int): String = s" id ${op} ${id} and modificationid IS NOT NULL"
   }
 
   case object RollbackTo extends RollBackAction {
     val name = "after"
     val op   = ">"
-    def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId] = modificationService.restoreToEventLog
+    def action(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    )(using cc: ChangeContext): IOResult[GitCommitId] =
+      modificationService.restoreToEventLog(eventLog, commiter, rollbackedEvents, target)
   }
 
   case object RollbackBefore extends RollBackAction {
     val name = "before"
     val op   = ">="
-    def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId] = modificationService.restoreBeforeEventLog
+    def action(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    )(using cc: ChangeContext): IOResult[GitCommitId] =
+      modificationService.restoreBeforeEventLog(eventLog, commiter, rollbackedEvents, target)
+  }
+
+  case object RollbackItem extends RollBackAction {
+    val name = "item"
+    val op   = "="
+    def action(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    )(using cc: ChangeContext): IOResult[GitCommitId] = {
+      // an item restore is scoped to one event log: rollbackedEvents and target are not relevant here
+      itemRollbackService.restoreItem(eventLog, commiter)
+    }
   }
 
 }

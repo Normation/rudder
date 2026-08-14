@@ -263,6 +263,26 @@ response:
       }
     }
 ---
+description: Rollback a specific event log for an item
+method: POST
+url: /secure/api/eventlog/1/details/rollback
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+params:
+  action: item
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "rollbackEventLog",
+      "result" : "success",
+      "data" : {
+        "action" : "item",
+        "id" : "1"
+      }
+    }
+
+---
 description: Rollback a specific event log with multiple action
 method: POST
 url: /secure/api/eventlog/1/details/rollback
