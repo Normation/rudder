@@ -3,7 +3,7 @@ FROM maven:3-eclipse-temurin-${JDK_VERSION}
 LABEL ci=rudder/webapp/sources/Dockerfile
 
 ARG NODE_VERSION=24
-ARG TRIVY_VERSION=0.72.0
+ARG TRIVY_VERSION=0.73.0
 
 ARG USER_ID=1000
 

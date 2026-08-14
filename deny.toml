@@ -1,9 +1,10 @@
+# NOTE: trivy is now used for vunlnerability checks, but we keep cargo-deny for other checks.
+
 # Only non-default values are listed here
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-
 
 allow-git = [
     "https://github.com/fennewald/format_serde_error",
@@ -36,26 +37,6 @@ allow = [
     "Zlib",
 ]
 unused-allowed-license = "allow"
-
-[advisories]
-ignore = [
-    # No fix for rand 0.8, and risk is acceptable
-    "RUSTSEC-2026-0097",
-    # We don't use diesel with sqlite backend
-    "RUSTSEC-2026-0111",
-    # We don't use diesel with sqlite backend
-    "RUSTSEC-2026-0137",
-    # We don't use diesel with sqlite backend
-    "RUSTSEC-2026-0135",
-    "RUSTSEC-2026-0172",
-    # We don't use diesel with MySQL backend
-    "RUSTSEC-2026-0134",
-    # We don't use diesel CopyToQuery with the PostgreSQL backend
-    "RUSTSEC-2026-0136",
-    # DoS on unstrusted XML in quick-xml, acceptable
-    "RUSTSEC-2026-0194",
-    "RUSTSEC-2026-0195",
-]
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
