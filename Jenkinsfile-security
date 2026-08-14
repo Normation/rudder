@@ -31,23 +31,22 @@ pipeline {
                 TRIVY_DISABLE_VEX_NOTICE = '1'
             }
             steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    dir('webapp/sources/') {
-                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always dependency:resolve', label: "load webapp dependencies"
-                    }
-                    dir('webapp/sources/rudder/rudder-web/src/main/') {
-                        sh script: "npm_config_loglevel=error npm ci --no-audit", label: "load npm dependencies"
-                    }
-                    sh script: "trivy fs --no-progress .", label: "scanning dependencies for vulnerabilities"
-                }
-            }
-            post {
-                failure {
-                    script {
-                        errors.add("deps")
-                        failedBuild = true
-                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                script {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        try {
+                            dir('webapp/sources/') {
+                                sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always dependency:resolve', label: "load webapp dependencies"
+                            }
+                            dir('webapp/sources/rudder/rudder-web/src/main/') {
+                                sh script: "npm_config_loglevel=error npm ci --no-audit", label: "load npm dependencies"
+                            }
+                            sh script: "trivy fs --no-progress .", label: "scanning dependencies for vulnerabilities"
+                        } catch (exc) {
+                            errors.add("deps")
+                            failedBuild = true
+                            slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                            slackSend(channel: slackResponse.threadId, message: "Dependency check error - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        }
                     }
                 }
             }
@@ -63,18 +62,20 @@ pipeline {
                 }
             }
             steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check licenses sources bans', label: 'check rust dependencies'
-                }
-            }
-            post {
-                failure {
-                    script {
-                        errors.add("rust")
-                        failedBuild = true
-                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                script {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        try {
+                            sh script: 'mkdir -p target', label: 'create target directory'
+                            sh script: 'cargo deny check licenses sources bans', label: 'check rust dependencies'
+                        } catch (exc) {
+                            errors.add("rust")
+                            failedBuild = true
+                            // we only report to Slack for branches, PR errors are visible in the PR itself
+                            if (changeUrl == null) {
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                            }
+                        }
                     }
                 }
             }
@@ -99,7 +100,8 @@ def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
 
   if (changeUrl == null) {
 
-      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE")
+      // previousBuild is null on the first build of a branch
+      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild != null && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE")
       if (errors.isEmpty() && isEnded && fixed) {
         msg +=  " => No security issues found! :white_check_mark:"
         def color = "good"
