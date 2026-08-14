@@ -199,7 +199,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initValues.contextPath))
+        , Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initValues.contextPath) Nothing)
         ]
     )
 
@@ -447,10 +447,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath)) )
+                        ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath) Nothing) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath)) )
+                    ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath) Nothing) )
 
         SelectDraft id ->
             let

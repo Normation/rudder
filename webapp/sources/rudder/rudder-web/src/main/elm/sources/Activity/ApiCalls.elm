@@ -8,14 +8,22 @@ import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : BodyParameters -> ContextPath -> Cmd ActivityMsg
-getActivities bodyParameters (ContextPath contextPath) =
+getActivities : BodyParameters -> ContextPath -> Maybe String -> Cmd ActivityMsg
+getActivities bodyParameters (ContextPath contextPath) resourceTypeOpt =
     let
+        url =
+            case resourceTypeOpt of
+                Just resourceType ->
+                    contextPath :: "secure" :: "api" :: "eventlog" :: [ resourceType ]
+
+                Nothing ->
+                    contextPath :: "secure" :: "api" :: [ "eventlog" ]
+
         req =
             request
                 { method = "POST"
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
-                , url = Url.Builder.relative (contextPath :: "secure" :: "api" :: [ "eventlog" ]) []
+                , url = Url.Builder.relative url []
                 , body = encodeRestEventLogFilter bodyParameters |> jsonBody
                 , expect = Detailed.expectJson GetActivities decodeGetActivities
                 , timeout = Nothing

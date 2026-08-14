@@ -106,7 +106,7 @@ init flags =
             }
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath) ]
+            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath Nothing) ]
     in
     ( initModel, Cmd.batch initActions )
 

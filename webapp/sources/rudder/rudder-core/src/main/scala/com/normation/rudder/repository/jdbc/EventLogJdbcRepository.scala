@@ -59,6 +59,7 @@ import doobie.free.connection
 import doobie.free.preparedstatement
 import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.util.fragment
 import doobie.util.fragments
 import doobie.util.log.LoggingInfo
 import doobie.util.log.Parameters.NonBatch

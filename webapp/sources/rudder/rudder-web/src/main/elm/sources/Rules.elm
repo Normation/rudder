@@ -521,7 +521,7 @@ update msg model =
                             ContextPath model.contextPath
 
                         callGetActivities =
-                            getActivities (bodyParameters (Just details.rule.id.value)) contextPath
+                            getActivities (bodyParameters (Just details.rule.id.value)) contextPath (Just "rules")
                     in
                     ( { model | mode = RuleForm details }
                     , Cmd.batch
