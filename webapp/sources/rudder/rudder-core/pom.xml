@@ -92,7 +92,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.openjdk.jol</groupId>
       <artifactId>jol-core</artifactId>
-      <version>0.17</version>
+      <version>${jol-core-version}</version>
     </dependency>
     <dependency>
       <groupId>com.normation.inventory</groupId>
@@ -239,7 +239,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
-      <version>3.0.2</version>
+      <version>${jsr305-version}</version>
     </dependency>
 
     <dependency>
