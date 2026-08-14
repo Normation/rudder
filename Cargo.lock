@@ -3867,8 +3867,11 @@ dependencies = [
  "rudder_cli",
  "rudder_module_type",
  "serde",
+ "serde_json",
  "sysinfo",
+ "tempfile",
  "tracing",
+ "wait-timeout",
 ]
 
 [[package]]
