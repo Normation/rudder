@@ -39,6 +39,8 @@ package com.normation.rudder.users
 
 import cats.ApplicativeError
 import cats.data.NonEmptyList
+import cats.syntax.applicative.*
+import cats.syntax.functor.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
@@ -1065,6 +1067,17 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       email:     Option[Option[String]],
       otherInfo: Option[Json.Obj]
   ): IOResult[Unit] = {
+    transactIOResult(s"Error when updating user information for '${userId}'")(xa =>
+      updateUserInfo(userId, name, email, otherInfo).transact(xa)
+    ).unit
+  }
+
+  private[users] def updateUserInfo(
+      userId:    String,
+      name:      Option[Option[String]],
+      email:     Option[Option[String]],
+      otherInfo: Option[Json.Obj]
+  ): ConnectionIO[Unit] = {
     val params = {
       List(
         name.map((x => fr"name = ${x}")),
@@ -1073,11 +1086,11 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       ).flatten
     }
     params match {
-      case Nil       => ZIO.unit
+      case Nil       => ().pure[ConnectionIO]
       case h :: tail =>
-        val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where userId = ${userId}"""
+        val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where id = ${userId}"""
 
-        transactIOResult(s"Error when updating user information for '${userId}'")(xa => sql.update.run.transact(xa)).unit
+        sql.update.run.void
     }
   }
 
