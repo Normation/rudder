@@ -217,8 +217,7 @@ impl NodesList {
             .find(|c| c.object().to_string() == "userId")
             .ok_or(RudderError::MissingIdInCertificate)?
             .data()
-            .as_utf8()?
-            .to_string())
+            .to_string()?)
     }
 
     /// Some(Next hop) if any, None if directly connected, error if not found
