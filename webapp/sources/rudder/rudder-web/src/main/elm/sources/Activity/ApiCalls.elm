@@ -14,10 +14,10 @@ getActivities bodyParameters (ContextPath contextPath) resourceTypeOpt =
         url =
             case resourceTypeOpt of
                 Just resourceType ->
-                    contextPath :: "secure" :: "api" :: "eventlog" :: [ resourceType ]
+                    [ contextPath, "secure", "api", "eventlog", resourceType ]
 
                 Nothing ->
-                    contextPath :: "secure" :: "api" :: [ "eventlog" ]
+                    [ contextPath, "secure", "api", "eventlog" ]
 
         req =
             request
