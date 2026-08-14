@@ -84,7 +84,7 @@ init flags =
 
         initActions : List (Cmd Msg)
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initModel.contextPath))
+            [ Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initModel.contextPath) Nothing)
             , initTooltips ""
             , Task.perform Tick Time.now
             ]
