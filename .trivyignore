@@ -1,5 +1,4 @@
  # Scala
-CVE-2026-5588 # bouncycastle: BC-JAVA: PKIX draft CompositeVerifier accepts empty signature sequence as valid
 CVE-2025-11226 # ch.qos.logback/logback-core: Conditional arbitrary code execution in logback-core
 CVE-2025-58369 # FS2 half-shutdown of socket during TLS handshake may result in spin loop
 CVE-2025-48976 # apache-commons-fileupload: Apache Commons FileUpload DoS via part headers
