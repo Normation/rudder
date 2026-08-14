@@ -302,14 +302,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.springframework.ldap</groupId>
       <artifactId>spring-ldap-core</artifactId>
-      <version>3.3.8</version>
+      <version>${spring-ldap-version}</version>
     </dependency>
 
     <!-- specific version for security patches, pulled by spring-ldap-core -->
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
-      <version>1.16.6</version>
+      <version>${micrometer-version}</version>
     </dependency>
 
     <!-- this is needed for doobie/cats/zio compat in scala 3 - it must be at compile level else rudder breaks -->

@@ -440,6 +440,13 @@ limitations under the License.
     <magnolia-version>1.3.18</magnolia-version>
     <difflicious-version>0.4.3</difflicious-version>
     <enumeratum-version>1.7.6</enumeratum-version>
+    <stringtemplate-version>3.2.1</stringtemplate-version>
+    <paranamer-version>2.8.3</paranamer-version>
+    <async-profiler-version>4.0</async-profiler-version>
+    <jol-core-version>0.17</jol-core-version>
+    <jsr305-version>3.0.2</jsr305-version>
+    <spring-ldap-version>3.3.8</spring-ldap-version>
+    <micrometer-version>1.16.6</micrometer-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

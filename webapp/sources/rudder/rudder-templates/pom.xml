@@ -66,7 +66,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>stringtemplate</artifactId>
-      <version>3.2.1</version>
+      <version>${stringtemplate-version}</version>
     </dependency>
 
   </dependencies>
