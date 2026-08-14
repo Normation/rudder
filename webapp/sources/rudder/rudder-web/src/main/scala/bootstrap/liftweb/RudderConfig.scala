@@ -3215,7 +3215,9 @@ object RudderConfigInit {
       woLdapRuleRepository,
       roLDAPRuleCategoryRepository,
       roLdapDirectiveRepository,
+      woLdapDirectiveRepository,
       roLdapNodeGroupRepository,
+      woLdapNodeGroupRepository,
       roLdapParameterRepository,
       woLdapParameterRepository,
       gitConfigRepo,
@@ -3236,7 +3238,9 @@ object RudderConfigInit {
       logRepository,
       asyncDeploymentAgentImpl,
       gitModificationRepository,
-      dynGroupUpdaterService
+      dynGroupUpdaterService,
+      ncfTechniqueWriter,
+      yamlTechniqueSerializer
     )
     lazy val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
 
@@ -3548,12 +3552,12 @@ object RudderConfigInit {
       doobie
     }
 
-    lazy val parseRules:                  ParseRules & RuleRevisionRepository         = new GitParseRules(
+    lazy val parseRules:                  ParseRules                  = new GitParseRules(
       ruleUnserialisation,
       gitConfigRepo,
       rulesDirectoryName
     )
-    lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary              = new GitParseActiveTechniqueLibrary(
+    lazy val parseActiveTechniqueLibrary: ParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
       activeTechniqueCategoryUnserialisation,
       activeTechniqueUnserialisation,
       directiveUnserialisation,
@@ -3561,35 +3565,35 @@ object RudderConfigInit {
       gitRevisionProvider,
       userLibraryDirectoryName
     )
-    lazy val importTechniqueLibrary:      ImportTechniqueLibrary                      = new ImportTechniqueLibraryImpl(
+    lazy val importTechniqueLibrary:      ImportTechniqueLibrary      = new ImportTechniqueLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       uptLibReadWriteMutex
     )
-    lazy val parseGroupLibrary:           ParseGroupLibrary & GroupRevisionRepository = new GitParseGroupLibrary(
+    lazy val parseGroupLibrary:           ParseGroupLibrary           = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation,
       nodeGroupUnserialisation,
       gitConfigRepo,
       groupLibraryDirectoryName
     )
-    lazy val parseGlobalParameter:        ParseGlobalParameters                       = new GitParseGlobalParameters(
+    lazy val parseGlobalParameter:        ParseGlobalParameters       = new GitParseGlobalParameters(
       globalParameterUnserialisation,
       gitConfigRepo,
       parametersDirectoryName
     )
-    lazy val parseRuleCategories:         ParseRuleCategories                         = new GitParseRuleCategories(
+    lazy val parseRuleCategories:         ParseRuleCategories         = new GitParseRuleCategories(
       ruleCategoryUnserialisation,
       gitConfigRepo,
       ruleCategoriesDirectoryName
     )
-    lazy val importGroupLibrary:          ImportGroupLibrary                          = new ImportGroupLibraryImpl(
+    lazy val importGroupLibrary:          ImportGroupLibrary          = new ImportGroupLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       groupLibReadWriteMutex
     )
-    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary                   = new ImportRuleCategoryLibraryImpl(
+    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary   = new ImportRuleCategoryLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,

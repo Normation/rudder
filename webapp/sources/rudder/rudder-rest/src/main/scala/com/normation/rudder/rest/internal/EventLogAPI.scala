@@ -49,9 +49,11 @@ import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
+import com.normation.rudder.rest.data.RestEventLogRollback.Action.Item
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.*
 import com.normation.zio.UnsafeRun
@@ -355,14 +357,17 @@ class EventLogService(
   }
 
   def rollback(id: Long, action: RestEventLogRollback.Action)(implicit qc: QueryContext): IOResult[Unit] = {
+    // the rollback is a change made by the user asking for it: it must run in their context, not a system one
+    given cc: ChangeContext = qc.newCC()
     (for {
       event      <- repo.getEventLogById(id).catchSystemErrors
       rollbackReq = action match {
                       case After  => eventLogDetailGenerator.RollbackTo
                       case Before => eventLogDetailGenerator.RollbackBefore
+                      case Item   => eventLogDetailGenerator.RollbackItem
                     }
       committer  <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
-      _          <- rollbackReq.action(event, committer, Seq(event), event).toIO
+      _          <- rollbackReq.action(event, committer, Seq(event), event)
     } yield ())
   }
 

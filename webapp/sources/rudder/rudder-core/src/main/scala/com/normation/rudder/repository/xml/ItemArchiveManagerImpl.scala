@@ -37,32 +37,34 @@
 
 package com.normation.rudder.repository.xml
 
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.ModificationId
+import com.normation.eventlog.*
+import com.normation.inventory.domain.Version
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
+import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.git.GitArchiveId
-import com.normation.rudder.git.GitArchiverFullCommitUtils
-import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.git.*
+import com.normation.rudder.ncf.{DeleteEditorTechnique as _, *}
+import com.normation.rudder.ncf.eventlogs.*
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.*
-import com.normation.rudder.rule.category.GitRuleCategoryArchiver
-import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.*
+import com.normation.rudder.tenants.ChangeContext.toQC
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import java.io.File
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.*
 import org.eclipse.jgit.lib.PersonIdent
 import zio.*
@@ -72,8 +74,10 @@ class ItemArchiveManagerImpl(
     roRuleRepository:                   RoRuleRepository,
     woRuleRepository:                   WoRuleRepository,
     roRuleCategoryeRepository:          RoRuleCategoryRepository,
-    uptRepository:                      RoDirectiveRepository,
-    groupRepository:                    RoNodeGroupRepository,
+    roDirectiveRepository:              RoDirectiveRepository,
+    woDirectiveRepository:              WoDirectiveRepository,
+    roGroupRepository:                  RoNodeGroupRepository,
+    woGroupRepository:                  WoNodeGroupRepository,
     roParameterRepository:              RoParameterRepository,
     woParameterRepository:              WoParameterRepository,
     override val gitRepo:               GitRepositoryProvider,
@@ -94,7 +98,9 @@ class ItemArchiveManagerImpl(
     eventLogger:                        EventLogRepository,
     asyncDeploymentAgent:               AsyncDeploymentActor,
     gitModificationRepo:                GitModificationRepository,
-    updateDynamicGroups:                DynGroupUpdaterService
+    updateDynamicGroups:                DynGroupUpdaterService,
+    techniqueWriter:                    TechniqueWriter,
+    yamlTechniqueSerializer:            YamlTechniqueSerializer
 ) extends ItemArchiveManager with GitArchiverFullCommitUtils {
 
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
@@ -120,6 +126,7 @@ class ItemArchiveManagerImpl(
   override val tagPrefix                 = "archives/full/"
   override val relativePath              = "."
   override val gitModificationRepository = gitModificationRepo
+
   ///// implementation /////
   override def loggerName: String = this.getClass.getName
 
@@ -195,6 +202,7 @@ class ItemArchiveManagerImpl(
       commitId
     }
   }
+
   override def exportRules(
       commiter: PersonIdent,
       modId:    ModificationId,
@@ -222,7 +230,7 @@ class ItemArchiveManagerImpl(
   ): IOResult[(GitArchiveId, NotArchivedElements)] = {
     // export is a system-level operation, it sees all tenants
     for {
-      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
+      catWithUPT  <- roDirectiveRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
       // remove systems categories, we don't want to export them anymore
       okCatWithUPT = catWithUPT.toMap.collect {
                        // always include root category, even if it's a system one
@@ -305,7 +313,7 @@ class ItemArchiveManagerImpl(
       reason:   Option[String]
   )(implicit qc: QueryContext): IOResult[GitArchiveId] = {
     for {
-      catWithGroups <- groupRepository.getGroupsByCategory(includeSystem = true)
+      catWithGroups <- roGroupRepository.getGroupsByCategory(includeSystem = true)
       // remove systems categories, because we don't want them
       okCatWithGroup = catWithGroups.toMap.collect {
                          // always include root category, even if it's a system one
@@ -422,9 +430,13 @@ class ItemArchiveManagerImpl(
       _        <- woRuleRepository
                     .deleteSavedRuleArchiveId(imported)
                     .catchAll(err => GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}"))
-      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) })
+      _        <- effectUioUnit(if (deploy) {
+                    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+                  })
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      }
       archiveId
     }
   }
@@ -456,7 +468,9 @@ class ItemArchiveManagerImpl(
       parsed   <- parseActiveTechniqueLibrary.getArchive(archiveId)
       imported <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed)
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+      }
       archiveId
     }
   }
@@ -489,7 +503,9 @@ class ItemArchiveManagerImpl(
       imported <- importGroupLibrary.swapGroupLibrary(parsed)
       dynGroup <- updateDynamicGroups.updateAll(cc.modId).toIO
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+      }
       archiveId
     }
   }
@@ -526,7 +542,9 @@ class ItemArchiveManagerImpl(
                     .catchAll(err =>
                       GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                     )
-      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) })
+      _        <- effectUioUnit(if (deploy) {
+                    asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+                  })
     } yield {
       archiveId
     }
@@ -567,6 +585,241 @@ class ItemArchiveManagerImpl(
         archiveId
       }
     )
+  }
+
+  /**
+   * Rollback the items (directives, groups, global parameters, rules, techniques) corresponding to given event logs
+   * to their version at given commit: `archiveId` is already the commit to which we want to restore the item.
+   *
+   * Rollback must ensure that the git repo is consistent even for a single item, so use semaphore
+   */
+  override def rollbackItem(
+      archiveId:        GitCommitId,
+      commiter:         PersonIdent,
+      rollbackedEvents: Seq[EventLog],
+      target:           EventLog
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
+    for {
+      _ <- GitArchiveLoggerPure.info(s"Rolling back item to their state in commit '${archiveId.value}'")
+      _ <- ZIO.foreachDiscard(rollbackedEvents)(ev => useSemaphoreOrFail(rollbackOneItem(archiveId, ev)))
+      _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, "item", message))
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      archiveId
+    }
+  }
+
+  /*
+   * Rolling back always needs item ID in repos, we can find it in the event log details, at specific XML selector
+   *
+   * Logic of reverting change, depends on event log type:
+   * - reverting an addition is just a deletion
+   * - reverting a deletion or modification is a restore of the item as it is
+   *   - archive needs to be observed e.g. for category
+   *   - and
+   */
+  private[xml] def rollbackOneItem(archiveId: GitCommitId, event: EventLog)(implicit cc: ChangeContext): IOResult[Unit] = {
+    event match {
+      case e: DirectiveEventLog =>
+        for {
+          sid <- rolledBackItemId(e, XML_TAG_DIRECTIVE)
+          id  <- DirectiveId.parse(sid).toIO
+          _   <- e match {
+                   case _: AddDirective => woDirectiveRepository.delete(id.uid).unit
+                   case _: DeleteDirective | _: ModifyDirective => restoreDirective(archiveId, id.uid)
+                 }
+        } yield ()
+
+      case e: NodeGroupEventLog =>
+        for {
+          sid <- rolledBackItemId(e, XML_TAG_NODE_GROUP)
+          id  <- NodeGroupId.parse(sid).toIO
+          _   <- e match {
+                   case _: AddNodeGroup => woGroupRepository.delete(id).unit
+                   case _: DeleteNodeGroup | _: ModifyNodeGroup => restoreNodeGroup(archiveId, id)
+                 }
+        } yield ()
+
+      case e: ParameterEventLog =>
+        for {
+          name <- rolledBackItemId(e, XML_TAG_GLOBAL_PARAMETER, idTag = "name")
+          _    <- e match {
+                    case _: AddGlobalParameter => deleteParameter(name)
+                    case _: DeleteGlobalParameter | _: ModifyGlobalParameter => restoreParameter(archiveId, name)
+                  }
+        } yield ()
+
+      case e: RuleEventLog =>
+        for {
+          sid <- rolledBackItemId(e, XML_TAG_RULE)
+          // rules are archived at their default revision, drop any revision the event log may carry
+          id  <- RuleId.parse(sid).map(r => RuleId(r.uid)).toIO
+          _   <- e match {
+                   case _: AddRule => woRuleRepository.delete(id).unit
+                   case _: DeleteRule | _: ModifyRule => restoreRule(archiveId, id)
+                 }
+        } yield ()
+
+      case e: EditorTechniqueEventLog =>
+        for {
+          id      <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "id")
+          version <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "version")
+          _       <- e match {
+                       // deleteDirective = false: a rollback must stay scoped to that one item, so we don't
+                       // cascade to the directives using the technique. Deletion fails if there are any.
+                       case _: AddEditorTechnique => techniqueWriter.deleteTechnique(id, version, deleteDirective = false)
+                       case _: DeleteEditorTechnique | _: ModifyEditorTechnique =>
+                         restoreEditorTechnique(archiveId, BundleName(id), Version(version))
+                     }
+        } yield ()
+
+      case _ =>
+        GitArchiveLoggerPure.warn(
+          s"Item rollback is not supported for event type '${event.eventType.serialize}', that event is ignored"
+        )
+    }
+  }
+
+  /*
+   * All item event log details are of the form `<entry><directive ...><id>xxxx</id>...`, whatever
+   * the change type: get back the identifier of the item the event is about.
+   */
+  private def rolledBackItemId(event: EventLog, itemTag: String, idTag: String = "id"): IOResult[String] = {
+    (event.details \ itemTag \ idTag).headOption
+      .map(_.text.trim)
+      .notOptional(s"Missing <${idTag}> in the <${itemTag}> details of event log '${event.id.getOrElse("")}'")
+  }
+
+  private def restoreDirective(archiveId: GitCommitId, uid: DirectiveUid)(implicit cc: ChangeContext): IOResult[Unit] = {
+    val rev = Revision(archiveId.value)
+    for {
+      (activeTechnique, directive) <-
+        parseActiveTechniqueLibrary
+          .getDirectiveRevision(uid, rev)
+          .notOptional(
+            s"Directive '${uid.value}' was not found in the archive for commit '${archiveId.value}', it can not be restored"
+          )
+      // the technique version in the archive should be kept as is
+      restoredDirective             = directive
+                                        .modify(_.id.rev)
+                                        .setTo(GitVersion.DEFAULT_REV)
+                                        .modify(_.techniqueVersion)
+                                        .using(v => if (v.rev == rev) v.withRevision(GitVersion.DEFAULT_REV) else v)
+      _                            <- woDirectiveRepository.saveDirective(activeTechnique.id, restoredDirective)
+    } yield ()
+  }
+
+  private def restoreNodeGroup(archiveId: GitCommitId, id: NodeGroupId)(implicit cc: ChangeContext): IOResult[Unit] = {
+    implicit val qc: QueryContext = cc.toQC
+    for {
+      group        <- parseGroupLibrary
+                        .getGroupRevision(id.uid, Revision(archiveId.value))
+                        .notOptional(
+                          s"Group '${id.serialize}' was not found in the archive for commit '${archiveId.value}', it can not be restored"
+                        )
+      // same as for directives: the group must be restored in place, not as a copy frozen at the
+      // revision we looked it up at
+      restoredGroup = group.group.modify(_.id.rev).setTo(GitVersion.DEFAULT_REV)
+      existing     <- roGroupRepository.getNodeGroupOpt(id)
+      _            <- existing match {
+                        case Some(_) => woGroupRepository.update(restoredGroup).unit
+                        case None    => woGroupRepository.create(restoredGroup, group.categoryId).unit
+                      }
+    } yield ()
+  }
+
+  private def restoreParameter(archiveId: GitCommitId, name: String)(implicit cc: ChangeContext): IOResult[Unit] = {
+    implicit val qc: QueryContext = cc.toQC
+    for {
+      archive  <- parseGlobalParameters.getArchive(archiveId)
+      param    <-
+        archive
+          .find(_.name == name)
+          .notOptional(
+            s"Global parameter '${name}' was not found in the archive for commit '${archiveId.value}', it can not be restored"
+          )
+      existing <- roParameterRepository.getGlobalParameter(name)
+      _        <- existing match {
+                    case Some(_) => woParameterRepository.updateParameter(param).unit
+                    case None    => woParameterRepository.saveParameter(param).unit
+                  }
+    } yield ()
+  }
+
+  /*
+   * Deleting a parameter needs its provider, which is only known from the currently stored one.
+   */
+  private def deleteParameter(name: String)(implicit cc: ChangeContext): IOResult[Unit] = {
+    implicit val qc: QueryContext = cc.toQC
+    roParameterRepository.getGlobalParameter(name).flatMap {
+      case Some(param) => woParameterRepository.delete(name, param.provider).unit
+      case None        => ZIO.unit
+    }
+  }
+
+  private def restoreRule(archiveId: GitCommitId, id: RuleId)(implicit cc: ChangeContext): IOResult[Unit] = {
+    implicit val qc: QueryContext = cc.toQC
+    for {
+      rule        <- parseRules
+                       .getRuleRevision(id.uid, Revision(archiveId.value))
+                       .notOptional(
+                         s"Rule '${id.serialize}' was not found in the archive for commit '${archiveId.value}', it can not be restored"
+                       )
+      // same as for directives: the rule must be restored in place, not as a copy frozen at the
+      // revision we looked it up at
+      restoredRule = rule.modify(_.id.rev).setTo(GitVersion.DEFAULT_REV)
+      existing    <- roRuleRepository.getOpt(id)
+      _           <- existing match {
+                       case Some(_) => woRuleRepository.update(restoredRule).unit
+                       case None    => woRuleRepository.create(restoredRule).unit
+                     }
+    } yield ()
+  }
+
+  /*
+   * Techniques are restored with the `technique.yml` main file: read back that file at the
+   * wanted commit and let the technique writer recompile and update
+   */
+  private def restoreEditorTechnique(archiveId: GitCommitId, id: BundleName, version: Version)(implicit
+      cc: ChangeContext
+  ): IOResult[Unit] = {
+    val yamlPathEnd   = s"/${id.value}/${version.value}/${TechniqueFiles.yaml}"
+    // editor techniques are archived under that directory of the config repo, see GitTechniqueArchiverImpl
+    val techniquesDir = "techniques"
+
+    for {
+      treeId        <- GitFindUtils.findRevTreeFromRevString(gitRepo.db, archiveId.value)
+      gitPaths      <- GitFindUtils.listFiles(gitRepo.db, treeId, List(techniquesDir), List(yamlPathEnd))
+      gitPath       <- gitPaths.toList match {
+                         case p :: Nil => p.succeed
+
+                         case Nil =>
+                           Inconsistency(
+                             s"Technique '${id.value}/${version.value}' was not found in the archive for commit " +
+                             s"'${archiveId.value}', it can not be restored"
+                           ).fail
+
+                         case several =>
+                           Inconsistency(
+                             s"There is more than one technique '${id.value}/${version.value}' in the archive for commit " +
+                             s"'${archiveId.value}', it can not be restored: ${several.mkString(", ")}"
+                           ).fail
+
+                       }
+      techniquePath <- EditorTechniquePath(better.files.File(gitPath)).notOptional(
+                         s"'${gitPath}' is not a conventional technique path, it must be of the form " +
+                         s"'.../{category}/{techniqueId}/{techniqueVersion}/${TechniqueFiles.yaml}'"
+                       )
+      content       <- GitFindUtils.getFileContent(gitRepo.db, treeId, gitPath) { is =>
+                         IOResult.attempt(s"Error when reading '${gitPath}' in commit '${archiveId.value}'")(
+                           IOUtils.toString(is, StandardCharsets.UTF_8)
+                         )
+                       }
+      parsed        <- yamlTechniqueSerializer.yamlToEditorTechnique(content)
+      technique     <- ZIO.fromEither(parsed.left.map(EditorTechniqueParsingError(techniquePath, content, _)))
+      _             <- techniqueWriter.writeTechniqueAndUpdateLib(technique)
+    } yield ()
   }
 
   override def getFullArchiveTags: IOResult[Map[Instant, GitArchiveId]] = this.getTags()

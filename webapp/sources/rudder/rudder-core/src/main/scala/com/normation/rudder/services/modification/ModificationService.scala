@@ -37,52 +37,50 @@
 
 package com.normation.rudder.services.modification
 
-import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
 import com.normation.rudder.tenants.*
-import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
+import zio.syntax.*
 
 class ModificationService(
     gitModificationRepository: GitModificationRepository,
     itemArchiveManager:        ItemArchiveManager
 ) {
 
-  def getCommitsfromEventLog(eventLog: EventLog): Box[Option[GitCommitId]] = {
+  def getCommitsfromEventLog(eventLog: EventLog): IOResult[Option[GitCommitId]] = {
     eventLog.modificationId match {
-      case None        => Full(None)
-      case Some(modId) => gitModificationRepository.getCommits(modId).toBox
+      case None        => None.succeed
+      case Some(modId) => gitModificationRepository.getCommits(modId)
     }
   }
+
+  /*
+   * An event log can only be rolled back if we know the commit it led to, ie if it has a modification id.
+   */
+  private def commitOf(eventLog: EventLog): IOResult[GitCommitId] = {
+    getCommitsfromEventLog(eventLog).notOptional(
+      s"The event log ${eventLog.id.getOrElse("")} don't have a matching commit ID and can't be restored"
+    )
+  }
+
+  // the state just *before* a change is the parent of the commit that change led to
+  private def parentOf(commit: GitCommitId): GitCommitId = GitCommitId(commit.value + "^")
 
   def restoreToEventLog(
       eventLog:         EventLog,
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog
-  ): Box[GitCommitId] = {
+  )(using cc: ChangeContext): IOResult[GitCommitId] = {
     for {
-      commit   <- getCommitsfromEventLog(eventLog)
-      rollback <- commit match {
-                    case None    =>
-                      Failure(s"The event log ${eventLog.id.getOrElse("")} don't have a matching commit ID and can't be restored")
-                    case Some(x) =>
-                      itemArchiveManager
-                        .rollback(
-                          x,
-                          commiter,
-                          rollbackedEvents,
-                          target,
-                          "after"
-                        )(using QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal))
-                        .toBox
-                  }
+      commit   <- commitOf(eventLog)
+      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, "after")
     } yield {
       rollback
     }
-
   }
 
   def restoreBeforeEventLog(
@@ -90,24 +88,24 @@ class ModificationService(
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog
-  ): Box[GitCommitId] = {
+  )(using cc: ChangeContext): IOResult[GitCommitId] = {
     for {
-      commit   <- getCommitsfromEventLog(eventLog)
-      rollback <- commit match {
-                    case None    =>
-                      Failure(s"The event log ${eventLog.id.getOrElse("")} don't have a matching commit ID and can't be restored")
-                    case Some(x) =>
-                      val parentCommit = GitCommitId(x.value + "^")
-                      itemArchiveManager
-                        .rollback(
-                          parentCommit,
-                          commiter,
-                          rollbackedEvents,
-                          target,
-                          "before"
-                        )(using QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal))
-                        .toBox
-                  }
+      commit   <- commitOf(eventLog)
+      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, "before")
+    } yield {
+      rollback
+    }
+  }
+
+  def restoreItemEventLog(
+      eventLog:         EventLog,
+      commiter:         PersonIdent,
+      rollbackedEvents: Seq[EventLog],
+      target:           EventLog
+  )(using cc: ChangeContext): IOResult[GitCommitId] = {
+    for {
+      commit   <- commitOf(eventLog)
+      rollback <- itemArchiveManager.rollbackItem(parentOf(commit), commiter, rollbackedEvents, target)
     } yield {
       rollback
     }

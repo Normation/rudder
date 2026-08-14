@@ -419,7 +419,14 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         commiter:         PersonIdent,
         rollbackedEvents: Seq[EventLog],
         target:           EventLog
-    ): Box[GitCommitId] = Full(fakeGitCommitId)
+    )(using cc: ChangeContext): IOResult[GitCommitId] = fakeGitCommitId.succeed
+
+    override def restoreItemEventLog(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    )(using cc: ChangeContext): IOResult[GitCommitId] = fakeGitCommitId.succeed
   }
   val eventLogDetailGenerator: EventLogDetailsGenerator = new EventLogDetailsGenerator(
     eventLogDetailsService,
@@ -573,6 +580,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         target:           EventLog,
         rollbackType:     String
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    override def rollbackItem(archiveId: GitCommitId, commiter: PersonIdent, rollbackedEvents: Seq[EventLog], target: EventLog)(
+        implicit cc: ChangeContext
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**
       * These methods are called by the Archive API to get the git archives.

@@ -220,6 +220,18 @@ trait ItemArchiveManager {
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   /**
+   * Rollback a specific item (directive, active technique, etc.)
+   * to its state at the given commit. Matches event logs that have
+   * eventType which is a RollbackEventLogType
+   */
+  def rollbackItem(
+      archiveId:        GitCommitId,
+      commiter:         PersonIdent,
+      rollbackedEvents: Seq[EventLog],
+      target:           EventLog
+  )(implicit cc: ChangeContext): IOResult[GitCommitId]
+
+  /**
    * Get the list of tags for the archive type
    */
   def getFullArchiveTags: IOResult[Map[Instant, GitArchiveId]]
