@@ -160,7 +160,6 @@ import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-import org.joda.time.format.ISODateTimeFormat
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -2953,18 +2952,6 @@ object RudderConfigInit {
       configService.rudder_node_onaccept_default_state()
     )
 
-    // used in accept node to see & store inventories on acceptation
-    lazy val inventoryHistoryLogRepository: InventoryHistoryLogRepository = {
-      val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries =
-        new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
-
-      new InventoryHistoryLogRepository(
-        HISTORY_INVENTORIES_ROOTDIR,
-        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper),
-        new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC())
-      )
-    }
-
     lazy val nodeGridImpl = new NodeGrid(roAgentRunsRepository, nodeFactRepository, configService)
 
     lazy val modificationService      =
@@ -3782,12 +3769,6 @@ object RudderConfigInit {
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       "post-service instantiation checks",
       BootstrapLogger,
-      new MigrateNodeAcceptationInventories(
-        nodeFactRepository,
-        inventoryHistoryLogRepository,
-        inventoryHistoryJdbcRepository,
-        KEEP_DELETED_NODE_FACT_DURATION
-      ),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         stringUuidGenerator
