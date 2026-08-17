@@ -19,7 +19,7 @@ import Rudder.Table exposing (OutMsg(..), updateData)
 import Rules.ApiCalls exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings, initCrSettings)
 import Rules.DataTypes exposing (..)
-import Rules.Init exposing (bodyParameters, init)
+import Rules.Init exposing (init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 import Task
@@ -521,7 +521,7 @@ update msg model =
                             ContextPath model.contextPath
 
                         callGetActivities =
-                            getActivities (bodyParameters (Just details.rule.id.value)) contextPath (Just "rules")
+                            getActivities (Just details.rule.id.value) contextPath (Just "rules")
                     in
                     ( { model | mode = RuleForm details }
                     , Cmd.batch

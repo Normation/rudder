@@ -82,6 +82,7 @@ class EventLogAPI(
       case EventLogApi.GetDirectiveEventLogs       => GetDirectiveEventLogs
       case EventLogApi.GetGroupEventLogs           => GetGroupEventLogs
       case EventLogApi.GetEditorTechniqueEventLogs => GetEditorTechniqueEventLogs
+      case EventLogApi.GetParameterEventLogs       => GetParameterEventLogs
     }
   }
 
@@ -300,6 +301,26 @@ class EventLogAPI(
         req,
         params,
         NonEmptyChunk(AddEditorTechniqueEventType, DeleteEditorTechniqueEventType, ModifyEditorTechniqueEventType)
+      )
+    }
+  }
+
+  object GetParameterEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetParameterEventLogs.type = EventLogApi.GetParameterEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getEventLogsOfGivenTypes(
+        req,
+        params,
+        NonEmptyChunk(AddGlobalParameterEventType, DeleteGlobalParameterEventType, ModifyGlobalParameterEventType)
       )
     }
   }
