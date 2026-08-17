@@ -59,7 +59,9 @@ chmod 2750 /var/rudder/configuration-repository/shared-files
 chmod -R u+rwX,g+rX /var/rudder/configuration-repository/shared-files
 chown -R rudder-relayd:rudder /var/rudder/shared-files
 chmod 770 /var/rudder/shared-files
-chmod 755 /var/rudder/inventories
+# Owner and mode must stay in sync with rudder-server-postinst, which sets them too.
+chown ${APACHE_USER}:rudder /var/rudder/inventories
+chmod 750 /var/rudder/inventories
 
 # Make conf readable by relayd
 chgrp -R rudder /opt/rudder/etc/relayd
