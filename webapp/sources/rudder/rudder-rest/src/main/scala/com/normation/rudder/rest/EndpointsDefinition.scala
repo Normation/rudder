@@ -294,6 +294,13 @@ object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi]
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
   }
 
+  case object GetParameterEventLogs extends EventLogApi with InternalApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get parameter-related event logs based on filters"
+    val (action, path) = POST / "eventlog" / "parameters"
+    val authz: List[AuthorizationType] = AuthorizationType.Parameter.Read :: Nil
+  }
+
   def endpoints: List[EventLogApi] = values.toList.sortBy(_.z)
 
   def values = findValues

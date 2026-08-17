@@ -4,14 +4,11 @@ import Activity.DataTypes exposing (..)
 import Json.Encode exposing (Value, int, list, object, string)
 
 
-encodeRestEventLogFilter : BodyParameters -> Value
-encodeRestEventLogFilter bodyParameters =
+encodeRestEventLogFilter : Search -> Value
+encodeRestEventLogFilter search =
     let
         isSearchEmpty =
-            search2String bodyParameters.search == ""
-
-        isFilterTypesEmpty =
-            List.isEmpty bodyParameters.filterTypes
+            search2String search == ""
     in
     object
         (List.filterMap identity
@@ -23,12 +20,7 @@ encodeRestEventLogFilter bodyParameters =
                 Nothing
 
               else
-                Just ( "search", object [ ( "value", string (search2String bodyParameters.search) ) ] )
-            , if isFilterTypesEmpty then
-                Nothing
-
-              else
-                Just ( "typeFilter", object [ ( "include", list string bodyParameters.filterTypes ) ] )
+                Just ( "search", object [ ( "value", string (search2String search) ) ] )
             ]
         )
 

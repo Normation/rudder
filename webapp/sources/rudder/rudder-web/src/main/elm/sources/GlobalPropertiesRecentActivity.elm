@@ -2,7 +2,7 @@ port module GlobalPropertiesRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), string2Search)
 import Browser
 import Dict
 import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
@@ -66,16 +66,8 @@ init flags =
         search =
             string2Search flags.globalPropertyId
 
-        bodyParameters : BodyParameters
-        bodyParameters =
-            { search = search
-
-            -- Keep only directive activity filtering on event log types
-            , filterTypes = [ "GlobalParameterAdded", "GlobalParameterDeleted", "GlobalParameterModified" ]
-            }
-
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath Nothing) ]
+            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 

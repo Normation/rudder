@@ -2,7 +2,7 @@ port module DirectiveRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict
 import Html exposing (Html, div)
@@ -63,16 +63,8 @@ init flags =
         search =
             string2Search flags.directiveId
 
-        bodyParameters : BodyParameters
-        bodyParameters =
-            { search = search
-
-            -- Keep only directive activity filtering on event log types
-            , filterTypes = [ "DirectiveAdded", "DirectiveDeleted", "DirectiveModified" ]
-            }
-
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath (Just "directives")) ]
+            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 

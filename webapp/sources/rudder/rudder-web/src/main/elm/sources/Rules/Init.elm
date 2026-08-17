@@ -1,7 +1,7 @@
 module Rules.Init exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
-import Activity.DataTypes exposing (Activity, BodyParameters, ContextPath(..), Search)
+import Activity.DataTypes exposing (Activity, ContextPath(..), Search)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter)
 import Dict
@@ -20,13 +20,6 @@ import Time exposing (Zone)
 import TimeZone
 import Ui.Datatable exposing (Category, SubCategories(..), defaultTableFilters)
 import Utils.TooltipUtils exposing (buildTooltipContent)
-
-
-bodyParameters : Search -> BodyParameters
-bodyParameters search =
-    { search = search
-    , filterTypes = [ "RuleAdded", "RuleDeleted", "RuleModified" ]
-    }
 
 
 init : { contextPath : String, hasWriteRights : Bool, canReadChanqeRequest : Bool, timeZone : String } -> ( Model, Cmd Msg )
