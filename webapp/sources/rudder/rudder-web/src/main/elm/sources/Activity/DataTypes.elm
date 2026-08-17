@@ -1,4 +1,4 @@
-module Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), EventLogFilterOrder, FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
+module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -37,12 +37,6 @@ type alias FilterTypes =
 listString2FilterTypes : List String -> FilterTypes
 listString2FilterTypes lstring =
     lstring
-
-
-type alias BodyParameters =
-    { search : Search
-    , filterTypes : FilterTypes
-    }
 
 
 type alias Activity =

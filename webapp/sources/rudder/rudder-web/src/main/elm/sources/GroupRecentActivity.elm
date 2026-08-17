@@ -2,7 +2,7 @@ port module GroupRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict
 import Html exposing (Html, div)
@@ -97,16 +97,12 @@ init flags =
             , zone = zone
             }
 
-        bodyParameters : BodyParameters
-        bodyParameters =
-            { search = string2Search flags.groupId
-
-            -- Keep only groups activity filtering on event log types
-            , filterTypes = [ "NodeGroupAdded", "NodeGroupDeleted", "NodeGroupModified" ]
-            }
+        search : Search
+        search =
+            string2Search flags.groupId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters initModel.contextPath (Just "groups")) ]
+            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "groups")) ]
     in
     ( initModel, Cmd.batch initActions )
 

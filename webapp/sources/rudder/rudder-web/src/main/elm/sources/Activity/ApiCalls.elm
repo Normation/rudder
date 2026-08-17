@@ -1,6 +1,6 @@
 module Activity.ApiCalls exposing (..)
 
-import Activity.DataTypes exposing (ActivityMsg(..), BodyParameters, ContextPath(..), Search)
+import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..), Search)
 import Activity.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
 import Activity.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
@@ -8,8 +8,8 @@ import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : BodyParameters -> ContextPath -> Maybe String -> Cmd ActivityMsg
-getActivities bodyParameters (ContextPath contextPath) resourceTypeOpt =
+getActivities : Search -> ContextPath -> Maybe String -> Cmd ActivityMsg
+getActivities search (ContextPath contextPath) resourceTypeOpt =
     let
         url =
             case resourceTypeOpt of
@@ -24,7 +24,7 @@ getActivities bodyParameters (ContextPath contextPath) resourceTypeOpt =
                 { method = "POST"
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
-                , body = encodeRestEventLogFilter bodyParameters |> jsonBody
+                , body = encodeRestEventLogFilter search |> jsonBody
                 , expect = Detailed.expectJson GetActivities decodeGetActivities
                 , timeout = Nothing
                 , tracker = Nothing

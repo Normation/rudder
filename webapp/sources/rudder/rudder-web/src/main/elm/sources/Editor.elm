@@ -2,7 +2,7 @@ port module Editor exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict exposing (Dict)
 import Dict.Extra
@@ -157,11 +157,6 @@ mainInit :
     -> ( Model, Cmd Msg )
 mainInit initValues =
     let
-        bodyParameters =
-            { search = Nothing
-            , filterTypes = filterTypes
-            }
-
         initTimeZone =
             Dict.get initValues.timeZone TimeZone.zones
                 |> Maybe.withDefault (\() -> Time.utc)
@@ -199,7 +194,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initValues.contextPath) (Just "editorTechniques"))
+        , Cmd.map ActivityMessage (getActivities Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -435,11 +430,9 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-                bodyParameters : BodyParameters
-                bodyParameters =
-                    { search = string2Search id.value
-                    , filterTypes = filterTypes
-                    }
+                search : Search
+                search =
+                    string2Search id.value
             in
             case model.mode of
                 TechniqueDetails t _ _ editInfo ->
@@ -447,10 +440,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let

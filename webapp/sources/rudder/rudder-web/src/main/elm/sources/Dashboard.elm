@@ -77,14 +77,9 @@ init flags =
             , zone = initTimeZone ()
             }
 
-        bodyParameters =
-            { search = Nothing
-            , filterTypes = []
-            }
-
         initActions : List (Cmd Msg)
         initActions =
-            [ Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initModel.contextPath) Nothing)
+            [ Cmd.map ActivityMessage (getActivities Nothing (ContextPath initModel.contextPath) Nothing)
             , initTooltips ""
             , Task.perform Tick Time.now
             ]
