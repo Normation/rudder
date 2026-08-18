@@ -9,6 +9,7 @@
 
 #![allow(dead_code)]
 
+pub mod bios;
 pub mod cli;
 pub mod cpu;
 pub mod drives;
@@ -31,6 +32,7 @@ use sysinfo::{System, Users};
 use tracing::{debug, error, info, instrument, trace};
 
 use crate::{
+    bios::Bios,
     cli::Cli,
     cpu::Cpu,
     drives::Drive,
@@ -125,6 +127,8 @@ pub struct Inventory {
     #[serde(rename = "LOCAL_USERS")]
     users: Vec<User>,
     rudder: Rudder,
+    #[serde(rename = "BIOS", skip_serializing_if = "Option::is_none")]
+    bios: Option<Bios>,
     cpus: Vec<Cpu>,
     #[serde(rename = "DRIVES")]
     drives: Vec<Drive>,
@@ -160,6 +164,7 @@ impl Inventory {
             operating_system: OperatingSystem::inventory(&os_release, fqdn.clone())?,
             users: users::inventory(&users_src),
             rudder: Rudder::inventory(fqdn)?,
+            bios: Bios::inventory(),
             cpus: cpu::inventory(&sys),
             drives: drives::inventory(),
             hardware: Hardware::inventory(&sys, hostname),
