@@ -12,8 +12,7 @@ does not use.
 
 ## What it reads
 
-**No command is required**: one that is missing costs only what it feeds. A run fails only on the
-files that identify the node.
+**No command is required**: the commands are optional and allow adding more information.
 
 | Command | Feeds | Without it |
 | --- | --- | --- |
@@ -31,8 +30,9 @@ files that identify the node.
 | `/sys/devices/virtual/dmi/id/product_uuid` | `HARDWARE/UUID` | left out |
 
 The rest comes from `sysinfo` (`/proc/cpuinfo` and `/proc/stat` for `CPUS`, `/proc/meminfo` for
-`HARDWARE/{MEMORY,SWAP}`, `/etc/passwd` for `LOCAL_USERS`), and `uname`, `gethostname` and the
-`geteuid` behind `RUDDER/AGENT/OWNER` through `nix`.
+`HARDWARE/{MEMORY,SWAP}`, `/etc/passwd` for `LOCAL_USERS`, `/proc/mounts` plus a `statvfs` per
+mount for `DRIVES`), and `uname`, `gethostname` and the `geteuid` behind `RUDDER/AGENT/OWNER`
+through `nix`.
 
 Unix only, and only Linux is exercised. There is no Windows inventory yet, so nothing here carries a
 Windows branch: whoever adds one adds it deliberately rather than inheriting a path nothing has run.
@@ -42,13 +42,15 @@ Windows branch: whoever adds one adds it deliberately rather than inheriting a p
 * **Out of scope**, being hardware components: `BATTERIES`, `CONTROLLERS`, `INPUTS`, `MEMORIES`,
   `PORTS`, `SLOTS`, `SOUNDS`, `STORAGES`, `USBDEVICES`, `VIDEOS`. Plus `VERSIONPROVIDER`, which
   describes the Perl interpreter running the agent.
-* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
+* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
   `LOCAL_USERS/{HOME,ID,SHELL}`; `OPERATINGSYSTEM/{BOOT_TIME,DNS_DOMAIN,HOSTID,SSH_KEY}`;
   `RUDDER/{AGENT/CFENGINE_KEY,SERVER_ROLES}`.
+* **Read, but deliberately left out**: `DRIVES/NUMFILES`, the number of inodes of a filesystem,
+  which FusionInventory does not report on Linux either.
 * **Redundant**, the server reading them only as a fallback for something we always produce:
   `HARDWARE/OSVERSION` (see `OPERATINGSYSTEM/KERNEL_VERSION`), `HARDWARE/ARCHNAME`
   (`OPERATINGSYSTEM/ARCH`), `LOCAL_USERS/NAME` (`LOCAL_USERS/LOGIN`).
-* **Windows-only**, with nothing to report on Unix: `HARDWARE/{USERDOMAIN,WINCOMPANY,WINPRODID,WINPRODKEY}`.
+* **Windows-only**, with nothing to report on Unix: `DRIVES/LETTER`, `HARDWARE/{USERDOMAIN,WINCOMPANY,WINPRODID,WINPRODKEY}`.
 * **Not produced yet**, the server reading both: the `PROCESSES` section, and `HARDWARE/VMSYSTEM`,
   which says how the machine is virtualized and which it reads as a physical machine when absent.
 
@@ -108,6 +110,36 @@ Both are `hostname --fqdn`, falling back to the short hostname. FusionInventory 
 `Net::Domain::hostfqdn()`, which can answer a different domain for the same machine. The server
 only uses `OPERATINGSYSTEM/FQDN` as a fallback for `RUDDER/HOSTNAME` anyway.
 
+### Filesystems come from `sysinfo`, not from `df`
+
+`sysinfo` gives us the mount point, device, filesystem, total and free space of every filesystem,
+and leaves out most of the pseudo filesystems, so `DRIVES` needs no platform-specific code. It
+drops the ones it knows and the ones mounted under `/sys`, `/proc` or `/run`, and we drop what it
+lets through on its size, reporting no filesystem of no size at all — which is what `df` does,
+since it lists none of them without `-a`, and FusionInventory does not pass it. That is what makes
+both agents agree on which filesystems are real, and it also stops the next pseudo filesystem
+FusionInventory's list of names has never mentioned, `nsfs` today. `efivarfs`, mounted under
+`/sys`, we leave out as FusionInventory does, which drops it for holding a quarter of a megabyte.
+
+We do not report `SERIAL`, the filesystem identifier, as nothing on the server reads it: that is
+the only reason FusionInventory calls `blkid`, `dumpe2fs`, `xfs_db` and `dosfslabel`, none of which
+we need.
+
+### The whole `DRIVES` section is all or nothing
+
+The enumeration is given 10 seconds, the same budget FusionInventory gives its `df` call. **On
+expiry we report no filesystem at all, not even the local ones**, so a single unresponsive network
+mount costs the whole section, and the node then looks as though it had no filesystem rather than
+fewer. A killed `df` may still have printed some of its output, so FusionInventory degrades better
+here.
+
+The reason is that `sysinfo` offers no way to ask for the filesystems one at a time: the
+`DiskRefreshKind` of the version we use only has `nothing()` and `everything()`, with no way to
+list the mount points first and then time-bound each size lookup on its own. Getting partial
+results would mean reading `/proc/mounts` ourselves and using `sysinfo` for sizes only. Since the
+size lookup is a blocking call nothing can interrupt, the enumeration runs on a thread we abandon
+instead of waiting for, which only the run exiting cleans up.
+
 ## Logging
 
 To standard error through `tracing`, with the shared `rudder_cli` setup, so the output matches the
@@ -128,4 +160,4 @@ Which level a missing value lands on follows one rule: **something absent is `-d
 that did not work is a warning.** No `last` installed, or no DMI to read the machine UUID from as
 anyone but root, is how the machine is and shows only under `-d`. A `last` that is installed and
 fails, output it prints that holds no date we can parse, a `uname` that errors, an unresolvable
-fully qualified name — those are the administrator's business and show without any flag.
+fully qualified name, a filesystem enumeration that timed out — those are the administrator's business and show without any flag.
