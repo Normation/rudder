@@ -278,6 +278,12 @@ limitations under the License.
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.3.0</version> <!-- 3.4.x does not work -->
         <configuration>
+          <excludes>
+            <!--
+              semanticdb data are only useful in classes, never in package - quite the opposite.
+            -->
+            <exclude>META-INF/semanticdb/**</exclude>
+          </excludes>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
             <manifestEntries>

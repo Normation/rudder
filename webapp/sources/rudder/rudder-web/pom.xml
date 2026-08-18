@@ -78,6 +78,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
           <attachClasses>true</attachClasses>
+          <!--
+            source maps are only useful to debug the minified libs, and semanticdb (produced by `-Ysemanticdb`
+            for scalafix, which reads it from `target/classes`) has no use in packages.
+          -->
+          <packagingExcludes>**/*.js.map,**/*.css.map,WEB-INF/classes/META-INF/semanticdb/**</packagingExcludes>
           <webResources>
             <resource>
               <filtering>true</filtering>
@@ -113,7 +118,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
          </execution>
        </executions>
         <configuration>
-          <excludes>
+          <!-- `combine.children` keeps the excludes defined in parent pom (semanticdb), else they are overridden -->
+          <excludes combine.children="append">
             <exclude>**/logback-test.xml</exclude>
             <exclude>**/node_modules</exclude>
           </excludes>
