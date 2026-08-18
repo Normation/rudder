@@ -4,10 +4,10 @@
 //! What every section needs: running a command, looking one up, naming the machine, and the
 //! handful of conversions the values we read go through.
 
-use std::{env, path::PathBuf, process::Command, str};
+use std::{env, path::PathBuf, process::Command, str, sync::mpsc, thread, time::Duration};
 
 use anyhow::{Context, Result, bail};
-use tracing::{debug, warn};
+use tracing::{Span, debug, warn};
 
 /// Values read from the system are often an empty string rather than absent.
 pub(crate) fn empty_to_none(value: &str) -> Option<String> {
@@ -110,6 +110,28 @@ pub(crate) fn find_in_path(program: &str) -> Option<PathBuf> {
 /// the platform not having answered.
 pub(crate) fn megabytes(bytes: u64) -> Option<u64> {
     (bytes > 0).then_some(bytes / 1024 / 1024)
+}
+
+/// Runs a function on another thread, and gives up on it after the given delay.
+///
+/// For the values the kernel can hold us on for as long as it likes, with no way to interrupt it:
+/// reading the size of a filesystem on an unresponsive network mount, in particular. We therefore
+/// abandon the thread instead of waiting for it, and leave it to the end of the process to clean
+/// up. That is only acceptable because a run inventories once and exits.
+pub(crate) fn with_timeout<T: Send + 'static>(
+    timeout: Duration,
+    f: impl FnOnce() -> T + Send + 'static,
+) -> Option<T> {
+    let (tx, rx) = mpsc::channel();
+    // A new thread does not inherit the current span, so we carry it over to keep what the
+    // function logs attached to the section being built.
+    let span = Span::current();
+    thread::spawn(move || {
+        let _entered = span.enter();
+        // Once we have given up, the receiver is gone and there is nobody left to report to.
+        let _ = tx.send(f());
+    });
+    rx.recv_timeout(timeout).ok()
 }
 
 #[cfg(test)]
@@ -226,5 +248,24 @@ mod tests {
         assert_eq!(megabytes(1), Some(0));
         // No swap, or a platform that does not tell us.
         assert_eq!(megabytes(0), None);
+    }
+
+    #[test]
+    fn it_returns_the_value_of_a_function_that_answers_in_time() {
+        assert_eq!(with_timeout(Duration::from_secs(30), || 42), Some(42));
+    }
+
+    #[test]
+    fn it_gives_up_on_a_function_that_blocks() {
+        let start = std::time::Instant::now();
+        let timeout = Duration::from_millis(200);
+        // Blocks far longer than we are willing to wait, like an unresponsive mount.
+        let blocked = with_timeout(timeout, || {
+            thread::sleep(Duration::from_secs(30));
+            42
+        });
+        assert_eq!(blocked, None);
+        // We came back on time instead of waiting for it.
+        assert!(start.elapsed() < Duration::from_secs(5));
     }
 }
