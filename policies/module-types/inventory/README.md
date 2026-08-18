@@ -27,6 +27,8 @@ does not use.
 | `/var/rudder/cfengine-community/policy_server.dat` | `RUDDER/AGENT/POLICY_SERVER_HOSTNAME` | **the run fails** |
 | `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}` | a generic `Linux`, with a warning |
 | `TZ`, then `/etc/localtime` | `OPERATINGSYSTEM/TIMEZONE`, the local time of `ACCESSLOG/LOGDATE` | left out, times fall back to UTC |
+| `/sys/class/dmi/id/bios_{date,vendor,version}` | `BIOS/{BDATE,BMANUFACTURER,BVERSION}` | those three elements are left out |
+| `/sys/devices/virtual/dmi/id/{product_name,product_serial,sys_vendor,board_vendor}` | the rest of `BIOS` | no `BIOS` section without `product_name` |
 | `/sys/devices/virtual/dmi/id/product_uuid` | `HARDWARE/UUID` | left out |
 
 The rest comes from `sysinfo` (`/proc/cpuinfo` and `/proc/stat` for `CPUS`, `/proc/meminfo` for
@@ -42,7 +44,7 @@ Windows branch: whoever adds one adds it deliberately rather than inheriting a p
 * **Out of scope**, being hardware components: `BATTERIES`, `CONTROLLERS`, `INPUTS`, `MEMORIES`,
   `PORTS`, `SLOTS`, `SOUNDS`, `STORAGES`, `USBDEVICES`, `VIDEOS`. Plus `VERSIONPROVIDER`, which
   describes the Perl interpreter running the agent.
-* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
+* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `BIOS/{ASSETTAG,MMODEL,MSN,SKUNUMBER}`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
   `LOCAL_USERS/{HOME,ID,SHELL}`; `OPERATINGSYSTEM/{BOOT_TIME,DNS_DOMAIN,HOSTID,SSH_KEY}`;
   `RUDDER/{AGENT/CFENGINE_KEY,SERVER_ROLES}`.
 * **Read, but deliberately left out**: `DRIVES/NUMFILES`, the number of inodes of a filesystem,
@@ -82,6 +84,23 @@ We read `/etc/os-release` only, so we take `VERSION_ID` — the number `lsb_rele
 FusionInventory patches exist only to reach that SUSE behavior, and reading the file directly needs
 no equivalent; neither do we need the `PATCHLEVEL` of `/etc/SuSE-release`, as a machine without
 `/etc/os-release` is one we do not run on.
+
+### A `BIOS` section is reported only when DMI names the model
+
+`BIOS` is not a hardware catalogue: it is what identifies the machine, and the server keeps the
+manufacturer and the serial number of it in a record of its own. That record is keyed on the
+model, so the server drops the whole entry without `SMODEL` — and with it the manufacturer and the
+serial number. We therefore report no `BIOS` section at all rather than one the server discards.
+
+The values come from `sysinfo`, which reads DMI directly, where FusionInventory runs `dmidecode`.
+The three `BIOS/B*` elements are not exposed by `sysinfo` and are read from `/sys/class/dmi/id`,
+so they are the Linux-only part of the section.
+
+Where the firmware said nothing, FusionInventory writes an empty element and we leave the element
+out: `<SSN />` says the machine has no serial number, where the truth is that we cannot read it
+without being root. The placeholders the firmware writes instead of leaving a value out (`Not
+Specified`, `To Be Filled By O.E.M.`, and the rest of `getDmidecodeInfos`' list) are dropped the
+same way.
 
 ### `HARDWARE/UUID` is read from DMI, not from `dmidecode`
 
