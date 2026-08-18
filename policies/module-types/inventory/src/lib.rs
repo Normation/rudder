@@ -12,6 +12,7 @@
 pub mod bios;
 pub mod cli;
 pub mod cpu;
+pub mod dmi;
 pub mod drives;
 pub mod hardware;
 pub mod os;
@@ -35,6 +36,7 @@ use crate::{
     bios::Bios,
     cli::Cli,
     cpu::Cpu,
+    dmi::Dmi,
     drives::Drive,
     hardware::Hardware,
     os::OperatingSystem,
@@ -149,6 +151,10 @@ impl Inventory {
 
         let users_src = Users::new_with_refreshed_list();
 
+        // Read once for the whole inventory: the `BIOS`, `CPUS` and `HARDWARE` sections all
+        // describe the same machine, and reading the tables again could describe another.
+        let dmi = Dmi::read();
+
         let mut sys = System::new();
         sys.refresh_memory();
         sys.refresh_cpu_all();
@@ -164,10 +170,10 @@ impl Inventory {
             operating_system: OperatingSystem::inventory(&os_release, fqdn.clone())?,
             users: users::inventory(&users_src),
             rudder: Rudder::inventory(fqdn)?,
-            bios: Bios::inventory(),
-            cpus: cpu::inventory(&sys),
+            bios: Bios::inventory(dmi.as_ref()),
+            cpus: cpu::inventory(&sys, dmi.as_ref()),
             drives: drives::inventory(),
-            hardware: Hardware::inventory(&sys, hostname),
+            hardware: Hardware::inventory(&sys, hostname, dmi.as_ref()),
             access_log: AccessLog::new(),
         })
     }

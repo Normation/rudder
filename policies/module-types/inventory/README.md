@@ -18,7 +18,6 @@ does not use.
 | --- | --- | --- |
 | `hostname --fqdn` | `OPERATINGSYSTEM/FQDN`, `RUDDER/HOSTNAME` | the short hostname is used |
 | `last` | `HARDWARE/{LASTLOGGEDUSER,DATELASTLOGGEDUSER}` | left out |
-| `dmidecode -t 4`, which needs root | `CPUS/{ID,FAMILYNAME}` | those two elements are left out |
 
 | Path | Feeds | Without it |
 | --- | --- | --- |
@@ -31,9 +30,7 @@ does not use.
 | `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}` | a generic `Linux`, with a warning |
 | `TZ`, then `/etc/localtime` | `OPERATINGSYSTEM/TIMEZONE`, the local time of `ACCESSLOG/LOGDATE` | left out, times fall back to UTC |
 | `/proc/cpuinfo` | `CPUS`: the socket topology, `CORE`, `THREAD`, `FAMILYNUMBER`, `MODEL`, `STEPPING` | one entry for the whole machine, with its total counts |
-| `/sys/class/dmi/id/bios_{date,vendor,version}` | `BIOS/{BDATE,BMANUFACTURER,BVERSION}` | those three elements are left out |
-| `/sys/devices/virtual/dmi/id/{product_name,product_serial,sys_vendor,board_vendor}` | the rest of `BIOS` | no `BIOS` section without `product_name` |
-| `/sys/devices/virtual/dmi/id/product_uuid` | `HARDWARE/UUID` | left out |
+| `/sys/firmware/dmi/tables/`, the SMBIOS tables, which need root | `BIOS`, `HARDWARE/UUID`, `CPUS/{ID,FAMILYNAME}` | no `BIOS` section, and those elements are left out |
 
 The rest comes from `sysinfo` (`/proc/cpuinfo` and `/proc/stat` for
 `CPUS/{NAME,MANUFACTURER}`, `/proc/meminfo` for `HARDWARE/{MEMORY,SWAP}`, `/etc/passwd` for
@@ -93,16 +90,31 @@ FusionInventory patches exist only to reach that SUSE behavior, and reading the 
 no equivalent; neither do we need the `PATCHLEVEL` of `/etc/SuSE-release`, as a machine without
 `/etc/os-release` is one we do not run on.
 
-### A `BIOS` section is reported only when DMI names the model
+### The SMBIOS tables are read directly, not through `dmidecode`
+
+Everything the firmware knows of the machine — the `BIOS` section, `HARDWARE/UUID` and the
+`CPUS/{ID,FAMILYNAME}` of every processor — is read out of the SMBIOS tables with `smbios-lib`,
+where FusionInventory runs `dmidecode` over the same tables. It saves a command we are not sure to
+find, `dmidecode` not being a dependency of the agent, and one that only exists where it was
+ported: the library reads the tables through the interface each platform exposes,
+`/sys/firmware/dmi/tables` on Linux and the firmware table API on Windows. They are read once for a
+run, three sections describing the same machine.
+
+The values are the ones the firmware wrote, so both agents describe a machine identically, down to
+the processor family: the number the firmware holds is named through `dmidecode`'s own table, not
+through the SMBIOS wording the library carries, and both agents report `Xeon` where the
+specification says "Intel® Xeon® processor".
+
+Reading the tables takes root, as running `dmidecode` did, and a machine may hold none of them at
+all. Every value is therefore optional: a run without root reports no `BIOS` section, no machine
+UUID and no `CPUS/{ID,FAMILYNAME}` rather than failing. The agent runs as root.
+
+### A `BIOS` section is reported only when the tables name the model
 
 `BIOS` is not a hardware catalogue: it is what identifies the machine, and the server keeps the
 manufacturer and the serial number of it in a record of its own. That record is keyed on the
 model, so the server drops the whole entry without `SMODEL` — and with it the manufacturer and the
 serial number. We therefore report no `BIOS` section at all rather than one the server discards.
-
-The values come from `sysinfo`, which reads DMI directly, where FusionInventory runs `dmidecode`.
-The three `BIOS/B*` elements are not exposed by `sysinfo` and are read from `/sys/class/dmi/id`,
-so they are the Linux-only part of the section.
 
 Where the firmware said nothing, FusionInventory writes an empty element and we leave the element
 out: `<SSN />` says the machine has no serial number, where the truth is that we cannot read it
@@ -113,8 +125,8 @@ same way.
 ### `CPUS` on ARM, and the architecture it reports
 
 Two divergences. Everything else matches FusionInventory: one entry per physical processor, `CORE`
-and `THREAD` counting that processor rather than the machine, the `ID` and `FAMILYNAME` of
-`dmidecode -t 4`, and the vendor names of `getCanonicalManufacturer`.
+and `THREAD` counting that processor rather than the machine, the `ID` and `FAMILYNAME` the
+firmware describes a processor with, and the vendor names of `getCanonicalManufacturer`.
 
 **We report a section on 64 bit ARM, where FusionInventory reports none** — its ARM subtree is gated
 on a Perl `archname` matching `^arm`, which `aarch64` does not match. Ours holds the name and
@@ -142,15 +154,16 @@ FusionInventory reports the nominal frequency instead, parsing it out of the mod
 being stable, the third having the same problem. Producing the nominal value that way is what this
 element needs, so it waits for that rather than shipping a number that churns.
 
-### `HARDWARE/UUID` is read from DMI, not from `dmidecode`
+### `HARDWARE/UUID` is the machine identifier of the tables
 
-It is the motherboard UUID `sysinfo` reads straight out of DMI, where FusionInventory runs
-`dmidecode`. It is how a virtual machine is told apart from a clone of itself. On Linux it is
-`product_uuid`, readable by root only, as the agent is; anyone else gets no UUID rather than a
-failure. The placeholders firmware writes instead of leaving a field out (`Not Specified`,
-`To Be Filled By O.E.M.`…) are dropped, using FusionInventory's own list, the one
-`getDmidecodeInfos` skips a value on in `Tools/Generic.pm`, so both agents stay silent about the
-same fields.
+It is the motherboard UUID, which is how a virtual machine is told apart from a clone of itself.
+It is reported as the lowercase hyphenated form of RFC 4122, which the kernel and the server both
+write, and reading it takes root, as the agent is; anyone else gets no UUID rather than a failure.
+A firmware that holds no identifier says so in two ways — it is absent, or absent and settable —
+and neither is reported as a value. Nor are the placeholders firmware writes instead of leaving a
+field out (`Not Specified`, `To Be Filled By O.E.M.`…): they are dropped using FusionInventory's
+own list, the one `getDmidecodeInfos` skips a value on in `Tools/Generic.pm`, so both agents stay
+silent about the same fields.
 
 ### The last login is dated by parsing it, not by counting columns
 
@@ -237,7 +250,7 @@ Each section is a module, so `RUST_LOG` can raise one on its own
 global level.
 
 Which level a missing value lands on follows one rule: **something absent is `-d`, something present
-that did not work is a warning.** No `last` installed, or no DMI to read the machine UUID from as
-anyone but root, is how the machine is and shows only under `-d`. A `last` that is installed and
+that did not work is a warning.** No `last` installed, or no SMBIOS table to read the machine UUID
+from as anyone but root, is how the machine is and shows only under `-d`. A `last` that is installed and
 fails, output it prints that holds no date we can parse, a `uname` that errors, an unresolvable
 fully qualified name, a filesystem enumeration that timed out — those are the administrator's business and show without any flag.

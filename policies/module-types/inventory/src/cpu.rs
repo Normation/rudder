@@ -8,20 +8,20 @@
 //! socket describes it.
 //!
 //! The name and the vendor come from `sysinfo`, the counts, family number, model and stepping
-//! from `/proc/cpuinfo`, and the identification bytes, family name and external clock from
-//! `dmidecode`, as FusionInventory reads them.
+//! from `/proc/cpuinfo`, and the identification bytes and the family name from the SMBIOS
+//! tables, which is where FusionInventory reads them too.
 
 use serde::Serialize;
 use sysinfo::System;
 use tracing::{debug, instrument, trace, warn};
 
-use crate::util::{cmd, dmi_value, empty_to_none, find_in_path};
+use crate::{
+    dmi::{Dmi, Processor},
+    util::empty_to_none,
+};
 
 /// Where the kernel describes the processors.
 const PROC_CPUINFO: &str = "/proc/cpuinfo";
-
-/// The command that describes the processors of the machine.
-const DMIDECODE: &str = "dmidecode";
 
 /// Fields are declared in the order FusionInventory serializes them, to keep both outputs
 /// easy to compare.
@@ -96,38 +96,39 @@ impl Machine {
 /// The processors of the machine, one entry per physical one.
 ///
 /// `sysinfo` knows nothing of the socket a logical CPU belongs to, so the topology comes from
-/// `/proc/cpuinfo`, and the rest of what one processor holds from `dmidecode`.
+/// `/proc/cpuinfo`, and the rest of what one processor holds from the SMBIOS tables, which are
+/// read once for the whole inventory and handed over.
 ///
 /// The `System` has to have had its CPUs refreshed.
-#[instrument(level = "debug", name = "cpu", skip(sys))]
-pub fn inventory(sys: &System) -> Vec<Cpu> {
+#[instrument(level = "debug", name = "cpu", skip(sys, dmi))]
+pub fn inventory(sys: &System, dmi: Option<&Dmi>) -> Vec<Cpu> {
     let Some(machine) = Machine::read(sys) else {
         return vec![];
     };
     let sockets = Socket::read();
-    let dmi = Dmi::read();
+    let processors = dmi.map(Dmi::processors).unwrap_or_default();
     debug!(
-        "{} socket(s) named by the kernel, {} processor(s) described by dmidecode",
+        "{} socket(s) named by the kernel, {} processor(s) described by the firmware",
         sockets.len(),
-        dmi.len()
+        processors.len()
     );
-    trace!("Sockets: {sockets:?}\nProcessors: {dmi:?}");
-    assemble(&machine, &sockets, &dmi)
+    trace!("Sockets: {sockets:?}\nProcessors: {processors:?}");
+    assemble(&machine, &sockets, &processors)
 }
 
 /// One entry per socket the kernel names, out of the three sources.
 ///
 /// A kernel that names no socket, as an ARM one does not, leaves us with one entry for the whole
 /// machine and its total counts.
-fn assemble(machine: &Machine, sockets: &[Socket], dmi: &[Dmi]) -> Vec<Cpu> {
+fn assemble(machine: &Machine, sockets: &[Socket], processors: &[Processor]) -> Vec<Cpu> {
     // Everything `sysinfo` gives us describes the machine, not one of its processors, so the
     // processors of a machine only differ by what the other two sources say.
-    let of_socket = |socket: Option<&Socket>, dmi: Option<&Dmi>, core, thread| Cpu {
+    let of_socket = |socket: Option<&Socket>, processor: Option<&Processor>, core, thread| Cpu {
         arch: machine.arch.clone(),
         core,
-        family_name: dmi.and_then(|d| d.family_name.clone()),
+        family_name: processor.and_then(|p| p.family_name.clone()),
         family: socket.and_then(|s| s.family),
-        id: dmi.and_then(|d| d.id.clone()),
+        id: processor.and_then(|p| p.id.clone()),
         manufacturer: machine.manufacturer.clone(),
         model: socket.and_then(|s| s.model),
         name: machine.name.clone(),
@@ -139,7 +140,7 @@ fn assemble(machine: &Machine, sockets: &[Socket], dmi: &[Dmi]) -> Vec<Cpu> {
         debug!("The kernel names no socket, reporting the machine as one processor");
         return vec![of_socket(
             None,
-            dmi.first(),
+            processors.first(),
             machine.physical_cores,
             Some(machine.logical),
         )];
@@ -147,70 +148,11 @@ fn assemble(machine: &Machine, sockets: &[Socket], dmi: &[Dmi]) -> Vec<Cpu> {
     sockets
         .iter()
         .enumerate()
-        // The nth socket of the kernel is the nth processor `dmidecode` describes, as both only
-        // ever list the sockets that hold one. A socket the command described nothing for keeps
+        // The nth socket of the kernel is the nth processor the firmware describes, as both only
+        // ever list the sockets that hold one. A socket the firmware described nothing for keeps
         // what the kernel says of it rather than borrowing another processor's values.
-        .map(|(n, socket)| of_socket(Some(socket), dmi.get(n), socket.core, socket.thread))
+        .map(|(n, socket)| of_socket(Some(socket), processors.get(n), socket.core, socket.thread))
         .collect()
-}
-
-/// The processor values neither `sysinfo` nor `/proc/cpuinfo` hold.
-///
-/// They live in the SMBIOS table, which only `dmidecode` reads for us: the identification bytes
-/// are in there as they are, and the name of the family comes from a table of more than two
-/// hundred entries that the command carries. FusionInventory reads both the same way.
-#[derive(Debug, Default, PartialEq)]
-struct Dmi {
-    family_name: Option<String>,
-    id: Option<String>,
-}
-
-impl Dmi {
-    /// Nothing at all when the command is not installed, or when we may not run it, which is
-    /// the case for anyone but root.
-    fn read() -> Vec<Self> {
-        if find_in_path(DMIDECODE).is_none() {
-            debug!("No '{DMIDECODE}', reporting no processor detail from it");
-            return vec![];
-        }
-        match cmd(DMIDECODE, &["-t", "4"]) {
-            Ok(output) => Self::parse(&output),
-            Err(e) => {
-                debug!("Could not run '{DMIDECODE}': {e:#}");
-                vec![]
-            }
-        }
-    }
-
-    /// The processors of the output, in the order it prints them.
-    ///
-    /// `dmidecode` prints one block per socket, separated by an empty line, and a machine
-    /// describes the sockets it has nothing in as well. Like FusionInventory we leave those out,
-    /// which is also what makes this list line up with the sockets the kernel names.
-    fn parse(output: &str) -> Vec<Self> {
-        let mut res = vec![];
-        for block in output.split("\n\n") {
-            if !block.contains("Processor Information") {
-                continue;
-            }
-            let field = |label: &str| {
-                block
-                    .lines()
-                    .filter_map(|line| line.trim().strip_prefix(label))
-                    .find_map(dmi_value)
-            };
-            if field("Status:")
-                .is_some_and(|status| status.contains("Unpopulated") || status.contains("Disabled"))
-            {
-                continue;
-            }
-            res.push(Self {
-                family_name: field("Family:"),
-                id: field("ID:"),
-            });
-        }
-        res
-    }
 }
 
 /// What to call the processor.
@@ -418,75 +360,6 @@ address sizes\t: 46 bits physical, 48 bits virtual
 power management:
 ";
 
-    /// The `dmidecode -t 4` of that same server: one block per socket, in the order the kernel
-    /// names them. The `Flags` and `Characteristics` lists are cut short, the rest is verbatim.
-    const DMIDECODE_2P: &str = "# dmidecode 3.6
-Getting SMBIOS data from sysfs.
-SMBIOS 3.2.0 present.
-
-Handle 0x0400, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU1
-\tType: Central Processor
-\tFamily: Xeon
-\tManufacturer: Intel
-\tID: 54 06 05 00 FF FB EB BF
-\tSignature: Type 0, Family 6, Model 85, Stepping 4
-\tFlags:
-\t\tFPU (Floating-point unit on-chip)
-\t\tHTT (Multi-threading)
-\tVersion: Intel(R) Xeon(R) Silver 4114 CPU @ 2.20GHz
-\tVoltage: 1.8 V
-\tExternal Clock: 9600 MHz
-\tMax Speed: 4000 MHz
-\tCurrent Speed: 2200 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: Socket LGA2011
-\tL1 Cache Handle: 0x0700
-\tL2 Cache Handle: 0x0701
-\tL3 Cache Handle: 0x0702
-\tSerial Number: Not Specified
-\tAsset Tag: Not Specified
-\tPart Number: Not Specified
-\tCore Count: 10
-\tCore Enabled: 10
-\tThread Count: 20
-\tCharacteristics:
-\t\t64-bit capable
-\t\tMulti-Core
-
-Handle 0x0401, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU2
-\tType: Central Processor
-\tFamily: Xeon
-\tManufacturer: Intel
-\tID: 54 06 05 00 FF FB EB BF
-\tSignature: Type 0, Family 6, Model 85, Stepping 4
-\tFlags:
-\t\tFPU (Floating-point unit on-chip)
-\t\tHTT (Multi-threading)
-\tVersion: Intel(R) Xeon(R) Silver 4114 CPU @ 2.20GHz
-\tVoltage: 1.8 V
-\tExternal Clock: 9600 MHz
-\tMax Speed: 4000 MHz
-\tCurrent Speed: 2200 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: Socket LGA2011
-\tL1 Cache Handle: 0x0703
-\tL2 Cache Handle: 0x0704
-\tL3 Cache Handle: 0x0705
-\tSerial Number: Not Specified
-\tAsset Tag: Not Specified
-\tPart Number: Not Specified
-\tCore Count: 10
-\tCore Enabled: 10
-\tThread Count: 20
-\tCharacteristics:
-\t\t64-bit capable
-\t\tMulti-Core
-";
-
     #[test]
     fn it_reports_one_processor_per_socket() {
         let sockets = Socket::parse(CPUINFO);
@@ -523,7 +396,12 @@ Processor Information
             logical: 40,
             physical_cores: Some(20),
         };
-        let cpus = assemble(&machine, &Socket::parse(CPUINFO), &Dmi::parse(DMIDECODE_2P));
+        // Both sockets hold the same processor, so the firmware says the same of each.
+        let xeon = Processor {
+            family_name: Some("Xeon".to_string()),
+            id: Some("54 06 05 00 FF FB EB BF".to_string()),
+        };
+        let cpus = assemble(&machine, &Socket::parse(CPUINFO), &[xeon.clone(), xeon]);
         assert_eq!(cpus.len(), 2, "the two sockets are not two entries");
         for cpu in &cpus {
             assert_eq!(cpu.manufacturer.as_deref(), Some("Intel"));
@@ -533,7 +411,6 @@ Processor Information
             assert_eq!(cpu.family, Some(6));
             assert_eq!(cpu.model, Some(85));
             assert_eq!(cpu.stepping, Some(4));
-            // Both sockets hold the same processor, so the firmware says the same of each.
             assert_eq!(cpu.family_name.as_deref(), Some("Xeon"));
             assert_eq!(cpu.id.as_deref(), Some("54 06 05 00 FF FB EB BF"));
         }
@@ -600,39 +477,6 @@ CPU revision\t: 1
         );
     }
 
-    /// The `dmidecode -t 4` of that same machine, verbatim. It describes the whole machine as
-    /// one processor, where an x86 firmware describes one per socket, and knows so little of it
-    /// that the identification bytes are all zeroes.
-    const ARM_DMIDECODE: &str = "# dmidecode 3.6
-Getting SMBIOS data from sysfs.
-SMBIOS 3.0.0 present.
-
-Handle 0x0400, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU 0
-\tType: Central Processor
-\tFamily: Other
-\tManufacturer: QEMU
-\tID: 00 00 00 00 00 00 00 00
-\tVersion: NotSpecified
-\tVoltage: Unknown
-\tExternal Clock: Unknown
-\tMax Speed: 2000 MHz
-\tCurrent Speed: 2000 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: Other
-\tL1 Cache Handle: Not Provided
-\tL2 Cache Handle: Not Provided
-\tL3 Cache Handle: Not Provided
-\tSerial Number: Not Specified
-\tAsset Tag: Not Specified
-\tPart Number: Not Specified
-\tCore Count: 16
-\tCore Enabled: 16
-\tThread Count: 16
-\tCharacteristics: None
-";
-
     /// What we make of that machine: `sysinfo` decodes `CPU implementer` into the vendor and
     /// `CPU part` into the brand, and the entry is then the one processor the whole machine is,
     /// holding its total counts.
@@ -650,9 +494,13 @@ Processor Information
             logical: 16,
             physical_cores: Some(16),
         };
-        let dmi = Dmi::parse(ARM_DMIDECODE);
-        assert_eq!(dmi.len(), 1, "the firmware describes one processor");
-        let cpus = assemble(&machine, &Socket::parse(ARM_CPUINFO), &dmi);
+        // The firmware describes the whole machine as one processor, where an x86 one describes
+        // one per socket, and knows so little of it that the identification bytes are all zeroes.
+        let processors = [Processor {
+            family_name: Some("Other".to_string()),
+            id: Some("00 00 00 00 00 00 00 00".to_string()),
+        }];
+        let cpus = assemble(&machine, &Socket::parse(ARM_CPUINFO), &processors);
         assert_eq!(cpus.len(), 1, "one entry for the machine");
         assert_eq!(cpus[0].name, "Neoverse-N1");
         assert_eq!(cpus[0].manufacturer.as_deref(), Some("ARM"));
@@ -742,61 +590,6 @@ address sizes\t: 48 bits physical, 48 bits virtual
 power management: ts ttp tm hwpstate cpb eff_freq_ro [13] [14] [15]
 ";
 
-    /// The `dmidecode -t 4` of that laptop. Real firmware describes far more than a virtual one:
-    /// the `Flags` and `Characteristics` lists are indented under their label, and `Signature`
-    /// repeats what the kernel already told us. Both lists are cut short here, the rest is
-    /// verbatim.
-    const BARE_METAL_DMIDECODE: &str = "# dmidecode 3.7
-Getting SMBIOS data from sysfs.
-SMBIOS 3.3.0 present.
-
-Handle 0x0003, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: FP8
-\tType: Central Processor
-\tFamily: Zen
-\tManufacturer: Advanced Micro Devices, Inc.
-\tID: 52 0F A7 00 FF FB 8B 17
-\tSignature: Family 25, Model 117, Stepping 2
-\tFlags:
-\t\tFPU (Floating-point unit on-chip)
-\t\tHTT (Multi-threading)
-\tVersion: AMD Ryzen 7 PRO 8840U w/ Radeon 780M Graphics  
-\tVoltage: 1.2 V
-\tExternal Clock: 100 MHz
-\tMax Speed: 5125 MHz
-\tCurrent Speed: 3300 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: None
-\tL1 Cache Handle: 0x0000
-\tL2 Cache Handle: 0x0001
-\tL3 Cache Handle: 0x0002
-\tSerial Number: None
-\tAsset Tag: None
-\tPart Number: None
-\tCore Count: 8
-\tCore Enabled: 8
-\tThread Count: 16
-\tCharacteristics:
-\t\t64-bit capable
-\t\tMulti-Core
-\t\tHardware Thread
-";
-
-    /// Real hardware, where the family has a name of its own rather than `Other`, and the block
-    /// holds the indented sub-lists a virtual machine has none of.
-    #[test]
-    fn it_reads_a_named_family_of_real_hardware() {
-        assert_eq!(
-            Dmi::parse(BARE_METAL_DMIDECODE),
-            vec![Dmi {
-                family_name: Some("Zen".to_string()),
-                id: Some("52 0F A7 00 FF FB 8B 17".to_string()),
-            }],
-            "the indented Flags or Characteristics confused the parser"
-        );
-    }
-
     /// The same machine end to end: one socket, its own counts, and what the firmware adds.
     #[test]
     fn it_reports_a_bare_metal_machine_as_one_processor() {
@@ -813,7 +606,11 @@ Processor Information
             1,
             "one socket, whatever the number of blocks"
         );
-        let cpus = assemble(&machine, &sockets, &Dmi::parse(BARE_METAL_DMIDECODE));
+        let processors = [Processor {
+            family_name: Some("Zen".to_string()),
+            id: Some("52 0F A7 00 FF FB 8B 17".to_string()),
+        }];
+        let cpus = assemble(&machine, &sockets, &processors);
         assert_eq!(cpus.len(), 1);
         assert_eq!(cpus[0].manufacturer.as_deref(), Some("AMD"));
         // The counts of the socket, not of the machine: eight cores running sixteen threads.
@@ -826,155 +623,6 @@ Processor Information
         // And what only the firmware knows.
         assert_eq!(cpus[0].family_name.as_deref(), Some("Zen"));
         assert_eq!(cpus[0].id.as_deref(), Some("52 0F A7 00 FF FB 8B 17"));
-    }
-
-    /// The output of this machine, verbatim, cut after the second processor. It is a virtual
-    /// machine with one socket per logical CPU, which is what QEMU gives by default, and the
-    /// firmware answers `Unknown` for most of what it is asked.
-    const DMIDECODE_OUTPUT: &str = "# dmidecode 3.6
-Getting SMBIOS data from sysfs.
-SMBIOS 2.8 present.
-
-Handle 0x0400, DMI type 4, 42 bytes
-Processor Information
-\tSocket Designation: CPU 0
-\tType: Central Processor
-\tFamily: Other
-\tManufacturer: QEMU
-\tID: 52 0F A7 00 FF FB 8B 07
-\tVersion: pc-q35-11.0
-\tVoltage: Unknown
-\tExternal Clock: Unknown
-\tMax Speed: 2000 MHz
-\tCurrent Speed: 2000 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: Other
-\tL1 Cache Handle: Not Provided
-\tL2 Cache Handle: Not Provided
-\tL3 Cache Handle: Not Provided
-\tSerial Number: Not Specified
-\tAsset Tag: Not Specified
-\tPart Number: Not Specified
-\tCore Count: 1
-\tCore Enabled: 1
-\tThread Count: 1
-\tCharacteristics: None
-
-Handle 0x0401, DMI type 4, 42 bytes
-Processor Information
-\tSocket Designation: CPU 1
-\tType: Central Processor
-\tFamily: Other
-\tManufacturer: QEMU
-\tID: 52 0F A7 00 FF FB 8B 07
-\tVersion: pc-q35-11.0
-\tVoltage: Unknown
-\tExternal Clock: Unknown
-\tMax Speed: 2000 MHz
-\tCurrent Speed: 2000 MHz
-\tStatus: Populated, Enabled
-\tUpgrade: Other
-\tL1 Cache Handle: Not Provided
-\tL2 Cache Handle: Not Provided
-\tL3 Cache Handle: Not Provided
-\tSerial Number: Not Specified
-\tAsset Tag: Not Specified
-\tPart Number: Not Specified
-\tCore Count: 1
-\tCore Enabled: 1
-\tThread Count: 1
-\tCharacteristics: None
-";
-
-    /// One entry per socket the command describes, in its order.
-    #[test]
-    fn it_reads_every_processor_dmidecode_describes() {
-        assert_eq!(
-            Dmi::parse(DMIDECODE_OUTPUT),
-            vec![
-                Dmi {
-                    family_name: Some("Other".to_string()),
-                    id: Some("52 0F A7 00 FF FB 8B 07".to_string()),
-                },
-                Dmi {
-                    family_name: Some("Other".to_string()),
-                    id: Some("52 0F A7 00 FF FB 8B 07".to_string()),
-                },
-            ]
-        );
-    }
-
-    /// A machine describes the sockets it has nothing in, and leaving those out is what keeps
-    /// this list aligned with the sockets the kernel names.
-    #[test]
-    fn it_skips_the_sockets_without_a_processor() {
-        let output = "Handle 0x0400, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU 1
-\tFamily: Unknown
-\tID: 00 00 00 00 00 00 00 00
-\tStatus: Unpopulated
-
-Handle 0x0401, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU 2
-\tFamily: Xeon
-\tID: F1 06 04 00 FF FB EB BF
-\tStatus: Populated, Enabled
-";
-        let dmi = Dmi::parse(output);
-        assert_eq!(dmi.len(), 1, "an empty socket was reported");
-        assert_eq!(dmi[0].family_name, Some("Xeon".to_string()));
-    }
-
-    /// A socket a machine holds no processor in is skipped whether the firmware calls it
-    /// unpopulated or disabled, as FusionInventory skips both.
-    #[test]
-    fn it_skips_a_disabled_processor() {
-        let output = "Handle 0x0400, DMI type 4, 48 bytes
-Processor Information
-\tFamily: Xeon
-\tID: F1 06 04 00 FF FB EB BF
-\tStatus: Populated, Disabled
-";
-        assert!(Dmi::parse(output).is_empty());
-    }
-
-    /// A processor the command describes nothing usable of is still an entry, because the entries
-    /// are what the sockets of the kernel are matched against: dropping one would shift every
-    /// later socket onto another processor's identification bytes.
-    #[test]
-    fn it_keeps_a_processor_it_reads_nothing_from() {
-        let output = "Handle 0x0400, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU 0
-\tFamily: Not Specified
-\tID: To Be Filled By O.E.M.
-\tStatus: Populated, Enabled
-
-Handle 0x0401, DMI type 4, 48 bytes
-Processor Information
-\tSocket Designation: CPU 1
-\tFamily: Xeon
-\tID: F1 06 04 00 FF FB EB BF
-\tStatus: Populated, Enabled
-";
-        let dmi = Dmi::parse(output);
-        assert_eq!(
-            dmi.len(),
-            2,
-            "a processor was dropped, shifting the next ones"
-        );
-        // The placeholders the firmware wrote are values for neither agent.
-        assert_eq!(dmi[0], Dmi::default());
-        assert_eq!(dmi[1].id, Some("F1 06 04 00 FF FB EB BF".to_string()));
-    }
-
-    #[test]
-    fn it_reads_nothing_from_an_output_without_a_processor() {
-        assert!(Dmi::parse("").is_empty());
-        let empty = "# dmidecode 3.6\nGetting SMBIOS data from sysfs.\nSMBIOS 2.8 present.\n";
-        assert!(Dmi::parse(empty).is_empty());
     }
 
     #[test]
@@ -1030,10 +678,11 @@ Processor Information
 
     #[test]
     fn it_reports_the_processors_of_this_machine() {
-        let _guard = crate::util::no_concurrent_fork();
         let mut sys = System::new();
         sys.refresh_cpu_all();
-        let cpus = inventory(&sys);
+        // The tables are only readable by root, and the entries are the sockets of the kernel
+        // whether we could read them or not.
+        let cpus = inventory(&sys, Dmi::read().as_ref());
         assert!(!cpus.is_empty(), "no processor reported");
         // One entry per socket, or one for the machine when the kernel names no socket.
         #[cfg(target_os = "linux")]
@@ -1119,24 +768,24 @@ Processor Information
     #[test]
     fn it_pairs_each_socket_with_the_processor_of_the_same_rank() {
         let sockets = [socket(6), socket(15)];
-        let dmi = [
-            Dmi {
+        let processors = [
+            Processor {
                 family_name: Some("Xeon".to_string()),
                 id: Some("F1 06 04 00 FF FB EB BF".to_string()),
             },
-            Dmi {
+            Processor {
                 family_name: Some("Core i7".to_string()),
                 id: Some("52 0F A7 00 FF FB 8B 07".to_string()),
             },
         ];
-        let cpus = assemble(&machine(), &sockets, &dmi);
+        let cpus = assemble(&machine(), &sockets, &processors);
         assert_eq!(cpus.len(), 2);
         assert_eq!(cpus[0].family, Some(6));
-        assert_eq!(cpus[0].id, dmi[0].id);
-        assert_eq!(cpus[0].family_name, dmi[0].family_name);
+        assert_eq!(cpus[0].id, processors[0].id);
+        assert_eq!(cpus[0].family_name, processors[0].family_name);
         assert_eq!(cpus[1].family, Some(15));
-        assert_eq!(cpus[1].id, dmi[1].id);
-        assert_eq!(cpus[1].family_name, dmi[1].family_name);
+        assert_eq!(cpus[1].id, processors[1].id);
+        assert_eq!(cpus[1].family_name, processors[1].family_name);
         // The counts are the socket's, and what describes the machine is on every entry.
         for cpu in &cpus {
             assert_eq!(cpu.core, Some(4));
@@ -1146,26 +795,26 @@ Processor Information
         }
     }
 
-    /// `dmidecode` is not installed, may not be run, or describes fewer processors than the
-    /// kernel names sockets. A socket it says nothing about must report nothing, never the
+    /// The tables may not be readable, or may describe fewer processors than the kernel names
+    /// sockets. A socket the firmware says nothing about must report nothing, never the
     /// identification bytes of another processor.
     #[test]
     fn it_lends_no_processor_values_to_a_socket_of_its_own() {
         let sockets = [socket(6), socket(6)];
-        let dmi = [Dmi {
+        let processors = [Processor {
             family_name: Some("Xeon".to_string()),
             id: Some("F1 06 04 00 FF FB EB BF".to_string()),
         }];
-        let cpus = assemble(&machine(), &sockets, &dmi);
+        let cpus = assemble(&machine(), &sockets, &processors);
         assert_eq!(cpus.len(), 2, "a socket was dropped with its counts");
-        assert_eq!(cpus[0].id, dmi[0].id);
+        assert_eq!(cpus[0].id, processors[0].id);
         assert_eq!(cpus[1].id, None, "the second socket borrowed a CPUID");
         assert_eq!(cpus[1].family_name, None);
         // What the kernel says of it is reported all the same.
         assert_eq!(cpus[1].family, Some(6));
         assert_eq!(cpus[1].core, Some(4));
 
-        // Nothing at all from the command, which is every run as anyone but root.
+        // Nothing at all from the firmware, which is every run as anyone but root.
         let cpus = assemble(&machine(), &sockets, &[]);
         assert_eq!(cpus.len(), 2);
         assert!(
@@ -1178,11 +827,11 @@ Processor Information
     /// its total counts, rather than as no processor at all.
     #[test]
     fn it_reports_the_machine_as_one_processor_without_a_socket() {
-        let dmi = [Dmi {
+        let processors = [Processor {
             family_name: Some("Other".to_string()),
             id: Some("52 0F A7 00 FF FB 8B 07".to_string()),
         }];
-        let cpus = assemble(&machine(), &[], &dmi);
+        let cpus = assemble(&machine(), &[], &processors);
         assert_eq!(cpus.len(), 1);
         assert_eq!(
             cpus[0].thread,
@@ -1194,8 +843,8 @@ Processor Information
             Some(8),
             "not the physical cores of the machine"
         );
-        // The one processor the command describes is the one entry we have.
-        assert_eq!(cpus[0].id, dmi[0].id);
+        // The one processor the firmware describes is the one entry we have.
+        assert_eq!(cpus[0].id, processors[0].id);
         // The kernel named no socket, so it says nothing of the processor either.
         assert_eq!(cpus[0].family, None);
         assert_eq!(cpus[0].model, None);
@@ -1208,7 +857,7 @@ Processor Information
     fn it_reads_no_machine_without_a_processor() {
         // A `System` whose CPUs were never refreshed, which knows of no processor.
         assert_eq!(Machine::read(&System::new()), None);
-        assert!(inventory(&System::new()).is_empty());
+        assert!(inventory(&System::new(), None).is_empty());
     }
 
     /// Every element but the name is optional, and an element we have no value for is left out
