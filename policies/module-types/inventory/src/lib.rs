@@ -11,6 +11,7 @@
 
 pub mod cli;
 pub mod cpu;
+pub mod drives;
 pub mod hardware;
 pub mod os;
 pub mod packages;
@@ -32,6 +33,7 @@ use tracing::{debug, error, info, instrument, trace};
 use crate::{
     cli::Cli,
     cpu::Cpu,
+    drives::Drive,
     hardware::Hardware,
     os::OperatingSystem,
     rudder::Rudder,
@@ -124,6 +126,8 @@ pub struct Inventory {
     users: Vec<User>,
     rudder: Rudder,
     cpus: Vec<Cpu>,
+    #[serde(rename = "DRIVES")]
+    drives: Vec<Drive>,
     hardware: Hardware,
     #[serde(rename = "ACCESSLOG")]
     access_log: AccessLog,
@@ -157,6 +161,7 @@ impl Inventory {
             users: users::inventory(&users_src),
             rudder: Rudder::inventory(fqdn)?,
             cpus: cpu::inventory(&sys),
+            drives: drives::inventory(),
             hardware: Hardware::inventory(&sys, hostname),
             access_log: AccessLog::new(),
         })
