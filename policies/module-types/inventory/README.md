@@ -24,7 +24,9 @@ does not use.
 | `/opt/rudder/etc/uuid.hive` | `RUDDER/UUID` | **the run fails** |
 | `/opt/rudder/etc/ssl/agent.cert` | `RUDDER/AGENT/AGENT_CERT` | **the run fails** |
 | `/var/rudder/cfengine-community/rudder-server-uuid.txt` | `RUDDER/AGENT/POLICY_SERVER_UUID` | **the run fails** |
-| `/var/rudder/cfengine-community/policy_server.dat` | `RUDDER/AGENT/POLICY_SERVER_HOSTNAME` | **the run fails** |
+| `/opt/rudder/etc/agent-capabilities` | `RUDDER/AGENT_CAPABILITIES` | no capability is reported |
+| `/opt/rudder/share/versions/rudder-agent-version` | `RUDDER/AGENT_VERSION` | the version of this module is reported instead, with a warning |
+| `/var/rudder/hooks.d/`, and the hooks in it | `RUDDER/CUSTOM_PROPERTIES` | the element is left out |
 | `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}` | a generic `Linux`, with a warning |
 | `TZ`, then `/etc/localtime` | `OPERATINGSYSTEM/TIMEZONE`, the local time of `ACCESSLOG/LOGDATE` | left out, times fall back to UTC |
 | `/sys/devices/virtual/dmi/id/product_uuid` | `HARDWARE/UUID` | left out |
@@ -44,7 +46,7 @@ Windows branch: whoever adds one adds it deliberately rather than inheriting a p
   describes the Perl interpreter running the agent.
 * **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
   `LOCAL_USERS/{HOME,ID,SHELL}`; `OPERATINGSYSTEM/{BOOT_TIME,DNS_DOMAIN,HOSTID,SSH_KEY}`;
-  `RUDDER/{AGENT/CFENGINE_KEY,SERVER_ROLES}`.
+  `RUDDER/{AGENT/CFENGINE_KEY,AGENT/POLICY_SERVER_HOSTNAME,SERVER_ROLES}`.
 * **Read, but deliberately left out**: `DRIVES/NUMFILES`, the number of inodes of a filesystem,
   which FusionInventory does not report on Linux either.
 * **Redundant**, the server reading them only as a fallback for something we always produce:
@@ -139,6 +141,27 @@ list the mount points first and then time-bound each size lookup on its own. Get
 results would mean reading `/proc/mounts` ourselves and using `sysinfo` for sizes only. Since the
 size lookup is a blocking call nothing can interrupt, the enumeration runs on a thread we abandon
 instead of waiting for, which only the run exiting cleans up.
+
+### Inventory hooks are held to stricter conditions
+
+Each executable in `/var/rudder/hooks.d` prints a JSON object we collect into the array the server
+reads from `CUSTOM_PROPERTIES`. They run as root, so a hook we are not certain about is skipped
+instead of executed. On top of the conditions FusionInventory checks — executable, owned by root or
+by the user we run as, not group or world writable — we also:
+
+* refuse symlinks, whose target can be replaced between the moment we check it and the moment we
+  run it, by reading the metadata of the file we run rather than of what it points at (`lstat`
+  rather than `stat`),
+* bound the output we read from a hook, and the time we give it.
+
+A hook that is refused, fails, times out or does not return JSON only loses its own properties: the
+other hooks are still reported. No hook directory at all leaves the element out, as FusionInventory
+does, where a directory holding nothing gives an empty array.
+
+### `RUDDER/AGENT_VERSION` is always reported
+
+The version comes from the `rudder_version` of `/opt/rudder/share/versions/rudder-agent-version`,
+as in Fusion, but the version of this module stands in when that file is missing or names no version. 
 
 ## Logging
 
