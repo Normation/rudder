@@ -4,10 +4,54 @@
 //! What every section needs: running a command, looking one up, naming the machine, and the
 //! handful of conversions the values we read go through.
 
-use std::{env, path::PathBuf, process::Command, str, sync::mpsc, thread, time::Duration};
+use std::{
+    env,
+    fs::read_to_string,
+    path::{Path, PathBuf},
+    process::Command,
+    str,
+    sync::mpsc,
+    thread,
+    time::Duration,
+};
 
 use anyhow::{Context, Result, bail};
 use tracing::{Span, debug, warn};
+
+/// Serializes the tests that spawn a process against the tests that write a program and then
+/// run it.
+///
+/// Linux refuses to execute a file that any process holds open for writing, and `Command::spawn`
+/// forks before it executes: the child inherits the file descriptors open at that moment, so a
+/// fork from one test keeps a program another test is still writing open until it executes. Every
+/// test that spawns anything takes this, which is enough to keep them apart. Only the tests are
+/// affected, as a run spawns from one thread.
+#[cfg(test)]
+pub(crate) fn no_concurrent_fork() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    // A poisoned lock only means another test failed, which must not turn every other test into
+    // a confusing poisoning error.
+    LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Reads a file the inventory cannot be built without, and says which one when it cannot.
+///
+/// The three values read this way identify the node, its policy server and the key it
+/// authenticates itself with, and the server has no use for an inventory missing any of them.
+///
+/// An empty file is refused along with an absent one. It is the same amount of information, and
+/// it used to be worse than a failure: a truncated `uuid.hive`, which a disk filling up or an
+/// interrupted upgrade is enough to leave behind, gave a successful run and an inventory naming
+/// a node that does not exist. Failing names the file, so that the machine can be repaired.
+pub(crate) fn required(path: &Path, what: &str) -> Result<String> {
+    let content = read_to_string(path)
+        .with_context(|| format!("Reading the {what} from '{}'", path.display()))?;
+    let value = content.trim();
+    if value.is_empty() {
+        bail!("The {what} at '{}' is empty", path.display());
+    }
+    Ok(value.to_string())
+}
 
 /// Values read from the system are often an empty string rather than absent.
 pub(crate) fn empty_to_none(value: &str) -> Option<String> {
@@ -136,12 +180,16 @@ pub(crate) fn with_timeout<T: Send + 'static>(
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use pretty_assertions::assert_eq;
+    use tempfile::tempdir;
 
     use super::*;
 
     #[test]
     fn it_returns_the_output_of_a_command() {
+        let _guard = no_concurrent_fork();
         assert_eq!(cmd("echo", &["  hello  "]).unwrap(), "hello");
     }
 
@@ -149,6 +197,7 @@ mod tests {
     /// command, as that is all a caller has to decide what to report.
     #[test]
     fn it_fails_on_a_command_it_cannot_run() {
+        let _guard = no_concurrent_fork();
         let err = cmd("this-command-does-not-exist", &[]).unwrap_err();
         assert!(
             err.to_string().contains("this-command-does-not-exist"),
@@ -167,10 +216,50 @@ mod tests {
 
     #[test]
     fn it_reads_the_fqdn_of_this_machine() {
+        let _guard = no_concurrent_fork();
         let fqdn = fqdn().expect("no fully qualified name");
         assert!(!fqdn.is_empty());
         // A name, not a line of output.
         assert!(!fqdn.contains(char::is_whitespace), "{fqdn}");
+    }
+
+    /// The file has to be named, as the administrator has to know which one to repair, and the
+    /// error used to be a bare "No such file or directory (os error 2)".
+    #[test]
+    fn it_names_the_file_it_cannot_read() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("uuid.hive");
+        let err = required(&path, "node identifier").unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("uuid.hive"), "{message}");
+        assert!(message.contains("node identifier"), "{message}");
+    }
+
+    /// A truncated file used to give a successful run and an inventory naming a node that does
+    /// not exist, which is worse than no inventory at all.
+    #[test]
+    fn it_refuses_an_empty_file_as_it_refuses_a_missing_one() {
+        let dir = tempdir().unwrap();
+        for content in ["", "\n", "   \n\t "] {
+            let path = dir.path().join("uuid.hive");
+            fs::write(&path, content).unwrap();
+            let err = required(&path, "node identifier").unwrap_err();
+            let message = format!("{err:#}");
+            assert!(message.contains("is empty"), "for {content:?}: {message}");
+            assert!(message.contains("uuid.hive"), "{message}");
+        }
+    }
+
+    #[test]
+    fn it_reads_a_file_it_can_use() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("uuid.hive");
+        // The real file ends with a newline, which is not part of the value.
+        fs::write(&path, "58a41e56-3043-4b64-a0bd-06c975907acd\n").unwrap();
+        assert_eq!(
+            required(&path, "node identifier").unwrap(),
+            "58a41e56-3043-4b64-a0bd-06c975907acd"
+        );
     }
 
     /// The values are the ones `getDmidecodeInfos` skips in `Tools/Generic.pm`, written as
