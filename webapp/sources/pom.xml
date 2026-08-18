@@ -380,12 +380,12 @@ limitations under the License.
     <scala-xml-version>1.3.0</scala-xml-version>
     <lift-version>4.0.0-M1</lift-version>
     <slf4j-version>2.0.17</slf4j-version>
-    <logback-version>1.5.18</logback-version>
+    <logback-version>1.5.38</logback-version>
     <janino-version>3.1.12</janino-version>
     <jodatime-version>2.14.0</jodatime-version>
     <jodaconvert-version>3.0.1</jodaconvert-version>
     <commons-io-version>2.19.0</commons-io-version>
-    <commons-lang-version>3.17.0</commons-lang-version>
+    <commons-lang-version>3.20.0</commons-lang-version>
     <commons-text-version>1.13.1</commons-text-version>
     <commons-codec-version>1.18.0</commons-codec-version>
     <commons-fileupload>2.0.0-M4</commons-fileupload>
@@ -433,11 +433,11 @@ limitations under the License.
     <junit-version>4.13.2</junit-version>
     <cats-version>2.13.0</cats-version>
     <ip4s-version>3.7.0</ip4s-version>
-    <doobie-version>1.0.0-RC9</doobie-version>
-    <fs2-version>3.10.2</fs2-version>
+    <doobie-version>1.0.0-RC12</doobie-version>
+    <fs2-version>3.12.2</fs2-version>
     <cats-effect-version>3.6.1</cats-effect-version>
     <dev-zio-version>2.1.19</dev-zio-version>
-    <zio-cats-version>23.1.0.5</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
+    <zio-cats-version>23.1.0.13</zio-cats-version> <!-- gives fs2 3.12.2, doobie 1.0.0-RC12 is in 3.12.2 -->
     <zio-json-version>0.7.43</zio-json-version>
     <izumi-version>3.0.5</izumi-version>
     <magnolia-version>1.3.18</magnolia-version>
@@ -612,8 +612,8 @@ limitations under the License.
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
-            <groupId>commons-fileupload</groupId>
-            <artifactId>commons-fileupload</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-fileupload2-jakarta-servlet5</artifactId>
           </exclusion>
 	        <exclusion>
             <groupId>org.slf4j</groupId>
