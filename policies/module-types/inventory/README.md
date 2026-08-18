@@ -18,6 +18,7 @@ does not use.
 | --- | --- | --- |
 | `hostname --fqdn` | `OPERATINGSYSTEM/FQDN`, `RUDDER/HOSTNAME` | the short hostname is used |
 | `last` | `HARDWARE/{LASTLOGGEDUSER,DATELASTLOGGEDUSER}` | left out |
+| `dmidecode -t 4`, which needs root | `CPUS/{ID,FAMILYNAME}` | those two elements are left out |
 
 | Path | Feeds | Without it |
 | --- | --- | --- |
@@ -29,14 +30,15 @@ does not use.
 | `/var/rudder/hooks.d/`, and the hooks in it | `RUDDER/CUSTOM_PROPERTIES` | the element is left out |
 | `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}` | a generic `Linux`, with a warning |
 | `TZ`, then `/etc/localtime` | `OPERATINGSYSTEM/TIMEZONE`, the local time of `ACCESSLOG/LOGDATE` | left out, times fall back to UTC |
+| `/proc/cpuinfo` | `CPUS`: the socket topology, `CORE`, `THREAD`, `FAMILYNUMBER`, `MODEL`, `STEPPING` | one entry for the whole machine, with its total counts |
 | `/sys/class/dmi/id/bios_{date,vendor,version}` | `BIOS/{BDATE,BMANUFACTURER,BVERSION}` | those three elements are left out |
 | `/sys/devices/virtual/dmi/id/{product_name,product_serial,sys_vendor,board_vendor}` | the rest of `BIOS` | no `BIOS` section without `product_name` |
 | `/sys/devices/virtual/dmi/id/product_uuid` | `HARDWARE/UUID` | left out |
 
-The rest comes from `sysinfo` (`/proc/cpuinfo` and `/proc/stat` for `CPUS`, `/proc/meminfo` for
-`HARDWARE/{MEMORY,SWAP}`, `/etc/passwd` for `LOCAL_USERS`, `/proc/mounts` plus a `statvfs` per
-mount for `DRIVES`), and `uname`, `gethostname` and the `geteuid` behind `RUDDER/AGENT/OWNER`
-through `nix`.
+The rest comes from `sysinfo` (`/proc/cpuinfo` and `/proc/stat` for
+`CPUS/{NAME,MANUFACTURER}`, `/proc/meminfo` for `HARDWARE/{MEMORY,SWAP}`, `/etc/passwd` for
+`LOCAL_USERS`, `/proc/mounts` plus a `statvfs` per mount for `DRIVES`), and `uname`, `gethostname`
+and the `geteuid` behind `RUDDER/AGENT/OWNER` through `nix`.
 
 Unix only, and only Linux is exercised. There is no Windows inventory yet, so nothing here carries a
 Windows branch: whoever adds one adds it deliberately rather than inheriting a path nothing has run.
@@ -46,17 +48,21 @@ Windows branch: whoever adds one adds it deliberately rather than inheriting a p
 * **Out of scope**, being hardware components: `BATTERIES`, `CONTROLLERS`, `INPUTS`, `MEMORIES`,
   `PORTS`, `SLOTS`, `SOUNDS`, `STORAGES`, `USBDEVICES`, `VIDEOS`. Plus `VERSIONPROVIDER`, which
   describes the Perl interpreter running the agent.
-* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `BIOS/{ASSETTAG,MMODEL,MSN,SKUNUMBER}`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
+* **Read by nothing on the server**: `REQUEST/QUERY`; `LOCAL_GROUPS`; `BIOS/{ASSETTAG,MMODEL,MSN,SKUNUMBER}`;
+  `CPUS/{CACHE,CORECOUNT,DESCRIPTION,SERIAL}`; `DRIVES/SERIAL`; `HARDWARE/{DEFAULTGATEWAY,DNS,IPADDR,OSNAME,PROCESSORN,PROCESSORT}`;
   `LOCAL_USERS/{HOME,ID,SHELL}`; `OPERATINGSYSTEM/{BOOT_TIME,DNS_DOMAIN,HOSTID,SSH_KEY}`;
   `RUDDER/{AGENT/CFENGINE_KEY,AGENT/POLICY_SERVER_HOSTNAME,SERVER_ROLES}`.
 * **Read, but deliberately left out**: `DRIVES/NUMFILES`, the number of inodes of a filesystem,
-  which FusionInventory does not report on Linux either.
+  which FusionInventory does not report on Linux either; and `CPUS/EXTERNAL_CLOCK`, the clock of
+  the bus, which the server stores and returns in the node API but displays nowhere and offers no
+  group criterion on, and which the firmware of a virtual machine does not know anyway.
 * **Redundant**, the server reading them only as a fallback for something we always produce:
   `HARDWARE/OSVERSION` (see `OPERATINGSYSTEM/KERNEL_VERSION`), `HARDWARE/ARCHNAME`
   (`OPERATINGSYSTEM/ARCH`), `LOCAL_USERS/NAME` (`LOCAL_USERS/LOGIN`).
 * **Windows-only**, with nothing to report on Unix: `DRIVES/LETTER`, `HARDWARE/{USERDOMAIN,WINCOMPANY,WINPRODID,WINPRODKEY}`.
-* **Not produced yet**, the server reading both: the `PROCESSES` section, and `HARDWARE/VMSYSTEM`,
-  which says how the machine is virtualized and which it reads as a physical machine when absent.
+* **Not produced yet**, the server reading all three: the `PROCESSES` section, `HARDWARE/VMSYSTEM`,
+  which says how the machine is virtualized and which it reads as a physical machine when absent,
+  and `CPUS/SPEED` (see below).
 
 ## Differences from FusionInventory
 
@@ -103,6 +109,38 @@ out: `<SSN />` says the machine has no serial number, where the truth is that we
 without being root. The placeholders the firmware writes instead of leaving a value out (`Not
 Specified`, `To Be Filled By O.E.M.`, and the rest of `getDmidecodeInfos`' list) are dropped the
 same way.
+
+### `CPUS` on ARM, and the architecture it reports
+
+Two divergences. Everything else matches FusionInventory: one entry per physical processor, `CORE`
+and `THREAD` counting that processor rather than the machine, the `ID` and `FAMILYNAME` of
+`dmidecode -t 4`, and the vendor names of `getCanonicalManufacturer`.
+
+**We report a section on 64 bit ARM, where FusionInventory reports none** — its ARM subtree is gated
+on a Perl `archname` matching `^arm`, which `aarch64` does not match. Ours holds the name and
+manufacturer `sysinfo` decodes from `CPU implementer` and `CPU part`, the architecture, and the
+counts of the machine, an ARM kernel naming no socket. `FAMILYNUMBER`, `MODEL` and `STEPPING` stay
+out, being x86 notions.
+
+**`ARCH` is the real architecture**, `x86_64` where FusionInventory hardcodes `i386`. The server
+stores it verbatim, without the `normalizeArch` the node architecture goes through, and only shows
+it: the `Architecture` column of the node details Processors table, and `processors[].arch` of the
+node API. No `OC_PROCESSOR` criterion covers it, so nothing can select on it and no group can be
+invalidated by it changing, and `processOsDetails` reads the queryable node architecture inside the
+`OPERATINGSYSTEM` element, out of reach of a `CPUS/ARCH`. The effect is one corrected column, `i386`
+having been reported whatever the machine was.
+
+A processor the kernel names in no way at all is reported under its manufacturer, then under its
+architecture, with a warning, where FusionInventory numbers it. With nothing to call it by we report
+no processor at all, the server dropping a nameless entry and the counts with it.
+
+`SPEED` is left out for now. `sysinfo` answers the **current** frequency, which a machine that
+scales its clock changes between two runs, so reporting it would rewrite the value in the interface
+on every inventory and say a laptop is a 400 MHz machine when it happens to run idle.
+FusionInventory reports the nominal frequency instead, parsing it out of the model name
+(`@ 2.60GHz`) and falling back to the `Version` and `Current Speed` of `dmidecode` — the first two
+being stable, the third having the same problem. Producing the nominal value that way is what this
+element needs, so it waits for that rather than shipping a number that churns.
 
 ### `HARDWARE/UUID` is read from DMI, not from `dmidecode`
 
