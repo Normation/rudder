@@ -1,7 +1,5 @@
 # Url REST endpoint naming convention
 
-<!-- file name: {REDMINE-ID}-{DESCRIPTION}.md, like 23456-zio-json.md -->
-
 * Status: accepted
 * Deciders: @dev-team
 * Date: 2026-07-31
@@ -19,8 +17,6 @@ Benefits:
 
 ## Decision
 
-Use plural nouns to represent resources.
-
 Follow these patterns
 ```
 <METHOD> resources ? offset=0&limit=10 
@@ -31,6 +27,10 @@ Follow these patterns
 <METHOD> resources / {resource-id} / subresources / {subresource-id}
 ```
 
+Use plural nouns to represent resources.
+Use verbs to represent action.
+
 ## Consequences
 
-The compliance API is currently refactored. Future endpoint will follow this convention.
+The compliance API is currently refactored. 
+Future endpoints will follow this convention.
