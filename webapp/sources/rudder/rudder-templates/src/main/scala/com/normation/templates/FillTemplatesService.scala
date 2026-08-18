@@ -258,7 +258,7 @@ object FillTemplateThreadUnsafe {
                     case None             => (policy, templateName)
                     case Some((from, to)) =>
                       // this is done quite heavely on big instances, with string rather big, and the performance of
-                      // StringUtils.replace ix x4 the one of String.replace (no regex), see:
+                      // Strings.CS.replace (old StringUtils.replace) is x4 the one of String.replace (no regex), see:
                       // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
                       (policy, Strings.CS.replace(templateName, from, to))
                   }
