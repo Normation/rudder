@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Additional syntax check on the generated Linux policies. Disabled by default, not needed in general.
+
 # Hooks parameter are passed by environment variable:
 #
 # - RUDDER_GENERATION_DATETIME   : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start
