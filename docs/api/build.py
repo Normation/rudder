@@ -146,12 +146,5 @@ for template in templates:
         exit(1)
 
     ################################################################################
-    # Build RapiDoc doc
-    rapidoc_target = '%s/alt/index.html' % target
-    os.mkdir('%s/alt/' % target)
-    shutil.copyfile('%s/rapidoc.html' % source, rapidoc_target)
-    print('Built %s' % rapidoc_target)
-
-    ################################################################################
     # Common assets
     shutil.copytree('%s/assets' % source, '%s/assets' % target)
