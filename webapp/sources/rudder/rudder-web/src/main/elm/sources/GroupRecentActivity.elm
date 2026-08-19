@@ -22,12 +22,6 @@ port copy : String -> Cmd msg
 port errorNotification : String -> Cmd msg
 
 
-port initTooltips : String -> Cmd msg
-
-
-port clearTooltips : String -> Cmd msg
-
-
 type GroupId
     = GroupId String
 
