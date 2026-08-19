@@ -488,7 +488,10 @@ impl Scheduler {
         };
         let next_run = match job.schedule.next_run(Local::now(), self.uuid_hash) {
             Some(t) => t,
-            None => bail!("Next schedule for job '{}' cannot be expressed in current timezone", job.name),
+            None => bail!(
+                "Next schedule for job '{}' cannot be expressed in current timezone",
+                job.name
+            ),
         };
         Ok(next_run)
     }
