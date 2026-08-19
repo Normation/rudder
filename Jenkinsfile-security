@@ -40,7 +40,7 @@ pipeline {
                             dir('webapp/sources/rudder/rudder-web/src/main/') {
                                 sh script: "npm_config_loglevel=error npm ci --no-audit", label: "load npm dependencies"
                             }
-                            sh script: "trivy fs --no-progress .", label: "scanning dependencies for vulnerabilities"
+                            sh script: "trivy fs --skip-version-check --no-progress .", label: "scanning dependencies for vulnerabilities"
                         } catch (exc) {
                             errors.add("deps")
                             failedBuild = true
