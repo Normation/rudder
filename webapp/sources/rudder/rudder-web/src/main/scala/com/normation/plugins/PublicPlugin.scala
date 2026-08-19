@@ -134,6 +134,16 @@ trait DefaultPluginDef extends RudderPluginDef {
   def pluginMenuEntry:  List[(Menu, Option[String])] = Nil
   def pluginMenuParent: List[Menu]                   = Nil
 
+  def handleDuplicateMenus(m: Menu, newMenu: Menu): Menu = {
+    // We need to avoid collision on name/loc
+    if (m.kids.exists(_.loc.name == newMenu.loc.name)) {
+      PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}")
+      m
+    } else {
+      Menu(m.loc, (m.kids :+ newMenu).sortBy(_.loc.name)*)
+    }
+  }
+
   override def updateSiteMap(menus: List[Menu]): List[Menu] = {
 
     val updatedMenu = pluginMenuParent
@@ -149,14 +159,7 @@ trait DefaultPluginDef extends RudderPluginDef {
         val parent = optParent.getOrElse(MenuUtils.administrationMenu)
 
         menu.map {
-          case m: Menu if (m.loc.name == parent) =>
-            // We need to avoid collision on name/loc
-            if (m.kids.exists(_.loc.name == newMenu.loc.name)) {
-              PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
-              m
-            } else {
-              Menu(m.loc, (m.kids :+ newMenu).sortBy(_.loc.name)*)
-            }
+          case m: Menu if (m.loc.name == parent) => handleDuplicateMenus(m, newMenu)
           case m => m
         }
     }
