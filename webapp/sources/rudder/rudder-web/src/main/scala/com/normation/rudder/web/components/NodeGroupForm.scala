@@ -289,17 +289,6 @@ class NodeGroupForm(
                  |app.ports.errorNotification.subscribe(function(str) {
                  |  createErrorNotification(str)
                  |});
-                 |// Initialize tooltips
-                 |app.ports.initTooltips.subscribe(function(msg) {
-                 |  setTimeout(function(){
-                 |    initBsTooltips();
-                 |  }, 400);
-                 |});
-                 |// Clear tooltips
-                 |app.ports.clearTooltips.subscribe(function(msg) {
-                 |  removeBsTooltips();
-                 |});
-                 |
                  |""".stripMargin)
       )
     )
