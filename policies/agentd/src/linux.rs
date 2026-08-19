@@ -6,6 +6,14 @@
 *  The communication with the service manager is translated into channel::<ServiceMessage>()
 *  to make it generic
  */
+use agentd::scheduler::Scheduler;
+
+// TODO write the function
+// this is not the real function, but we have to have it to make clippy happy while we don't have
+// a linux implementation
+pub fn init_scheduler() -> Scheduler {
+    todo!()
+}
 
 /// We target systemd as much as possible
 /// Non systemd linux service cans be made in a second phase if necessary
