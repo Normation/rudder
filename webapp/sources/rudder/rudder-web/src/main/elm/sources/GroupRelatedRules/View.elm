@@ -212,7 +212,7 @@ view model =
                                                     "is related to the group."
 
                                                 else
-                                                    "match your filter."
+                                                    "match your filters."
                                                )
                                         )
                                     ]

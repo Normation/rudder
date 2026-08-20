@@ -179,9 +179,10 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                       return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
                     },
             "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sZeroRecords": "No parameters!",
-              "sSearch": ""
+            "language": {
+              "emptyTable": "No parameters have been defined.",
+              "zeroRecords": "No parameters match your filters.",
+              "search": ""
             },
             "bJQueryUI"    : false,
             "aaSorting"    : [[ 0, "asc" ]],

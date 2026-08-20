@@ -96,7 +96,7 @@ techniqueList model techniques =
             else
                 case ( filteredTechniques, filteredDrafts ) of
                     ( [], [] ) ->
-                        div [ class "empty" ] [ text "No technique matches the search filter." ]
+                        div [ class "empty" ] [ text "No techniques match your filters." ]
 
                     ( list, _ ) ->
                         treeCategory model list model.categories |> Maybe.withDefault (text "")
