@@ -68,6 +68,7 @@ import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.schedule.SystemDirectiveSchedule
 import com.normation.rudder.services.policies.BoundPolicyDraft
+import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.factRoot
@@ -225,6 +226,15 @@ class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringT
     s = Daily(Time(14, 0), Time(16, 0), Some(ScheduleTimeZone("UTC"))),
     os = Nil
   )
+
+  // a directive bound to `testSchedule`.
+  // (scheduleId, ifVarClass) is set in RuleValService for a real directive.
+  // Check: `rudder-directives.cf` has `if => "schedule_test_schedule_run";`
+  val scheduledClock: BoundPolicyDraft = clock
+    .modify(_.scheduleId)
+    .setTo(Some(testSchedule.id))
+    .modify(_.ifVarClass)
+    .setTo(Some(IfVarClass.fromScheduleId(testSchedule.id)))
 
   /// For root, we are using the same system variable and base root node config
   // the root node configuration
@@ -449,6 +459,18 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       compareWith(
         share / root.id.value,
         "root-with-two-directives",
+        """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
+        :: """.*add:default:==:.*"""                           // rpm reports
+        :: Nil
+      )
+    }
+
+    "guard the run bundle of a scheduled directive with its schedule run class" in {
+      val (share, writer) = getPromiseWriter("root-with-scheduled-directive")
+      (writeNodeConfigWithUserDirectives(writer, Nil, scheduledClock, rpm) must beFull) and
+      compareWith(
+        share / root.id.value,
+        "root-with-scheduled-directive",
         """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
         :: """.*add:default:==:.*"""                           // rpm reports
         :: Nil

@@ -8,8 +8,9 @@
 
 ADR [28451](../28451-generating-discrete-scheduled-events-for-agent.md) decided that the webapp
 computes discrete `[notBefore, notAfter]` intervals ("events") for each schedule and sends them to
-agents (via `MODULE_PARAM_SCHEDULE`, ADR
-[28535](../28535-passing-discrete-scheduled-events-from-webapp-to-agent.md)). The known negative
+agents (via the generated `scheduled_events.json`, ADR
+[29567](29567-passing-scheduled-events-through-a-generated-json-file.md), which supersedes
+[28535](28535-passing-discrete-scheduled-events-from-webapp-to-agent.md)). The known negative
 consequence is that agents only know a finite number of events: if the webapp stops renewing them,
 scheduled directives silently stop running. We need to decide how events are computed, how many, when
 the series is renewed, and how nodes get the update.
@@ -75,7 +76,7 @@ is simply caught up by the next successful one. In steady state a daily schedule
   are mixed into the node configuration hash (`nodeContextHash` component, only when non-empty so
   that nodes without schedules keep their historical hash): a horizon extension rewrites the
   policies of exactly the nodes using that schedule;
-* `PolicyWriterService` writes into each node's `MODULE_PARAM_SCHEDULE` only the events of the
+* `PolicyWriterService` writes into each node's `scheduled_events.json` only the events of the
   schedules referenced by that node's policies;
 * each event's `notBefore` is **splayed per node** (`DirectiveScheduleEvents.splayEvents`): it is
   shifted by a deterministic function of the node id (same hash-based algorithm as the agent run

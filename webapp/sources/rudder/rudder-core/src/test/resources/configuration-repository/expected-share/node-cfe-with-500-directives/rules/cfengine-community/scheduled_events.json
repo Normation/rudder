@@ -1,0 +1,13 @@
+{
+  "events" : [
+    {
+      "schedule" : "once",
+      "id" : "test-schedule-1",
+      "schedule_id" : "test-schedule",
+      "name" : "A daily test schedule for benchmarks",
+      "type" : "benchmarks",
+      "not_before" : "2026-02-15T15:05:54Z",
+      "not_after" : "2026-02-15T16:26:42Z"
+    }
+  ]
+}

@@ -50,6 +50,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -75,6 +76,8 @@ import com.normation.templates.FillTemplateTimer
 import com.normation.templates.PolicyTemplateService
 import com.normation.templates.STVariable
 import com.normation.zio.*
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import java.nio.charset.Charset
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
@@ -84,6 +87,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
@@ -156,10 +160,14 @@ object PolicyWriterServiceImpl {
 
   // some file path to write in destination agent input directory:
   object filepaths {
-    val SYSTEM_VARIABLE_JSON = "rudder.json"
-    val DIRECTIVE_RUN_CSV    = "rudder-directives.csv"
-    val POLICY_SERVER_CERT   = "certs/policy-server.pem"
-    val ROOT_SERVER_CERT     = "certs/root.pem"
+    val SYSTEM_VARIABLE_JSON  = "rudder.json"
+    // at the root of the policy tree, like the other agent-agnostic JSON files (rudder.json,
+    // rudder-vars.json): the path must not assume a CFEngine technique layout, since the very
+    // same file is read by the DSC agent, whose tree has no `common/1.0` directory.
+    val SCHEDULED_EVENTS_JSON = "scheduled_events.json"
+    val DIRECTIVE_RUN_CSV     = "rudder-directives.csv"
+    val POLICY_SERVER_CERT    = "certs/policy-server.pem"
+    val ROOT_SERVER_CERT      = "certs/root.pem"
   }
 }
 
@@ -830,22 +838,22 @@ class PolicyWriterServiceImpl(
   }
 
   private def writeOtherResources(
-      preparedTemplates: Seq[AgentNodeWritableConfiguration],
-      writeTimer:        WriteTimer,
-      globalPolicyMode:  GlobalPolicyMode,
-      resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
+      nodeConfigs:      Seq[AgentNodeWritableConfiguration],
+      writeTimer:       WriteTimer,
+      globalPolicyMode: GlobalPolicyMode,
+      resources:        Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   )(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
-    parallelSequence(preparedTemplates) { prepared =>
-      val isRootServer   = prepared.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
-      val writeResources = ZIO.foreachDiscard(prepared.preparedTechniques) { preparedTechnique =>
+    parallelSequence(nodeConfigs) { nodeConfig =>
+      val isRootServer   = nodeConfig.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
+      val writeResources = ZIO.foreachDiscard(nodeConfig.preparedTechniques) { preparedTechnique =>
         ZIO.foreachDiscard(preparedTechnique.filesToCopy) { file =>
           for {
             t0 <- currentTimeNanos
             r  <- copyResourceFile(
                     file,
                     isRootServer,
-                    prepared.agentNodeProps.agentInfo.agentType,
-                    prepared.paths.newFolder,
+                    nodeConfig.agentNodeProps.agentInfo.agentType,
+                    nodeConfig.paths.newFolder,
                     preparedTechnique.reportIdToReplace,
                     resources
                   )
@@ -859,27 +867,28 @@ class PolicyWriterServiceImpl(
         // changing `writeAllAgentSpecificFiles.write` to IOResult breaks DSC
         t0 <- currentTimeNanos
         _  <- writeAllAgentSpecificFiles
-                .write(prepared)
-                .chainError(s"Error with node '${prepared.paths.nodeId.value}'")
+                .write(nodeConfig)
+                .chainError(s"Error with node '${nodeConfig.paths.nodeId.value}'")
                 .toIO
         t1 <- currentTimeNanos
         _  <- writeTimer.agentSpecific.update(_ + t1 - t0)
       } yield ()
       val writeCSV   = for {
         t0 <- currentTimeNanos
-        _  <- writeDirectiveCsv(prepared.paths, prepared.policies, globalPolicyMode)
+        _  <- writeDirectiveCsv(nodeConfig.paths, nodeConfig.policies, globalPolicyMode)
         t1 <- currentTimeNanos
         _  <- writeTimer.writeCSV.update(_ + t1 - t0)
       } yield ()
       val writeJSON  = for {
         t0 <- currentTimeNanos
-        _  <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
+        _  <- writeSystemVarJson(nodeConfig.paths, nodeConfig.systemVariables)
+        _  <- writeScheduledEventsJson(nodeConfig.paths, nodeConfig.scheduledEvents)
         t1 <- currentTimeNanos
         _  <- writeTimer.writeJSON.update(_ + t1 - t0)
       } yield ()
       val writePEM   = for {
         t0 <- currentTimeNanos
-        _  <- writePolicyServerPem(prepared.paths, prepared.policyServerCerts)
+        _  <- writePolicyServerPem(nodeConfig.paths, nodeConfig.policyServerCerts)
         t1 <- currentTimeNanos
         _  <- writeTimer.writePEM.update(_ + t1 - t0)
       } yield ()
@@ -888,7 +897,7 @@ class PolicyWriterServiceImpl(
       // writePromise (for template filling)
       ZIO
         .collectAllPar(writeResources :: writeAgent :: writeCSV :: writeJSON :: writePEM :: Nil)
-        .chainError(s"Error when writing configuration for node '${prepared.paths.nodeId.value}'")
+        .chainError(s"Error when writing configuration for node '${nodeConfig.paths.nodeId.value}'")
     }.unit
   }
 
@@ -1053,15 +1062,27 @@ class PolicyWriterServiceImpl(
   ): IOResult[List[AgentSpecificFile]] = {
     val path         = File(paths.newFolder, filepaths.SYSTEM_VARIABLE_JSON)
     val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
-    for {
-      _ <- path
-             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables) + "\n", isRootServer)
-             .chainError(
-               s"Can not write json parameter file at path '${path.pathAsString}'"
-             )
-    } yield {
-      AgentSpecificFile(path.pathAsString) :: Nil
-    }
+    path
+      .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables) + "\n", isRootServer)
+      .chainError(
+        s"Can not write json parameter file at path '${path.pathAsString}'"
+      )
+      .as(List(AgentSpecificFile(path.pathAsString)))
+
+  }
+
+  private def writeScheduledEventsJson(
+      paths:           NodePoliciesPaths,
+      scheduledEvents: Seq[DirectiveScheduleEvent]
+  ): IOResult[List[AgentSpecificFile]] = {
+    val path         = File(paths.newFolder, filepaths.SCHEDULED_EVENTS_JSON)
+    val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
+    path
+      .createParentsAndWrite(ScheduledEventJsonFormat(scheduledEvents).toJsonPretty + "\n", isRootServer)
+      .chainError(
+        s"Can not write the scheduled events file at path '${path.pathAsString}'"
+      )
+      .as(List(AgentSpecificFile(path.pathAsString)))
   }
 
   /*
@@ -1215,7 +1236,7 @@ class PolicyWriterServiceImpl(
     }
 
     // try to create a file in new folder parent, move it to base folder, move
-    // it to backup. In case of AtomicNotSupported execption, revert to
+    // it to backup. In case of AtomicNotSupported exception, revert to
     // simple move
     for {
       n    <- currentTimeNanos
@@ -1449,4 +1470,46 @@ object RudderJsonPolicyFile {
     } else Json.Str(value)
   }
 
+}
+
+object ScheduledEventJsonFormat {
+  /*
+   * The awaited data structure for the scheduled_events.json file - it's an hard API with agent,
+   * any change here need update in the schedule module.
+   * '{ "events": [
+   *     {
+   *       "id": "600abb6b-c294-4ba1-9014-944b67d59935",
+   *       "schedule_id": "df6ebe63-a13a-484f-9add-57836517947a",
+   *       ...
+   *     }
+   *   ]
+   *  }'
+   */
+  final case class ModParamScheduleEvent(
+      schedule:    String,     // schedule kind: once, daily...
+      id:          String,     // this is the event ID, not the schedule id
+      schedule_id: CampaignId, // this is the schedule id
+      name:        String,     // schedule name + event information
+      `type`:      String,     // for documentation, "benchmarks", etc
+      not_before:  Instant,
+      not_after:   Instant
+  ) derives JsonCodec
+
+  final case class ScheduledEventsJson(events: Chunk[ModParamScheduleEvent]) derives JsonCodec
+
+  implicit val transformDirectiveScheduleEvent: Transformer[DirectiveScheduleEvent, ModParamScheduleEvent] = {
+    Transformer
+      .define[DirectiveScheduleEvent, ModParamScheduleEvent]
+      .withFieldConst(_.schedule, "once")
+      .withFieldComputed(_.id, _.eventId)
+      .withFieldComputed(_.schedule_id, _.id)
+      .withFieldComputed(_.`type`, _.eventType)
+      .withFieldComputed(_.not_before, _.notBefore)
+      .withFieldComputed(_.not_after, _.notAfter)
+      .buildTransformer
+  }
+
+  def apply(events: Seq[DirectiveScheduleEvent]): ScheduledEventsJson = {
+    ScheduledEventsJson(Chunk.fromIterable(events.map(_.transformInto[ModParamScheduleEvent])))
+  }
 }

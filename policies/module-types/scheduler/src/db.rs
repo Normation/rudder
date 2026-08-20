@@ -150,8 +150,17 @@ impl EventDatabase {
         match r {
             Ok(_) => (),
             Err(rusqlite::Error::QueryReturnedNoRows) => tx.execute(
-                "insert into schedule_events (event_id, schedule_id, schedule_type, schedule, event_name, created) values (?1, ?2, ?3, ?4, ?5, ?6)",
-                (&e.id, &e.schedule_id, &e.schedule_type, &e.schedule.to_string(), &e.name, now.to_rfc3339()),
+                "insert into schedule_events (event_id, schedule_id, schedule_type, schedule, event_name, created, not_before, not_after) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (
+                    &e.id,
+                    &e.schedule_id,
+                    &e.schedule_type,
+                    &e.schedule.to_string(),
+                    &e.name,
+                    now.to_rfc3339(),
+                    e.not_before.map(|d| d.to_rfc3339()),
+                    e.not_after.map(|d| d.to_rfc3339()),
+                ),
             ).map(|_| ())?,
             Err(e) => {
                 return Err(e);
@@ -214,7 +223,7 @@ impl EventDatabase {
 mod tests {
     use super::{Event, EventDatabase};
     use crate::event::EventSchedule;
-    use chrono::{Duration, Utc};
+    use chrono::{DateTime, Duration, Utc};
     use pretty_assertions::assert_eq;
     use std::ops::Add;
 
@@ -222,14 +231,22 @@ mod tests {
     use std::os::unix::prelude::PermissionsExt;
 
     fn test_event(id: &str) -> Event {
+        test_event_between(id, None, None)
+    }
+
+    fn test_event_between(
+        id: &str,
+        not_before: Option<DateTime<Utc>>,
+        not_after: Option<DateTime<Utc>>,
+    ) -> Event {
         Event::new(
             id.to_string(),
             "SCHEDULE_ID".to_string(),
             "NAME".to_string(),
             "TYPE".to_string(),
             EventSchedule::Once,
-            None,
-            None,
+            not_before,
+            not_after,
         )
     }
 
@@ -275,5 +292,41 @@ mod tests {
         let run_time = Utc::now().add(Duration::minutes(5));
         db.run_event(id, run_time).unwrap();
         assert_eq!(db.get_run_time(id).unwrap(), Some(run_time));
+    }
+
+    #[test]
+    fn it_stores_event_validity_bounds() {
+        let mut db = EventDatabase::new(None).unwrap();
+        let now = Utc::now();
+        let not_before = now.add(Duration::minutes(5));
+        let not_after = now.add(Duration::hours(2));
+
+        db.insert_if_new(
+            &test_event_between("BOUNDED", Some(not_before), Some(not_after)),
+            now,
+        )
+        .unwrap();
+        db.insert_if_new(
+            &test_event_between("HALF_BOUNDED", Some(not_before), None),
+            now,
+        )
+        .unwrap();
+        db.insert_if_new(&test_event("UNBOUNDED"), now).unwrap();
+
+        let events = db.events().unwrap();
+        let get = |id: &str| {
+            events
+                .iter()
+                .find(|e| e.id == id)
+                .unwrap_or_else(|| panic!("event '{}' was not inserted", id))
+        };
+
+        assert_eq!(get("BOUNDED").not_before, Some(not_before));
+        assert_eq!(get("BOUNDED").not_after, Some(not_after));
+        assert_eq!(get("HALF_BOUNDED").not_before, Some(not_before));
+        assert_eq!(get("HALF_BOUNDED").not_after, None);
+        assert_eq!(get("UNBOUNDED").not_before, None);
+        assert_eq!(get("UNBOUNDED").not_after, None);
+        assert_eq!(get("BOUNDED").created, now);
     }
 }

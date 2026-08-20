@@ -1,6 +1,6 @@
 # Generation of discrete scheduled event for agent schedule module
 
-- Status: accepted
+- Status: superseded by [29567 - Passing scheduled events to the agent through a generated JSON file](29567-passing-scheduled-events-through-a-generated-json-file.md)
 - Deciders: AMO, FAR
 - Date: 2026-03-16
 
