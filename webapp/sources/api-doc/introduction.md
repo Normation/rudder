@@ -208,6 +208,14 @@ period of time to allow migration from previous versions.
         <li>excluded-packages in System/software update campaigns</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">24</td>
+      <td class="code">9.2</td>
+      <td><ul>
+        <li>JWT support for UserInfo endpoint</li>
+        <li>Compliance CSV for configuration objects</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
