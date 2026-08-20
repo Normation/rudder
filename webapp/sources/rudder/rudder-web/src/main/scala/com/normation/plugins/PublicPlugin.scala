@@ -137,7 +137,7 @@ trait DefaultPluginDef extends RudderPluginDef {
   def handleDuplicateMenus(m: Menu, newMenu: Menu): Menu = {
     // We need to avoid collision on name/loc
     if (m.kids.exists(_.loc.name == newMenu.loc.name)) {
-      PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}")
+      PluginLogger.error(s"There is already a menu with id '${newMenu.loc.name}'")
       m
     } else {
       Menu(m.loc, (m.kids :+ newMenu).sortBy(_.loc.name)*)
