@@ -112,8 +112,8 @@ object PendingHistoryGrid extends Loggable {
                       return JSON.parse( localStorage.getItem('DataTables_pending_server_history') );
                     },
             "bJQueryUI": false,
-            "oLanguage": {
-              "sSearch": ""
+            "language": {
+              "search": ""
             },
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",

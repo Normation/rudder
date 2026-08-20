@@ -136,8 +136,8 @@ object DisplayNode extends Loggable {
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "asStripeClasses": [ 'color1', 'color2' ] ,
-            "oLanguage": {
-              "sSearch": ""
+            "language": {
+              "search": ""
             },
             "bLengthChange": true,
             "bStateSave": true,
@@ -194,8 +194,8 @@ object DisplayNode extends Loggable {
                 "bRetrieve": true,
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
-                "oLanguage": {
-                  "sSearch": ""
+                "language": {
+                  "search": ""
                 },
                 "bLengthChange": true,
                 "bStateSave": true,
@@ -231,8 +231,8 @@ object DisplayNode extends Loggable {
                 "bPaginate": true,
                 "aoColumns": ${columns.map(col => s"{'sWidth': '${col}px'}").mkString("[", ",", "]")} ,
                 "aaSorting": [[ ${sorting}, "asc" ]],
-                "oLanguage": {
-                  "sSearch": ""
+                "language": {
+                  "search": ""
                 },
                 "bLengthChange": true,
                 "bStateSave": true,

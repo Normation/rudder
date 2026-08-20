@@ -541,9 +541,10 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-          "sZeroRecords": "No matching rules!"
-        , "sSearch": ""
+    , "language": {
+          "emptyTable" : "No rules have been defined."
+        , "zeroRecords": "No rules match your filters."
+        , "search": ""
       }
     , "columnDefs": [{
           "targets": [ 0 ]
@@ -666,8 +667,10 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+          "emptyTable" : "No rules have been defined."
+        , "zeroRecords": "No rules match your filters."
+        , "search": ""
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
@@ -886,8 +889,10 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
   if (isTopLevel) {
     var sDom = {
         "sDom" : '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-      , "oLanguage": {
-          "sSearch": ""
+      , "language": {
+            "emptyTable" : "No directives have been defined."
+          , "zeroRecords": "No directives match your filters."
+          , "search": ""
         }
     };
     $.extend(params,sDom);
@@ -949,8 +954,8 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+        "search": ""
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
@@ -1527,7 +1532,9 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "scrollCollapse": hasHandle
     , "scrollY": hasHandle ? "200px" : null
     , "language": {
-        "search": ""
+        "emptyTable" : "No nodes have been accepted."
+      , "zeroRecords": "No nodes match your filters."
+      , "search": ""
     }
     , columnDefs : [
       {
@@ -1849,8 +1856,10 @@ function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, re
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+        "emptyTable" : "No logs have been recorded."
+      , "zeroRecords": "No logs match your filters."
+      , "search": ""
     }
     , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
@@ -1918,8 +1927,10 @@ function createChangesTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+        "emptyTable" : "No changes have been recorded."
+      , "zeroRecords": "No changes match your filters."
+      , "search": ""
     }
     , "aaSorting": [[ 0, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f>rt<"dataTables_wrapper_bottom"lip>'
@@ -1991,8 +2002,11 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
   , "paging" : true
   , "lengthChange": true
   , "pagingType": "full_numbers"
-  , "language":
-    { "Search": "" }
+  , "language": {
+      "emptyTable" : "No logs have been registered."
+    , "zeroRecords": "No logs match your filters."
+    , "search": ""
+    }
   , "order": [[ 0, "desc" ]]
   , "createdRow" :
       function( row, data, dataIndex, cells ) {

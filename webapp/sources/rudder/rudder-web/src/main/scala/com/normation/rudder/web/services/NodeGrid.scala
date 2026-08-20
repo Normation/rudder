@@ -145,8 +145,10 @@ final class NodeGrid(
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": ""
+            "language": {
+                "emptyTable" : "No nodes found."
+              , "zeroRecords": "No nodes match your filters."
+              , "search": ""
             },
             "aoColumns": [
               { "sWidth": "30%" },
