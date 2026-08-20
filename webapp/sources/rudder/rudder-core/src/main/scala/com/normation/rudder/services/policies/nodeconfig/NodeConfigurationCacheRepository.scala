@@ -286,7 +286,7 @@ object NodeConfigurationHash {
      * a matching system variable.
      *
      * Directive schedules are mixed in here because they end up in a generated
-     * system variable (schedule events in MODULE_PARAM_SCHEDULE): a change in a
+     * policy file (schedule events in `scheduled_events.json`): a change in a
      * schedule (typically its event generation horizon) must rewrite policies of
      * nodes using it. Nodes without schedules keep their historical hash.
      */
