@@ -419,7 +419,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         commiter:         PersonIdent,
         rollbackedEvents: Seq[EventLog],
         target:           EventLog
-    )(using cc: ChangeContext): IOResult[GitCommitId] = fakeGitCommitId.succeed
+    ): IOResult[GitCommitId] = fakeGitCommitId.succeed
 
     override def restoreItemEventLog(
         eventLog:         EventLog,

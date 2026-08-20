@@ -74,10 +74,12 @@ class ModificationService(
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog
-  )(using cc: ChangeContext): IOResult[GitCommitId] = {
+  ): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, "after")
+      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, "after")(using
+                    QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
+                  )
     } yield {
       rollback
     }
@@ -88,10 +90,12 @@ class ModificationService(
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog
-  )(using cc: ChangeContext): IOResult[GitCommitId] = {
+  ): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, "before")
+      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, "before")(using
+                    QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
+                  )
     } yield {
       rollback
     }
