@@ -9,7 +9,7 @@
 //!
 //! We run these as root, so a hook we are not sure about is skipped rather than executed:
 //! anyone able to plant or modify a file here would otherwise get our privileges. See
-//! [`Hook::validate`] for the conditions a hook has to meet.
+//! `Hook::validate` for the conditions a hook has to meet.
 
 use std::{
     fs,
@@ -32,7 +32,7 @@ const MAX_OUTPUT_SIZE: usize = 5 * 1024 * 1024;
 
 /// A hook we have checked we can safely execute.
 ///
-/// The only way to build one is [`Hook::validate`], so holding a value of this type is the
+/// The only way to build one is `Hook::validate`, so holding a value of this type is the
 /// proof the checks were made and passed.
 #[derive(Debug, PartialEq)]
 pub struct Hook(PathBuf);
