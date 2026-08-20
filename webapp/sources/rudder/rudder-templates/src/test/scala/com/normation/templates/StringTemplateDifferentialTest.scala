@@ -49,7 +49,7 @@ import org.specs2.runner.JUnitRunner
 import scala.jdk.CollectionConverters.*
 
 /**
- * Differential test between StringTemplate 3 and AmpersandTemplate: every .st
+ * Differential test between StringTemplate 3 and FastparseTemplateParser: every .st
  * file of the rudder-techniques repository is filled by both engines with the
  * same synthetic variable values (derived from the variables each template
  * references), in two passes (conditions all satisfied / all unsatisfied), and
@@ -157,7 +157,7 @@ class StringTemplateDifferentialTest extends Specification {
 
   def fillNew(content: String, values: Map[String, Any]): Either[String, String] = {
     val t0  = System.nanoTime()
-    val res = AmpersandTemplate.parse(content).map(p => AmpersandTemplate.render(p.parts, values))
+    val res = FastparseTemplateParser.parse(content).map(p => FastparseTemplateParser.render(p.parts, values))
     newNanos += System.nanoTime() - t0
     res.left.map(_.fullMsg)
   }
@@ -174,7 +174,7 @@ class StringTemplateDifferentialTest extends Specification {
   def check(root: Path, file: Path): List[String] = {
     val name    = root.relativize(file).toString
     val content = Files.readString(file, StandardCharsets.UTF_8)
-    AmpersandTemplate.parse(content) match {
+    FastparseTemplateParser.parse(content) match {
       case Left(err)     => List(s"$name: parse error: ${err.fullMsg}")
       case Right(parsed) =>
         val u = usageOf(parsed.parts)
@@ -193,7 +193,7 @@ class StringTemplateDifferentialTest extends Specification {
   }
 
   "all known .st templates" should {
-    "render identically (up to whitespace) with ST3 and AmpersandTemplate" in {
+    "render identically (up to whitespace) with ST3 and FastparseTemplateParser" in {
       val files    = templateRoots.map(r => (r, stFiles(r)))
       val failures = files.flatMap { case (root, fs) => fs.flatMap(check(root, _)) }
       println(
@@ -207,7 +207,7 @@ class StringTemplateDifferentialTest extends Specification {
     "print an indicative fill-time comparison on the biggest template" in {
       val file    = templateRoots.flatMap(stFiles).maxBy(Files.size)
       val content = Files.readString(file, StandardCharsets.UTF_8)
-      val values  = valuesFor(usageOf(AmpersandTemplate.parse(content).toOption.get.parts), condsSatisfied = true)
+      val values  = valuesFor(usageOf(FastparseTemplateParser.parse(content).toOption.get.parts), condsSatisfied = true)
       val n       = 1000
 
       def time(warmupAndRun: () => Unit): Long = {
@@ -230,8 +230,8 @@ class StringTemplateDifferentialTest extends Specification {
         t.toString: Unit
       }
 
-      val parsed  = AmpersandTemplate.parse(content).toOption.get
-      val newTime = time(() => AmpersandTemplate.render(parsed.parts, values): Unit)
+      val parsed  = FastparseTemplateParser.parse(content).toOption.get
+      val newTime = time(() => FastparseTemplateParser.render(parsed.parts, values): Unit)
 
       println(
         s"[bench] ${file.getFileName} (${Files.size(file)} bytes), $n fills: " +
