@@ -8,20 +8,13 @@
 //! and the serial number of it in a record of its own. In a virtualized or cloud context it is
 //! also what names the hypervisor or the instance kind.
 //!
-//! The system and motherboard values come from `sysinfo`, which reads them from DMI. The three
-//! values of the BIOS itself are not exposed by `sysinfo`, and are read from the same DMI
-//! directory, which only Linux exposes.
-
-use std::{fs::read_to_string, path::Path};
+//! Every value is read from the SMBIOS tables of the machine, where FusionInventory runs
+//! `dmidecode` over the same ones.
 
 use serde::Serialize;
-use sysinfo::{Motherboard, Product};
 use tracing::{debug, instrument};
 
-use crate::util::dmi_value;
-
-/// Where the kernel exposes the DMI values.
-const DMI_DIR: &str = "/sys/class/dmi/id";
+use crate::dmi::Dmi;
 
 /// Fields are declared in the order FusionInventory serializes them, to keep both outputs
 /// easy to compare.
@@ -57,19 +50,20 @@ pub struct Bios {
 }
 
 impl Bios {
-    /// The identity of the machine, or nothing when DMI does not name its model.
-    #[instrument(level = "debug", name = "bios")]
-    pub fn inventory() -> Option<Self> {
-        let system_model = value(Product::name())?;
-        let board = Motherboard::new();
+    /// The identity of the machine, or nothing when we could read no SMBIOS table or when they
+    /// do not name the model of the machine.
+    #[instrument(level = "debug", name = "bios", skip(dmi))]
+    pub fn inventory(dmi: Option<&Dmi>) -> Option<Self> {
+        let dmi = dmi?;
+        let system_model = dmi.system_model()?;
         let bios = Self {
-            date: dmi("bios_date"),
-            manufacturer: dmi("bios_vendor"),
-            version: dmi("bios_version"),
-            board_manufacturer: value(board.as_ref().and_then(Motherboard::vendor_name)),
-            system_manufacturer: value(Product::vendor_name()),
+            date: dmi.bios_date(),
+            manufacturer: dmi.bios_vendor(),
+            version: dmi.bios_version(),
+            board_manufacturer: dmi.board_manufacturer(),
+            system_manufacturer: dmi.system_manufacturer(),
             system_model,
-            system_serial_number: value(Product::serial_number()),
+            system_serial_number: dmi.system_serial_number(),
         };
         debug!(
             "Machine is a '{}' from '{}'",
@@ -80,27 +74,13 @@ impl Bios {
     }
 }
 
-/// `sysinfo` trims the DMI values but hands us the ones the firmware said nothing about, which
-/// it leaves plenty of.
-fn value(read: Option<String>) -> Option<String> {
-    dmi_value(&read?)
-}
-
-/// Reads one of the one-line DMI files.
-///
-/// They hold an empty string or a placeholder rather than being absent when the firmware says
-/// nothing, and are only readable by root for some of them.
-fn dmi(name: &str) -> Option<String> {
-    let value = read_to_string(Path::new(DMI_DIR).join(name)).ok()?;
-    dmi_value(&value)
-}
-
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
     use quick_xml::se::Serializer;
 
     use super::*;
+    use crate::dmi::value;
 
     /// The serialized shape has to stay the one FusionInventory produces, field for field.
     #[test]
@@ -134,22 +114,28 @@ mod tests {
         );
     }
 
+    /// A machine whose tables we could not read, which is every run without root: the section
+    /// holds nothing we could fill in, so there is no section.
+    #[test]
+    fn it_reports_no_bios_without_the_tables() {
+        assert_eq!(Bios::inventory(None), None);
+    }
+
     #[test]
     fn it_never_reports_an_unnamed_machine() {
         // Whatever this machine is, an entry without a model would be dropped by the server,
         // so we must either name it or report nothing.
-        if let Some(bios) = Bios::inventory() {
+        if let Some(bios) = Bios::inventory(Dmi::read().as_ref()) {
             assert!(!bios.system_model.is_empty());
         }
     }
 
-    /// Reads the DMI of the machine we run on. The model, the vendor and the values of the BIOS
-    /// are readable by anyone, where the serial number and the UUID are not, so this covers the
-    /// read and assemble path even without privileges.
+    /// Reads the DMI of the machine we run on, which takes root: a run without it reports no
+    /// section, and one with it has to report a machine.
     #[test]
     fn it_reads_the_dmi_of_this_machine() {
-        let Some(bios) = Bios::inventory() else {
-            // A machine without DMI, which we report nothing for.
+        let Some(bios) = Bios::inventory(Dmi::read().as_ref()) else {
+            // Not root, or a machine without DMI, which we report nothing for.
             return;
         };
         assert!(!bios.system_model.is_empty());
@@ -166,33 +152,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn it_reads_a_dmi_value_of_this_machine() {
-        // The date of the BIOS is readable by anyone, and is a date.
-        if let Some(date) = dmi("bios_date") {
-            assert_eq!(date.split('/').count(), 3, "{date}");
-        }
-    }
-
-    #[test]
-    fn it_drops_the_empty_values_the_firmware_leaves_behind() {
-        // What an unset DMI field looks like once sysinfo has trimmed it.
-        assert_eq!(value(Some(String::new())), None);
-        assert_eq!(value(Some("  \n".to_string())), None);
-        assert_eq!(value(None), None);
-        assert_eq!(value(Some(" QEMU\n".to_string())), Some("QEMU".to_string()));
-        // A placeholder is not a value either: this machine reports one as its BIOS version.
-        assert_eq!(value(Some("unknown".to_string())), None);
-    }
-
     /// The values of this machine are real ones, not the stand-ins the firmware writes when it
     /// has nothing to say.
     #[test]
     fn it_reports_no_placeholder_of_this_machine() {
-        let Some(bios) = Bios::inventory() else {
+        let Some(bios) = Bios::inventory(Dmi::read().as_ref()) else {
             return;
         };
-        for value in [
+        for reported in [
             Some(&bios.system_model),
             bios.date.as_ref(),
             bios.manufacturer.as_ref(),
@@ -205,15 +172,10 @@ mod tests {
         .flatten()
         {
             assert_eq!(
-                dmi_value(value),
-                Some(value.clone()),
-                "'{value}' is a placeholder, not a value"
+                value(reported),
+                Some(reported.clone()),
+                "'{reported}' is a placeholder, not a value"
             );
         }
-    }
-
-    #[test]
-    fn it_reads_no_dmi_value_for_an_unknown_file() {
-        assert_eq!(dmi("no_such_dmi_file"), None);
     }
 }
