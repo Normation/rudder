@@ -40,6 +40,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "clap",
  "humantime-serde",
  "log 0.4.33",
  "rudder_module_type",
