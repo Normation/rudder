@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get impacted nodes of a campaign event
+  description: Get the list of nodes that were (resp. will be) impacted by a finished (resp. planned) campaign event
+  operationId: getImpactedNodes
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: Impacted nodes result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getImpactedNodes
+              data:
+                type: object
+                required:
+                  - impactedNodes
+                properties:
+                  impactedNodes:
+                    type: array
+                    description: List impacted nodes
+                    items:
+                      type: string
+                      format: uuid (or "root")
+                      example: 109142a2-40eb-4e6d-84b4-7ebe3670474c
+                      description: Node that either was or will be impacted by the campaign event
+  tags:
+    - 🧩 System update campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/systemUpdate/impactedNodes.sh
