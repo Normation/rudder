@@ -231,7 +231,7 @@ class RuleDisplayer(
                         <div>
                           <div class="filterTag">
                             <div class="input-group search-addon">
-                              <label for="searchStr" class="input-group-text search-addon"><span class="ion ion-search"></span></label>
+                              <label for="searchStr" class="input-group-text search-addon mb-0"><span class="ion ion-search"></span></label>
                               <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" onkeyup="searchTargetRules(this)"/>
                             </div>
                             <!--
