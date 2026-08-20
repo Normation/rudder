@@ -363,6 +363,8 @@ paths:
     $ref: paths/campaigns/getEventsCampaign.yml
   "/campaigns/{id}/schedule":
     $ref: paths/campaigns/scheduleCampaign.yml
+  "/systemUpdate/events/{id}/nodes":
+    $ref: paths/systemUpdate/impactedNodes.yml
   "/systemUpdate/events/{id}/result/{nodeId}":
     $ref: paths/systemUpdate/detailedResult.yml
   "/systemUpdate/events/{id}/result":
