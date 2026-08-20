@@ -84,7 +84,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
          </execution>
        </executions>
         <configuration>
-          <excludes>
+          <!-- `combine.children` keeps the excludes defined in parent pom (semanticdb), else they are overridden -->
+          <excludes combine.children="append">
             <exclude>**/logback-test.xml</exclude>
           </excludes>
         </configuration>

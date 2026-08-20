@@ -79,7 +79,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
        </executions>
        <configuration>
          <skip>false</skip>
-         <excludes>
+         <!-- `combine.children` keeps the excludes defined in parent pom (semanticdb), else they are overridden -->
+         <excludes combine.children="append">
            <exclude>**/logback-test.xml</exclude>
          </excludes>
        </configuration>
@@ -124,6 +125,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>com.normation</groupId>
       <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>utils</artifactId>
+      <version>${rudder-version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -264,10 +273,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <scope>test</scope>
     </dependency>
 
-    <!-- new js engine -->
+    <!-- js engine for directive params: we use the polyglot API directly, no more JSR-223 bridge -->
     <dependency>
-      <groupId>org.graalvm.js</groupId>
-      <artifactId>js-scriptengine</artifactId>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
       <version>${graalvm-version}</version>
     </dependency>
     <dependency>

@@ -48,7 +48,6 @@ import com.normation.rudder.services.policies.JsEngine.*
 import enumeratum.*
 import java.security.NoSuchAlgorithmException
 import java.util.concurrent.*
-import javax.script.Bindings
 import javax.script.ScriptException
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
@@ -262,31 +261,17 @@ final class JsRudderLibImpl(
 }
 
 sealed trait JsRudderLibBinding {
-  def bindings:    Bindings
   def jsRudderLib: JsRudderLibImpl
 }
 
 object JsRudderLibBinding {
 
-  import java.util.HashMap as JHMap
-  import javax.script.SimpleBindings
-
-  private def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
-    val m = new JHMap[String, Object]()
-    m.put(k, v)
-    new SimpleBindings(m)
-  }
-
   /*
-   * Be careful, as bindings are mutable, we can't have
-   * a val for bindings, else the same context is shared...
-   *
    * We have one for Crypt to specialize the
    * "auto" methods
    */
   object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)
-    def bindings: Bindings = toBindings("rudder", jsRudderLib)
   }
 }
 
