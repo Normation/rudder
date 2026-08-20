@@ -50,6 +50,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
