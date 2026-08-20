@@ -25,26 +25,49 @@ referenced rudder code/ADR in the `rudder` checkout). Plugin-specific points: th
 dynamic plugin-status API framework ([`103`](103-rest-api-and-endpoints.md)) and license
 parsing live in the plugin repos.
 
-## Golden rules (always apply)
+## Read the shared principles first
+
+The **cross-language engineering principles** — which apply to every Rudder codebase, not
+just Scala — live in **[`rudder-principles/SKILL.md`](../rudder-principles/SKILL.md)**. Read
+that first, and keep it applied for the whole task: the data model is the design, parse at
+the edge (pure core), fix the **root cause** rather than the visible symptom, don't repeat
+yourself past twice, WYSIWYG signatures, name domain concepts as types and **propose the
+zero-cost form**, weigh **hot-path cost while planning**, less code, nominal/error/defect,
+comments, tests as a design tool, security as a design constraint, and the up-merge rules.
+
+Those principles are *not* restated here. This skill is their **Scala expression** plus the
+stack mechanics. Where a principle has a specific Scala form, the topic file says so:
+
+| Principle | Scala form |
+|---|---|
+| Parse at the edge, pure core | [`201`](201-parse-dont-validate.md), nulls in [`000`](000-coding-philosophy.md) |
+| Data model is the design; concepts as types | [`001`](001-scala3-idioms.md) (`opaque type`), [`400`](400-domain-case-classes.md) |
+| Signatures tell the truth | `IOResult`/`PureResult` — [`000`](000-coding-philosophy.md), [`300`](300-effects-zio-ioresult.md) |
+| Nominal / error / defect | `RudderError` — [`301`](301-error-model.md) |
+| Hot-path cost | the `var` carve-out in [`000`](000-coding-philosophy.md) |
+| Security as a design constraint | [`600`](600-security-in-depth.md), [`601`](601-web-and-output-security.md), [`602`](602-authentication-and-authorization.md) |
+| Tests as a design tool | [`900`](900-testing.md) |
+
+## Golden rules — Scala-specific (always apply)
 
 1. **Functional first.** Immutable data, no shared mutable state, effects reified as
-   values. Any mutation or I/O *must* be wrapped in `IOResult` (see `300`).
-2. **Less code is better code.** Minimize boilerplate and lines. Prefer the simple,
-   short solution. Don't implement a pattern "fully" if a smaller version is clearer.
-3. **No type-level acrobatics.** Scala is powerful — lean on that power, but get it
-   from well-chosen *libraries* (zio, chimney, quicklens, zio-json), not from
-   hand-rolled implicit/type-level machinery.
-4. **Dumb data, smart companions.** Business objects are plain `case class`es with as
+   values. Any mutation or I/O *must* be wrapped in `IOResult` (see `300`). No `return`,
+   no `null` outside the edge (see `000`).
+2. **Dumb data, smart companions.** Business objects are plain `case class`es with as
    few methods as possible. Serialization, conversion and mapping live in companion
    objects or `extension` methods (see `001`, `400`).
-5. **Program to traits.** Every service/repository has a trait defining its API, even
+3. **Program to traits.** Every service/repository has a trait defining its API, even
    with a single implementation. DI is constructor-only, wired in `RudderConfig`
    (see `102`).
-6. **Parse, don't validate.** User input is parsed into typed domain objects at the
-   boundary; persistence goes through a repository (see `200`, `201`).
-7. **Security in depth** is a design constraint, not an afterthought (see `600`).
-8. **Be strict about dependencies.** Apache2/BSD-compatible licenses only; prefer
-   removing deps over adding them (see `700`).
+4. **Get the power from libraries, not from type-level machinery.** Scala 3 is powerful —
+   lean on that power, but take it from zio, chimney, quicklens, zio-json rather than
+   hand-rolled implicit/type-level puzzles (see `000`, `700`). An `opaque type` is *not*
+   acrobatics: it is the preferred new single-value wrapper (see `001`).
+5. **Persistence goes through a repository** — the single point of change for a
+   concept's storage (see `200`).
+6. **Be strict about dependencies.** Apache2/BSD-compatible licenses only; prefer
+   removing deps over adding them (see `700`). *(This is the JVM rule — the Rust
+   workspace has its own, `deny.toml`-based gate.)*
 
 ## How to use this skill
 
@@ -67,7 +90,7 @@ other two digits identify the topic within it.
 
 ### Topic index
 
-- [`000-coding-philosophy.md`](000-coding-philosophy.md) — FP, immutability, minimal LOC, no type acrobatics
+- [`000-coding-philosophy.md`](000-coding-philosophy.md) — the Scala form of the shared principles: immutability + its `var` carve-outs, effects as `IOResult`, no `return`, `null` at the edge, no type acrobatics
 - [`001-scala3-idioms.md`](001-scala3-idioms.md) — companions, extensions, `derives`, `given`, opaque types, minimizing imports
 - [`100-package-layout.md`](100-package-layout.md) — bounded-context-first packages, not technical-layer; migrating off legacy `domain`/`repository`/`services`
 - [`101-architecture-ddd-hexagonal.md`](101-architecture-ddd-hexagonal.md) — bounded contexts, hexagonal, "pragmatic DDD"
@@ -97,10 +120,12 @@ other two digits identify the topic within it.
 
 ## Sources of truth
 
-The **error-management philosophy** behind `RudderError`/`IOResult` (nominal cases vs
-errors vs defects, WYSIWYG contracts, errors-as-signal) comes from the talk
-**"Systematic error management in application"** (DevoxxFR 2021, F. Armand).
-See [`000`](000-coding-philosophy.md), [`301`](301-error-model.md).
+The **shared principles** are in
+[`rudder-principles/SKILL.md`](../rudder-principles/SKILL.md) — including the
+error-management philosophy behind `RudderError`/`IOResult` (nominal cases vs errors vs
+defects, WYSIWYG contracts, errors-as-signal), which comes from the talk **"Systematic
+error management in application"** (DevoxxFR 2021, F. Armand). Its Scala mechanics are in
+[`301`](301-error-model.md).
 
 This skill summarizes and operationalizes decisions; the **authoritative records are
 the ADRs** in [`rudder/adr/webapp/`](../../../adr/webapp/) (and some in

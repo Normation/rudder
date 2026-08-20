@@ -62,9 +62,11 @@ escaping, so the value must be escaped *before* it is put in the attribute.
   `X-Requested-With: XMLHttpRequest` (built into jQuery and our Elm HTTP clients) — keep
   sending it. Lift forms carry their own CSRF tokens; the session cookie is
   `SameSite=Lax`. Don't disable these mitigations.
-- **CSP.** Content-Security-Policy is mandatory, strict (nonce-based).
-  Don't introduce inline scripts/styles that force loosening it; on new pages,
-  work within the nonce-based strict policy.
+- **CSP.** Content-Security-Policy is **mandatory** and strict (nonce-based) — not a
+  rollout in progress, and not a new-pages-only rule. Never introduce an inline
+  script/style that would force loosening it: carry the nonce, or move the code into a
+  served `.js`/`.css` file. Loosening the policy to make something work is a regression,
+  not a workaround.
 - **Sessions.** Session cookies are `Secure; HttpOnly; SameSite=Lax` — don't weaken
   these flags.
 
