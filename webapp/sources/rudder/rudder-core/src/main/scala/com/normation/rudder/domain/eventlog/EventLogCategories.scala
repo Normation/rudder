@@ -203,31 +203,31 @@ case object UpdatePolicyServerEventType extends NoRollbackEventLogType {
 case object ExportGroupsEventType           extends NoRollbackEventLogType {
   def serialize = "ExportGroups"
 }
-case object ImportGroupsEventType           extends RollbackEventLogType   {
+case object ImportGroupsEventType           extends NoRollbackEventLogType {
   def serialize = "ImportGroups"
 }
 case object ExportTechniqueLibraryEventType extends NoRollbackEventLogType {
   def serialize = "ExportTechniqueLibrary"
 }
-case object ImportTechniqueLibraryEventType extends RollbackEventLogType   {
+case object ImportTechniqueLibraryEventType extends NoRollbackEventLogType {
   def serialize = "ImportTechniqueLibrary"
 }
 case object ExportRulesEventType            extends NoRollbackEventLogType {
   def serialize = "ExportRules"
 }
-case object ImportRulesEventType            extends RollbackEventLogType   {
+case object ImportRulesEventType            extends NoRollbackEventLogType {
   def serialize = "ImportRules"
 }
 case object ExportParametersEventType       extends NoRollbackEventLogType {
   def serialize = "ExportParameters"
 }
-case object ImportParametersEventType       extends RollbackEventLogType   {
+case object ImportParametersEventType       extends NoRollbackEventLogType {
   def serialize = "ImportParameters"
 }
 case object ExportFullArchiveEventType      extends NoRollbackEventLogType {
   def serialize = "ExportFullArchive"
 }
-case object ImportFullArchiveEventType      extends RollbackEventLogType   {
+case object ImportFullArchiveEventType      extends NoRollbackEventLogType {
   def serialize = "ImportFullArchive"
 }
 case object RollbackEventType               extends NoRollbackEventLogType {
