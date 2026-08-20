@@ -205,10 +205,11 @@ CREATE TABLE NodeLastCompliance (
 , details             jsonb NOT NULL
 );
 
--- with the trigger for autovacuum being: autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor × reltuples
+-- With the trigger for autovacuum being: autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor × reltuples
 -- (default is 50 + 0.2 * rows)
 -- we can make it purely proportional with only the scale_factor as % of rows
--- so expect vacuum for 100 nodes every 5 updates with these:
+-- so expect vacuum for 100 nodes every 5 updates with these values.
+-- !!! The number were not based on any production metrics, and should be changed as needed with values from the field
 ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_threshold = 0);
 ALTER TABLE NodeLastCompliance SET (autovacuum_vacuum_scale_factor = 0.05);
 

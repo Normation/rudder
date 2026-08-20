@@ -43,24 +43,24 @@ import com.normation.zio.*
 import zio.*
 
 /**
- * A scheduler which runs vacuum on the NodeLastCompliance table
+ * A scheduler which runs database maintenance operations (vacuum)
+ * on the tables listed in [[JdbcVacuum.all]]
  */
-class NodeStatusReportVacuum(
-    vacuum:         JdbcVacuum,
+class JdbcMaintenanceSchedule(
+    vacuums:        List[JdbcVacuum],
     schedule:       Schedule[Any, Any, Any],
     scheduleString: String
 ) {
 
   private val progAction: UIO[Unit] = {
     for {
-      _ <- ScheduledJobLoggerPure.debug("Starting NodeLastCompliance table vacuum")
-      _ <-
-        vacuum
-          .vacuum()
-          .catchAll(err =>
-            ScheduledJobLoggerPure.error(s"Error when vacuuming NodeLastCompliance database table: ${err.fullMsg}")
-          )
-      _ <- ScheduledJobLoggerPure.debug("NodeLastCompliance database table vacuum completed")
+      _ <- ScheduledJobLoggerPure.debug("Starting database maintenance (vacuum)")
+      _ <- ZIO.foreach(vacuums) { vacuum =>
+             vacuum
+               .vacuum()
+               .catchAll(err => ScheduledJobLoggerPure.error(s"Error when vacuuming database table: ${err.fullMsg}"))
+           }
+      _ <- ScheduledJobLoggerPure.debug("Database maintenance (vacuum) completed")
     } yield ()
   }
 
@@ -68,7 +68,7 @@ class NodeStatusReportVacuum(
   // Must not fail.
   val prog: UIO[Unit] = {
     ScheduledJobLoggerPure.info(
-      s"Automatic vacuum of NodeLastCompliance table is ${scheduleString}"
+      s"Automatic database maintenance (vacuum) is ${scheduleString}"
     ) *>
     progAction.schedule(schedule).unit
   }
@@ -79,17 +79,17 @@ class NodeStatusReportVacuum(
   }
 }
 
-object NodeStatusReportVacuum {
+object JdbcMaintenanceSchedule {
   /*
    * It is assumed to run daily, and take hour and minute
    */
-  def make(vacuum: JdbcVacuum, hour: Int, minute: Int): NodeStatusReportVacuum = {
+  def make(vacuums: List[JdbcVacuum], hour: Int, minute: Int): JdbcMaintenanceSchedule = {
     val dailyCronString            = s"0 ${minute} ${hour} * * ?"
     val cron                       = dailyCronString.toCron
     // never schedule if it fails
     val (schedule, scheduleString) = cron
       .map(c => (c.toSchedule, s"scheduled every day at hour ${hour} and minute ${minute}"))
       .getOrElse((Schedule.stop, "not scheduled"))
-    new NodeStatusReportVacuum(vacuum, schedule, scheduleString)
+    new JdbcMaintenanceSchedule(vacuums, schedule, scheduleString)
   }
 }
