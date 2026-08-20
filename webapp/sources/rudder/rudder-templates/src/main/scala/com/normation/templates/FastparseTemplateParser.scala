@@ -107,7 +107,7 @@ object TemplateAst {
 
 final case class ParsedTemplate(parts: Seq[TemplateAst])
 
-object AmpersandTemplate {
+object FastparseTemplateParser {
   import TemplateAst.*
 
   def parse(content: String): PureResult[ParsedTemplate] = Parser.parse(content)
