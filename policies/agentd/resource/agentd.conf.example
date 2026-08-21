@@ -1,7 +1,13 @@
 # This file is in TOML format
 
-# Each tims can be represented in human format documented here https://docs.rs/humantime/latest/humantime/
+# Each time can be represented in human format documented here https://docs.rs/humantime/latest/humantime/
 # example : "15days 2min 2s"
+# Each time is a local time
+# Each schedule section is calculated from 00:00:00, which means that
+# - 5mn period's first interval is 00:00 -> 00:05
+# - 5mn period with a 1mn begin and a 4mn end's first interval is 00:01 -> 00:04
+# - 24h period with a 1h begin and 2h end's unique interval is 01:00 -> 02:00
+# - 5mn period with a 6mn begin or end is an error
 
 # each section is a scheduled command
 [agent_run]
