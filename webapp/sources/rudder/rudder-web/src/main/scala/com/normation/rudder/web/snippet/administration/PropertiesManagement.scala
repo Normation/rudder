@@ -112,7 +112,6 @@ class PropertiesManagement extends SecureDispatchSnippet with Loggable {
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
     case "onloadScript"                       => _ => disableInputs
     case "nodeOnAcceptDefaults"               => nodeOnAcceptDefaultsConfiguration
-    case "generationHookCfpromise"            => generationHookCfpromise
     case "generationHookTriggerNodeUpdate"    => generationHookTriggerNodeUpdate
   }
 
@@ -658,64 +657,6 @@ class PropertiesManagement extends SecureDispatchSnippet with Loggable {
     val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
     if (isExec) perms + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
     else perms
-  }
-
-  def generationHookCfpromise: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
-    {
-      import better.files.*
-      val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
-
-      val disabled  = !(hook.exists() && hook.isWritable)
-      val isEnabled = hook.isExecutable
-
-      var initIsEnabled    = isEnabled
-      var currentIsEnabled = isEnabled
-      def noModif()        = initIsEnabled == currentIsEnabled
-      def check()          = {
-        S.notice("generationHookCfpromiseMsg", "")
-        Run(s"""$$("#generationHookCfpromiseSubmit").attr("disabled",${noModif()});""")
-      }
-      def submit()         = {
-        // exec must be set/unset for all users
-        val save = {
-          try {
-            hook.setPermissions(getHookPerm(currentIsEnabled))
-            Right(())
-          } catch {
-            case ex: Exception => Left(ex)
-          }
-        }
-        S.notice(
-          "generationHookCfpromiseMsg",
-          save match {
-            case Right(()) =>
-              initIsEnabled = currentIsEnabled
-              Text("'check generated policies' property updated")
-            case Left(ex)  =>
-              <span class="error">There was an error when updating the value of the 'check generated policies' property: {
-                ex.getMessage
-              }</span>
-          }
-        )
-        check()
-      }
-
-      ("#generationHookCfpromiseCheckbox" #> {
-        addDisabled(disabled)(
-          SHtml.ajaxCheckbox(
-            isEnabled,
-            (b: Boolean) => { currentIsEnabled = b; check() },
-            ("id", "generationHookCfpromiseCheckbox")
-          )
-        )
-      } &
-      "#generationHookCfpromiseSubmit " #> {
-        SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
-      } &
-      "#generationHookCfpromiseSubmit *+" #> {
-        WithNonce.scriptWithNonce(Script(check()))
-      }) apply (xml)
-    }
   }
 
   def generationHookTriggerNodeUpdate: NodeSeq => NodeSeq = {
