@@ -161,9 +161,6 @@ object PolicyWriterServiceImpl {
   // some file path to write in destination agent input directory:
   object filepaths {
     val SYSTEM_VARIABLE_JSON  = "rudder.json"
-    // at the root of the policy tree, like the other agent-agnostic JSON files (rudder.json,
-    // rudder-vars.json): the path must not assume a CFEngine technique layout, since the very
-    // same file is read by the DSC agent, whose tree has no `common/1.0` directory.
     val SCHEDULED_EVENTS_JSON = "scheduled_events.json"
     val DIRECTIVE_RUN_CSV     = "rudder-directives.csv"
     val POLICY_SERVER_CERT    = "certs/policy-server.pem"
