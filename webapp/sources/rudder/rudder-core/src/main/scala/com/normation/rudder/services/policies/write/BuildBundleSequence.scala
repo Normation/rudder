@@ -149,7 +149,7 @@ object BuildBundleSequence {
    * The bundle can have parameters, which are appended to the bundle name: `run_${directiveId}("foo","bar");`.
    * Optionally, the bundle can have a run condition in the form of an `ifvarclass` expression. If so, it is
    * appended to the command after a comma:
-   *   `run_${directiveId}("foo","bar"), ifvarclass => ${ifvarclass expression};`
+   *   `run_${directiveId}("foo","bar"), if => "${ifvarclass expression}";`
    */
   final case class Bundle(id: Option[PolicyId], name: BundleName, params: List[BundleParam], ifvarclass: Option[IfVarClass]) {
     def callParams(escape: String => String): String = {
@@ -164,7 +164,7 @@ object BuildBundleSequence {
       ifvarclass match {
         case None                           => ""
         case Some(x) if x.value.length == 0 => ""
-        case Some(x)                        => s",\n${" " * Math.max(0, indent)}if => ${x.value}"
+        case Some(x)                        => s""",\n${" " * Math.max(0, indent)}if => "${x.value}""""
       }
     }
 
@@ -470,7 +470,7 @@ class BuildBundleSequence(
         policy.technique.policyTypes,
         policyMode,
         policy.technique.useMethodReporting,
-        None
+        policy.ifVarClass
       )
     }
   }

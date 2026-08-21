@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent setup_cronjob
+{
+  vars:
+    pass2.in_hours::
+      # seq is not posix. We are using awk for improved portability
+      "interval_str" string => eval("${system_common.agent_run_interval} / 60", "math", "infix");
+      "interval" string => format("%d", "${interval_str}");
+      "steps" string => execresult("echo '0 23' | ${paths.awk} '{ for (i=$1;i<=$2;i=i+${interval}) { printf \"%s%s\", sep, i; sep=\",\"}} END{print \"\"}'", "useshell");
+      "cron_prefix" string => "0 ${steps} * * *";
+
+    pass2.!in_hours::
+      "steps" string => execresult("echo '0 59' | ${paths.awk} '{ for (i=$1;i<=$2;i=i+${system_common.agent_run_interval}) { printf \"%s%s\", sep, i; sep=\",\"}} END{print \"\"}'", "useshell");
+      "cron_prefix" string => "${steps} * * * *";
+
+  classes:
+      "in_hours" expression => isgreaterthan("${system_common.agent_run_interval}","60");
+      "pass2" expression => "any";
+
+  files:
+
+    pass2::
+      "/etc/cron.d/rudder-agent"
+        create          => "true",
+        perms           => mog("644", "root", "0"),
+        edit_defaults   => empty_backup,
+        template_method => "mustache",
+        edit_template   => "${sys.workdir}/inputs/common/cron/rudder-agent-community-cron";
+}
+
+#######################################################
+# Check if the cron daemon is running
+# This only works with unix flavoured systems too
+
+bundle agent check_cron_daemon
+{
+  vars:
+
+    redhat|fedora|slackware::
+      "service_name" string => "crond";
+    !(redhat|fedora|slackware)::
+      "service_name" string => "cron";
+
+  classes:
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      "restart_cron" usebundle => disable_reporting;
+      "restart_cron" usebundle => _method_reporting_context("CRON Daemon", "None");
+      "check_cron_service"
+                     usebundle => service_check_running("${service_name}");
+
+      "restart_cron" usebundle => service_restart("${service_name}"),
+                            if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
+      "restart_cron" usebundle => enable_reporting;
+
+
+    pass3::
+      "any" usebundle => rudder_common_reports_generic("Common", "service_restart_${service_name}", "${system_common.directiveId}", "CRON Daemon", "None", "Cron daemon status"),
+                   if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
+
+      "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "CRON Daemon", "None", "CRON is correctly running"),
+                   if => "!(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
+}

@@ -44,6 +44,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.OsDetails
 import com.normation.rudder.facts.nodes.RudderAgent
+import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
@@ -113,7 +114,8 @@ final case class AgentNodeWritableConfiguration(
     preparedTechniques: Seq[PreparedTechnique],
     systemVariables:    Map[String, Variable],
     policies:           List[Policy],
-    policyServerCerts:  PolicyServerCertificates
+    policyServerCerts:  PolicyServerCertificates,
+    scheduledEvents:    Seq[DirectiveScheduleEvent]
 )
 
 /**

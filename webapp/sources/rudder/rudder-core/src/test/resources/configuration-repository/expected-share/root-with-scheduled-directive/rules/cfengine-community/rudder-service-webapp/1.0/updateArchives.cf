@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# Update public archives files
+bundle agent update_archives
+{
+  vars:
+      "policy_archive"     string => "${g.rudder_var}/share/common/policies-library-linux.tar.bz2";
+      "inner_class_prefix" string => "rudder_update_archives_result";
+
+  classes:
+      "pass3"          expression => "pass2";
+      "pass2"          expression => "pass1";
+      "pass1"          expression => "any";
+      "need_update"    expression => or("rudder_ncf_common_hash_init_0_repaired", "rudder_ncf_local_hash_init_0_repaired");
+      "update_error"   expression => "${inner_class_prefix}_error";
+
+  methods:
+    # try to synchronize hash file
+    pass1.!pass2::
+      "common"          usebundle => _method_reporting_context_v4("", "", "rudder_ncf_common_hash_init");
+      "common"          usebundle => file_from_local_source("${g.rudder_ncf_origin_common_hash}", "${g.rudder_var_tmp}/ncf_common_hash");
+      "local"           usebundle => _method_reporting_context_v4("", "", "rudder_ncf_local_hash_init");
+      "local"           usebundle => file_from_local_source("${g.rudder_ncf_origin_local_hash}", "${g.rudder_var_tmp}/ncf_local_hash");
+    # if just synchronized, update archive
+    pass3.need_update::
+      "update"          usebundle => _method_reporting_context_v4("Generate library archives", "Archive generation", "generate_library_archives");
+
+      "mkdir"           usebundle => call_method("mkdir");
+      "mkdir"           usebundle => directory_present("${g.rudder_var}/share/common");
+      "mkdir"           usebundle => call_method_classes("${inner_class_prefix}");
+      "mkdir"           usebundle => call_method_end("mkdir");
+
+      "permissions"     usebundle => call_method("permissions");
+      "permissions"     usebundle => permissions_dirs("${g.rudder_var}/share/common", "750", "root", "rudder-policy-reader");
+      "permissions"     usebundle => call_method_classes("${inner_class_prefix}");
+      "permissions"     usebundle => call_method_end("permissions");
+
+      "tar mv"          usebundle => call_method("tar_mv");
+      "tar mv"          usebundle => command_execution("tar cfj ${policy_archive}.new -C \"${g.rudder_configuration_repository}\" --transform \"s|^ncf|ncf/local|\" ncf -C \"${g.rudder_ncf_share}\" --transform \"s|^tree|ncf/common|\" tree && mv ${policy_archive}.new ${policy_archive}");
+      "tar mv"          usebundle => call_method_classes("${inner_class_prefix}");
+      "tar mv"          usebundle => call_method_end("tar_mv");
+
+      "tar perm"        usebundle => call_method("tar_perm");
+      "tar perm"        usebundle => permissions("${policy_archive}", "644", "root", "root");
+      "tar perm"        usebundle => call_method_classes("${inner_class_prefix}");
+      "tar perm"        usebundle => call_method_end("tar_perm");
+
+      "result"          usebundle => _classes_sanitize("${inner_class_prefix}");
+      "result"          usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "result"          usebundle => log_rudder_v4("Archive generation", "Archive generation", "");
+
+    pass3.!need_update::
+      "tar mv"          usebundle => _method_reporting_context_v4("Generate library archives", "Archive generation", "rudder_tar_mv_archive");
+      "tar mv"          usebundle => log_na_rudder("Skipping archive generation since it is up to date", "", "rudder_tar_mv_archive", "");
+
+    # if error reset synchronization
+    pass3.update_error::
+      "common"          usebundle => _method_reporting_context_v4("", "", "rudder_ncf_common_hash_reset");
+      "common"          usebundle => file_absent("${g.rudder_var_tmp}/ncf_common_hash");
+      "local"           usebundle => _method_reporting_context_v4("", "", "rudder_ncf_local_hash_reset");
+      "local"           usebundle => file_absent("${g.rudder_var_tmp}/ncf_local_hash");
+}

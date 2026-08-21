@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# Update the ncf hash
+bundle agent update_ncf_hash
+{
+  vars:
+    agent::
+      "ncf_common_sha_sum" string => execresult("${paths.path[find]} ${g.rudder_ncf_origin_common} -not -name ${g.rudder_ncf_hash_file} -type f -print0  | ${paths.path[sort]} -z | /usr/bin/xargs -0 /usr/bin/sha1sum | /usr/bin/sha1sum", "useshell");
+      "ncf_local_sha_sum"  string => execresult("${paths.path[find]} ${g.rudder_ncf_origin_local} -not -name ${g.rudder_ncf_hash_file} -type f -print0  | ${paths.path[sort]} -z | /usr/bin/xargs -0 /usr/bin/sha1sum | /usr/bin/sha1sum", "useshell");
+
+  files:
+    # each run, update the hash files of ncf
+    # these hashes are used by node to know if they should update their copy of ncf
+    any::
+      "${g.rudder_ncf_origin_common_hash}"
+        create        => "true",
+        edit_defaults => empty,
+        edit_line     => insert_lines("${ncf_common_sha_sum}"),
+        perms         => mog("660", "root", "rudder"),
+        comment       => "Update the hash of ncf common";
+
+      "${g.rudder_ncf_origin_local_hash}"
+        create        => "true",
+        edit_defaults => empty,
+        edit_line     => insert_lines("${ncf_local_sha_sum}"),
+        perms         => mog("660", "root", "rudder"),
+        comment       => "Update the hash of ncf local";
+}
