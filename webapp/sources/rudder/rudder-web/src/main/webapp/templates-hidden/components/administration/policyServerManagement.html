@@ -421,43 +421,6 @@
         <div class="inner-portlet">
           <h3 class="page-title">Policy generation system hooks</h3>
           <div class="portlet-content">
-            <div class="lift:administration.PropertiesManagement.generationHookCfpromise" id="generationHookCfpromise">
-              <div class="explanation-text">
-                <p><b>Development Policy Check</b></p>
-                <p>Rudder can check generated policies syntax after generation to ensure that only syntactically valid policies are deployed on node..</p>
-                <p>
-                  That check is especially useful when you are developing your own generic method or technique without the technique
-                  editor, and you want to catch possible bugs as early as possible.
-                </p>
-                <p>
-                  This check can add some overhead to policy generation, so if you don't code techniques or generic methods,
-                  you can disable it to make policy generation quicker.
-                </p>
-              </div>
-              <form class="lift:form.ajax">
-                <ul>
-                  <li class="rudder-form">
-                    <div class="input-group">
-                      <label class="input-group-text" for="generationHookCfpromiseCheckbox">
-                        <input id="generationHookCfpromiseCheckbox" type="checkbox">
-                        <label for="generationHookCfpromiseCheckbox" class="label-radio">
-                          <span class="ion ion-checkmark-round"></span>
-                        </label>
-                        <span class="ion ion-checkmark-round check-icon"></span>
-                      </label>
-                      <label class="form-control" for="generationHookCfpromiseCheckbox">
-                        Enable syntax validation of generated policies
-                      </label>
-                    </div>
-                  </li>
-                </ul>
-                <lift:authz role="administration_write">
-                  <input type="submit" value="Reload" id="generationHookCfpromiseSubmit"/>
-                  <span class="lift:Msg?id=generationHookCfpromiseMsg">[messages]</span>
-                </lift:authz>
-              </form>
-            </div>
-            <br />
             <div class="lift:administration.PropertiesManagement.generationHookTriggerNodeUpdate" id="generationHookTriggerNodeUpdate">
               <div class="explanation-text">
                 <p><b>Trigger immediate update of nodes when their configuration changes</b></p>
