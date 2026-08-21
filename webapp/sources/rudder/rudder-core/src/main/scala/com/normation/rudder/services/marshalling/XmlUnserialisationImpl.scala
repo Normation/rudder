@@ -838,6 +838,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
       _              <- TestFileFormat(apiAccount)
       id             <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
       name           <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
+      // fixme
       token          <-
         (apiAccount \ "token").headOption.map(_.text) ?~! (s"Missing attribute 'token' in entry type API Account : ${entry}")
       description    <- (apiAccount \ "description").headOption.map(
@@ -890,7 +891,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        Some(ApiTokenHash.fromHashValue(token)),
+        None,
         description,
         isEnabled,
         creationDate,

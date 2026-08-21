@@ -315,7 +315,6 @@ trait ApiAccountUnserialisation {
      <apiAccount fileFormat="4">
        <id>{account.id.value}</id>
        <name>{account.name.value}</name>
-       <token>{account.token.value}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>

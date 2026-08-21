@@ -945,6 +945,7 @@ class EventLogFactoryImpl(
       scala.xml.Utility.trim(<apiAccount changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{diff.id.value}</id>{
         diff.modName.map(x => SimpleDiff.stringToXml(<name/>, x)) ++
+        // fixme
         diff.modToken.map(x => SimpleDiff.stringToXml(<token/>, x)) ++
         diff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x)) ++
         diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x)) ++
