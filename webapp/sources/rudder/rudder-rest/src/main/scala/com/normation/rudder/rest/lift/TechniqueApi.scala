@@ -788,7 +788,7 @@ class TechniqueAPIService14(
         ZIO.foreach(activeTechniques.flatMap(_.techniques)) {
           case (version, technique) =>
             res.techniques.find(t =>
-              t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
+              technique.policyTypes.isBase && t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
             ) match {
               case Some(editorTechnique) =>
                 getTechniqueJson(editorTechnique)
