@@ -1,0 +1,15 @@
+{{#vars.system_apache_logrotate.apache_logs}}
+{{{.name}}} {
+        daily
+        missingok
+        rotate {{{.duration}}}
+        compress
+        notifempty
+        create {{{.create}}}
+        delaycompress
+        sharedscripts
+        postrotate
+          {{{.postrotate}}}
+        endscript
+}
+{{/vars.system_apache_logrotate.apache_logs}}

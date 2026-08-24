@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# Read node properties and put them into the node namespace
+#
+# Properties are available using the node.namespace container that contains the values
+# Those values are read from /var/rudder/cfengine-community/inputs/properties.d/*.json and from
+# /var/rudder/local/properties.d/*.json
+# All files are taken in order and overrides the previous one, the last one wins, with the local
+# defined properties overriding the one in /var/rudder/cfengine-community/inputs/properties/
+#
+# Each file must contain at least a 2 levels JSON content, the first level is the namespace level
+# and the second level is the key level.
+# The namespace name must comply with CFEngine variable names rules (ie [a-zA-Z_]+)
+#
+# The merge is a first level merge done at the namespace level.
+# This means that:
+# - a key in a namespace is fully overridden by the same key in the same namespace in a later file.
+# - a key in a namespace is never overridden by the same key in a different namespace
+# - a key that is overridden never retain original data even if it is a data container itself
+#
+
+# The result key is available in the node.<namespace> data variable
+# usage example: ${node.properties[my_key]}
+#
+# To get the original data (for debug only) there is the properties.property_<fileid> variable
+# usage example: ${properties.property__var_rudder_cfengine_community_inputs_properties_properties_json[properties][my_key]}
+#
+bundle common properties
+{
+  vars:
+    # The files to read
+    "properties_files" slist => findfiles("${this.promise_dirname}/../../properties.d/*.json");
+
+    # Local properties files
+    "local_properties_files" slist => findfiles("/var/rudder/local/properties.d/*.json");
+
+    # The sorted file list
+    "_sorted_files" slist => sort("properties_files", "lex");
+
+    # The sorted local file list
+    "_sorted_local_files" slist => sort("local_properties_files", "lex");
+
+    # cfengine iterates over lists in promises in the reverse order, so we need the inverted list
+    "sorted_files" slist => { @{_sorted_files}, @{_sorted_local_files} },
+                  policy => "ifdefined";
+
+    # Canonified sorted file list
+    "file_id[${sorted_files}]" string => canonify("${sorted_files}");
+
+    # Read the files, 10MB maximum
+    # Read into a property_<canonified filename> because cfengine doesn't support to read data into property[<filename>]
+    "property_${file_id[${sorted_files}]}" data => readjson("${sorted_files}", "10000000");
+
+    # Get namespace names
+    "namespace[${sorted_files}]" slist => getindices("property_${file_id[${sorted_files}]}");
+
+    # Initialize all namespace variables (mergedata refuses to merge undefined variables)
+    "node.${namespace[${sorted_files}]}" data => parsejson('{}');
+
+    # First level merge within each namespace, in file name order
+    "node.${namespace[${sorted_files}]}" data => mergedata("node.${namespace[${sorted_files}]}",
+                                                           "property_${file_id[${sorted_files}]}[${namespace[${sorted_files}]}]");
+
+    # That's all, now we have a node.namespace data that contains the overridden values
+
+    # List properties that must be automatically converted to conditions
+    "autocond_properties" slist => getvalues("node.properties[rudder_auto_conditions]");
+    # canonified property name to use in class names
+    "var[${autocond_properties}]" string => canonify("${autocond_properties}");
+    # Each property must be a json, we get each top level key from json
+    "items[${autocond_properties}]" slist => getindices("node.properties[${autocond_properties}]");
+    # canonfied items from our property
+    "var_items[${autocond_properties}][${items[${autocond_properties}]}]" string => canonify("${items[${autocond_properties}]}");
+    # the we get type of the value of our items
+    "typeof[${autocond_properties}][${items[${autocond_properties}]}]" string => type("node.properties[${autocond_properties}][${items[${autocond_properties}]}]", "true");
+
+  classes:
+    # Check whether the item value is a boolean or ...
+    "is_boolean_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}" expression => strcmp("data boolean", "${typeof[${autocond_properties}][${items[${autocond_properties}]}]}");
+    # ... a string
+    "is_string_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}"  expression => strcmp("data string", "${typeof[${autocond_properties}][${items[${autocond_properties}]}]}");
+
+    # eg: myproperty = { "mykey": true } will generate a myproperty_mykey class
+    # false will not generate a class, this allows overriding true with false
+    # to sum up, Boolean property case
+    "${autocond_properties}_${items[${autocond_properties}]}" expression => "${node.properties[${autocond_properties}][${items[${autocond_properties}]}]}",
+                                                                     if => "is_boolean_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}";
+
+    # eg: myproperty = { "mykey": "audit" } will generate a myproperty_mykey_audit class
+    # to sum up, String property case
+    "${autocond_properties}_${items[${autocond_properties}]}_${node.properties[${autocond_properties}][${items[${autocond_properties}]}]}" expression => "true",
+                                                                                                                                                 if => "is_string_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}";
+
+# auto conditions cases:
+# - if the sub-property value is a boolean: define the condition if true (else do nothing)
+# - if the sub-property is a string: define the condition with the value as suffix
+# - if the property is not a Json type or its sub-properties are neither string nor boolean: do nothing
+# - if the property doesn't exist it doesn't fail
+# - if 'rudder_auto_conditions' is not a list it is first converted to a list (a string becomes a list of 1 object and a json becomes the list of its values)
+# - if 'rudder_auto_conditions' doesn't exist, there is no error
+}
+
+# Read the inventories variables from Rudder
+bundle common rudder_node_inventory {
+  vars:
+    "node.inventory" data => readjson("${this.promise_dirname}/../../rudder-vars.json");
+}

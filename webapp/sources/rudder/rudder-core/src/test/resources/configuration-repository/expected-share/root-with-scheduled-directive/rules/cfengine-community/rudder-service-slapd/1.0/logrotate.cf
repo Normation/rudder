@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_slapd_logrotate {
+  classes:
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "duration_configured" expression => isvariable("rudder_parameters.log_duration");
+
+  files:
+      "/etc/logrotate.d/rudder-slapd"
+        delete  => tidy,
+        comment => "Removing logrotate file from pre-8.x";
+}

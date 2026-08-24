@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle common rudder_syslog {
+  vars:
+    any::
+      "user_name"        string => "root";
+      "group_name"       string => "root";
+      "file_mode" string => "640";
+
+    debian::
+      "group_name"       string => "adm";
+}

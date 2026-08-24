@@ -1,0 +1,205 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+#######################################################
+#
+# Server specific configuration
+#
+#######################################################
+
+bundle server access_rules
+{
+  access:
+    # Access rules are only defined on a policy server. Standard nodes should not share any files.
+    policy_server::
+      "${def.dir_masterfiles}"
+        handle    => "grant_access_policy",
+        comment   => "Grant access to the policy updates",
+        maproot => {  @{def.acl}  },
+        admit_ips => {  @{def.acl}  };
+
+      "${g.rudder_ncf_origin_common}"
+        maproot => {  @{def.acl}  },
+        admit_ips => {  @{def.acl}  };
+
+      "${g.rudder_ncf_origin_local}"
+        maproot => {  @{def.acl}  },
+        admit_ips => {  @{def.acl}  };
+
+      # Deny access to 50_techniques folder
+      "${g.rudder_ncf_origin_local}/50_techniques"
+        deny_ips  => {  "0.0.0.0/0"  };
+
+
+      "/var/rudder/configuration-repository/shared-files"
+        comment   => "Grant access to the share files",
+        maproot => {  @{def.acl}  },
+        admit_ips => {  @{def.acl}  };
+
+
+    any::
+          "/var/rudder/share/root/"
+            maproot => {  @{def.acl}  },
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
+
+          "/var/rudder/shared-files/root/"
+            maproot => {  @{def.acl}  },
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
+
+        
+
+    # Allow server to remotely run the agent
+    # Using ${sys.cf_agent} fails, as cf-serverd cannot canonize its path
+    !root_server::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand",
+        admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
+    root_server::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand, root is its own policy server",
+        admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
+
+  roles:
+      # Allow user root to set any class
+      ".*"  authorize => { "root" };
+}
+
+bundle common def
+{
+  vars:
+      "cf_runagent_shell" 
+        string  => "/bin/sh",
+        comment => "Define path to shell used by cf-runagent";
+
+      "dir_masterfiles" string => translatepath("${sys.workdir}/masterfiles");
+
+   # List here the IP masks that we grant access to on the server
+
+    policy_server.(agent|server)::
+      "acl" slist => {
+        "127.0.0.0/8" , "::1", @{sys.ip_addresses},
+        host2ip("${server_info.policy_server}"), # the policy server can connect to a relay
+        "192.168.12.0/24","192.168.49.0/24","127.0.0.1/24",
+    };
+
+    !policy_server.(agent|server)::
+      "acl" slist => {
+        host2ip("${server_info.policy_server}")
+      };
+
+
+    ipv6_enabled::
+      "bindtointerface" string => "${node.properties[rudder][server][cf_serverd_bind_address]}";
+
+    !ipv6_enabled::
+      "bindtointerface" string => "",
+                            if => strcmp("${node.properties[rudder][server][cf_serverd_bind_address]}", "::");
+
+      "bindtointerface" string => "${node.properties[rudder][server][cf_serverd_bind_address]}",
+                        unless => strcmp("${node.properties[rudder][server][cf_serverd_bind_address]}", "::");
+
+
+  classes:
+      "ipv6_enabled" expression => fileexists("/proc/net/if_inet6"),
+                          scope => "namespace";
+
+}
+
+
+body server control
+{
+      policy_server::
+        trustkeysfrom     => {
+          @{def.acl} ,
+        };
+      # our policy server should already be trusted after bootstrapping
+      !policy_server::
+        trustkeysfrom     => {};
+
+      any::
+        allowconnects     => {
+          @{def.acl} ,
+        };
+
+        allowallconnects  => {
+          @{def.acl} ,
+        };
+
+        # force connections via tls1.3 or higher
+        allowtlsversion => "1.3";
+
+        maxconnections    => "10000";
+        logallconnections => "true";
+
+        # Disallow old protocol
+        allowlegacyconnects => {};
+
+        # last single quote in cfruncommand is left open, so that
+        # arguments (like -K and --remote-bundles) are properly appended.
+        cfruncommand => "${g.rudder_command} agent run -uR";
+
+        allowusers        => {
+          "root",
+          "root" 
+        };
+
+        denybadclocks => "true";
+
+        serverfacility => "${rudder_syslog_facility.syslog}";
+
+    !debug_port::
+        port => "5309";
+    debug_port::
+        port => "5310";
+
+    any::
+        bindtointerface => "${def.bindtointerface}";
+
+
+}
+
+#######################################################
+
+body runagent control
+{
+        hosts => {
+
+                    "server.rudder.local:5309",
+        };
+
+        max_children => "25";
+
+    !debug_port::
+        port => "5309";
+    debug_port::
+        port => "5310";
+}
+body report_data_select rudder_data_select_host
+# @brief Data to collect from remote hosts by default
+#
+# By convention variables and classes known to be internal, (having no
+# reporting value) should be prefixed with an underscore. By default the policy
+# framework explicitly excludes these variables and classes from collection.
+{
+    metatags_include       => { "inventory", "report" };
+    metatags_exclude       => { "noreport" };
+    monitoring_include     => { ".*" };
+    promise_handle_exclude => { "noreport_.*" };
+}
+
+body report_data_select rudder_data_select_policy_hub
+# @brief Data to collect from policy servers by default
+#
+# By convention variables and classes known to be internal, (having no
+# reporting value) should be prefixed with an underscore. By default the policy
+# framework explicitly excludes these variables and classes from collection.
+{
+    metatags_include       => { "inventory", "report" };
+    metatags_exclude       => { "noreport" };
+    monitoring_include     => { ".*" };
+    promise_handle_exclude => { "noreport_.*" };
+}
+
+bundle agent disable_cf_serverd {
+  methods:
+      "any" usebundle => service_stopped("rudder-cf-serverd");
+      "any" usebundle => service_disabled("rudder-cf-serverd");
+}

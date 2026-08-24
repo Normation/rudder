@@ -21,7 +21,8 @@ bundle agent rudder_event_scheduler {
 bundle agent rudder_event_scheduler_real {
 
   vars:
-      "data" string => "${system_common.schedule_events}";
+      # the file is at the root of the policy tree, like rudder-vars.json (see properties.cf)
+      "data" string => readfile("${this.promise_dirname}/../../scheduled_events.json", inf);
     pass2::
       "res"   slist => classesmatching("schedule_.+");
 
@@ -38,7 +39,7 @@ bundle agent rudder_event_scheduler_real {
       "module_call"
         rudder_module_protocol  => "0",
         # no action body, there is no audit mode here.
-        state_dir               => "/var/rudder/tmp/",
+        state_dir               => "/var/rudder/scheduler/",
         backup_dir              => "/var/rudder/modified-files/",
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",

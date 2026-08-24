@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# This file is the main entry points for the bundle sequence for
+# Rudder user directives. It is actually a list of method calls, and not
+# a bundle sequence, which allows to add the technique or directives
+# names as promiser.
+
+body file control {
+
+  inputs => {
+    "clockConfiguration/3.0/clockConfiguration.cf",
+    "rpmPackageInstallation/7.0/rpmPackageInstallation.cf",
+  };
+
+}
+
+
+bundle agent rudder_directives {
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
+  methods:
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => set_dry_run_mode("false");
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => run_directive1_rev1,
+                                                                              if => "schedule_test_schedule_run";
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm"          usebundle => set_dry_run_mode("true");
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm"          usebundle => run_directive2;
+      "clean_mode"                                                     usebundle => set_dry_run_mode("false");
+}
+bundle agent run_directive1_rev1
+{
+  methods:
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => rudder_reporting_context_v4("directive1+rev1","rule1","clockConfiguration","","","directive1+rev1rule1");
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => disable_reporting;
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => check_clock_configuration;
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => clean_reporting_context;
+}
+bundle agent run_directive2
+{
+  methods:
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm" usebundle => rudder_reporting_context_v4("directive2","rule2","rpmPackageInstallation","","","directive2rule2");
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm" usebundle => disable_reporting;
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm" usebundle => check_rpm_package_installation;
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm" usebundle => clean_reporting_context;
+
+}
+
