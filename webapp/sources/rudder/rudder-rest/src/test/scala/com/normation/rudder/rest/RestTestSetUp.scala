@@ -136,6 +136,7 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
+import com.normation.rudder.services.modification.ItemRollbackService
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
@@ -419,7 +420,12 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         commiter:         PersonIdent,
         rollbackedEvents: Seq[EventLog],
         target:           EventLog
-    ): Box[GitCommitId] = Full(fakeGitCommitId)
+    ): IOResult[GitCommitId] = fakeGitCommitId.succeed
+  }
+  val itemRollbackService: ItemRollbackService = new ItemRollbackService {
+    override def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using
+        cc: ChangeContext
+    ): IOResult[GitCommitId] = fakeGitCommitId.succeed
   }
   val eventLogDetailGenerator: EventLogDetailsGenerator = new EventLogDetailsGenerator(
     eventLogDetailsService,
@@ -427,6 +433,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     mockNodes.nodeFactRepo,
     mockRules.ruleCategoryRepo,
     modificationService,
+    itemRollbackService,
     linkUtil,
     null
   )

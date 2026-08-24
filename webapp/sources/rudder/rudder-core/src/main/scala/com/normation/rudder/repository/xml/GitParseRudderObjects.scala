@@ -49,10 +49,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
-import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupAndCat
-import com.normation.rudder.configuration.GroupRevisionRepository
-import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -133,7 +130,7 @@ class GitParseRules(
     ruleUnserialisation: RuleUnserialisation,
     val repo:            GitRepositoryProvider,
     rulesRootDirectory:  String // relative name to git root file
-) extends ParseRules with GitParseCommon[List[Rule]] with RuleRevisionRepository {
+) extends ParseRules with GitParseCommon[List[Rule]] {
 
   val rulesDirectory: GitRootCategory = getGitDirectoryPath(rulesRootDirectory)
 
@@ -281,7 +278,11 @@ class GitParseGroupLibrary(
     libRootDirectory:     String, // relative name to git root file
 
     categoryFileName: String = "category.xml"
-) extends ParseGroupLibrary with GitParseCommon[NodeGroupCategoryContent] with GroupRevisionRepository {
+) extends ParseGroupLibrary with GitParseCommon[NodeGroupCategoryContent] {
+
+  // the root category is stored in the group library directory itself, so contrary to the other
+  // categories, its ID can not be read back from the path of the files it holds
+  private val rootCategoryId = NodeGroupCategoryId("GroupRoot")
 
   val groupsDirectory: GitRootCategory = getGitDirectoryPath(libRootDirectory)
 
@@ -376,20 +377,17 @@ class GitParseGroupLibrary(
       // nodegroups are any where in the subtree with parent directory name == uuid of the group category.
       // So we need to find the group by name, and split path to get its category. Be careful, the name of root
       // category is not "groups" but "GroupRoot"
-      groups <- GitFindUtils.listFiles(repo.db, treeId, List(groupsDirectory.directoryPath), s"/{uid.value}.xml" :: Nil)
+      groups <- GitFindUtils.listFiles(repo.db, treeId, List(groupsDirectory.directoryPath), s"/${uid.value}.xml" :: Nil)
       res    <- groups.toList match {
                   case Nil      => None.succeed
                   case h :: Nil =>
                     for {
                       xml   <- GitFindUtils.getFileContent(repo.db, treeId, h)(is => ParseXml(is, Some(h)))
                       group <- groupUnserialiser.unserialise(xml).toIO
-                      // h is path relative to config-repo, so may contains only one "/" (rules/ruleId.xml)
-                      catId  = h.split('/').toList.reverse match {
-                                 case Nil | _ :: Nil       => // assume root category even if Nil
-                                   NodeGroupCategoryId("GroupRoot")
-                                 case group_ :: catId :: _ =>
-                                   NodeGroupCategoryId(catId)
-                               }
+                      // h is path relative to config-repo, so may contains only one "/" (groups/groupId.xml)
+                      parent = h.substring(0, h.lastIndexOf('/') + 1)
+                      catId  = if (parent == groupsDirectory.directoryPath) rootCategoryId
+                               else NodeGroupCategoryId(parent.split('/').last)
                       // we need to correct ID revision to the one we just looked-up.
                       // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
                     } yield Some(GroupAndCat(group.modify(_.id.rev).setTo(rev), catId))
@@ -407,7 +405,6 @@ class GitParseGroupLibrary(
 trait TechniqueRevisionRepository {
   /*
    * Get the technique with given name, version and revision from history
-   * (todo: what about head?)
    */
   def getTechnique(
       name:    TechniqueName,
@@ -663,7 +660,7 @@ class GitParseActiveTechniqueLibrary(
 
     uptcFileName: String = "category.xml",
     uptFileName:  String = "activeTechniqueSettings.xml"
-) extends ParseActiveTechniqueLibrary with GitParseCommon[ActiveTechniqueCategoryContent] with DirectiveRevisionRepository {
+) extends ParseActiveTechniqueLibrary with GitParseCommon[ActiveTechniqueCategoryContent] {
 
   /**
    * Get a directive for the specific given revision;
