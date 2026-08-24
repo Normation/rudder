@@ -366,7 +366,7 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
                             args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
@@ -782,7 +782,7 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
