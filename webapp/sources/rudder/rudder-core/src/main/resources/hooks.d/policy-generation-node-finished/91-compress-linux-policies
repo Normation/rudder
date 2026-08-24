@@ -35,6 +35,7 @@ else
 
       # enforce permissions
       if [ "${RUDDER_NODE_ID}" != "root" ]; then
+        chown :rudder-policy-reader ${RUDDER_POLICIES_DIRECTORY}
         chown :rudder-policy-reader ${RUDDER_POLICIES_DIRECTORY}/..
         chown root:rudder-policy-reader ${ARCHIVE_PATH}/${ARCHIVE_NAME}
       fi
