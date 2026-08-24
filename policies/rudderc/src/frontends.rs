@@ -4,11 +4,11 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use format_serde_error::SerdeError;
 use rudder_commons::methods::{self, Methods};
 use tracing::{error, trace};
 
 use crate::compiler::check_foreach_keys_consistency;
+use crate::serde_error::SerdeError;
 use crate::{
     compiler::user_error,
     ir::{

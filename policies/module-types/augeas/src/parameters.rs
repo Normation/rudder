@@ -5,7 +5,6 @@ use anyhow::{Result, bail};
 use bytesize::ByteSize;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
-use serde_with::serde_as;
 use std::path::PathBuf;
 
 /// Parameters for the augeas module, passed by the agent
@@ -41,10 +40,11 @@ impl From<CfengineAugeasParameters> for AugeasParameters {
 }
 
 /// Parameters for the augeas module.
+// `serde_inline_default` must come before `derive`, otherwise the derive runs
+// first and never sees the defaults it generates.
+#[serde_inline_default]
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[serde_inline_default]
-#[serde_as]
 pub struct AugeasParameters {
     /// Expressions to run
     pub script: String,
@@ -55,7 +55,6 @@ pub struct AugeasParameters {
     ///
     /// By default, the `path` is used as context.
     #[serde(default)]
-    #[serde_as(as = "NoneAsEmptyString")]
     pub context: Option<String>,
     /// Output file `path`
     #[serde(default)]
@@ -73,7 +72,6 @@ pub struct AugeasParameters {
     /// Passing a lens makes the call faster as it avoids having to
     /// load all lenses.
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde_as(as = "NoneAsEmptyString")]
     pub lens: Option<String>,
 
     //pub must_exist: Option<bool>,
@@ -118,5 +116,52 @@ mod tests {
 
         assert!(relative.validate().is_err());
         assert!(absolute.validate().is_ok());
+    }
+
+    #[test]
+    fn it_defaults_the_optional_parameters() {
+        let p: AugeasParameters = serde_json::from_str(r#"{"script":"s"}"#).unwrap();
+        assert!(p.show_file_content);
+        assert_eq!(p.max_file_size, ByteSize::mb(10));
+        // and they can still be set
+        let p: AugeasParameters = serde_json::from_str(
+            r#"{"script":"s","show_file_content":false,"max_file_size":"1 MB"}"#,
+        )
+        .unwrap();
+        assert!(!p.show_file_content);
+        assert_eq!(p.max_file_size, ByteSize::mb(1));
+    }
+
+    #[test]
+    fn it_parses_optional_string_parameters() {
+        let parse = |extra: &str| -> AugeasParameters {
+            serde_json::from_str(&format!(r#"{{"script":"s"{extra}}}"#)).unwrap()
+        };
+
+        let p = parse("");
+        assert_eq!(p.context, None);
+        assert_eq!(p.lens, None);
+
+        let p = parse(r#","context":null,"lens":null"#);
+        assert_eq!(p.context, None);
+        assert_eq!(p.lens, None);
+
+        let p = parse(r#","context":"","lens":"""#);
+        assert_eq!(p.context.as_deref(), Some(""));
+        assert_eq!(p.lens.as_deref(), Some(""));
+
+        let p = parse(r#","context":"/files","lens":"Hosts""#);
+        assert_eq!(p.context.as_deref(), Some("/files"));
+        assert_eq!(p.lens.as_deref(), Some("Hosts"));
+
+        assert!(serde_json::from_str::<AugeasParameters>(r#"{"script":"s","lens":42}"#).is_err());
+    }
+
+    #[test]
+    fn it_serializes_optional_string_parameters() {
+        let json = serde_json::to_string(&AugeasParameters::default()).unwrap();
+        assert!(json.contains(r#""context":null"#), "{json}");
+        // `lens` is skipped when unset
+        assert!(!json.contains("lens"), "{json}");
     }
 }

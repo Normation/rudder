@@ -11,9 +11,7 @@ license.workspace = true
 [dependencies]
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
 serde_json = "1"
-serde-aux = "4.5.0"
 similar = { version = "3", optional = true }
 gumdrop = "0.8"
 rudder_commons = { path = "../rudder-commons" }
@@ -25,8 +23,6 @@ skip_bom = "0.5.1"
 
 [dev-dependencies]
 pretty_assertions = "1"
-# Fix for workspace not merged yet
-test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
 tempfile = "3"
 
 [features]

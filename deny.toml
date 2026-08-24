@@ -7,9 +7,7 @@ unknown-registry = "deny"
 unknown-git = "deny"
 
 allow-git = [
-    "https://github.com/fennewald/format_serde_error",
-    "https://github.com/JamesGuthrie/test-generator",
-    "https://github.com/amousset/warp?branch=body-stream"
+    "https://github.com/JamesGuthrie/test-generator"
 ]
 
 [sources.allow-org]
@@ -42,4 +40,3 @@ unused-allowed-license = "allow"
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
-
