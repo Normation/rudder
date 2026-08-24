@@ -158,26 +158,37 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
                 contentType: "application/json; charset=utf-8",
                 success: function (response, status, jqXHR) {
                   const id = response["data"]["id"]
-                  const rollback = setupRollbackBlock(id)
                   const parser = new DOMParser();
                   const content = parser.parseFromString(response["data"]["content"], 'text/html');
                   const html = $(content.body).contents();
 
                   if(response["data"]["canRollback"]){
-                    table.row(row).child($(rollback).append(html)).show();
+                    const block = buildRollbackBlock(id);
+                    block.prepend(html);
+                    table.row(row).child(block).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
-                      const rollback = "#rollback" + id
+                      const rollback = "#rollbackConfiguration" + id
                       $(rollback).removeClass("d-flex").addClass("d-none");
-                      const confirm = "#confirm" + id.toString();
-                      const radios = $(".radio-btn");
+                      const confirm = "#confirmConfiguration" + id.toString();
+                      const radios = $("#restoreConfiguration .radio-btn");
                       const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
                       if (action !== null) {
                         const confirmHtml = "<div class='d-flex text-start column-gap-2'><div class='py-2'><i class='fa fa-exclamation-triangle fs-2' aria-hidden='true'></i></div><div><div>Are you sure you want to restore configuration policy " + action + " this change? </div><div class='mt-2'><button class='btn btn-default rollback-action'>Cancel</button><button class='btn btn-danger rollback-action ms-2'>Confirm</button></div></div>";
                         $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex flex-column");
-                        $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
-                        $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                        $('#confirmConfiguration' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
+                        $('#confirmConfiguration' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
                       }
+                    });
+                    $("#rollbackBtn" + id).click(function(event){
+                      const rollback = "#rollbackItem" + id
+                      $(rollback).removeClass("d-flex").addClass("d-none");
+                      const confirm = "#confirmItem" + id.toString();
+                      const action = "item"
+                      const confirmHtml = "<div class='d-flex text-start column-gap-2'><div class='py-2'><i class='fa fa-exclamation-triangle fs-2' aria-hidden='true'></i></div><div><div>Are you sure you want to restore this item to its state before this change? </div><div class='mt-2'><button class='btn btn-default rollback-action'>Cancel</button><button class='btn btn-danger rollback-action ms-2'>Confirm</button></div></div>";
+                      $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex flex-column");
+                      $('#confirmItem' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
+                      $('#confirmItem' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollbackItem(id) });
                     });
                   } else {
                     table.row(row).child(html).show();

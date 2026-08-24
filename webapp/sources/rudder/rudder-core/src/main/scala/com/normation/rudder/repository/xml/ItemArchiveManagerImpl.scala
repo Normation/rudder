@@ -38,28 +38,18 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.ModificationId
+import com.normation.eventlog.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
+import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.git.GitArchiveId
-import com.normation.rudder.git.GitArchiverFullCommitUtils
-import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.git.*
 import com.normation.rudder.repository.*
-import com.normation.rudder.rule.category.GitRuleCategoryArchiver
-import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantAccessGrant
-import com.normation.zio.*
+import com.normation.rudder.tenants.*
 import java.io.File
 import java.time.Instant
 import org.apache.commons.io.FileUtils
@@ -72,8 +62,10 @@ class ItemArchiveManagerImpl(
     roRuleRepository:                   RoRuleRepository,
     woRuleRepository:                   WoRuleRepository,
     roRuleCategoryeRepository:          RoRuleCategoryRepository,
-    uptRepository:                      RoDirectiveRepository,
-    groupRepository:                    RoNodeGroupRepository,
+    roDirectiveRepository:              RoDirectiveRepository,
+    woDirectiveRepository:              WoDirectiveRepository,
+    roGroupRepository:                  RoNodeGroupRepository,
+    woGroupRepository:                  WoNodeGroupRepository,
     roParameterRepository:              RoParameterRepository,
     woParameterRepository:              WoParameterRepository,
     override val gitRepo:               GitRepositoryProvider,
@@ -94,13 +86,13 @@ class ItemArchiveManagerImpl(
     eventLogger:                        EventLogRepository,
     asyncDeploymentAgent:               AsyncDeploymentActor,
     gitModificationRepo:                GitModificationRepository,
-    updateDynamicGroups:                DynGroupUpdaterService
+    updateDynamicGroups:                DynGroupUpdaterService,
+    // shared with the per-item rollback: both rewrite the same git repository
+    importSemaphore:                    Semaphore
 ) extends ItemArchiveManager with GitArchiverFullCommitUtils {
 
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
-  val importSemaphore: Semaphore = Semaphore.make(1).runNow
-
-  def useSemaphoreOrFail[A](effect: IOResult[A]): ZIO[Any, RudderError, A] = {
+  def useSemaphoreOrFail[A](effect: IOResult[A]): IOResult[A] = {
     // we timeout the semaphore acquisition to fail if another op is already running
     ZIO.scoped(
       importSemaphore.withPermitScoped
@@ -120,6 +112,7 @@ class ItemArchiveManagerImpl(
   override val tagPrefix                 = "archives/full/"
   override val relativePath              = "."
   override val gitModificationRepository = gitModificationRepo
+
   ///// implementation /////
   override def loggerName: String = this.getClass.getName
 
@@ -195,6 +188,7 @@ class ItemArchiveManagerImpl(
       commitId
     }
   }
+
   override def exportRules(
       commiter: PersonIdent,
       modId:    ModificationId,
@@ -222,7 +216,7 @@ class ItemArchiveManagerImpl(
   ): IOResult[(GitArchiveId, NotArchivedElements)] = {
     // export is a system-level operation, it sees all tenants
     for {
-      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
+      catWithUPT  <- roDirectiveRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
       // remove systems categories, we don't want to export them anymore
       okCatWithUPT = catWithUPT.toMap.collect {
                        // always include root category, even if it's a system one
@@ -305,7 +299,7 @@ class ItemArchiveManagerImpl(
       reason:   Option[String]
   )(implicit qc: QueryContext): IOResult[GitArchiveId] = {
     for {
-      catWithGroups <- groupRepository.getGroupsByCategory(includeSystem = true)
+      catWithGroups <- roGroupRepository.getGroupsByCategory(includeSystem = true)
       // remove systems categories, because we don't want them
       okCatWithGroup = catWithGroups.toMap.collect {
                          // always include root category, even if it's a system one
@@ -422,9 +416,13 @@ class ItemArchiveManagerImpl(
       _        <- woRuleRepository
                     .deleteSavedRuleArchiveId(imported)
                     .catchAll(err => GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}"))
-      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) })
+      _        <- effectUioUnit(if (deploy) {
+                    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+                  })
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      }
       archiveId
     }
   }
@@ -456,7 +454,9 @@ class ItemArchiveManagerImpl(
       parsed   <- parseActiveTechniqueLibrary.getArchive(archiveId)
       imported <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed)
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+      }
       archiveId
     }
   }
@@ -489,7 +489,9 @@ class ItemArchiveManagerImpl(
       imported <- importGroupLibrary.swapGroupLibrary(parsed)
       dynGroup <- updateDynamicGroups.updateAll(cc.modId).toIO
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
+      if (deploy) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+      }
       archiveId
     }
   }
@@ -526,7 +528,9 @@ class ItemArchiveManagerImpl(
                     .catchAll(err =>
                       GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                     )
-      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) })
+      _        <- effectUioUnit(if (deploy) {
+                    asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+                  })
     } yield {
       archiveId
     }

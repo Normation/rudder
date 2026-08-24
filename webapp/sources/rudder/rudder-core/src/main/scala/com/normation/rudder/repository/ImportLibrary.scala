@@ -38,6 +38,9 @@
 package com.normation.rudder.repository
 
 import com.normation.errors.*
+import com.normation.rudder.configuration.DirectiveRevisionRepository
+import com.normation.rudder.configuration.GroupRevisionRepository
+import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -74,7 +77,7 @@ final case class ActiveTechniqueLibraryArchiveId(value: String) extends AnyVal
  * the LDAP.
  */
 
-trait ParseActiveTechniqueLibrary {
+trait ParseActiveTechniqueLibrary extends DirectiveRevisionRepository {
 
   /**
    * That method parse rules from the
@@ -88,7 +91,7 @@ trait ParseActiveTechniqueLibrary {
  * from the File System into the LDAP.
  * That part read the last CR archive.
  */
-trait ParseRules {
+trait ParseRules extends RuleRevisionRepository {
 
   /**
    * That method parse rules from the
@@ -139,7 +142,7 @@ final case class NodeGroupCategoryContent(
  */
 final case class NodeGroupLibraryArchiveId(value: String) extends AnyVal
 
-trait ParseGroupLibrary {
+trait ParseGroupLibrary extends GroupRevisionRepository {
 
   /**
    * That method parse a group library from the
