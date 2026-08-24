@@ -40,8 +40,6 @@ package com.normation.rudder.services.policies.write
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
-import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl.ModParamSchedule
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
@@ -62,7 +60,6 @@ import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.immutable.ArraySeq
 import zio.*
-import zio.json.*
 import zio.syntax.*
 
 case class PrepareTemplateTimer(
@@ -149,8 +146,7 @@ class PrepareTemplateVariablesImpl(
         .toVariable(if (agentNodeConfig.agentInfo.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
       systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentInfo.agentType.toString)),
       systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value)),
-      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name)),
-      createScheduledEventsVariable(scheduledEvents)
+      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name))
     ).map(x => (x.spec.name, x)).toMap
 
     val agentNodeProps = AgentNodeProperties(
@@ -236,7 +232,8 @@ class PrepareTemplateVariablesImpl(
         preparedTemplate,
         allSystemVars,
         allNodeConfigs.get(nodeId).map(_.policies).getOrElse(Nil),
-        policyServerCertificates
+        policyServerCertificates,
+        scheduledEvents
       )
     }
   }
@@ -318,12 +315,6 @@ class PrepareTemplateVariablesImpl(
     } yield {
       preparedTechniques
     }
-  }
-
-  private[write] def createScheduledEventsVariable(scheduledEvents: Seq[DirectiveScheduleEvent]): SystemVariable = {
-    // we use PolicyScheduleEvents to maintain API compat with agent
-    val sysvarEvents = SystemVariableSpecServiceImpl.ModParamSchedule(scheduledEvents)
-    systemVariableSpecService.get("MODULE_PARAM_SCHEDULE").toVariable(Seq(sysvarEvents.toJsonPretty))
   }
 
   // Create a STVariable from a Variable

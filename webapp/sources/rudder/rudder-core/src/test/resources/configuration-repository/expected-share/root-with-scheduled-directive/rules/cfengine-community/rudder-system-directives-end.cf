@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# This file is the complementary entry points for the bundle sequence for
+# Rudder system directives defined in rudder-system-directives.st.
+# It is used for system directives that needs to run at the end of the agent run.
+# These directive's technique metadata must have the policy type "rudder.system,post-action".
+
+body file control {
+
+  inputs => {
+    "inventory/1.0/fusionAgent.cf",
+  };
+
+}
+
+
+bundle agent rudder_system_directives_end {
+  # fully generated in bundle common for initial promises
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
+  methods:
+      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
+      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
+}
+bundle agent run_inventory_all
+{
+  methods:
+      "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context_v4("inventory-all","inventory-all","inventory","","","inventory-allinventory-all");
+      "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
+      "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
+      "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
+
+}
+
