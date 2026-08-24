@@ -120,13 +120,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
 
-    <!-- Doing HTTP requests for remote run -->
-    <dependency>
-      <groupId>com.codacy</groupId>
-      <artifactId>scalaj-http_3</artifactId>
-      <version>${scalaj-version}</version>
-    </dependency>
-
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>sourcecode_${scala-binary-version}</artifactId>

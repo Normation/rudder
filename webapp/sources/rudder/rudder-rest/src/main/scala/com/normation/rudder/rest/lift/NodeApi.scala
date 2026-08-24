@@ -119,18 +119,26 @@ import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.net.ConnectException
+import java.net.URI
+import java.net.URLEncoder
+import java.net.http.HttpClient
+import java.net.http.HttpConnectTimeoutException
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import java.security.cert.X509Certificate
 import java.util.Arrays
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLEngine
+import javax.net.ssl.X509ExtendedTrustManager
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
+import scala.annotation.tailrec
 import scala.collection.MapView
-import scalaj.http.Http
-import scalaj.http.HttpOptions
-import scalaj.http.HttpRequest
 import zio.{System as _, *}
 import zio.json.JsonEncoder
 import zio.stream.ZSink
@@ -805,6 +813,51 @@ class NodeApiInheritedProperties(
 
 }
 
+/*
+ * We need to declare a "trustEverything" certificate management but just for that internal
+ * connection toward relay, not globaly for all HTTPClient. It's just `X509ExtendedTrustManager`
+ * that does nothing.
+ */
+object RelayApiHttpClient {
+
+  private val trustEverything: SSLContext = {
+    val checkNothing = new X509ExtendedTrustManager {
+      override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
+      override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
+      override def checkClientTrusted(chain: Array[X509Certificate], authType: String, socket: java.net.Socket): Unit = ()
+      override def checkServerTrusted(chain: Array[X509Certificate], authType: String, socket: java.net.Socket): Unit = ()
+      override def checkClientTrusted(chain: Array[X509Certificate], authType: String, engine: SSLEngine):       Unit = ()
+      override def checkServerTrusted(chain: Array[X509Certificate], authType: String, engine: SSLEngine):       Unit = ()
+      override def getAcceptedIssuers(): Array[X509Certificate] = Array.empty
+    }
+    val context      = SSLContext.getInstance("TLS")
+    context.init(null, Array(checkNothing), null)
+    context
+  }
+
+  // the relay is on the same machine: if we can't connect quickly, it's down
+  private val connectionTimeout = java.time.Duration.ofSeconds(1)
+
+  val client: HttpClient = HttpClient.newBuilder().sslContext(trustEverything).connectTimeout(connectionTimeout).build()
+
+  def formUrlEncodedBody(params: List[(String, String)]): String = {
+    def encode(s: String): String = URLEncoder.encode(s, StandardCharsets.UTF_8)
+    params.map { case (name, value) => s"${encode(name)}=${encode(value)}" }.mkString("&")
+  }
+
+  /*
+   * A connection failure can be reported directly or wrapped by the HTTP client, and it's the one
+   * case we want to report with a specific message (the relay API is likely not running).
+   */
+  @tailrec
+  def isConnectionFailure(t: Throwable): Boolean = t match {
+    case null                                                         => false
+    case _: ConnectException | _: HttpConnectTimeoutException         => true
+    case other if (other.getCause != null && other.getCause != other) => isConnectionFailure(other.getCause)
+    case _                                                            => false
+  }
+}
+
 class NodeApiService(
     val nodeFactRepository:     NodeFactRepository,
     propertiesRepo:             PropertiesRepository,
@@ -1290,26 +1343,39 @@ class NodeApiService(
     }
   }
 
-  def remoteRunRequest(nodeId: NodeId, classes: List[String], keepOutput: Boolean, asynchronous: Boolean): HttpRequest = {
-    val url     = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
-//    val url = s"http://localhost/rudder/relay-api/remote-run/nodes/${nodeId.value}"
-    val params  = {
+  /*
+   * Remote run call is async and may be long.
+   */
+  private val ASYNC_RUN_TIMEOUT = 5.minutes
+
+  /*
+   * Build the form encoded POST to the relay remote-run API.
+   * `responseTimeout` is how long we accept to wait for the relay to answer
+   * When we stream its output, the streaming itself is bounded by the caller (see `runNode`).
+   * Certificate verification is ignored thanks to `RelayApiHttpClient#trustEverything`.
+   */
+  def remoteRunRequest(
+      nodeId:          NodeId,
+      classes:         List[String],
+      keepOutput:      Boolean,
+      asynchronous:    Boolean,
+      responseTimeout: Duration
+  ): HttpRequest = {
+    val url    = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
+    val params = {
       ("classes", classes.mkString(",")) ::
       ("keep_output", keepOutput.toString) ::
       ("asynchronous", asynchronous.toString) ::
       Nil
     }
-    // We currently bypass verification on certificate
-    // We should add an option to allow the user to define a certificate in configuration file
-    //
-    // We set a 5 minutes timeout (in milliseconds) as remote-runs can be long
-    val options = HttpOptions.allowUnsafeSSL :: HttpOptions.readTimeout(5 * 60 * 1000) :: Nil
 
-    Http(url)
-      .params(params)
-      .options(options)
-      .copy(headers = List(("User-Agent", s"rudder/remote run query for node ${nodeId.value}")))
-      .postForm
+    HttpRequest
+      .newBuilder(URI.create(url))
+      .header("Content-Type", "application/x-www-form-urlencoded")
+      .header("User-Agent", s"rudder/remote run query for node ${nodeId.value}")
+      .timeout(responseTimeout)
+      .POST(HttpRequest.BodyPublishers.ofString(RelayApiHttpClient.formUrlEncodedBody(params)))
+      .build()
   }
 
   /*
@@ -1348,38 +1414,34 @@ class NodeApiService(
 
     val readTimeout = 30.seconds
 
-    val request = {
-      remoteRunRequest(nodeId, classes, keepOutput = true, asynchronous = false)
-        .timeout(connTimeoutMs = 1000, readTimeoutMs = readTimeout.toMillis.toInt)
-    }
+    val request = remoteRunRequest(nodeId, classes, keepOutput = true, asynchronous = false, readTimeout)
 
     // copy will close `os`
     val copy = (os: OutputStream, timeout: Duration) => {
       for {
         _   <- NodeLoggerPure.debug(s"Executing remote run call: ${request.toString}")
         opt <- IOResult.attempt {
-                 request.exec {
-                   case (status, headers, is) =>
-                     NodeLogger.debug(
-                       s"Processing remote-run on ${nodeId.value}: HTTP status ${status}"
-                     ) // this one is written two times - why ??
-                     if (status >= 200 && status < 300) {
-                       copyStreamTo(pipeSize, is)(os)
-                     } else {
-                       val error = errorMessageWithHint(s"(HTTP code ${status})")
-                       NodeLogger.error(error)
-                       os.write(error.getBytes)
-                       os.flush
-                     }
-                     os.close() // os must be closed here, else is never know that the stream is closed and wait forever
+                 val response = RelayApiHttpClient.client.send(request, HttpResponse.BodyHandlers.ofInputStream())
+                 val status   = response.statusCode()
+                 NodeLogger.debug(
+                   s"Processing remote-run on ${nodeId.value}: HTTP status ${status}"
+                 )          // this one is written two times - why ??
+                 if (status >= 200 && status < 300) {
+                   copyStreamTo(pipeSize, response.body())(os)
+                 } else {
+                   val error = errorMessageWithHint(s"(HTTP code ${status})")
+                   NodeLogger.error(error)
+                   os.write(error.getBytes)
+                   os.flush
                  }
+                 os.close() // os must be closed here, else is never know that the stream is closed and wait forever
                }.unit.catchAll {
                  case error @ SystemError(m, ex) =>
                    // special case for "Connection refused": it means that remoteRunRequest is not working
-                   val err = ex match {
-                     case _: ConnectException =>
-                       Unexpected(s"Can not connect to local remote run API (${request.method.toUpperCase}:${request.url})")
-                     case _ => error
+                   val err = if (RelayApiHttpClient.isConnectionFailure(ex)) {
+                     Unexpected(s"Can not connect to local remote run API (${request.method()}:${request.uri()})")
+                   } else {
+                     error
                    }
 
                    NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *> IOResult.attempt {
@@ -1424,17 +1486,17 @@ class NodeApiService(
           // remote run only works for CFEngine based agent
           val commandResult = {
             if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
-              val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true)
+              val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true, ASYNC_RUN_TIMEOUT)
               try {
-                val result = request.asString
-                if (result.isSuccess) {
+                val response = RelayApiHttpClient.client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
                   "Started"
                 } else {
-                  s"An error occurred when applying policy on Node '${node.id.value}', cause is: ${result.body}"
+                  s"An error occurred when applying policy on Node '${node.id.value}', cause is: ${response.body()}"
                 }
               } catch {
-                case ex: ConnectException =>
-                  s"Can not connect to local remote run API (${request.method.toUpperCase}:${request.url})"
+                case ex: Exception if RelayApiHttpClient.isConnectionFailure(ex) =>
+                  s"Can not connect to local remote run API (${request.method()}:${request.uri()})"
               }
             } else {
               s"Node with id '${node.id.value}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
