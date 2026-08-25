@@ -1,0 +1,199 @@
+---
+description: Admin sees both the tenant-restricted node ('node1', zoneA+zoneB) and the untagged one ('node2')
+user: admin
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node1", "node2"]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node2",
+        "name" : "node2.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      },
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: A zoneA user only gets the node of its tenant in the node table, the untagged 'node2' is admin-only
+user: zoneA
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node1", "node2"]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: A read-only tenant grant is enough to read the node table (zoneB has 'r' on zoneB)
+user: zoneB
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node1", "node2"]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: A zoneA user gets nothing when it only asks for a node it can not see, and no existence oracle either
+user: zoneA
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node2"]
+  }
+response:
+  code: 200
+  content: >-
+    []
+---
+description: A user whose tenant matches no node sees an empty node table, even without any node id filter
+user: zoneC
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+  }
+response:
+  code: 200
+  content: >-
+    []
+---
+description: A user with no tenant grant at all sees an empty node table
+user: noTenant
+method: POST
+url: /secure/api/nodes/details
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+  }
+response:
+  code: 200
+  content: >-
+    []
