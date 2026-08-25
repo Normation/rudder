@@ -63,7 +63,7 @@ object PolicyTemplateEngine extends Enum[PolicyTemplateEngine] {
 
   val values: IndexedSeq[PolicyTemplateEngine] = findValues
 
-  def default: PolicyTemplateEngine = StringTemplate
+  def default: PolicyTemplateEngine = Fastparse
 
   def parse(s: String): PureResult[PolicyTemplateEngine] = {
     withNameInsensitiveOption(s.trim).toRight(
