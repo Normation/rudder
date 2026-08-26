@@ -65,6 +65,7 @@ class ChangeLogsViewer extends SecureDispatchSnippet with Loggable {
       None,
       None,
       None,
+      None,
       Some(EventLogRequest.Order(ID, Direction.Desc)),
       None
     )

@@ -952,6 +952,7 @@ class EventLogFactoryImpl(
       reason:         Option[String],
       securityTag:    Option[SecurityTag] = None
   ): ModifyGlobalParameter = {
+    // FIXME
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<globalParameter changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <name>{modifyDiff.name}</name>{

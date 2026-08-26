@@ -175,6 +175,6 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
     )
   )
 
-  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None, None)
+  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None, None, None)
 
 }
