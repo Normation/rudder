@@ -36,9 +36,8 @@ viewModeHeader mode =
                 [ text "TOTP code verification required for login" ]
 
         _ ->
-            div [ class "alert alert-warning mt-3" ]
-                [ i [ class "fa fa-warning me-2" ] []
-                , text "You need to enable a two-factor authentication. Generate a TOTP secret for your authenticator app below."
+            div [ class "alert alert-info mt-3" ]
+                [ text "You need to enable a two-factor authentication. Generate a TOTP secret for your authenticator app below."
                 ]
 
 
