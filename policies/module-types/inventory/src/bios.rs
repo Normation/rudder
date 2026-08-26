@@ -80,6 +80,76 @@ impl Bios {
     }
 }
 
+/// How the machine is virtualized, as `HARDWARE/VMSYSTEM`.
+///
+/// The variants are named as FusionInventory names them, since the server stores the value as it
+/// is and the interface shows it: a node inventoried by either agent has to read the same.
+#[derive(Debug, PartialEq, Serialize)]
+pub enum VmSystem {
+    /// Not virtualized, as far as the firmware says.
+    Physical,
+    #[serde(rename = "QEMU")]
+    Qemu,
+    #[serde(rename = "Hyper-V")]
+    HyperV,
+    #[serde(rename = "VMware")]
+    VMware,
+    VirtualBox,
+    Xen,
+    /// What a firmware that says it is virtual without saying by what is reported as.
+    #[serde(rename = "Virtual Machine")]
+    VirtualMachine,
+}
+
+impl VmSystem {
+    /// What the firmware says the machine is, or `Physical` when it says nothing that names a
+    /// hypervisor.
+    ///
+    /// This is the firmware half of FusionInventory's `_getType`, in `Virtualization/Vmsystem.pm`,
+    /// field for field and in its order — the four blocks it runs before it starts reading
+    /// `dmesg`, the loaded modules and the container files. Those we do not do, so a machine only
+    /// a container or a paravirtualized guest gives itself away as is reported `Physical`.
+    ///
+    /// Nothing at all, which is a machine without DMI, is `Physical` as it is for FusionInventory.
+    pub fn of(bios: Option<&Bios>) -> Self {
+        let Some(bios) = bios else {
+            return Self::Physical;
+        };
+        let system_manufacturer = bios.system_manufacturer.as_deref().unwrap_or_default();
+        let system_model = bios.system_model.as_str();
+        let manufacturer = bios.manufacturer.as_deref().unwrap_or_default();
+        let version = bios.version.as_deref().unwrap_or_default();
+
+        // The order is FusionInventory's: the first match wins, and the machine manufacturer is
+        // asked before the manufacturer of the BIOS itself.
+        let vm_system = if system_manufacturer.contains("QEMU") {
+            Self::Qemu
+        } else if system_manufacturer.contains("Microsoft") && system_model.contains("Virtual") {
+            Self::HyperV
+        } else if system_manufacturer.contains("VMware") {
+            Self::VMware
+        } else if manufacturer.contains("QEMU") || manufacturer.contains("Bochs") {
+            Self::Qemu
+        } else if manufacturer.contains("VirtualBox") || manufacturer.contains("innotek") {
+            Self::VirtualBox
+        } else if manufacturer.starts_with("Xen") {
+            Self::Xen
+        } else if system_model.contains("VMware") {
+            Self::VMware
+        } else if system_model.contains("Virtual Machine") {
+            Self::VirtualMachine
+        } else if system_model.contains("KVM") {
+            Self::Qemu
+        } else if version.contains("VirtualBox") {
+            Self::VirtualBox
+        } else {
+            Self::Physical
+        };
+        debug!("The firmware describes a {vm_system:?} machine");
+        vm_system
+    }
+}
+
 /// `sysinfo` trims the DMI values but hands us the ones the firmware said nothing about, which
 /// it leaves plenty of.
 fn value(read: Option<String>) -> Option<String> {
@@ -208,6 +278,171 @@ mod tests {
                 dmi_value(value),
                 Some(value.clone()),
                 "'{value}' is a placeholder, not a value"
+            );
+        }
+    }
+
+    /// Builds the four elements `VMSYSTEM` is decided from, the rest being irrelevant to it.
+    fn firmware(
+        system_manufacturer: &str,
+        system_model: &str,
+        manufacturer: &str,
+        version: &str,
+    ) -> Bios {
+        Bios {
+            date: None,
+            manufacturer: value(Some(manufacturer.to_string())),
+            version: value(Some(version.to_string())),
+            board_manufacturer: None,
+            system_manufacturer: value(Some(system_manufacturer.to_string())),
+            system_model: system_model.to_string(),
+            system_serial_number: None,
+        }
+    }
+
+    /// The hypervisors `_getType` names, each from the element and in the order it reads them.
+    #[test]
+    fn it_names_a_hypervisor_as_fusion_inventory_does() {
+        for (expected, system_manufacturer, system_model, manufacturer, version) in [
+            // SMANUFACTURER, read first.
+            (
+                VmSystem::Qemu,
+                "QEMU",
+                "Standard PC (Q35 + ICH9, 2009)",
+                "EDK II",
+                "1.16.3",
+            ),
+            (
+                VmSystem::HyperV,
+                "Microsoft Corporation",
+                "Virtual Machine",
+                "American Megatrends",
+                "090008",
+            ),
+            (
+                VmSystem::VMware,
+                "VMware, Inc.",
+                "VMware Virtual Platform",
+                "Phoenix",
+                "6.00",
+            ),
+            // BMANUFACTURER, read next: a firmware naming no machine manufacturer.
+            (VmSystem::Qemu, "", "Bochs", "Bochs", ""),
+            (
+                VmSystem::VirtualBox,
+                "",
+                "VirtualBox",
+                "innotek GmbH",
+                "VirtualBox",
+            ),
+            (VmSystem::Xen, "", "HVM domU", "Xen", "4.17"),
+            // SMODEL, read third.
+            (VmSystem::VMware, "Dell Inc.", "VMware7,1", "Dell", "2.1"),
+            (
+                VmSystem::VirtualMachine,
+                "Nutanix",
+                "Virtual Machine",
+                "SeaBIOS",
+                "1.0",
+            ),
+            (VmSystem::Qemu, "Red Hat", "KVM", "SeaBIOS", "1.0"),
+            // BVERSION, read last.
+            (
+                VmSystem::VirtualBox,
+                "Oracle",
+                "Server",
+                "Oracle",
+                "VirtualBox 7.0",
+            ),
+            // Nothing that names a hypervisor.
+            (
+                VmSystem::Physical,
+                "LENOVO",
+                "21LB0022FR",
+                "LENOVO",
+                "R2CET47W",
+            ),
+        ] {
+            let bios = firmware(system_manufacturer, system_model, manufacturer, version);
+            assert_eq!(
+                VmSystem::of(Some(&bios)),
+                expected,
+                "{system_manufacturer:?} {system_model:?} {manufacturer:?} {version:?}"
+            );
+        }
+    }
+
+    /// The order matters where two elements would each match: FusionInventory answers on the
+    /// first, so we have to as well.
+    #[test]
+    fn it_reads_the_elements_in_fusion_inventorys_order() {
+        // The machine manufacturer wins over the BIOS one.
+        let bios = firmware("QEMU", "VirtualBox", "innotek GmbH", "VirtualBox");
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Qemu);
+        // Microsoft without a virtual model is not Hyper-V, and falls through to the rest.
+        let bios = firmware(
+            "Microsoft Corporation",
+            "Surface Laptop",
+            "Microsoft",
+            "1.0",
+        );
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Physical);
+    }
+
+    /// A machine without DMI has no `BIOS` section, and is physical as far as anyone can tell,
+    /// which is what FusionInventory reports for it too.
+    #[test]
+    fn it_reports_a_machine_without_firmware_as_physical() {
+        assert_eq!(VmSystem::of(None), VmSystem::Physical);
+        // A firmware that answered nothing but the model.
+        let bios = firmware("", "To Be Filled By O.E.M.", "", "");
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Physical);
+    }
+
+    /// The real values of the machines we have captured, so the strings the server stores are
+    /// pinned to hardware rather than to what we expect of it.
+    #[test]
+    fn it_names_the_hypervisor_of_the_machines_we_have_seen() {
+        // This machine, a QEMU guest of the laptop below.
+        let bios = firmware(
+            "QEMU",
+            "Standard PC (Q35 + ICH9, 2009)",
+            "EDK II",
+            "unknown",
+        );
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Qemu);
+        // The aarch64 machine, also QEMU.
+        let bios = firmware("QEMU", "KVM Virtual Machine", "EDK II", "1.0");
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Qemu);
+        // The bare metal two socket server.
+        let bios = firmware("Dell Inc.", "PowerEdge R440", "Dell Inc.", "2.19.1");
+        assert_eq!(VmSystem::of(Some(&bios)), VmSystem::Physical);
+    }
+
+    /// The element holds the string the server stores, spelling and all. It is serialized as a
+    /// field of `HARDWARE`, which is the only place it appears.
+    #[test]
+    fn it_serializes_a_vm_system_like_fusion_inventory() {
+        #[derive(Serialize)]
+        struct Section {
+            #[serde(rename = "VMSYSTEM")]
+            vm_system: VmSystem,
+        }
+        for (vm_system, expected) in [
+            (VmSystem::Physical, "Physical"),
+            (VmSystem::Qemu, "QEMU"),
+            (VmSystem::HyperV, "Hyper-V"),
+            (VmSystem::VMware, "VMware"),
+            (VmSystem::VirtualBox, "VirtualBox"),
+            (VmSystem::Xen, "Xen"),
+            (VmSystem::VirtualMachine, "Virtual Machine"),
+        ] {
+            let mut out = String::new();
+            let ser = Serializer::with_root(&mut out, Some("HARDWARE")).unwrap();
+            Section { vm_system }.serialize(ser).unwrap();
+            assert_eq!(
+                out,
+                format!("<HARDWARE><VMSYSTEM>{expected}</VMSYSTEM></HARDWARE>")
             );
         }
     }

@@ -10,7 +10,10 @@ use serde::Serialize;
 use sysinfo::{Product, System};
 use tracing::{debug, warn};
 
-use crate::util::{cmd, dmi_value, find_in_path, megabytes};
+use crate::{
+    bios::VmSystem,
+    util::{cmd, dmi_value, find_in_path, megabytes},
+};
 
 /// Fields are declared in the order FusionInventory serializes them, to keep both outputs
 /// easy to compare.
@@ -36,13 +39,17 @@ pub struct Hardware {
     swap: Option<u64>,
     #[serde(rename = "UUID", skip_serializing_if = "Option::is_none")]
     uuid: Option<String>,
+    /// How the machine is virtualized. Always reported, as the server reads a machine without
+    /// the element as a physical one anyway.
+    #[serde(rename = "VMSYSTEM")]
+    vm_system: VmSystem,
 }
 
 impl Hardware {
     /// The memory and the swap come from the same `System` the other sections are built from,
     /// which has to have had its memory refreshed. The short hostname is read once for the whole
-    /// inventory and handed over.
-    pub fn inventory(sys: &System, hostname: String) -> Self {
+    /// inventory and handed over, and so is the virtualization the `BIOS` values are read for.
+    pub fn inventory(sys: &System, hostname: String, vm_system: VmSystem) -> Self {
         let (last_logged_user, date_last_logged_user) = last_logged_user();
         Self {
             date_last_logged_user,
@@ -52,6 +59,7 @@ impl Hardware {
             os_comments: os_comments(),
             swap: megabytes(sys.total_swap()),
             uuid: machine_uuid(),
+            vm_system,
         }
     }
 }
@@ -164,6 +172,7 @@ mod tests {
             os_comments: Some("#29-Ubuntu SMP".to_string()),
             swap: Some(2048),
             uuid: Some("72d25ff8-c736-436b-b62c-1501cd47b63b".to_string()),
+            vm_system: VmSystem::Qemu,
         };
         let mut out = String::new();
         let mut ser = Serializer::with_root(&mut out, Some("HARDWARE")).unwrap();
@@ -180,6 +189,7 @@ mod tests {
                 "  <OSCOMMENTS>#29-Ubuntu SMP</OSCOMMENTS>\n",
                 "  <SWAP>2048</SWAP>\n",
                 "  <UUID>72d25ff8-c736-436b-b62c-1501cd47b63b</UUID>\n",
+                "  <VMSYSTEM>QEMU</VMSYSTEM>\n",
                 "</HARDWARE>",
             )
         );

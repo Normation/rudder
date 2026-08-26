@@ -55,8 +55,7 @@ Windows branch: whoever adds one adds it deliberately rather than inheriting a p
   `HARDWARE/OSVERSION` (see `OPERATINGSYSTEM/KERNEL_VERSION`), `HARDWARE/ARCHNAME`
   (`OPERATINGSYSTEM/ARCH`), `LOCAL_USERS/NAME` (`LOCAL_USERS/LOGIN`).
 * **Windows-only**, with nothing to report on Unix: `DRIVES/LETTER`, `HARDWARE/{USERDOMAIN,WINCOMPANY,WINPRODID,WINPRODKEY}`.
-* **Not produced yet**, the server reading both: the `PROCESSES` section, and `HARDWARE/VMSYSTEM`,
-  which says how the machine is virtualized and which it reads as a physical machine when absent.
+* **Not produced yet**, though the server reads it: the `PROCESSES` section.
 
 ## Differences from FusionInventory
 
@@ -103,6 +102,23 @@ out: `<SSN />` says the machine has no serial number, where the truth is that we
 without being root. The placeholders the firmware writes instead of leaving a value out (`Not
 Specified`, `To Be Filled By O.E.M.`, and the rest of `getDmidecodeInfos`' list) are dropped the
 same way.
+
+### `HARDWARE/VMSYSTEM` is decided by the firmware alone
+
+The value names the hypervisor the machine runs on, and is the one FusionInventory produces for the
+same machine: the variants are its strings, `_getType` in `Virtualization/Vmsystem.pm` decides them
+in the same order from the same four elements — `SMANUFACTURER`, then `BMANUFACTURER`, then
+`SMODEL`, then `BVERSION` — and a machine whose firmware names no hypervisor is `Physical` for both.
+The `BIOS` values are read once and serve both sections.
+
+**What we leave out is everything `_getType` does after those four blocks**: reading `dmesg`, the
+loaded modules, `/proc/scsi/scsi`, the Solaris zone, the BSD jail, `/proc/xen`, `/proc/1/environ`
+and the Docker and OpenVZ files. So a guest that only gives itself away outside the firmware is
+reported `Physical` where FusionInventory names it: a container (`Docker`, `lxc`, `SolarisZone`,
+`BSDJail`, `Virtuozzo`) and a paravirtualized Xen guest, which has no firmware to describe it. A
+hardware-virtualized guest — QEMU/KVM, VMware, VirtualBox, Hyper-V, Xen HVM — describes itself in
+DMI and is named by both agents. FusionInventory also rewrites `BIOS` and `HARDWARE/UUID` for some
+of those cases, which we do not: our `BIOS` says what the firmware says.
 
 ### `HARDWARE/UUID` is read from DMI, not from `dmidecode`
 
