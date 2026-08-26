@@ -70,7 +70,11 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
           node.label match {
             case Constants.XML_TAG_RULE             =>
               val id = (node \\ "id").text
-              id.contains(i.value) // FIXME: <id> should contain one id, it contains two uuid
+              /*
+               <id> should contain one uuid as text, but it contains two uuid like <id>e8c7d553-f36f-49f9-865d-653621b05a9172fa4a19-121b-4dc1-8a5b-cb1ec0dd7834</id>
+               -> use contains method
+               */
+              id.contains(i.value)
             case Constants.XML_TAG_GLOBAL_PROPERTY  =>
               val name = (node \\ "name").text
               name.equals(i.value)
@@ -87,7 +91,7 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
               val id = (node \\ "id").text
               id.equals(i.value)
             case other                              =>
-              // FIXME add a log
+              EventLogsLoggerPure.warn(s"Filtering by id on event logs we should not have this object type here ${other}")
               false
           }
         })

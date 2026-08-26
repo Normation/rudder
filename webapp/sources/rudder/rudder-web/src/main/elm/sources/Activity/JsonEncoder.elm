@@ -9,6 +9,20 @@ encodeRestEventLogFilter id =
     let
         isIdEmpty =
             id2String id == ""
+
+        encodeId =
+            if isIdEmpty then
+                Nothing
+
+            else
+                Just ( "id", object [ ( "value", string (id2String id) ) ] )
+
+        encodeSearch =
+            if isIdEmpty then
+                Nothing
+
+            else
+                Just ( "search", object [ ( "value", string (search2String id) ) ] )
     in
     object
         (List.filterMap identity
@@ -16,11 +30,8 @@ encodeRestEventLogFilter id =
             , Just ( "start", int 0 )
             , Just ( "length", int 20 )
             , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder 0 "desc" "" ] )
-            , if isIdEmpty then
-                Nothing
-
-              else
-                Just ( "id", object [ ( "value", string (id2String id) ) ] )
+            , encodeId
+            , encodeSearch
             ]
         )
 
