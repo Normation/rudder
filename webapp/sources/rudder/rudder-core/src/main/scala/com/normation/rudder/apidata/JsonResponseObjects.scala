@@ -584,8 +584,10 @@ object JsonResponseObjects {
 
   final case class JRNodeCompliance(compliance: ComplianceLevel) extends AnyVal
   object JRNodeCompliance {
-    given JsonEncoder[JRNodeCompliance] =
-      JsonEncoder[ComplianceLevelSerialisation].contramap(_.compliance.transformInto[ComplianceLevelSerialisation])
+    given JsonEncoder[JRNodeCompliance] = {
+      import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.complianceLevelArrayEncoder
+      JsonEncoder[ComplianceLevel].contramap(_.compliance)
+    }
   }
 
   final case class JRNodeSystemCompliance(compliance: ComplianceLevel) extends AnyVal

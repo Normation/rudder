@@ -232,8 +232,7 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "Not applied",
-              "details": "No policy defined, Empty groups"
+              "value": "In application"
             },
             "security": {
               "tenants": [
@@ -286,8 +285,7 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "Not applied",
-              "details": "No policy defined, Empty groups"
+              "value": "In application"
             },
             "security": {
               "tenants": [
@@ -329,8 +327,7 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "Not applied",
-              "details": ""
+              "value": "In application"
             },
             "security": {
               "tenants": [
@@ -383,7 +380,7 @@ response:
             "policyMode": "enforce",
             "status": {
               "value": "Not applied",
-              "details": "No policy defined, Empty groups"
+              "details": "No policy defined"
             },
             "security": {
               "tenants": []
@@ -423,8 +420,7 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "Not applied",
-              "details": ""
+              "value": "In application"
             },
             "security": {
               "tenants": [
@@ -491,8 +487,7 @@ response:
             "tags": [],
             "policyMode": "enforce",
             "status": {
-              "value": "Not applied",
-              "details": ""
+              "value": "In application"
             },
             "security": {
               "tenants": [

@@ -40,6 +40,9 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.reports.ReportType
 import com.normation.utils.ParseVersion
 import com.normation.zio.*
 import org.junit.runner.RunWith
@@ -83,6 +86,24 @@ class TestRestFromFileDef extends ZIOSpecDefault {
   )
 
   tmpApiTemplate.createDirectories()
+
+  // seed compliance for the node table tests of `api_nodes.yml`: `node1` is half compliant on user
+  // policies and has a failing system policy, `node2` is fully compliant on both. Only the node table
+  // endpoint (`/secure/api/nodes/details`) reads this, so no other yaml file is affected.
+  private val nodeTableStatusReports = Map(
+    NodeId("node1") -> restTestSetUp.mockCompliance.nodeStatusReport(
+      NodeId("node1"),
+      PolicyTypeName.rudderBase   -> ReportType.EnforceSuccess,
+      PolicyTypeName.rudderBase   -> ReportType.EnforceError,
+      PolicyTypeName.rudderSystem -> ReportType.EnforceError
+    ),
+    NodeId("node2") -> restTestSetUp.mockCompliance.nodeStatusReport(
+      NodeId("node2"),
+      PolicyTypeName.rudderBase   -> ReportType.EnforceSuccess,
+      PolicyTypeName.rudderSystem -> ReportType.EnforceSuccess
+    )
+  )
+  restTestSetUp.mockCompliance.extraStatusReports.set(nodeTableStatusReports).runNow
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("All REST tests defined in files") {
