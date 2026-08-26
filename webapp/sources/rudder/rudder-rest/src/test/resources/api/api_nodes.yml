@@ -1079,6 +1079,8 @@ response:
         "machineType" : "vbox",
         "os" : "Buster",
         "state" : "enabled",
+        "compliance" : [[0,0.0],[0,0.0],[1,100.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
         "systemError" : false,
         "ipAddresses" : [
           "192.168.0.10"
@@ -1106,7 +1108,9 @@ response:
         "machineType" : "vbox",
         "os" : "Buster",
         "state" : "enabled",
-        "systemError" : false,
+        "compliance" : [[0,0.0],[0,0.0],[1,50.0],[0,0.0],[1,50.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : true,
         "ipAddresses" : [
           "192.168.0.10"
         ],
@@ -1176,7 +1180,9 @@ response:
         "machineType" : "vbox",
         "os" : "Buster",
         "state" : "enabled",
-        "systemError" : false,
+        "compliance" : [[0,0.0],[0,0.0],[1,50.0],[0,0.0],[1,50.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : true,
         "ipAddresses" : [
           "192.168.0.10"
         ],
@@ -1217,6 +1223,206 @@ response:
             "compliance" : "X",
             "system-updates" : "X"
           }
+        }
+      }
+    ]
+---
+description: Node table for an unknown node id returns an empty list, not an error
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["unknown-node"]
+  }
+response:
+  code: 200
+  content: >-
+    []
+---
+description: Node table silently ignores unknown node ids and returns the known ones
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node1", "unknown-node"]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "compliance" : [[0,0.0],[0,0.0],[1,50.0],[0,0.0],[1,50.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : true,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: Node table with a non-inherited property returns the value defined on the node
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : [ "node2" ],
+    "properties" : [ {"inherited":false,"value":"simpleString"} ]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node2",
+        "name" : "node2.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "compliance" : [[0,0.0],[0,0.0],[1,100.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {
+          "simpleString" : {
+            "name" : "simpleString",
+            "value" : "string value"
+          }
+        },
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: Node table only returns the properties that were asked for, and nothing for a node without them
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : [ "node1" ],
+    "properties" : [ {"inherited":false,"value":"simpleString"} ]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "compliance" : [[0,0.0],[0,0.0],[1,50.0],[0,0.0],[1,50.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : true,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
+        }
+      }
+    ]
+---
+description: Node table returns a software with no version for a software that the node does not have
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : [ "node1" ],
+    "software" : [ "s05", "not-installed-software" ]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "compliance" : [[0,0.0],[0,0.0],[1,50.0],[0,0.0],[1,50.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]],
+        "runAnalysisKind" : "ComputeCompliance",
+        "systemError" : true,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 00:20:00Z",
+        "software" : {
+          "s05" : "1.0"
+        },
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       }
     ]

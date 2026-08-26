@@ -293,6 +293,13 @@ class MockCompliance(mockDirectives: MockDirectives) {
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ???
   }
 
+  /*
+   * Node status reports that a test can add to the ones given to `reportingService`, so that a test can
+   * seed compliance for the nodes of an already built service (ex: the node details API of `RestTestSetUp`).
+   * Empty by default: seed it with `MockCompliance.nodeStatusReport` (see NodeDetailsTableComplianceTest).
+   */
+  val extraStatusReports: Ref[Map[NodeId, NodeStatusReport]] = Ref.make(Map.empty[NodeId, NodeStatusReport]).runNow
+
   def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = new ReportingService {
     def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
         qc: QueryContext
@@ -300,13 +307,19 @@ class MockCompliance(mockDirectives: MockDirectives) {
       val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
       ReportingService.filterReportsByRules(filteredNodeReports, filterByRules).succeed
     }
-    // used in node details API
+    // used in node details API. Same logic as the real implementation, see `ReportingServiceImpl`
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
     )(implicit
         qc:         QueryContext
     ): IOResult[SystemUserComplianceRun] = {
-      ZIO.succeed(SystemUserComplianceRun.empty)
+      extraStatusReports.get.map { extra =>
+        val all = statusReports ++ extra
+        SystemUserComplianceRun.fromNodeStatusReports(optNodeIds match {
+          case Some(nodeIds) => all.view.filterKeys(nodeIds.contains(_)).toMap
+          case None          => all
+        })
+      }
     }
 
     def findDirectiveNodeStatusReports(
@@ -713,18 +726,19 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeId:      NodeId,
       ruleId:      RuleId,
       directiveId: DirectiveId,
-      reportType:  ReportType
+      reportType:  ReportType,
+      policyType:  PolicyTypeName = PolicyTypeName.rudderBase
   ): RuleNodeStatusReport = {
     RuleNodeStatusReport(
       nodeId,
       ruleId,
-      PolicyTypeName.rudderBase,
+      policyType,
       None,
       None,
       Map(
         directiveId -> DirectiveStatusReport(
           directiveId,
-          PolicyTypes.rudderBase,
+          PolicyTypes(NonEmptyChunk(policyType)),
           None,
           List(
             ValueStatusReport(
@@ -743,6 +757,28 @@ class MockCompliance(mockDirectives: MockDirectives) {
         )
       ),
       DateTime.parse("2100-01-01T00:00:00.000Z")
+    )
+  }
+
+  /*
+   * Build the status report of a node, with one rule report per given (policy type, report type) - each
+   * one on its own rule, so that they don't get merged. Compliance is then, for each policy type, the
+   * ratio of report types given for it.
+   * Meant to seed `extraStatusReports` in tests which need node compliance (user and/or system).
+   */
+  def nodeStatusReport(nodeId: NodeId, reports: (PolicyTypeName, ReportType)*): NodeStatusReport = {
+    simpleNodeStatusReport(
+      nodeId,
+      reports.zipWithIndex.map {
+        case ((policyType, reportType), i) =>
+          simpleRuleNodeStatusReport(
+            nodeId,
+            RuleId(RuleUid(s"rule-${nodeId.value}-${i}")),
+            directives.rpmDirective.id,
+            reportType,
+            policyType
+          )
+      }.toSet
     )
   }
 
