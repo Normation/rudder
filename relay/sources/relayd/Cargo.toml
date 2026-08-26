@@ -22,8 +22,8 @@ bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4.4.6", features = ["derive"] }
 diesel = { version = "2", default-features = false, features = ["postgres", "chrono", "r2d2"] }
-# Uses rust implementation by default
-flate2 = "1"
+# Use the zlib-rs backend, consistent with the other flate2/zip users
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
 futures = { version = "0.3", default-features = false }
 hex = "0.4"
 humantime = "2"
@@ -52,8 +52,9 @@ tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_t
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
 walkdir = "2"
 warp = { version = "0.4", default-features = false, features = ["server"] }
-# Use rust implementation
-zip = { version = "8.0.0", default-features = false, features = ["deflate"] }
+# Use rust implementation. `deflate` would also pull zopfli, which is only used
+# for compression levels > 9 (we only read archives here).
+zip = { version = "8.0.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 criterion = "0.8.0"

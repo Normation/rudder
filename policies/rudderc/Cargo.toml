@@ -13,6 +13,7 @@ agent = { path = "../agent" }
 anyhow = "1"
 askama = "0.14.0"
 boon = "0.6.0"
+colored = "3"
 clap = { version = "4", features = ["derive"] }
 quick-xml = { version = "0.41.0", features = ["serialize"] }
 regex = "1"
@@ -20,19 +21,19 @@ mdbook-driver = { version = "0.5.2", default-features = false, features = ["sear
 nom = "8"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
-format_serde_error = { git = "https://github.com/fennewald/format_serde_error/", rev = "06ef275" }
 strsim = "0.11"
 serde_json = "1"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4"] }
 include_dir = "0.7.3"
 walkdir = "2"
 tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
 rudder_cli = { path = "../rudder-cli" }
-zip = { version = "8.0.0", default-features = false, features = ["deflate", "time"] }
+# `deflate` would also pull zopfli (only used for compression levels > 9), and
+# `deflate-flate2-zlib-rs` pins the same flate2 backend as our other users.
+zip = { version = "8.0.0", default-features = false, features = ["deflate-flate2-zlib-rs", "time"] }
 indexmap = "2.12.0"
 
 [features]

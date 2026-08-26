@@ -7,8 +7,6 @@ use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,
 };
-use spinners::{Spinner, Spinners};
-use std::io::IsTerminal;
 use std::{
     collections::HashSet,
     env, fs,
@@ -16,34 +14,11 @@ use std::{
     path::PathBuf,
     process::Command,
 };
-use tracing::{Level, debug, enabled, info};
+use tracing::debug;
+
+use rudder_cli::spinner::Spinner;
 
 use crate::{DONT_RESTART_ENV_VAR, cmd::CmdOutput, versions::RudderVersion};
-
-enum SpinnerOption {
-    Show(Spinner),
-    Hidden,
-}
-
-/// A spinner that is shown only if the output is a terminal and logging is enabled with `INFO` level or higher.
-/// This is useful to avoid showing spinners in non-interactive environments.
-impl SpinnerOption {
-    fn new(message: String) -> Self {
-        if std::io::stdout().is_terminal() && enabled!(Level::INFO) {
-            SpinnerOption::Show(Spinner::new(Spinners::Dots, message))
-        } else {
-            info!(message);
-            SpinnerOption::Hidden
-        }
-    }
-
-    fn stop_with_success(self) {
-        match self {
-            SpinnerOption::Show(mut spinner) => spinner.stop_with_symbol("🗸"),
-            SpinnerOption::Hidden => {}
-        }
-    }
-}
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
@@ -222,8 +197,7 @@ impl Webapp {
                 return Ok(());
             }
 
-            let spinner =
-                SpinnerOption::new("Restarting the Web application to apply changes".into());
+            let spinner = Spinner::start("Restarting the Web application to apply changes".into());
             let mut systemctl = Command::new("systemctl");
             systemctl
                 .arg("--no-ask-password")

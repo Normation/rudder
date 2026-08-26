@@ -20,6 +20,7 @@ pub mod compiler;
 mod doc;
 pub mod frontends;
 pub mod ir;
+mod serde_error;
 pub mod test;
 
 pub mod generate_directive;
