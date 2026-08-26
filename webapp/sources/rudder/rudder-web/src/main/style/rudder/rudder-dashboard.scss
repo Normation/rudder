@@ -103,11 +103,17 @@ $doughnut-size : 160px;
   color: rudder.$txt-primary;
   font-weight:700;
 }
-.node-chart h4 {
-  color: rudder.$txt-light;
-  margin-bottom: 15px;
-  font-size: 1.2em;
-  width : $doughnut-size;
+
+.node-chart{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  h4 {
+    color: rudder.$txt-light;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    width : $doughnut-size;
+  }
 }
 /* Statistics */
 .stats li {
@@ -185,6 +191,8 @@ $doughnut-size : 160px;
 }
 
 .graph-legend {
+  max-height: $doughnut-size;
+  overflow: auto;
   margin-bottom: 0;
   &  > .legend {
     background-color:transparent;
