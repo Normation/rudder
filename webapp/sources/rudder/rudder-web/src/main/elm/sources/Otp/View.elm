@@ -2,7 +2,7 @@ module Otp.View exposing (..)
 
 import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
-import Html.Attributes exposing (class, disabled, placeholder, size, type_, value)
+import Html.Attributes exposing (autofocus, class, disabled, placeholder, size, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onEnter)
 import Maybe.Extra
@@ -95,6 +95,7 @@ viewCode code loading =
             , placeholder "Enter 6-digit code"
             , value code
             , size 12
+            , autofocus True
             , onInput SetCode
             , onEnter (VerifyOtp code)
             ]
