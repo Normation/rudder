@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
 pub mod logs;
+pub mod spinner;
 
 use ariadne::{Config, IndexType, Label, Report, ReportKind, Source};
 use std::fmt::{Display, Formatter};

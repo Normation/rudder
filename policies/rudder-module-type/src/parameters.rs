@@ -3,12 +3,44 @@
 
 //! Rudder module protocol encapsulated in CFEngine custom promise type
 
-use serde::{Deserialize, Serialize};
-use serde_aux::prelude::*;
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{self, Visitor},
+};
 use serde_json::{Map, Value};
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 
 use crate::cfengine::protocol::ActionPolicy;
+
+/// Deserializes a `usize` from either a number or a string containing one.
+///
+/// CFEngine passes promise attributes as strings, while the values we get from
+/// other callers are plain JSON numbers, so both have to be accepted.
+fn deserialize_usize_from_string<'de, D: Deserializer<'de>>(d: D) -> Result<usize, D::Error> {
+    struct UsizeFromString;
+
+    impl<'de> Visitor<'de> for UsizeFromString {
+        type Value = usize;
+
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("a non-negative integer, or a string containing one")
+        }
+
+        fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
+            usize::try_from(v).map_err(de::Error::custom)
+        }
+
+        fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
+            usize::try_from(v).map_err(de::Error::custom)
+        }
+
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            v.parse().map_err(de::Error::custom)
+        }
+    }
+
+    d.deserialize_any(UsizeFromString)
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Default)]
 pub struct Parameters {
@@ -25,11 +57,11 @@ pub struct Parameters {
     pub node_id: String,
     /// Agent run frequency in minutes
     #[serde(default = "Parameters::default_agent_frequency_minutes")]
-    #[serde(deserialize_with = "deserialize_number_from_string")]
+    #[serde(deserialize_with = "deserialize_usize_from_string")]
     pub agent_frequency_minutes: usize,
     /// Version of the Rudder module protocol
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_number_from_string")]
+    #[serde(deserialize_with = "deserialize_usize_from_string")]
     pub(crate) rudder_module_protocol: usize,
     /// Opaque ID for reports matching
     #[serde(default)]
@@ -80,5 +112,49 @@ impl Parameters {
 
     fn default_agent_frequency_minutes() -> usize {
         5
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Deserialize)]
+    struct Test {
+        #[serde(deserialize_with = "deserialize_usize_from_string")]
+        value: usize,
+    }
+
+    #[test]
+    fn it_parses_numbers_from_numbers_and_strings() {
+        assert_eq!(
+            serde_json::from_str::<Test>(r#"{"value": 30}"#)
+                .unwrap()
+                .value,
+            30
+        );
+        assert_eq!(
+            serde_json::from_str::<Test>(r#"{"value": "30"}"#)
+                .unwrap()
+                .value,
+            30
+        );
+        assert_eq!(
+            serde_json::from_str::<Test>(r#"{"value": "0"}"#)
+                .unwrap()
+                .value,
+            0
+        );
+    }
+
+    #[test]
+    fn it_rejects_invalid_numbers() {
+        for v in [r#""""#, r#""a""#, r#""-1""#, "-1", "1.5", "true", "null"] {
+            let json = format!(r#"{{"value": {v}}}"#);
+            assert!(
+                serde_json::from_str::<Test>(&json).is_err(),
+                "{v} should be rejected"
+            );
+        }
     }
 }
