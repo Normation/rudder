@@ -54,7 +54,6 @@ import com.normation.rudder.tenants.QueryContext
 import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.*
-
 import scala.annotation.nowarn
 import scala.xml.Elem
 import zio.ZIO
@@ -65,32 +64,35 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
   import EventLogServiceImpl.*
 
   def filterOnElementIdOrName(element: Elem, id: Option[EventLogRequest.Id]): Boolean = {
-    id.forall(i =>
-      element.child.map(node => {
-        node.label match {
-          case Constants.XML_TAG_RULE =>
-            val id = (node \\ "id").text
-            id.contains(i.value) // FIXME: <id> should contain one id, it contains two uuid
-          case Constants.XML_TAG_GLOBAL_PROPERTY =>
-            val name = (node \\ "name").text
-            name.equals(i.value)
-          case Constants.XML_TAG_GLOBAL_PARAMETER =>
-            val name = (node \\ "name").text
-            name.equals(i.value)
-          case Constants.XML_TAG_NODE_GROUP =>
-            val id = (node \\ "id").text
-            id.equals(i.value)
-          case Constants.XML_TAG_DIRECTIVE =>
-            val id = (node \\ "id").text
-            id.equals(i.value)
-          case Constants.XML_TAG_EDITOR_TECHNIQUE =>
-            val id = (node \\ "id").text
-            id.equals(i.value)
-          case other =>
-            // FIXME add a log
-            false
-        }
-      }).forall(identity))
+    id.forall(i => {
+      element.child
+        .map(node => {
+          node.label match {
+            case Constants.XML_TAG_RULE             =>
+              val id = (node \\ "id").text
+              id.contains(i.value) // FIXME: <id> should contain one id, it contains two uuid
+            case Constants.XML_TAG_GLOBAL_PROPERTY  =>
+              val name = (node \\ "name").text
+              name.equals(i.value)
+            case Constants.XML_TAG_GLOBAL_PARAMETER =>
+              val name = (node \\ "name").text
+              name.equals(i.value)
+            case Constants.XML_TAG_NODE_GROUP       =>
+              val id = (node \\ "id").text
+              id.equals(i.value)
+            case Constants.XML_TAG_DIRECTIVE        =>
+              val id = (node \\ "id").text
+              id.equals(i.value)
+            case Constants.XML_TAG_EDITOR_TECHNIQUE =>
+              val id = (node \\ "id").text
+              id.equals(i.value)
+            case other                              =>
+              // FIXME add a log
+              false
+          }
+        })
+        .forall(identity)
+    })
   }
 
   /**
