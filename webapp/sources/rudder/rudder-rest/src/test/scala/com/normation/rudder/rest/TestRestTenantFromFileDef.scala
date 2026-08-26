@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.GitVersion
 import com.normation.errors.*
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -194,6 +195,9 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
                         restTestSetUp.mockDirectives.directiveRepoImpl
                           .saveDirective(atId, d)(using ChangeContext.newForRudder(Some("restore directive2")))
                     }
+                  )
+        _      <- restTestSetUp.mockNodes.nodeFactRepo.setSecurityTag(NodeId("node1"), Some(tenantTag))(using
+                    ChangeContext.newForRudder(Some("seed tenant node"))
                   )
         _      <- restTestSetUp.mockDirectives.rootActiveTechniqueCategory.update(tagTenantTree)
         _      <- restTestSetUp.mockTenants.tenantRepo.setTenantEnabled(true)
