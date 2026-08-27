@@ -287,7 +287,7 @@ displayAccountsTable model =
 
              else if List.isEmpty filteredAccounts then
                 [ tr []
-                    [ td [ class "empty", colspan 6 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No API accounts match your filters" ] ]
+                    [ td [ class "empty", colspan 6 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No API accounts match your filters." ] ]
                 ]
 
              else

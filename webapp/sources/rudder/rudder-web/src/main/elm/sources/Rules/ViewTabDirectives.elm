@@ -302,7 +302,7 @@ directivesTab model details =
 
                                  else if List.length filteredDirectives == 0 then
                                     [ tr []
-                                        [ td [ class "empty" ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No directives match your filter." ] ]
+                                        [ td [ class "empty" ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No directives match your filters." ] ]
                                     ]
 
                                  else
@@ -366,7 +366,7 @@ directivesTab model details =
 
                                  else if List.length directivesChildren == 0 then
                                     [ tr []
-                                        [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No directives match your filter." ] ]
+                                        [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No directives match your filters." ] ]
                                     ]
 
                                  else
@@ -668,7 +668,7 @@ directivesTab model details =
                                 Nothing ->
                                     div [ class "alert alert-warning" ]
                                         [ i [ class "fa fa-exclamation-triangle" ] []
-                                        , text "No directives match your filter."
+                                        , text "No directives match your filters."
                                         ]
                             ]
                         ]

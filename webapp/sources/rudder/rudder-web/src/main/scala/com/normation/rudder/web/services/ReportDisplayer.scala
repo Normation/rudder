@@ -759,8 +759,8 @@ class ReportDisplayer(
                     },
        "sPaginationType": "full_numbers",
        "bJQueryUI": false,
-       "oLanguage": {
-         "sSearch": ""
+       "language": {
+         "search": ""
        },
        "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
        "aaSorting": [[ 0, "asc" ]],

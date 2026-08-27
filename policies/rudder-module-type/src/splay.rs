@@ -28,7 +28,11 @@ pub fn splayed_start(
     let hash = hasher.finish();
 
     let real_end = end - (agent_schedule + Duration::minutes(5));
-    if real_end <= start {
+    // Require at least a full second of usable window: the splay below computes
+    // `hash % window.as_secs()`, which panics on a divide-by-zero if the window
+    // rounds down to 0 seconds (real_end less than 1s after start still passes a
+    // plain `real_end <= start` check).
+    if real_end - start < Duration::seconds(1) {
         let window = (end - start).num_minutes();
         bail!(
             "The event schedule window is too short, the minimal schedule should be superior to \
@@ -67,5 +71,20 @@ mod tests {
                 assert!(start_s < end);
             }
         }
+    }
+
+    #[test]
+    fn test_splayed_start_sub_second_window_rejected() {
+        // real_end lands 500ms after start: positive, but truncates to a 0-second
+        // window. Must be rejected rather than panicking on `hash % 0`.
+        let start = Utc.with_ymd_and_hms(2022, 7, 4, 18, 40, 24).unwrap();
+        let agent_schedule = Duration::minutes(5);
+        let end = start + agent_schedule + Duration::minutes(5) + Duration::milliseconds(500);
+
+        let res = splayed_start(start, end, agent_schedule, "root");
+        assert!(
+            res.is_err(),
+            "a window shorter than 1s must be rejected, not panic"
+        );
     }
 }

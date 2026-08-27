@@ -308,7 +308,7 @@ groupsTab model details =
                                 Nothing ->
                                     div [ class "alert alert-warning" ]
                                         [ i [ class "fa fa-exclamation-triangle" ] []
-                                        , text "No groups match your filter."
+                                        , text "No groups match your filters."
                                         ]
                             ]
                         ]
