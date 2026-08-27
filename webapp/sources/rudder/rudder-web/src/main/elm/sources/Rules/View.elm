@@ -346,7 +346,7 @@ view model =
                                     Nothing ->
                                         div [ class "alert alert-warning" ]
                                             [ i [ class "fa fa-exclamation-triangle" ] []
-                                            , text "No rules match your filter."
+                                            , text "No rules match your filters."
                                             ]
                                 ]
                             ]

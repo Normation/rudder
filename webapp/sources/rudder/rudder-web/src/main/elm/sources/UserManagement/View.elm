@@ -944,7 +944,7 @@ displayUsersTable model users =
 
              else if List.isEmpty users then
                 [ tr []
-                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No users match your filters" ] ]
+                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No users match your filters." ] ]
                 ]
 
              else

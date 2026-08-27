@@ -150,7 +150,7 @@ view model =
 
                                  else if List.length children == 0 then
                                     [ tr []
-                                        [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No rules match your filter." ] ]
+                                        [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No rules match your filters." ] ]
                                     ]
 
                                  else

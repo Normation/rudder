@@ -184,7 +184,7 @@ methodsList model =
                 , div [ class "sidebar-body" ]
                     [ div [ class "generic-methods-container" ]
                         [ if List.isEmpty (Dict.toList model.methods) then
-                            div [ class "empty" ] [ text "No method matches the filters." ]
+                            div [ class "empty" ] [ text "No methods match your filters." ]
 
                           else
                             render methodsElem

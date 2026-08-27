@@ -547,9 +547,10 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-          "sZeroRecords": "No matching rules!"
-        , "sSearch": ""
+    , "language": {
+          "emptyTable" : "No rules have been defined."
+        , "zeroRecords": "No rules match your filters."
+        , "search": ""
       }
     , "columnDefs": [{
           "targets": [ 0 ]
@@ -1171,7 +1172,9 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var params = {
     "language" : {
       "search" : "",
-      "searchPlaceholder" : "Filter"
+      "searchPlaceholder" : "Filter",
+      "emptyTable" : "No nodes have been accepted.",
+      "zeroRecords": "No nodes match your filters."
     }
     , "filter" : true
     , "paging" : true
@@ -1501,8 +1504,10 @@ function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, re
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+        "emptyTable" : "No logs have been recorded."
+      , "zeroRecords": "No logs match your filters."
+      , "search": ""
     }
     , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
@@ -1570,8 +1575,10 @@ function createChangesTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
+    , "language": {
+        "emptyTable" : "No changes have been recorded."
+      , "zeroRecords": "No changes match your filters."
+      , "search": ""
     }
     , "aaSorting": [[ 0, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f>rt<"dataTables_wrapper_bottom"lip>'
