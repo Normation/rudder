@@ -37,7 +37,7 @@ impl Args {
             let scheduler = todo!();
             match scheduler.get_next_run(&job) {
                 Ok(next_run) => {
-                    println!("Next run for {} is {}", job, next_run);
+                    println!("{}", next_run.to_rfc3339());
                 }
                 Err(e) => {
                     error!("Failed to get next run for {}: {}", job, e);
