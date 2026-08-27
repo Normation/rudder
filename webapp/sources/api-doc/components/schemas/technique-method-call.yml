@@ -2,6 +2,10 @@
 # SPDX-FileCopyrightText: 2023 Normation SAS
 type: object
 properties:
+  type:
+    type: string
+    description: This is a method, so the type is `call`
+    example: call
   id:
     type: string
     description: Method call id
@@ -18,7 +22,7 @@ properties:
     type: string
     description: Condition to run this method.
     example: "linux.package_present_vim_repaired"
-  disableReporting:
+  disabledReporting:
     type: boolean
     description: Should the reporting of this method be disabled
     example: true
@@ -31,8 +35,4 @@ properties:
         name:
           type: string
           description: Parameter name
-          example: package
-        value:
-          type: string
-          description: Parameter value
-          example: apache2
+          example: ${package_name}
