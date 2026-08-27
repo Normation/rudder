@@ -9,7 +9,7 @@ properties:
   name:
     type: string
     description: Parameter name
-    example: Package to install
+    example: package_name
   description:
     type: string
     description: description of this parameter
