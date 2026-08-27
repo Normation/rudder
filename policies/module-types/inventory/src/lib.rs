@@ -32,7 +32,7 @@ use sysinfo::{System, Users};
 use tracing::{debug, error, info, instrument, trace};
 
 use crate::{
-    bios::Bios,
+    bios::{Bios, VmSystem},
     cli::Cli,
     cpu::Cpu,
     drives::Drive,
@@ -153,6 +153,11 @@ impl Inventory {
         sys.refresh_memory();
         sys.refresh_cpu_all();
 
+        // The firmware values are read once: the `BIOS` section reports them, and `VMSYSTEM`
+        // says what they make of the machine.
+        let bios = Bios::inventory();
+        let vm_system = VmSystem::of(bios.as_ref());
+
         let env: Vec<EnvironmentVariable> = env::vars()
             .map(|(key, value)| EnvironmentVariable { key, value })
             .collect();
@@ -164,10 +169,10 @@ impl Inventory {
             operating_system: OperatingSystem::inventory(&os_release, fqdn.clone())?,
             users: users::inventory(&users_src),
             rudder: Rudder::inventory(fqdn)?,
-            bios: Bios::inventory(),
+            bios,
             cpus: cpu::inventory(&sys),
             drives: drives::inventory(),
-            hardware: Hardware::inventory(&sys, hostname),
+            hardware: Hardware::inventory(&sys, hostname, vm_system),
             access_log: AccessLog::new(),
         })
     }

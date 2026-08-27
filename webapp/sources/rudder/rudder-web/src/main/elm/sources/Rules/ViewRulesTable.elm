@@ -161,4 +161,12 @@ buildRulesTable model rules =
         List.map rowTable sortedRulesList
 
     else
-        [ tr [] [ td [ class "empty", colspan 5 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No rules match your filters." ] ] ]
+        let
+            warningMessage =
+                if List.isEmpty rulesList then
+                    "No rules have been created."
+
+                else
+                    "No rules match your filters."
+        in
+        [ tr [] [ td [ class "empty", colspan 5 ] [ i [ class "fa fa-exclamation-triangle" ] [], text warningMessage ] ] ]

@@ -192,7 +192,9 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
                     },
             "sPaginationType": "full_numbers",
             "language": {
-              "zeroRecords": "No parameters!"
+              "emptyTable": "No parameters have been defined.",
+              "zeroRecords": "No parameters match your filters.",
+              "search": ""
             },
             "bJQueryUI"    : false,
             "aaSorting"    : [[ 0, "asc" ]],

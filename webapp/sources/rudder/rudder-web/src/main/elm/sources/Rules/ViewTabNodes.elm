@@ -201,7 +201,7 @@ nodesTab model details =
 
                              else if List.length nodesChildren == 0 then
                                 [ tr []
-                                    [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No nodes match your filter." ] ]
+                                    [ td [ class "empty", colspan 2 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No nodes match your filters." ] ]
                                 ]
 
                              else

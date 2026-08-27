@@ -379,7 +379,7 @@ displayPluginsSection totalCount pluginsModel =
                 (if List.isEmpty plugins then
                     [ div [ class "plugins-list callout-fade callout-warning text-warning" ]
                         [ i [ class "fa fa-exclamation-triangle me-2" ] []
-                        , em [] [ text "No plugin matches your filters" ]
+                        , em [] [ text "No plugins match your filters." ]
                         ]
                     ]
 
