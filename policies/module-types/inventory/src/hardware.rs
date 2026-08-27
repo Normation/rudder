@@ -7,13 +7,12 @@
 use jiff::fmt::strtime::BrokenDownTime;
 use nix::sys::utsname::uname;
 use serde::Serialize;
-use sysinfo::System;
+use sysinfo::{Product, System};
 use tracing::{debug, warn};
 
 use crate::{
     bios::VmSystem,
-    dmi::Dmi,
-    util::{cmd, find_in_path, megabytes},
+    util::{cmd, dmi_value, find_in_path, megabytes},
 };
 
 /// Fields are declared in the order FusionInventory serializes them, to keep both outputs
@@ -48,15 +47,9 @@ pub struct Hardware {
 
 impl Hardware {
     /// The memory and the swap come from the same `System` the other sections are built from,
-    /// which has to have had its memory refreshed. The short hostname and the SMBIOS tables are
-    /// read once for the whole inventory and handed over, and so is the virtualization the
-    /// `BIOS` values are read for.
-    pub fn inventory(
-        sys: &System,
-        hostname: String,
-        dmi: Option<&Dmi>,
-        vm_system: VmSystem,
-    ) -> Self {
+    /// which has to have had its memory refreshed. The short hostname is read once for the whole
+    /// inventory and handed over, and so is the virtualization the `BIOS` values are read for.
+    pub fn inventory(sys: &System, hostname: String, vm_system: VmSystem) -> Self {
         let (last_logged_user, date_last_logged_user) = last_logged_user();
         Self {
             date_last_logged_user,
@@ -65,7 +58,7 @@ impl Hardware {
             name: Some(hostname),
             os_comments: os_comments(),
             swap: megabytes(sys.total_swap()),
-            uuid: machine_uuid(dmi),
+            uuid: machine_uuid(),
             vm_system,
         }
     }
@@ -85,9 +78,9 @@ fn os_comments() -> Option<String> {
 /// The DMI identifier of the machine, which the server keeps as its motherboard UUID.
 ///
 /// This is how a virtual machine is told apart from a clone of itself. It is only readable by
-/// root, and absent on the machines without SMBIOS tables, in which case we report nothing.
-fn machine_uuid(dmi: Option<&Dmi>) -> Option<String> {
-    let uuid = dmi.and_then(Dmi::system_uuid);
+/// root, and absent on the platforms without DMI, in which case we report nothing.
+fn machine_uuid() -> Option<String> {
+    let uuid = Product::uuid().and_then(|u| dmi_value(&u));
     if uuid.is_none() {
         // Expected when we do not run as root, which is why this is not a warning.
         debug!("Could not read the DMI identifier of the machine");

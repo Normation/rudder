@@ -12,7 +12,6 @@
 pub mod bios;
 pub mod cli;
 pub mod cpu;
-pub mod dmi;
 pub mod drives;
 pub mod hardware;
 pub mod os;
@@ -36,7 +35,6 @@ use crate::{
     bios::{Bios, VmSystem},
     cli::Cli,
     cpu::Cpu,
-    dmi::Dmi,
     drives::Drive,
     hardware::Hardware,
     os::OperatingSystem,
@@ -151,17 +149,13 @@ impl Inventory {
 
         let users_src = Users::new_with_refreshed_list();
 
-        // Read once for the whole inventory: the `BIOS`, `CPUS` and `HARDWARE` sections all
-        // describe the same machine, and reading the tables again could describe another.
-        let dmi = Dmi::read();
-
         let mut sys = System::new();
         sys.refresh_memory();
         sys.refresh_cpu_all();
 
-        // The `BIOS` section is built before the rest: `VMSYSTEM` is what its values make of
-        // the machine, and both report the same firmware.
-        let bios = Bios::inventory(dmi.as_ref());
+        // The firmware values are read once: the `BIOS` section reports them, and `VMSYSTEM`
+        // says what they make of the machine.
+        let bios = Bios::inventory();
         let vm_system = VmSystem::of(bios.as_ref());
 
         let env: Vec<EnvironmentVariable> = env::vars()
@@ -176,9 +170,9 @@ impl Inventory {
             users: users::inventory(&users_src),
             rudder: Rudder::inventory(fqdn)?,
             bios,
-            cpus: cpu::inventory(&sys, dmi.as_ref()),
+            cpus: cpu::inventory(&sys),
             drives: drives::inventory(),
-            hardware: Hardware::inventory(&sys, hostname, dmi.as_ref(), vm_system),
+            hardware: Hardware::inventory(&sys, hostname, vm_system),
             access_log: AccessLog::new(),
         })
     }

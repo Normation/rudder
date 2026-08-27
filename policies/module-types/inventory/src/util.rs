@@ -62,6 +62,36 @@ pub(crate) fn empty_to_none(value: &str) -> Option<String> {
     }
 }
 
+/// The placeholders the firmware writes into DMI instead of leaving a value out.
+///
+/// This is FusionInventory's own list, taken from the regexp `getDmidecodeInfos`.
+const DMI_PLACEHOLDERS: &[&str] = &[
+    "n/a",
+    "none",
+    "unknown",
+    "notspecified",
+    "notpresent",
+    "notavailable",
+    "<badindex>",
+    "<outofspec>",
+    "<outofspec><outofspec>",
+    "tobefilledbyo.e.m.",
+];
+
+/// A DMI value, or nothing when the firmware only wrote a placeholder into it.
+pub(crate) fn dmi_value(value: &str) -> Option<String> {
+    let value = value.trim();
+    let compared: String = value
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    if compared.is_empty() || DMI_PLACEHOLDERS.contains(&compared.as_str()) {
+        return None;
+    }
+    Some(value.to_string())
+}
+
 /// The name of the machine, without its domain.
 pub(crate) fn hostname() -> Result<String> {
     nix::unistd::gethostname()
@@ -230,6 +260,73 @@ mod tests {
             required(&path, "node identifier").unwrap(),
             "58a41e56-3043-4b64-a0bd-06c975907acd"
         );
+    }
+
+    /// The values are the ones `getDmidecodeInfos` skips in `Tools/Generic.pm`, written as
+    /// `dmidecode` prints them, so that both agents stay silent about the same fields.
+    #[test]
+    fn it_drops_the_placeholders_the_firmware_writes_into_dmi() {
+        for placeholder in [
+            "N/A",
+            "None",
+            "Unknown",
+            "Not Specified",
+            "Not Present",
+            "Not Available",
+            "<BAD INDEX>",
+            "<OUT OF SPEC>",
+            "<OUT OF SPEC><OUT OF SPEC>",
+            "To Be Filled By O.E.M.",
+        ] {
+            assert_eq!(dmi_value(placeholder), None, "{placeholder}");
+            // The case and the spacing of a placeholder vary, as they do for FusionInventory.
+            assert_eq!(
+                dmi_value(&placeholder.to_lowercase()),
+                None,
+                "{placeholder}"
+            );
+            assert_eq!(
+                dmi_value(&placeholder.to_uppercase()),
+                None,
+                "{placeholder}"
+            );
+            assert_eq!(
+                dmi_value(&placeholder.replace(' ', "")),
+                None,
+                "{placeholder}"
+            );
+            assert_eq!(
+                dmi_value(&format!("  {placeholder}\n")),
+                None,
+                "{placeholder}"
+            );
+        }
+        // Nothing at all is not a value either.
+        assert_eq!(dmi_value(""), None);
+        assert_eq!(dmi_value(" \n"), None);
+    }
+
+    /// Only a whole value is a placeholder, and only the ones FusionInventory knows: reporting
+    /// what it reports matters more here than dropping every stand-in there is.
+    #[test]
+    fn it_keeps_the_dmi_values_that_only_look_like_placeholders() {
+        for value in [
+            // Real values that contain a placeholder without being one.
+            "Unknown Manufacturer",
+            "None of the above",
+            "QEMU",
+            "Standard PC (Q35 + ICH9, 2009)",
+            // Placeholders FusionInventory reports, so we report them too.
+            "Default string",
+            "System Product Name",
+            // A family name that means the firmware knows no better name for the processor,
+            // which both agents report.
+            "Other",
+        ] {
+            assert_eq!(dmi_value(value), Some(value.to_string()));
+        }
+        // The value is trimmed, as `sysinfo` and the DMI files hand it over with its newline.
+        assert_eq!(dmi_value(" QEMU\n"), Some("QEMU".to_string()));
     }
 
     #[test]
