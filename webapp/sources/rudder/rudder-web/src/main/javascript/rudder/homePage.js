@@ -78,16 +78,17 @@ const homePage = (
   const complianceContainer = ".node-charts";
   const patchVulnContainer = ".patch-chart";
   const benchmarkContainer = ".security-benchmark-charts";
+  const excludedScoreId = "cve";
   const chartContainers = {
     'compliance': complianceContainer,
     'system-updates': patchVulnContainer,
   };
-
   scoreDetails.forEach(function(score) {
+    if (score.scoreId === excludedScoreId) {return;} // We don't want the ‘cve’ chart to be displayed here
     const chartContainer = chartContainers[score.scoreId] ?? benchmarkContainer;
     $(chartContainer).append(
               `<div class="node-chart px-1 px-xl-3">
-                <h4 class="px-2 text-center">${score.scoreId == "compliance" ? "By compliance" : score.name}</h4>
+                <h4 class="px-2 text-center">${score.scoreId === "compliance" ? "By compliance" : score.name}</h4>
                 <div class="d-flex align-items-center">
                   <canvas id="score-${score.scoreId}" > </canvas>
                   <div  id="score-${score.scoreId}-legend"></div>
