@@ -5,7 +5,7 @@ properties:
   id:
     type: string
     description: Technique id
-    example: security-policy
+    example: security_policy
   name:
     type: string
     description: Technique name
@@ -17,11 +17,17 @@ properties:
   category:
     type: string
     description: category of this technique
-    example: "user_techniques"
+    example: "ncf_techniques"
   description:
     type: string
     description: description of this technique
     example: "This techniques apply generic security policies"
+  documentation:
+    type: string
+    description: documentation in markdown of the technique, exposed on directive side
+    example: "This technique install package based on the *name* through a *technique parameter*"
+  tags:
+    type: object
   source:
     type: string
     description: Source of the technique, always editor here

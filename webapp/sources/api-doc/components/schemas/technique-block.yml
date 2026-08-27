@@ -2,6 +2,10 @@
 # SPDX-FileCopyrightText: 2023 Normation SAS
 type: object
 properties:
+  type:
+    type: string
+    description: This is a block, so the type is `block`
+    example: block
   id:
     type: string
     description: Method call id
