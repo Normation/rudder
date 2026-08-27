@@ -53,7 +53,7 @@ fn lint_file(source: &Path) {
 
 fn write_if_recomputing_tests(dst: &Path, content: &String) {
     if env::var("RUDDERC_TESTS_RECOMPUTE").is_ok() {
-      std::fs::write(&dst, &content).unwrap();
+        std::fs::write(dst, content).unwrap();
     }
 }
 
