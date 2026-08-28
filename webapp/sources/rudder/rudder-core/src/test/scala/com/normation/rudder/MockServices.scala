@@ -221,7 +221,7 @@ object revisionRepo {
 
 class MockTenants() {
   val tenantRepo = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
-  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic(tenantRepo)
 }
 
 class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: String = "configuration-repository") {
@@ -1180,6 +1180,12 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
         })
         .map(buildDirectiveDiff(_, directive))
     }
+    // a restore writes like a save: the tenant law that makes them differ lives in the proxy
+    override def restoreDirective(
+        inActiveTechniqueId: ActiveTechniqueId,
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = saveDirective(inActiveTechniqueId, directive)
+
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
         directive:           Directive
@@ -1218,14 +1224,15 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes
+        policyTypes:   PolicyTypes,
+        security:      Option[SecurityTag]
     )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       val techs = techniqueRepos.getByName(techniqueName)
       for {
         all <-
           ZIO.foreach(versions)(v => techs.get(v).notOptional(s"Missing version '${v}' for technique '${techniqueName.value}'"))
         res <- rootActiveTechniqueCategory.modifyZIO { r =>
-                 val root = r.addActiveTechnique(categoryId, techniqueName, all)
+                 val root = r.addActiveTechnique(categoryId, techniqueName, all, security)
                  root.allCategories
                    .get(categoryId)
                    .flatMap(_.activeTechniques.find(_.id.value == techniqueName.value))
@@ -1295,7 +1302,6 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
   object directiveRepo
       extends WoTenantDirectiveRepo(
         mockTenants.checkTenant,
-        mockTenants.tenantRepo,
         directiveRepoImpl,
         new RoTenantDirectiveRepo(mockTenants.checkTenant, directiveRepoImpl)
       ) with DirectiveRevisionRepository {
@@ -1439,7 +1445,6 @@ class MockRules(mockTenants: MockTenants) {
   object ruleCategoryRepo
       extends WoTenantRuleCategoryRepo(
         mockTenants.checkTenant,
-        mockTenants.tenantRepo,
         ruleCategoryRepoImpl,
         new RoTenantRuleCategoryRepo(mockTenants.checkTenant, ruleCategoryRepoImpl)
       )
@@ -1626,6 +1631,8 @@ class MockRules(mockTenants: MockTenants) {
   }
 
   object ruleRepoImpl extends RoRuleRepository with WoRuleRepository {
+    // a restore writes like an update: the tenant law that makes them differ lives in the proxy
+    override def restore(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = update(rule)
 
     val rulesMap: Ref.Synchronized[Map[RuleId, Rule]] = Ref.Synchronized.make(rules.all.map(r => (r.id, r)).toMap).runNow
 
@@ -1763,7 +1770,6 @@ class MockRules(mockTenants: MockTenants) {
   object ruleRepo
       extends WoTenantRuleRepo(
         mockTenants.checkTenant,
-        mockTenants.tenantRepo,
         ruleRepoImpl,
         new RoTenantRuleRepo(mockTenants.checkTenant, ruleRepoImpl),
         ruleCategoryRepoImpl
@@ -1882,6 +1888,10 @@ class MockGlobalParam(mockTenants: MockTenants) {
     List(stringParam, hiddenParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
 
   class paramsRepoImpl extends RoParameterRepository with WoParameterRepository {
+    // a restore writes like an update: the tenant law that makes them differ lives in the proxy
+    override def restoreParameter(
+        parameter: GlobalParameter
+    )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = updateParameter(parameter)
 
     // needed because we don't have real dyngroup update in mock, so propertiesService is
     // not called when it should.
@@ -1975,7 +1985,6 @@ class MockGlobalParam(mockTenants: MockTenants) {
   object paramsRepo
       extends WoTenantParameterRepo(
         mockTenants.checkTenant,
-        mockTenants.tenantRepo,
         paramsRepoImplInstance,
         new RoTenantParameterRepo(mockTenants.checkTenant, paramsRepoImplInstance)
       ) {
@@ -2762,6 +2771,9 @@ class MockNodes(mockTenant: MockTenants) {
 class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, mockTenants: MockTenants) {
 
   object groupsRepoImpl extends RoNodeGroupRepository with WoNodeGroupRepository {
+    // a restore writes like an update: the tenant law that makes them differ lives in the proxy
+    override def restore(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = update(group)
+
     implicit val qc:       QueryContext                   = QueryContext.testQC
     implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
@@ -3141,7 +3153,6 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
   object groupsRepo
       extends WoTenantNodeGroupRepo(
         mockTenants.checkTenant,
-        mockTenants.tenantRepo,
         groupsRepoImpl,
         new RoTenantNodeGroupRepo(mockTenants.checkTenant, groupsRepoImpl)
       ) {

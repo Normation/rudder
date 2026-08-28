@@ -59,6 +59,7 @@ import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -138,7 +139,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes
+        policyTypes:   PolicyTypes,
+        security:      Option[SecurityTag]
     )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
       ActiveTechnique(
@@ -202,6 +204,10 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def saveActiveTechniqueCategory(
         category: ActiveTechniqueCategory
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
+    override def restoreDirective(
+        inActiveTechniqueId: ActiveTechniqueId,
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
         directive:           Directive
