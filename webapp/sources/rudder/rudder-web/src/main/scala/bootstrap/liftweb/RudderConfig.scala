@@ -3471,6 +3471,14 @@ object RudderConfigInit {
       )
     }
 
+    lazy val jdbcMaintenanceSchedule: JdbcMaintenanceSchedule = {
+      JdbcMaintenanceSchedule.make(
+        JdbcVacuum.all(doobie),
+        hour = RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR,
+        minute = RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE
+      )
+    }
+
     lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl,
       techniqueStatusService,
@@ -4016,6 +4024,7 @@ object RudderConfigInit {
     cleanOldInventoryBatch.start()
     gitFactRepoGC.start()
     gitConfigRepoGC.start()
+    jdbcMaintenanceSchedule.start()
     rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
     userCleanupBatch.start()
 
