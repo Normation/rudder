@@ -214,8 +214,8 @@ final case class QueryContext(
   /*
    * Create a fresh new ChangeContext, with a new modification ID, from that QueryContext
    */
-  def newCC(message: Option[String] = None): ChangeContext = {
-    ChangeContext.newFor(actor, accessGrant, message, actorIp)
+  def newCC(message: Option[String] = None, modId: Option[ModificationId] = None): ChangeContext = {
+    ChangeContext.newFor(actor, accessGrant, message, modId, actorIp)
   }
 }
 
@@ -269,12 +269,13 @@ object ChangeContext {
       actor:       EventActor,
       accessGrant: TenantAccessGrant,
       message:     Option[String] = None,
+      modId:       Option[ModificationId] = None,
       actorIp:     Option[String] = None
   ): ChangeContext = {
     ChangeContext(
       actor,
       accessGrant,
-      ModificationId(java.util.UUID.randomUUID.toString),
+      modId.getOrElse(ModificationId(java.util.UUID.randomUUID.toString)),
       Instant.now(),
       message,
       actorIp
@@ -282,7 +283,11 @@ object ChangeContext {
 
   }
 
-  def newForRudder(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    newFor(eventlog.RudderEventActor, TenantAccessGrant.All, message, actorIp)
+  def newForRudder(
+      message: Option[String] = None,
+      modId:   Option[ModificationId] = None,
+      actorIp: Option[String] = None
+  ): ChangeContext = {
+    newFor(eventlog.RudderEventActor, TenantAccessGrant.All, message, modId, actorIp)
   }
 }

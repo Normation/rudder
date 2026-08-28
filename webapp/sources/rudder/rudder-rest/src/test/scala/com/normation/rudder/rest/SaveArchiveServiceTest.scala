@@ -40,24 +40,32 @@ import com.normation.cfclerk.domain.RootTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.services.TechniqueReader
-import com.normation.cfclerk.services.TechniquesInfo
-import com.normation.cfclerk.services.TechniquesLibraryUpdateType
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.*
 import com.normation.errors.IOResult
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockRules
+import com.normation.rudder.MockTechniques
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
 import com.normation.rudder.rest.lift.RuleCategoryArchive
 import com.normation.rudder.rest.lift.SaveArchiveService
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
+import com.normation.rudder.rest.lift.TechniqueArchive
+import com.normation.rudder.rest.lift.TechniqueInfo
+import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import net.liftweb.actor.MockLiftActor
+import net.liftweb.common.Box
+import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import scala.collection.SortedSet
 import zio.Chunk
@@ -71,7 +79,9 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
 
   implicit val qc: QueryContext = QueryContext.testQC
 
-  val mockRules = new MockRules()
+  val mockRules         = MockRules()
+  val mockGitConfigRepo = MockGitConfigRepo()
+  val mockTechniques    = MockTechniques(mockGitConfigRepo)
 
   val rootRuleCategory            = mockRules.rootRuleCategory
   val ruleCategory2               = RuleCategory(RuleCategoryId("category2"), "Category 2", "", Nil, security = None)
@@ -94,30 +104,35 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("SaveArchiveService")(
-      testSaveRuleCategories("save initial root rule category idempotently")(
-        policyArchiveRuleCategory(rootRuleCategory),
-        rootRuleCategory
-      ) @@ TestAspect.repeats(2),
-      testSaveRuleCategories("keep old rule category when tree is empty")(
-        policyArchiveRuleCategory(rootRuleCategory.copy(childs = Nil)),
-        rootRuleCategory
-      ),
-      testSaveRuleCategories("save new rule category2")(
-        policyArchiveRuleCategory(rootRuleCategoryWithCat2),
-        rootRuleCategoryWithCat12
-      ),
-      test("move nested rule category2")(
-        // the expected value is wrong : the test Repo does something unexpected, it leads to multiple categories with same ID, and the root is moved.
-        // for now, check that the "rootRuleCategory" effectively contains the expected format
-        withCtx(_.save(policyArchiveRuleCategory(rootRuleCategoryWithSubcat2), MergePolicy.KeepRuleTargets))(
-          root =>
-            root
-              .find(rootRuleCategory.id)
-              .map(_._1)
-              .getOrElse(rootRuleCategory)
-              .transformInto[JRuleCategories],
-          Assertion.equalTo(rootRuleCategoryWithSubcat2.transformInto[JRuleCategories])
+      suite("save ruleCategory")(
+        testSaveRuleCategories("save initial root rule category idempotently")(
+          policyArchiveRuleCategory(rootRuleCategory),
+          rootRuleCategory
+        ) @@ TestAspect.repeats(2),
+        testSaveRuleCategories("keep old rule category when tree is empty")(
+          policyArchiveRuleCategory(rootRuleCategory.copy(childs = Nil)),
+          rootRuleCategory
+        ),
+        testSaveRuleCategories("save new rule category2")(
+          policyArchiveRuleCategory(rootRuleCategoryWithCat2),
+          rootRuleCategoryWithCat12
+        ),
+        test("move nested rule category2")(
+          // the expected value is wrong : the test Repo does something unexpected, it leads to multiple categories with same ID, and the root is moved.
+          // for now, check that the "rootRuleCategory" effectively contains the expected format
+          withRuleCtx(_.save(policyArchiveRuleCategory(rootRuleCategoryWithSubcat2), MergePolicy.KeepRuleTargets))(
+            root =>
+              root
+                .find(rootRuleCategory.id)
+                .map(_._1)
+                .getOrElse(rootRuleCategory)
+                .transformInto[JRuleCategories],
+            Assertion.equalTo(rootRuleCategoryWithSubcat2.transformInto[JRuleCategories])
+          )
         )
+      ),
+      suite("save technique")(
+        testSaveTechnique("save gitcommit")(policyArchiveTechnique)
       )
     ) @@ TestAspect.sequential
   }
@@ -126,17 +141,67 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
     PolicyArchive.empty("test archive").copy(ruleCats = Chunk.single(rootCategory.transformInto[RuleCategoryArchive]))
   }
 
+  private def policyArchiveTechnique = {
+    val techniqueCategory = Chunk("ncf_techniques")
+    val techniqueId       = TechniqueId(
+      TechniqueName("technique_with_blocks"),
+      TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException("test technique version must be parsable"))
+    )
+
+    val techniqueDir =
+      mockGitConfigRepo.configurationRepositoryRoot / "techniques" / techniqueCategory.mkString("/") / techniqueId.serialize
+    val files        = Chunk.fromIterable(
+      techniqueDir.collectChildren(!_.isDirectory).map(f => (techniqueDir.relativize(f).toString, f.byteArray)).toList
+    )
+
+    PolicyArchive
+      .empty("test archive")
+      .copy(techniques = {
+        Chunk.single(
+          TechniqueArchive(
+            TechniqueInfo(
+              TechniqueId(
+                TechniqueName("technique_with_blocks"),
+                TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException("test"))
+              ),
+              "technique with blocks",
+              TechniqueType.Yaml
+            ),
+            techniqueCategory,
+            files
+          )
+        )
+      })
+  }
+
   /**
    * Test the result using JRuleCategories, which sorts children by id
    */
   private def testSaveRuleCategories(label: String)(policyArchive: PolicyArchive, expectedRoot: RuleCategory) = test(label) {
-    withCtx(_.save(policyArchive, MergePolicy.KeepRuleTargets))(
+    withRuleCtx(_.save(policyArchive, MergePolicy.KeepRuleTargets))(
       _.transformInto[JRuleCategories],
       Assertion.equalTo(expectedRoot.transformInto[JRuleCategories])
     )
   }
 
-  private def withCtx[A](save: SaveArchiveService => IOResult[Unit])(transform: RuleCategory => A, assertion: Assertion[A]) = {
+  /**
+   * Test that saving a technique generates a commit that is traced in gitModificationRepository
+   * (https://issues.rudder.io/issues/29500)
+   */
+  private def testSaveTechnique(label: String)(policyArchive: PolicyArchive) = test(label) {
+    withTechniqueCtx(s => {
+      for {
+        _       <- s.save(policyArchive, MergePolicy.KeepRuleTargets)
+        commits <- mockGitConfigRepo.gitModificationRepository.getAllCommits(ModificationId(stubUuidGen.newUuid))
+      } yield {
+        assertTrue(commits.size == 1)
+      }
+    })
+  }
+
+  private def withRuleCtx[A](
+      save: SaveArchiveService => IOResult[Unit]
+  )(transform: RuleCategory => A, assertion: Assertion[A]) = {
     val ruleCategoryRepo = mockRules.ruleCategoryRepo
     val archiveSaver     = new SaveArchiveServicebyRepo(
       null,
@@ -151,7 +216,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       ruleCategoryRepo,
       null,
       mockActor,
-      dummyUuidGen
+      stubUuidGen
     )
     for {
       _    <- save(archiveSaver)
@@ -160,12 +225,36 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       assert(transform(root))(assertion)
     }
   }
+
+  private def withTechniqueCtx[R](save: SaveArchiveService => R): R = {
+    val archiveSaver = new SaveArchiveServicebyRepo(
+      mockTechniques.techniqueArchiver,
+      mockTechniques.techniqueReader,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      dummyTechLibUpdate,
+      mockActor,
+      stubUuidGen
+    )
+    save(archiveSaver)
+  }
 }
 
 private object SaveArchiveServiceTest {
-  private val mockActor    = new MockLiftActor
-  private val dummyUuidGen = new StringUuidGenerator { override def newUuid: String = "not used" }
+  private val mockActor   = new MockLiftActor
+  private val stubUuidGen = new StringUuidGenerator { override def newUuid: String = "11111111-1111-1111-1111-111111111111" }
 
+  private val dummyTechLibUpdate   = new UpdateTechniqueLibrary {
+    override def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = Full(Map.empty)
+
+    override def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = ()
+  }
   private val dummyTechniqueReader = new TechniqueReader {
     override def readTechniques: TechniquesInfo = TechniquesInfo(
       RootTechniqueCategory("name", "description", Set.empty, SortedSet.empty, isSystem = false, security = None),

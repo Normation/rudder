@@ -267,6 +267,41 @@ trait GitConfigItemRepository extends GitItemRepository {
 }
 
 /**
+ * A `GitConfigItemRepository` that commits without linking the commit to the modification id.
+ *
+ * Sometimes, modId are linked to several operation that each have a linked commit entry (to keep the whole change traceable).
+ * But we don't always want to link the commits to that modId, typically for callback-like changes.
+ *
+ * So, use this mixin to enforce that a modification is not linked to a commit (e.g. for a secondary commit of a user change).
+ *
+ * See https://issues.rudder.io/issues/29500, for the case of technique callbacks
+ */
+trait GitConfigItemRepositoryWithoutModId extends GitConfigItemRepository {
+
+  override def commitAddFileWithModId(
+      modId:         ModificationId,
+      commiter:      PersonIdent,
+      gitPath:       String,
+      commitMessage: String
+  ): IOResult[GitCommitId] = commitAddFile(commiter, gitPath, commitMessage)
+
+  override def commitRmFileWithModId(
+      modId:         ModificationId,
+      commiter:      PersonIdent,
+      gitPath:       String,
+      commitMessage: String
+  ): IOResult[GitCommitId] = commitRmFile(commiter, gitPath, commitMessage)
+
+  override def commitMvDirectoryWithModId(
+      modId:         ModificationId,
+      commiter:      PersonIdent,
+      oldGitPath:    String,
+      newGitPath:    String,
+      commitMessage: String
+  ): IOResult[GitCommitId] = commitMvDirectory(commiter, oldGitPath, newGitPath, commitMessage)
+}
+
+/**
  * Utility trait that factor global commit and tags.
  */
 trait GitArchiverFullCommitUtils extends NamedZioLogger {

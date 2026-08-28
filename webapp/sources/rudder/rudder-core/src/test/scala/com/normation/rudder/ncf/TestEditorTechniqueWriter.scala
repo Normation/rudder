@@ -134,15 +134,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         msg:         String
     ): IOResult[Unit] = ZIO.unit
 
-    override def deleteCategoryRecursively(
-        categoryId: TechniqueCategoryId,
-        modId:      ModificationId,
-        committer:  EventActor,
-        msg:        String
-    ): IOResult[Unit] = {
-      ZIO.unit
-    }
-
     override def saveTechnique(
         techniqueId:     TechniqueId,
         categories:      Seq[String],
@@ -159,15 +150,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:  EventActor,
         msg:        String
     ): IOResult[Unit] = ZIO.unit
-
-    override def updateTechniqueCategoryRecursively(
-        category:  TechniqueCategoryId,
-        modId:     ModificationId,
-        committer: EventActor,
-        msg:       String
-    ): IOResult[Unit] = {
-      ZIO.unit
-    }
 
     override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
       Unexpected("parseTechnique is not implemented").fail
