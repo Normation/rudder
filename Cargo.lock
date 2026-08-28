@@ -22,7 +22,7 @@ name = "agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "askama 0.16.0",
+ "askama",
  "chrono",
  "clap",
  "hostname",
@@ -197,19 +197,6 @@ dependencies = [
 
 [[package]]
 name = "askama"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f75363874b771be265f4ffe307ca705ef6f3baa19011c149da8674a87f1b75c4"
-dependencies = [
- "askama_derive 0.14.0",
- "itoa",
- "percent-encoding",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "askama"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bf825125edd887a019d0a3a837dcc5499a68b0d034cc3eb594070c3e18addc"
@@ -223,28 +210,11 @@ dependencies = [
 
 [[package]]
 name = "askama_derive"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "129397200fe83088e8a68407a8e2b1f826cf0086b21ccdb866a722c8bcd3a94f"
-dependencies = [
- "askama_parser 0.14.0",
- "basic-toml",
- "memchr",
- "proc-macro2 1.0.107",
- "quote 1.0.47",
- "rustc-hash",
- "serde",
- "serde_derive",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "askama_derive"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1c7065972a130eafa84215f21352ae15b4a7393da48c1f5e103904490736738"
 dependencies = [
- "askama_parser 0.16.0",
+ "askama_parser",
  "basic-toml",
  "glob",
  "memchr",
@@ -262,19 +232,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e23b1d2c4bd39a41971f6124cef4cc6fd0540913ecb90919b69ab3bbe44ae1a"
 dependencies = [
- "askama_derive 0.16.0",
-]
-
-[[package]]
-name = "askama_parser"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6ab5630b3d5eaf232620167977f95eb51f3432fc76852328774afbd242d4358"
-dependencies = [
- "memchr",
- "serde",
- "serde_derive",
- "winnow 0.7.15",
+ "askama_derive",
 ]
 
 [[package]]
@@ -287,7 +245,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "unicode-ident",
- "winnow 1.0.4",
+ "winnow",
 ]
 
 [[package]]
@@ -338,6 +296,12 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "base64ct"
@@ -451,7 +415,7 @@ checksum = "baa187da765010b70370368c49f08244b1ae5cae1d5d33072f76c8cb7112fe3e"
 dependencies = [
  "ahash",
  "appendlist",
- "base64",
+ "base64 0.22.1",
  "fluent-uri",
  "idna",
  "once_cell",
@@ -566,12 +530,12 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "chacha20"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d524456ba66e72eb8b115ff89e01e497f8e6d11d78b70b1aa13c0fbd97540a81"
+checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
- "cpufeatures 0.3.0",
+ "cpufeatures 0.3.1",
  "rand_core 0.10.1",
 ]
 
@@ -788,9 +752,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b2a41393f66f16b0823bb79094d54ac5fbd34ab292ddafb9a0456ac9f87d201"
+checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
 dependencies = [
  "libc",
 ]
@@ -1390,6 +1354,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fancy-regex"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "476de73bddf2ef8490aa4ee8f1cf40b430bf1d56c48c22080e5186952cd580e6"
+dependencies = [
+ "bit-set 0.8.0",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1430,9 +1405,9 @@ checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flate2"
-version = "1.1.9"
+version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c"
+checksum = "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -1774,7 +1749,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3314d5adb5d94bcdf56771f2e50dbbc80bb4bdf88967526706205ac9eff24eb"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "headers-core",
  "http",
@@ -1906,9 +1881,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.11.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d22053281f852e11534f5198498373cbb59295120a20771d90f7ed1897490a72"
+checksum = "27b501faa50e7a26c3d3560ca625132f4078a17771f4810baf70475ae48cbe43"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -1948,7 +1923,7 @@ version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96547c2556ec9d12fb1578c4eaf448b04993e7fb79cbaad930a656880a6bdfa0"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "futures-channel",
  "futures-util",
@@ -2639,9 +2614,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.8.9"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
+checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "simd-adler32",
@@ -3389,6 +3364,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
 name = "quote"
 version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3611,7 +3596,7 @@ version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "219c5811de6525e5416c7d5d53bb656d3afdbc6c5af816e0802bcfa42dbdc1c3"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "futures-channel",
  "futures-core",
@@ -3738,7 +3723,7 @@ dependencies = [
  "jiff",
  "nix",
  "pretty_assertions",
- "quick-xml",
+ "quick-xml 0.42.0",
  "regex",
  "rudder_cli",
  "rudder_module_type",
@@ -3814,7 +3799,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "base16ct",
- "base64",
+ "base64 0.23.1",
  "clap",
  "minijinja",
  "minijinja-contrib",
@@ -3849,7 +3834,7 @@ dependencies = [
  "itertools 0.15.0",
  "lzma-rs",
  "pretty_assertions",
- "quick-xml",
+ "quick-xml 0.42.0",
  "regex",
  "reqwest",
  "rstest",
@@ -3871,7 +3856,7 @@ name = "rudder-relayd"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
- "base64",
+ "base64 0.23.1",
  "bytes",
  "chrono",
  "clap",
@@ -3941,7 +3926,7 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "colored",
- "fancy-regex",
+ "fancy-regex 0.19.0",
  "log 0.4.34",
  "nom 8.0.0",
  "pretty_assertions",
@@ -3987,7 +3972,7 @@ version = "0.0.0-dev"
 dependencies = [
  "agent",
  "anyhow",
- "askama 0.14.0",
+ "askama",
  "boon",
  "clap",
  "colored",
@@ -3996,7 +3981,7 @@ dependencies = [
  "mdbook-driver",
  "nom 8.0.0",
  "pretty_assertions",
- "quick-xml",
+ "quick-xml 0.41.0",
  "regex",
  "rudder_cli",
  "rudder_commons",
@@ -4246,7 +4231,7 @@ checksum = "0fbc8f9818a6fad141d85993777ba298ee52c80a09bd23d45dda461a6b7c83cb"
 dependencies = [
  "anyhow",
  "argon2",
- "base64",
+ "base64 0.22.1",
  "buffered-reader",
  "bzip2",
  "chrono",
@@ -4395,7 +4380,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aacc4cc499359472b4abe1bf11d0b12e688af9a805fa5e3016f9a386dc2d0214"
 dependencies = [
  "cfg-if",
- "cpufeatures 0.3.0",
+ "cpufeatures 0.3.1",
  "digest 0.11.3",
 ]
 
@@ -4416,7 +4401,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
 dependencies = [
  "cfg-if",
- "cpufeatures 0.3.0",
+ "cpufeatures 0.3.1",
  "digest 0.11.3",
 ]
 
@@ -4943,7 +4928,7 @@ dependencies = [
  "toml_datetime",
  "toml_parser",
  "toml_writer",
- "winnow 1.0.4",
+ "winnow",
 ]
 
 [[package]]
@@ -4964,7 +4949,7 @@ dependencies = [
  "indexmap",
  "toml_datetime",
  "toml_parser",
- "winnow 1.0.4",
+ "winnow",
 ]
 
 [[package]]
@@ -4973,7 +4958,7 @@ version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
 dependencies = [
- "winnow 1.0.4",
+ "winnow",
 ]
 
 [[package]]
@@ -5231,9 +5216,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.25.0"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f053576934f05a761a402421fbbe3d425d9366f75f978806a037b3ca481abecc"
+checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -5439,9 +5424,9 @@ dependencies = [
 
 [[package]]
 name = "which"
-version = "8.0.5"
+version = "8.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3ef584124b911bcc3875c2f1472e80f24361ceb789bd1c62b3e9a3df9ff43c"
+checksum = "bae2f2b2b816647a1cab1acc91f5bd20812d53cb344382635ec2181940c8034f"
 dependencies = [
  "libc",
 ]
@@ -5768,15 +5753,6 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.7.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "winnow"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
@@ -5975,7 +5951,7 @@ checksum = "f9eaee90f4a795d1eb4ba6c51e1c1721d4784d550e8efa7b2600f29c867365e0"
 dependencies = [
  "chrono",
  "derive_builder",
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "itertools 0.14.0",
  "lazy_static",
  "regex",

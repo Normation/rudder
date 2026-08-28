@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Error, bail};
+use anyhow::{Context, Error, bail};
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use tracing::{error, info, instrument};
@@ -101,7 +101,7 @@ impl<T: Serialize> ApiResponse<T> {
 }
 
 #[instrument(name = "api", level = "debug", skip(job_config))]
-pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
+pub async fn run(job_config: Arc<JobConfig>) -> Result<(), Error> {
     let routes_1 = path!("rudder" / "relay-api" / "1" / ..)
         .and(
             system::routes_1(job_config.clone())
@@ -120,10 +120,13 @@ pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
     let listen = &job_config.cfg.general.listen;
     info!("Starting API on {}", listen);
 
-    let mut addresses = listen.to_socket_addrs().map_err(|e| {
-        // Log resolution error
-        error!("{}", e);
-    })?;
+    let mut addresses = listen
+        .to_socket_addrs()
+        .inspect_err(|e| {
+            // Log resolution error
+            error!("{}", e);
+        })
+        .with_context(|| format!("Could not resolve API listen address '{listen}'"))?;
     // Use first resolved address for now
     let socket = addresses.next().unwrap();
     warp::serve(routes).run(socket).await;
