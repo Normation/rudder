@@ -49,6 +49,7 @@ import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -157,7 +158,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
 
     override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
-        NodeGroupCategoryId("GroupRoot"),
+        Constants.ROOT_GROUP_CATEGORY,
         name = "GroupRoot",
         description = "root of group categories",
         subCategories = Nil,

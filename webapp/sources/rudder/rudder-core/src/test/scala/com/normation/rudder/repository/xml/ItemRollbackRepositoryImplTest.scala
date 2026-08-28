@@ -53,6 +53,7 @@ import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
 import com.normation.rudder.configuration.GroupAndCat
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -327,7 +328,7 @@ private object ItemRollbackRepositoryImplTest {
   val directiveActiveTechniqueId: ActiveTechniqueId   =
     ActiveTechniqueId(mockDirectives.directives.archiveTechnique.id.name.value)
   val groupId:                    NodeGroupId         = mockGroups.g1.id
-  val groupCategoryId:            NodeGroupCategoryId = NodeGroupCategoryId("GroupRoot")
+  val groupCategoryId:            NodeGroupCategoryId = Constants.ROOT_GROUP_CATEGORY
   val parameterName:              String              = mockParams.stringParam.name
   val ruleId:                     RuleId              = mockRules.rules.defaultRule.id
 
@@ -435,7 +436,7 @@ private object ItemRollbackRepositoryImplTest {
   }
 
   private def emptyNodeGroupCategory =
-    NodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "", Nil, Nil, isSystem = false, security = None)
+    NodeGroupCategory(Constants.ROOT_GROUP_CATEGORY, "GroupRoot", "", Nil, Nil, isSystem = false, security = None)
 
   //////////////////////////// event logs ////////////////////////////
 

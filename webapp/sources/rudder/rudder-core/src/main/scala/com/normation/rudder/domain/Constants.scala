@@ -38,6 +38,8 @@
 package com.normation.rudder.domain
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.rule.category.RuleCategoryId
 
 object Constants {
 
@@ -114,4 +116,8 @@ object Constants {
 
   // for secret variable
   val XML_TAG_SECRET = "secret"
+
+  // root of things
+  val ROOT_GROUP_CATEGORY = NodeGroupCategoryId("GroupRoot")
+  val ROOT_RULE_CATEGORY  = RuleCategoryId("rootRuleCategory")
 }

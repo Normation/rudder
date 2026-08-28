@@ -196,7 +196,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
-        NodeGroupCategoryId("GroupRoot"),
+        Constants.ROOT_GROUP_CATEGORY,
         name = "GroupRoot",
         description = "root of group categories",
         subCategories = Nil,
