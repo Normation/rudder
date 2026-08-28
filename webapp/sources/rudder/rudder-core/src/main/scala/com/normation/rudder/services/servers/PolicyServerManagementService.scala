@@ -80,7 +80,6 @@ import com.normation.rudder.domain.queries.QueryReturnType.NodeAndRootServerRetu
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.servers.json.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -678,7 +677,7 @@ object PolicyServerConfigurationObjects {
     Rule(
       RuleId(RuleUid(s"hasPolicyServer-${nodeId.value}")),
       s"Rudder system policy: basic setup (common) - ${nodeId.value}",
-      RuleCategoryId("rootRuleCategory"),
+      Constants.ROOT_RULE_CATEGORY,
       Set(GroupTarget(idGroupHasPolicyServer(nodeId))),
       Set(DirectiveId(DirectiveUid(s"common-hasPolicyServer-${nodeId.value}"))),
       "Common - Technical",
@@ -693,7 +692,7 @@ object PolicyServerConfigurationObjects {
     Rule(
       RuleId(RuleUid(s"policy-server-${nodeId.value}")),
       s"Rule for policy server ${nodeId.value}",
-      RuleCategoryId("rootRuleCategory"),
+      Constants.ROOT_RULE_CATEGORY,
       Set(PolicyServerTarget(nodeId)),
       techniques.map(t => DirectiveId(DirectiveUid(s"${t}-${nodeId.value}"))).toSet,
       "Server components configuration - Technical",

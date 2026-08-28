@@ -37,6 +37,7 @@
 
 package com.normation.rudder
 
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -90,7 +91,7 @@ class RuleTest extends Specification with Loggable {
   }
 
   val root: RuleCategory = RuleCategory(
-    RuleCategoryId("rootRuleCategory"),
+    Constants.ROOT_RULE_CATEGORY,
     name = "Root category",
     description = "base root category",
     childs = subCat,
@@ -101,7 +102,7 @@ class RuleTest extends Specification with Loggable {
   "Testing rule utility tools" should {
     "List all categories and subcategories" in {
       val listCatIds = Set(
-        RuleCategoryId("rootRuleCategory"),
+        Constants.ROOT_RULE_CATEGORY,
         RuleCategoryId("cat1"),
         RuleCategoryId("cat2"),
         RuleCategoryId("cat3"),
@@ -122,7 +123,7 @@ class RuleTest extends Specification with Loggable {
     }
 
     "List only root category" in {
-      val listCatIds = Set(RuleCategoryId("rootRuleCategory"))
+      val listCatIds = Set(Constants.ROOT_RULE_CATEGORY)
       restTestSetUp.ruleApiService14.listCategoriesId(root.copy(childs = List.empty)) shouldEqual (listCatIds)
     }
 
@@ -155,7 +156,7 @@ class RuleTest extends Specification with Loggable {
 
     "Find no missing categories" in {
       val rules = List(
-        Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("rootRuleCategory"), security = None),
+        Rule(RuleId(RuleUid("rule1")), "", Constants.ROOT_RULE_CATEGORY, security = None),
         Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("cat1"), security = None),
         Rule(RuleId(RuleUid("rule3")), "", RuleCategoryId("cat3"), security = None),
         Rule(RuleId(RuleUid("rule4")), "", RuleCategoryId("cat4"), security = None),

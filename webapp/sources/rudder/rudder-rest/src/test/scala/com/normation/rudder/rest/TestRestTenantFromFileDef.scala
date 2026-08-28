@@ -41,8 +41,8 @@ import better.files.*
 import com.normation.GitVersion
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -58,7 +58,6 @@ import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
@@ -93,7 +92,7 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
   val tenantRule: Rule = Rule(
     RuleId(RuleUid("tenant-rule-1")),
     "Tenant test rule",
-    RuleCategoryId("rootRuleCategory"),
+    Constants.ROOT_RULE_CATEGORY,
     Set(AllTarget),
     Set(DirectiveId(DirectiveUid("directive1"))),
     "A rule for tenant testing",
@@ -183,7 +182,7 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
         _      <-
           ZIO.unless(exists)(
             restTestSetUp.mockNodeGroups.groupsRepoImpl
-              .create(tenantGroup, NodeGroupCategoryId("GroupRoot"))(using ChangeContext.newForRudder(Some("seed tenant group")))
+              .create(tenantGroup, Constants.ROOT_GROUP_CATEGORY)(using ChangeContext.newForRudder(Some("seed tenant group")))
           )
         // restore directive2 if a previous evaluation deleted it, then (re)apply the tenant tags
         dirOk  <- restTestSetUp.mockDirectives.directiveRepoImpl
