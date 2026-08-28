@@ -33,7 +33,7 @@ htop
 Package present
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -70,7 +70,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -80,7 +80,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
