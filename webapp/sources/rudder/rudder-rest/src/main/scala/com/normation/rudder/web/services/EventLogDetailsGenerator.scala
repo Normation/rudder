@@ -99,6 +99,7 @@ class EventLogDetailsGenerator(
 
   def displayDescription(event: EventLog): NodeSeq = {
     import linkUtil.*
+
     def crDesc(x: EventLog, actionName: NodeSeq) = {
       val id   = RuleId.parse((x.details \ "rule" \ "id").text).getOrElse(RuleId(RuleUid("")))
       val name = (x.details \ "rule" \ "displayName").text
@@ -204,8 +205,13 @@ class EventLogDetailsGenerator(
     }
 
     def editorTechniqueDesc(x: EventLog, actionName: NodeSeq) = {
-      val name = (x.details \ "technique" \ "name").text
-      Text(s"Technique ${name} ${actionName}")
+      val id           = (x.details \ "technique" \ "id").text
+      val name         = (x.details \ "technique" \ "displayName").text
+      val previousName = (x.details \ "technique" \ "previousName").text
+      Text("Technique ") ++ {
+        if (name.length < 1) <a href={techniqueLink(id)}>{previousName}</a> ++ actionName
+        else <a href={techniqueLink(id)}>{name}</a> ++ actionName
+      }
     }
 
     event match {
@@ -234,6 +240,7 @@ class EventLogDetailsGenerator(
       case x: ReloadTechniqueLibrary        => Text("Technique library updated")
       case x: ModifyTechnique               => techniqueDesc(x, Text(" modified"))
       case x: DeleteTechnique               => techniqueDesc(x, Text(" deleted"))
+      case x: AddTechnique                  => techniqueDesc(x, Text(" added"))
       case x: SuccessfulDeployment          => Text("Successful policy update")
       case x: FailedDeployment              => Text("Failed policy update")
       case x: ExportGroupsArchive           => Text("New groups archive")
