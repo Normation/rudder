@@ -94,10 +94,13 @@ object GitFindUtils extends NamedZioLogger {
 
       val paths = scala.collection.mutable.Set[String]()
 
-      while (tw.next) {
-        paths += tw.getPathString
+      try {
+        while (tw.next) {
+          paths += tw.getPathString
+        }
+      } finally {
+        tw.close()
       }
-      tw.close()
 
       paths.toSet
     }
@@ -126,9 +129,18 @@ object GitFindUtils extends NamedZioLogger {
 
       tw.setRecursive(true)
       tw.reset(revTreeId)
-      var ids = List.empty[ObjectId]
-      while (tw.next) {
-        ids = tw.getObjectId(0) :: ids
+      // the TreeWalk owns an ObjectReader, it must be closed whatever happens. The stream we
+      // return below is opened on another reader, so it stays valid once the walk is done.
+      val ids = {
+        try {
+          var acc = List.empty[ObjectId]
+          while (tw.next) {
+            acc = tw.getObjectId(0) :: acc
+          }
+          acc
+        } finally {
+          tw.close()
+        }
       }
       ids match {
         case Nil      =>
@@ -183,8 +195,13 @@ object GitFindUtils extends NamedZioLogger {
         Inconsistency(s"The reference branch '${revString}' is not found in the Active Techniques Library's git repository").fail
       } else {
         val rw = new RevWalk(db)
-        val id = rw.parseTree(tree).getId
-        rw.dispose
+        val id = {
+          try {
+            rw.parseTree(tree).getId
+          } finally {
+            rw.close()
+          }
+        }
         id.succeed
       }
     }
@@ -221,13 +238,17 @@ object GitFindUtils extends NamedZioLogger {
       tw.setRecursive(true)
       tw.reset(revTreeId)
 
-      while (tw.next) {
-        val path   = tw.getPathString
-        val parent = (new File(path)).getParent
-        if (null != parent) {
-          directories += parent
+      try {
+        while (tw.next) {
+          val path   = tw.getPathString
+          val parent = (new File(path)).getParent
+          if (null != parent) {
+            directories += parent
+          }
+          entries += ((path, Some(GitFindUtils.getManagedFileContent(db, revTreeId, path))))
         }
-        entries += ((path, Some(GitFindUtils.getManagedFileContent(db, revTreeId, path))))
+      } finally {
+        tw.close()
       }
 
       // start by listing all directories, then all content

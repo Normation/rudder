@@ -63,6 +63,7 @@ import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.ObjectStream
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable.Map as MutMap
@@ -374,6 +375,64 @@ class GitTechniqueReader(
     }).runNow
   }
 
+  /*
+   * Manage the logic to get a file stream by looking for the file for the exact `revTreeId` and managing
+   * the closing with ZIO `acquireRelease` pattern.
+   * When there is 0 or more than 1 file returned by the filter, error are returned with message from parameters.
+   */
+  private def getMatchingFileStream(
+      revTreeId:   ObjectId,
+      filter:      TreeFilter,
+      notFoundMsg: => String,
+      tooManyMsg:  => String,
+      noFileMsg:   => String
+  ): IOResult[Option[ObjectStream]] = {
+    val managedTw = ZIO.acquireRelease(IOResult.attempt {
+      val tw = new TreeWalk(repo.db)
+      tw.setFilter(filter)
+      tw.setRecursive(true)
+      tw.reset(revTreeId)
+      tw
+    })(tw => effectUioUnit(tw.close()))
+
+    ZIO
+      .scoped(managedTw.flatMap { tw =>
+        IOResult.attempt {
+          var ids = List.empty[ObjectId]
+          while (tw.next) {
+            ids = tw.getObjectId(0) :: ids
+          }
+          ids
+        }.flatMap {
+          case Nil      => TechniqueReaderLoggerPure.error(notFoundMsg) *> Option.empty[ObjectStream].succeed
+          case h :: Nil => IOResult.attempt(Option(repo.db.open(h).openStream))
+          case _        => TechniqueReaderLoggerPure.error(tooManyMsg) *> Option.empty[ObjectStream].succeed
+        }
+      })
+      .catchSome {
+        case SystemError(_, _: FileNotFoundException) =>
+          TechniqueReaderLoggerPure.debug(noFileMsg) *> Option.empty[ObjectStream].succeed
+      }
+  }
+
+  /*
+   * JGit sometimes reports an object as missing while it is actually present in the object
+   * database when some of its cache are corrupted. Such a view heals itself on the next pack list scan,
+   * so one retry is enough and it spares us failing a whole policy generation.
+   * We deliberately retry the same revision to maintain consistency for the generation.
+   * We only retry once so that a real error is still reported without looping.
+   * This is linked to issue: https://issues.rudder.io/issues/29674
+   */
+  private def retryOnceOnMissingObject[A](context: => String)(effect: IOResult[A]): IOResult[A] = {
+    effect.catchSome {
+      case SystemError(_, ex: MissingObjectException) =>
+        TechniqueReaderLoggerPure.warn(
+          s"A git object was not found when reading ${context} although it should be present (${ex.getMessage}). " +
+          s"This is generally a transient inconsistency in the view of the git object database: retrying once"
+        ) *> effect
+    }
+  }
+
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = {
     // build a treewalk with the path, given by metadata.xml
     val path = techniqueId.withDefaultRev.serialize + "/" + techniqueDescriptorName
@@ -381,42 +440,21 @@ class GitTechniqueReader(
     // template only base on the packageId + name.
 
     val managed = ZIO.acquireRelease(
-      for {
-        currentId <- techniqueId.version.rev match {
-                       case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
-                       case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
-                     }
-        optStream <- IOResult.attempt {
-                       try {
-                         val tw  = new TreeWalk(repo.db)
-                         tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, path))
-                         tw.setRecursive(true)
-                         tw.reset(currentId)
-                         var ids = List.empty[ObjectId]
-                         while (tw.next) {
-                           ids = tw.getObjectId(0) :: ids
-                         }
-                         ids match {
-                           case Nil      =>
-                             TechniqueReaderLoggerPure.logEffect.error(
-                               s"Metadata file ${techniqueDescriptorName} was not found for technique with id ${techniqueId.debugString}."
-                             )
-                             Option.empty[ObjectStream]
-                           case h :: Nil =>
-                             Some(repo.db.open(h).openStream)
-                           case _        =>
-                             TechniqueReaderLoggerPure.logEffect.error(
-                               s"There is more than one Technique with ID '${techniqueId.debugString}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones."
-                             )
-                             Option.empty[ObjectStream]
-                         }
-                       } catch {
-                         case ex: FileNotFoundException =>
-                           TechniqueReaderLoggerPure.logEffect.debug(s"Template '${path}' does not exist")
-                           Option.empty[ObjectStream]
+      retryOnceOnMissingObject(s"the metadata of technique '${techniqueId.debugString}'") {
+        for {
+          currentId <- techniqueId.version.rev match {
+                         case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
+                         case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
                        }
-                     }
-      } yield optStream
+          optStream <- getMatchingFileStream(
+                         currentId,
+                         new ExactFileTreeFilter(canonizedRelativePath, path),
+                         s"Metadata file ${techniqueDescriptorName} was not found for technique with id ${techniqueId.debugString}.",
+                         s"There is more than one Technique with ID '${techniqueId.debugString}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.",
+                         s"Template '${path}' does not exist"
+                       )
+        } yield optStream
+      }
     )(optStream => effectUioUnit(optStream.map(_.close())))
 
     ZIO.scoped(managed.flatMap(useIt))
@@ -443,42 +481,18 @@ class GitTechniqueReader(
     // template only base on the techniqueId + name.
 
     val managed = ZIO.acquireRelease(
-      for {
-        currentId <- GitFindUtils.findRevTreeFromRevision(repo.db, rev, revisionProvider.currentRevTreeId)
-        optStream <- IOResult.attempt {
-                       try {
-                         // now, the treeWalk
-                         val tw  = new TreeWalk(repo.db)
-                         tw.setFilter(filenameFilter)
-                         tw.setRecursive(true)
-                         tw.reset(currentId)
-                         var ids = List.empty[ObjectId]
-                         while (tw.next) {
-                           ids = tw.getObjectId(0) :: ids
-                         }
-                         ids match {
-                           case Nil      =>
-                             TechniqueReaderLoggerPure.logEffect.error(
-                               s"Template with id ${techniqueResourceId.displayPath} was not found"
-                             )
-                             Option.empty[ObjectStream]
-                           case h :: Nil =>
-                             Some(repo.db.open(h).openStream)
-                           case _        =>
-                             TechniqueReaderLoggerPure.logEffect.error(
-                               s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones"
-                             )
-                             Option.empty[ObjectStream]
-                         }
-                       } catch {
-                         case ex: FileNotFoundException =>
-                           TechniqueReaderLoggerPure.logEffect.debug(
-                             s"Technique Template ${techniqueResourceId.displayPath} does not exist"
-                           )
-                           Option.empty[ObjectStream]
-                       }
-                     }
-      } yield optStream
+      retryOnceOnMissingObject(s"the technique resource '${techniqueResourceId.displayPath}'") {
+        for {
+          currentId <- GitFindUtils.findRevTreeFromRevision(repo.db, rev, revisionProvider.currentRevTreeId)
+          optStream <- getMatchingFileStream(
+                         currentId,
+                         filenameFilter,
+                         s"Template with id ${techniqueResourceId.displayPath} was not found",
+                         s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones",
+                         s"Technique Template ${techniqueResourceId.displayPath} does not exist"
+                       )
+        } yield optStream
+      }
     )(optStream => effectUioUnit(optStream.map(_.close())))
 
     ZIO.scoped(managed.flatMap(useIt))
@@ -585,29 +599,32 @@ class GitTechniqueReader(
     val prop = new java.util.Properties()
 
     // now, for each potential path, look if the cat or policy
-    // is valid
-    while (tw.next) {
-      // we need to filter out directories
-      if (tw.getNameString == directiveDefaultName) {
-        var is: InputStream = null
-        try {
-          is = db.open(tw.getObjectId(0)).openStream
-          prop.load(is)
-        } catch {
-          case ex: Exception =>
-            TechniqueReaderLoggerPure.logEffect.error(
-              s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ",
-              ex
-            )
-            Map()
-        } finally {
+    try {
+      while (tw.next) {
+        // we need to filter out directories
+        if (tw.getNameString == directiveDefaultName) {
+          var is: InputStream = null
           try {
-            if (is != null) { is.close() }
+            is = db.open(tw.getObjectId(0)).openStream
+            prop.load(is)
           } catch {
-            case ioe: IOException => // ignore
+            case ex: Exception =>
+              TechniqueReaderLoggerPure.logEffect.error(
+                s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ",
+                ex
+              )
+              Map()
+          } finally {
+            try {
+              if (is != null) { is.close() }
+            } catch {
+              case ioe: IOException => // ignore
+            }
           }
         }
       }
+    } finally {
+      tw.close()
     }
     import scala.jdk.CollectionConverters.*
     prop.asScala.toMap
