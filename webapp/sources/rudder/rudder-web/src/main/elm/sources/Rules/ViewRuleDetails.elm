@@ -296,31 +296,6 @@ editionTemplate model details =
                             ]
                         ]
                     ]
-                , if isNewRule then
-                    text ""
-
-                  else
-                    li [ class "nav-item" ]
-                        [ button
-                            [ attribute "role" "tab"
-                            , type_ "button"
-                            , class
-                                ("nav-link"
-                                    ++ (if details.tab == Nodes then
-                                            " active"
-
-                                        else
-                                            ""
-                                       )
-                                )
-                            , onClick (UpdateRuleForm { details | tab = Nodes })
-                            ]
-                            [ text "Nodes"
-                            , span [ class "badge badge-secondary badge-resources" ]
-                                [ getNbResourcesBadge (Maybe.withDefault 0 (getRuleNbNodes details)) "This rule is not applied on any node"
-                                ]
-                            ]
-                        ]
                 , li [ class "nav-item" ]
                     [ button
                         [ attribute "role" "tab"
@@ -352,6 +327,28 @@ editionTemplate model details =
                             ]
                         ]
                     ]
+                , if isNewRule then
+                    text ""
+
+                  else
+                    li [ class "nav-item" ]
+                        [ button
+                            [ attribute "role" "tab"
+                            , type_ "button"
+                            , class
+                                ("nav-link"
+                                    ++ (if (details.tab == ComplianceTab ByDirective) || (details.tab == ComplianceTab ByNode) then
+                                            " active"
+
+                                        else
+                                            ""
+                                       )
+                                )
+                            , onClick (UpdateRuleForm { details | tab = ComplianceTab ByDirective })
+                            ]
+                            [ text "Compliance"
+                            ]
+                        ]
                 , if isNewRule then
                     text ""
 

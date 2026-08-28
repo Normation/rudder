@@ -18,10 +18,15 @@ import Ui.Datatable exposing (Category, SortOrder, TableFilters, getAllCats, get
 --
 
 
+type ComplianceSortBy
+    = ByDirective
+    | ByNode
+
+
 type TabMenu
     = Information
+    | ComplianceTab ComplianceSortBy
     | Directives
-    | Nodes
     | Groups
     | TechnicalLogs
     | Rules
