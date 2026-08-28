@@ -50,21 +50,16 @@ impl Webapp {
         loop {
             match reader.read_event_into(&mut buf)? {
                 Event::Eof => break,
-                Event::Start(e) if e.name().as_ref() == b"Set" => {
+                Event::Start(e) if e.name().as_ref() == "Set" => {
                     for a in e.attributes() {
                         let a = a?;
-                        if a.key.as_ref() == b"name" && a.value.as_ref() == b"extraClasspath" {
+                        if a.key.as_ref() == "name" && a.value.as_ref() == "extraClasspath" {
                             in_extra_classpath = true;
                         }
                     }
                 }
                 Event::Text(e) if in_extra_classpath => {
-                    return Ok(e
-                        .decode()?
-                        .as_ref()
-                        .split(',')
-                        .map(|s| s.to_string())
-                        .collect());
+                    return Ok(e.split(',').map(|s| s.to_string()).collect());
                 }
                 _ => (),
             }
@@ -84,10 +79,10 @@ impl Webapp {
         loop {
             match reader.read_event_into(&mut buf)? {
                 Event::Eof => break,
-                Event::Start(e) if e.name().as_ref() == b"Set" => {
+                Event::Start(e) if e.name().as_ref() == "Set" => {
                     for a in e.attributes() {
                         let a = a?;
-                        if a.key.as_ref() == b"name" && a.value.as_ref() == b"extraClasspath" {
+                        if a.key.as_ref() == "name" && a.value.as_ref() == "extraClasspath" {
                             in_extra_classpath = true;
                             extra_classpath_found = true;
                         }
@@ -98,7 +93,7 @@ impl Webapp {
                     // there are existing jars
                     if in_extra_classpath {
                         in_extra_classpath = false;
-                        let jars_t = e.decode()?;
+                        let jars_t = e.as_ref();
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
                         // Trigger a restart if something changes
                         for p in present {
@@ -119,7 +114,7 @@ impl Webapp {
                         writer.write_event(Event::Text(e))?;
                     }
                 }
-                Event::End(e) if e.name().as_ref() == b"Set" => {
+                Event::End(e) if e.name().as_ref() == "Set" => {
                     // there are no existing jars, but the section exists
                     if in_extra_classpath {
                         in_extra_classpath = false;
@@ -133,7 +128,7 @@ impl Webapp {
                     }
                     writer.write_event(Event::End(e))?;
                 }
-                Event::End(e) if e.name().as_ref() == b"Configure" => {
+                Event::End(e) if e.name().as_ref() == "Configure" => {
                     // there is not entry at all
                     if !extra_classpath_found && !present.is_empty() {
                         // Create the element if needed

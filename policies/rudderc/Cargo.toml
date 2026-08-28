@@ -11,7 +11,7 @@ license.workspace = true
 [dependencies]
 agent = { path = "../agent" }
 anyhow = "1"
-askama = "0.14.0"
+askama = "0.16.0"
 boon = "0.6.0"
 colored = "3"
 clap = { version = "4", features = ["derive"] }

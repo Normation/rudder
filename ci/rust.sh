@@ -8,7 +8,7 @@ rustup component add clippy
 rustup component add rustfmt
 
 # Install pre-compiled sccache
-SCCACHE_VER=0.16.0
+SCCACHE_VER=0.17.0
 wget --quiet https://github.com/mozilla/sccache/releases/download/v$SCCACHE_VER/sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl.tar.gz
 tar -xf sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl.tar.gz
 chmod +x sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl/sccache
@@ -22,5 +22,4 @@ mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
 
 # Build & check tools
 cargo install --locked cargo-auditable@0.7.5
-cargo install --locked cargo-cyclonedx@0.5.9
-cargo install --locked cargo-nextest@0.9.140
+cargo install --locked cargo-nextest@0.9.143
