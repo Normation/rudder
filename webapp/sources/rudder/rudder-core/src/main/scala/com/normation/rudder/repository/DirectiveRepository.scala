@@ -291,8 +291,11 @@ final case class FullActiveTechniqueCategory(
   def addActiveTechnique(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
-      techniques:    Seq[Technique]
-  )(implicit cc: ChangeContext): FullActiveTechniqueCategory = {
+      techniques:    Seq[Technique],
+      // security tag passed as an argument and not a cc context because it's in a domain object
+      // (`FullActiveTechniqueCategory`), so it needs to have been computed before.
+      security:      Option[SecurityTag]
+  ): FullActiveTechniqueCategory = {
     if (this.id == categoryId) {
       // only keep technique with the good name
       val techs    = techniques.filter(_.id.name == techniqueName)
@@ -309,14 +312,14 @@ final case class FullActiveTechniqueCategory(
             Nil,
             isEnabled = true,
             policyTypes = PolicyTypes.rudderBase,
-            security = cc.accessGrant.restrictToWrite.toSecurityTag // inherit user tenant creating that technique
+            security = security // the tag the tenant logic computed for that creation
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
       }
       this.modify(_.activeTechniques).using(techs => updated :: techs.filterNot(_.id == updated.id))
     } else {
-      this.modify(_.subCategories).using(_.map(_.addActiveTechnique(categoryId, techniqueName, techniques)))
+      this.modify(_.subCategories).using(_.map(_.addActiveTechnique(categoryId, techniqueName, techniques, security)))
     }
   }
   def addActiveTechniqueCategory(
@@ -554,11 +557,23 @@ trait WoDirectiveRepository {
    *   - the technique is already in the active technique
    *     library
    */
+  /*
+   * Put back a directive in a state it had in the past (event-log rollback, archive restore). Same as
+   * `saveDirective` except that the tenant tag may go backwards - see `TenantCheckLogic.manageRestore`,
+   * which is where that exception to the write law is defined and justified.
+   */
+  def restoreDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive)(using
+      cc: ChangeContext
+  ): IOResult[Option[DirectiveSaveDiff]]
+
   def addTechniqueInUserLibrary(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      policyTypes:   PolicyTypes
+      policyTypes:   PolicyTypes,
+      // the tenant tag to create the active technique with.
+      // Like for any other created object, it will be processed/restricted by tenant management service
+      security:      Option[SecurityTag]
   )(implicit cc: ChangeContext): IOResult[ActiveTechnique]
 
   /**
@@ -713,7 +728,8 @@ class InitDirectivesTree(
                                                             name,
                                                             ids.map(_.version).toSeq,
                                                             if (newUserPTCat.isSystem) PolicyTypes.rudderSystem
-                                                            else PolicyTypes.rudderBase
+                                                            else PolicyTypes.rudderBase,
+                                                            security = SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
                                                           )(using cc.withMsg("Initialize active templates library"))
                                                           .toBox ?~!
                                                         "Error when adding Technique '%s' into user library category '%s'"

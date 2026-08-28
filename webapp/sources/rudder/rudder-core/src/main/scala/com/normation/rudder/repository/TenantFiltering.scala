@@ -64,16 +64,14 @@ import zio.syntax.*
  */
 
 /*
- * Note on authorization: repositories never reach into `cc.accessGrant.*` directly. All tenant and system
- * authorization decisions go through the `TenantCheckLogic` service (`checkTenant`):
- *   - `checkModify(obj, cc)`      : the actor may change/move `obj` (tenant write-visibility + system-admin-only),
- *   - `checkWriteInto(cont, cc)`  : the actor may create/move children under container `cont` (tenant
- *                                   write-visibility only - NOT system-gated, so objects can be created under
- *                                   the shared/system root categories),
- *   - `checkAdmin(cc)`            : admin-only operations that have no object to check (e.g. policy server targets),
- *   - `manageCreate`/`manageUpdate`/`checkDelete` : the create/update/delete logic, which also enforce the
- *     system-object admin-only rule (a system object can only be managed by an all-tenants grant, because a
- *     change to a shared/global object can affect other tenants).
+ * Note on authorization: repositories never reach into `cc.accessGrant.*` directly, and every write goes through the
+ * one `TenantCheckLogic` operation corresponding to its case: `manageCreate`, `manageUpdate`, `manageSave`,
+ * `manageModify`, `manageMove`, `manageDelete`.
+ * This that operation that checks all the tenant consistency, using system-level `QueryContext` to check
+ * object existence and properties if needed.
+ *
+ * `checkAdmin` remains for admin-only operations that have no `HasSecurityTag` object at all (e.g. policy
+ * server targets).
  */
 
 // ----- Directives -----------------------------------
@@ -220,10 +218,9 @@ class RoTenantDirectiveRepo(
 }
 
 class WoTenantDirectiveRepo(
-    checkTenant:   TenantCheckLogic,
-    tenantService: TenantService,
-    underlying:    WoDirectiveRepository,
-    roRepo:        RoDirectiveRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  WoDirectiveRepository,
+    roRepo:      RoDirectiveRepository
 ) extends RoDirectiveRepository with WoDirectiveRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -232,19 +229,17 @@ class WoTenantDirectiveRepo(
   private def saveInternal(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, system: Boolean)(using
       cc: ChangeContext
   ): IOResult[Option[DirectiveSaveDiff]] = {
-    given QueryContext = cc.toQC
-    for {
-      parentAt <- roRepo
-                    .getActiveTechniqueByActiveTechnique(inActiveTechniqueId)
-                    .notOptional(s"Can not find active technique with id '${inActiveTechniqueId.value}'")
-      _        <- checkTenant.checkWriteInto(parentAt, cc)
-      oldDir   <- roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid))
-      status   <- tenantService.getStatus
-      result   <- checkTenant.manageUpdate(oldDir.map(_._2), directive, cc, status) { dir =>
-                    if (system) underlying.saveSystemDirective(inActiveTechniqueId, dir)
-                    else underlying.saveDirective(inActiveTechniqueId, dir)
-                  }
-    } yield result
+    // a directive save is an upsert: the active technique it is created under is its container
+    checkTenant.manageSave(
+      directive,
+      roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid)).map(_.map(_._2)),
+      roRepo
+        .getActiveTechniqueByActiveTechnique(inActiveTechniqueId)
+        .notOptional(s"Can not find active technique with id '${inActiveTechniqueId.value}'")
+    ) { dir =>
+      if (system) underlying.saveSystemDirective(inActiveTechniqueId, dir)
+      else underlying.saveDirective(inActiveTechniqueId, dir)
+    }
   }
 
   override def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive)(using
@@ -257,138 +252,115 @@ class WoTenantDirectiveRepo(
   ): IOResult[Option[DirectiveSaveDiff]] =
     saveInternal(inActiveTechniqueId, directive, system = true)
 
+  // a restore may put back a narrower tag: that exception is defined in `manageRestore`
+  override def restoreDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive)(using
+      cc: ChangeContext
+  ): IOResult[Option[DirectiveSaveDiff]] = {
+    checkTenant.manageRestore(
+      directive,
+      roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid)).map(_.map(_._2)),
+      roRepo
+        .getActiveTechniqueByActiveTechnique(inActiveTechniqueId)
+        .notOptional(s"Can not find active technique with id '${inActiveTechniqueId.value}'")
+    )(dir => underlying.saveDirective(inActiveTechniqueId, dir))
+  }
+
+  // deleting a directive that does not exist is a no-op
   override def delete(id: DirectiveUid)(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
-    given QueryContext = cc.toQC
-    for {
-      existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      // fail-closed: `roRepo` is tenant-filtered, so a `None` means the object is absent OR invisible to the
-      // actor. In both cases we must not delete through the underlying repo.
-      result   <- existing match {
-                    case None    => ZIO.none
-                    case Some(p) => checkTenant.checkDelete(p._2, cc).toIO *> underlying.delete(id)
-                  }
-    } yield result
+    checkTenant.manageDelete(
+      roRepo.getActiveTechniqueAndDirective(DirectiveId(id)).map(_.map(_._2)),
+      IfAbsent.Noop(Option.empty[DeleteDirectiveDiff])
+    )(_ => underlying.delete(id))
   }
 
   override def deleteSystemDirective(id: DirectiveUid)(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
-    given QueryContext = cc.toQC
-    for {
-      existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      result   <- existing match {
-                    case None    => ZIO.none
-                    case Some(p) => checkTenant.checkDelete(p._2, cc).toIO *> underlying.deleteSystemDirective(id)
-                  }
-    } yield result
+    checkTenant.manageDelete(
+      roRepo.getActiveTechniqueAndDirective(DirectiveId(id)).map(_.map(_._2)),
+      IfAbsent.Noop(Option.empty[DeleteDirectiveDiff])
+    )(_ => underlying.deleteSystemDirective(id))
   }
 
   override def addTechniqueInUserLibrary(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      policyTypes:   PolicyTypes
+      policyTypes:   PolicyTypes,
+      security:      Option[SecurityTag]
   )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
-    given QueryContext = cc.toQC
-    val probe          = ActiveTechnique(
+    // the active technique about to be created, as the tenant law needs to see it: `manageCreate` gives back
+    // the same object with the tag the actor may actually give it, and THAT tag is the one persisted.
+    val created = ActiveTechnique(
       ActiveTechniqueId(techniqueName.value),
       techniqueName,
       AcceptationDateTime(Map()),
       policyTypes = policyTypes,
-      security = None
+      security = security
     )
-    for {
-      parentCat <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
-      _         <- checkTenant.checkWriteInto(parentCat, cc)
-      status    <- tenantService.getStatus
-      result    <- checkTenant.manageCreate(probe, cc, status) { _ =>
-                     underlying.addTechniqueInUserLibrary(categoryId, techniqueName, versions, policyTypes)
-                   }
-    } yield result
+    checkTenant.manageCreate(
+      created,
+      roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
+    )(at => underlying.addTechniqueInUserLibrary(categoryId, techniqueName, versions, policyTypes, at.security))
   }
 
   override def move(id: ActiveTechniqueId, newCategoryId: ActiveTechniqueCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueId] = {
-    given QueryContext = cc.toQC
-    for {
-      at      <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _       <- checkTenant.checkModify(at, cc)
-      destCat <- roRepo.getActiveTechniqueCategory(newCategoryId).notOptional(s"Category '${newCategoryId.value}' was not found")
-      _       <- checkTenant.checkWriteInto(destCat, cc)
-      result  <- underlying.move(id, newCategoryId)
-    } yield result
+    checkTenant.manageMove(
+      roRepo.getActiveTechniqueByActiveTechnique(id),
+      roRepo.getActiveTechniqueCategory(newCategoryId).notOptional(s"Category '${newCategoryId.value}' was not found"),
+      IfAbsent.Fail(s"Active technique '${id.value}' was not found")
+    )(_ => underlying.move(id, newCategoryId))
   }
 
   override def changeStatus(id: ActiveTechniqueId, status: Boolean)(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = {
-    given QueryContext = cc.toQC
-    for {
-      at     <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _      <- checkTenant.checkModify(at, cc)
-      result <- underlying.changeStatus(id, status)
-    } yield result
+    checkTenant.manageModify(
+      roRepo.getActiveTechniqueByActiveTechnique(id),
+      IfAbsent.Fail(s"Active technique '${id.value}' was not found")
+    )(_ => underlying.changeStatus(id, status))
   }
 
   override def setAcceptationDatetimes(id: ActiveTechniqueId, datetimes: Map[TechniqueVersion, Instant])(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueId] = {
-    given QueryContext = cc.toQC
-    for {
-      at     <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _      <- checkTenant.checkModify(at, cc)
-      result <- underlying.setAcceptationDatetimes(id, datetimes)
-    } yield result
+    checkTenant.manageModify(
+      roRepo.getActiveTechniqueByActiveTechnique(id),
+      IfAbsent.Fail(s"Active technique '${id.value}' was not found")
+    )(_ => underlying.setAcceptationDatetimes(id, datetimes))
   }
 
+  // deleting an active technique that does not exist is a noop
   override def deleteActiveTechnique(id: ActiveTechniqueId)(using cc: ChangeContext): IOResult[ActiveTechniqueId] = {
-    given QueryContext = cc.toQC
-    // if the user can't see the active technique, then it is the same semantic than for a missing active technique,
-    // ie a noop.
-    roRepo.getActiveTechniqueByActiveTechnique(id).flatMap {
-      // ok, either because we can't see it or because already deleted
-      case None           => id.succeed
-      case Some(existing) =>
-        for {
-          _      <- checkTenant.checkDelete(existing, cc).toIO
-          result <- underlying.deleteActiveTechnique(id)
-        } yield result
-    }
+    checkTenant.manageDelete(roRepo.getActiveTechniqueByActiveTechnique(id), IfAbsent.Noop(id))(_ =>
+      underlying.deleteActiveTechnique(id)
+    )
   }
 
   override def addActiveTechniqueCategory(that: ActiveTechniqueCategory, into: ActiveTechniqueCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      parentCat <- roRepo.getActiveTechniqueCategory(into).notOptional(s"Category '${into.value}' was not found")
-      _         <- checkTenant.checkWriteInto(parentCat, cc)
-      status    <- tenantService.getStatus
-      result    <- checkTenant.manageCreate(that, cc, status)(cat => underlying.addActiveTechniqueCategory(cat, into))
-    } yield result
+    checkTenant.manageCreate(
+      that,
+      roRepo.getActiveTechniqueCategory(into).notOptional(s"Category '${into.value}' was not found")
+    )(cat => underlying.addActiveTechniqueCategory(cat, into))
   }
 
   override def saveActiveTechniqueCategory(category: ActiveTechniqueCategory)(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      old    <- roRepo.getActiveTechniqueCategory(category.id).notOptional(s"Category '${category.id.value}' was not found")
-      status <- tenantService.getStatus
-      result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveActiveTechniqueCategory(cat))
-    } yield result
+    checkTenant.manageUpdate(
+      category,
+      roRepo.getActiveTechniqueCategory(category.id),
+      IfAbsent.Fail(s"Category '${category.id.value}' was not found")
+    )(cat => underlying.saveActiveTechniqueCategory(cat))
   }
 
+  // deleting a category that does not exist is a noop
   override def deleteCategory(id: ActiveTechniqueCategoryId, checkEmpty: Boolean)(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueCategoryId] = {
-    given QueryContext = cc.toQC
-    // fail-closed: the semantic is a noop if the user can't see it or if already deleted
-    roRepo.getActiveTechniqueCategory(id).flatMap {
-      case None           => id.succeed
-      case Some(existing) =>
-        for {
-          _      <- checkTenant.checkDelete(existing, cc).toIO
-          result <- underlying.deleteCategory(id, checkEmpty)
-        } yield result
-    }
+    checkTenant.manageDelete(roRepo.getActiveTechniqueCategory(id), IfAbsent.Noop(id))(_ =>
+      underlying.deleteCategory(id, checkEmpty)
+    )
   }
 
   override def move(
@@ -396,14 +368,11 @@ class WoTenantDirectiveRepo(
       intoParent:    ActiveTechniqueCategoryId,
       optionNewName: Option[ActiveTechniqueCategoryId]
   )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = {
-    given QueryContext = cc.toQC
-    for {
-      cat       <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
-      _         <- checkTenant.checkModify(cat, cc)
-      parentCat <- roRepo.getActiveTechniqueCategory(intoParent).notOptional(s"Category '${intoParent.value}' was not found")
-      _         <- checkTenant.checkWriteInto(parentCat, cc)
-      result    <- underlying.move(categoryId, intoParent, optionNewName)
-    } yield result
+    checkTenant.manageMove(
+      roRepo.getActiveTechniqueCategory(categoryId),
+      roRepo.getActiveTechniqueCategory(intoParent).notOptional(s"Category '${intoParent.value}' was not found"),
+      IfAbsent.Fail(s"Category '${categoryId.value}' was not found")
+    )(_ => underlying.move(categoryId, intoParent, optionNewName))
   }
 }
 
@@ -537,149 +506,132 @@ class RoTenantNodeGroupRepo(
 }
 
 class WoTenantNodeGroupRepo(
-    checkTenant:   TenantCheckLogic,
-    tenantService: TenantService,
-    underlying:    WoNodeGroupRepository,
-    roRepo:        RoNodeGroupRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  WoNodeGroupRepository,
+    roRepo:      RoNodeGroupRepository
 ) extends RoNodeGroupRepository with WoNodeGroupRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
   export roRepo.*
 
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
-    given QueryContext = cc.toQC
-    for {
-      parentCat <- roRepo.getGroupCategory(into)
-      _         <- checkTenant.checkWriteInto(parentCat, cc)
-      status    <- tenantService.getStatus
-      result    <- checkTenant.manageCreate(nodeGroup, cc, status)(ng => underlying.create(ng, into))
-    } yield result
+    checkTenant.manageCreate(nodeGroup, roRepo.getGroupCategory(into))(ng => underlying.create(ng, into))
   }
 
   override def update(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
-      status      <- tenantService.getStatus
-      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.update(ng))
-    } yield result
+    checkTenant.manageUpdate(
+      nodeGroup,
+      roRepo.getNodeGroupOpt(nodeGroup.id).map(_.map(_._1)),
+      IfAbsent.Fail(s"Cannot update group with id ${nodeGroup.id.serialize} : there is no group with that id")
+    )(ng => underlying.update(ng))
+  }
+
+  // a restore may put back a narrower tag: that exception is defined in `manageRestore`
+  override def restore(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
+    checkTenant.manageRestore(
+      group,
+      roRepo.getNodeGroupOpt(group.id).map(_.map(_._1)),
+      // a group restore does not state a category: reverting the deletion of a group is done by `create`,
+      // which does state one
+      Container.none
+    )(g => underlying.update(g))
   }
 
   override def updateSystemGroup(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
-      status      <- tenantService.getStatus
-      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.updateSystemGroup(ng))
-    } yield result
+    checkTenant.manageUpdate(
+      nodeGroup,
+      roRepo.getNodeGroupOpt(nodeGroup.id).map(_.map(_._1)),
+      IfAbsent.Fail(s"Cannot update group with id ${nodeGroup.id.serialize} : there is no group with that id")
+    )(ng => underlying.updateSystemGroup(ng))
   }
 
   override def updateDynGroupNodes(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(group.id)(using cc.toQC)
-      status      <- tenantService.getStatus
-      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), group, cc, status)(ng => underlying.updateDynGroupNodes(ng))
-    } yield result
+    checkTenant.manageUpdate(
+      group,
+      roRepo.getNodeGroupOpt(group.id).map(_.map(_._1)),
+      IfAbsent.Fail(s"Cannot update group with id ${group.id.serialize} : there is no group with that id")
+    )(ng => underlying.updateDynGroupNodes(ng))
   }
 
+  // the node list changes, not the group definition nor its tag: this is a `manageModify`
   override def updateDiffNodes(
       nodeGroupId: NodeGroupId,
       add:         List[NodeId],
       delete:      List[NodeId]
   )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(nodeGroupId)(using cc.toQC)
-      result      <- existingOpt match {
-                       case None           => underlying.updateDiffNodes(nodeGroupId, add, delete)
-                       case Some((old, _)) =>
-                         val newGroup = old.modify(_.serverList).setTo((old.serverList -- delete) ++ add)
-                         for {
-                           status <- tenantService.getStatus
-                           r      <- checkTenant.manageUpdate(Some(old), newGroup, cc, status) { _ =>
-                                       underlying.updateDiffNodes(nodeGroupId, add, delete)
-                                     }
-                         } yield r
-                     }
-    } yield result
+    checkTenant.manageModify(
+      roRepo.getNodeGroupOpt(nodeGroupId).map(_.map(_._1)),
+      IfAbsent.Fail(s"Cannot update group with id ${nodeGroupId.serialize} : there is no group with that id")
+    )(_ => underlying.updateDiffNodes(nodeGroupId, add, delete))
   }
 
   override def move(nodeGroupId: NodeGroupId, containerId: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    given QueryContext = cc.toQC
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(nodeGroupId)
-      existing    <- existingOpt.map(_._1).notOptional(s"Group ${nodeGroupId.serialize} not found")
-      _           <- checkTenant.checkModify(existing, cc)
-      destCat     <- roRepo.getGroupCategory(containerId)
-      _           <- checkTenant.checkWriteInto(destCat, cc)
-      result      <- underlying.move(nodeGroupId, containerId)
-    } yield result
+    checkTenant.manageMove(
+      roRepo.getNodeGroupOpt(nodeGroupId).map(_.map(_._1)),
+      roRepo.getGroupCategory(containerId),
+      IfAbsent.Fail(s"Group ${nodeGroupId.serialize} not found")
+    )(_ => underlying.move(nodeGroupId, containerId))
   }
 
+  // semantic for that one is different from all other delete: it's an error if the group is not there
   override def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff] = {
-    given QueryContext = cc.toQC
-
-    // semantic for that one is different from all other delete: it's an error if the user can't see it
-    for {
-      existingOpt <- roRepo.getNodeGroupOpt(id)
-      existing    <- existingOpt.map(_._1).notOptional(s"Group ${id.serialize} not found")
-      _           <- checkTenant.checkDelete(existing, cc).toIO
-      result      <- underlying.delete(id)
-    } yield result
+    checkTenant.manageDelete(
+      roRepo.getNodeGroupOpt(id).map(_.map(_._1)),
+      IfAbsent.Fail(s"Group ${id.serialize} not found")
+    )(_ => underlying.delete(id))
   }
 
   override def addGroupCategoryToCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      parent <- roRepo.getGroupCategory(into)
-      _      <- checkTenant.checkWriteInto(parent, cc)
-      status <- tenantService.getStatus
-      result <- checkTenant.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](None, that, cc, status) { cat =>
-                  underlying.addGroupCategoryToCategory(cat, into)
-                }
-    } yield result
+    checkTenant.manageCreate(that, roRepo.getGroupCategory(into))(cat => underlying.addGroupCategoryToCategory(cat, into))
   }
 
   override def saveGroupCategory(category: NodeGroupCategory)(implicit cc: ChangeContext): IOResult[NodeGroupCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      old    <- roRepo.getGroupCategory(category.id)
-      status <- tenantService.getStatus
-      result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveGroupCategory(cat))
-    } yield result
+    checkTenant.manageUpdate(
+      category,
+      // that getter fails (rather than returning None) when the category is not there
+      roRepo.getGroupCategory(category.id).map(Some(_)),
+      IfAbsent.Fail(s"Group category ${category.id.value} not found")
+    )(cat => underlying.saveGroupCategory(cat))
   }
 
+  // that variant also states a container, but historically it is not checked here (only the category
+  // itself is) - see `WoTenantRuleCategoryRepo.updateAndMove` for the checked form.
   override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
-    checkTenant.checkModify(category, cc) *> underlying.saveGroupCategory(category, containerId)
+    checkTenant.manageUpdate(
+      category,
+      roRepo.getGroupCategory(category.id).map(Some(_)),
+      IfAbsent.Fail(s"Group category ${category.id.value} not found")
+    )(cat => underlying.saveGroupCategory(cat, containerId))
   }
 
+  // semantic is a noop if the category is already deleted
   override def delete(id: NodeGroupCategoryId, checkEmpty: Boolean)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategoryId] = {
-    given QueryContext = cc.toQC
-    // semantic is a noop if the user can't see the item or item is already deleted
+    given QueryContext = QueryContext.systemQC
     roRepo.categoryExists(id).flatMap {
       case false => id.succeed
       case true  =>
-        for {
-          cat    <- roRepo.getGroupCategory(id)
-          _      <- checkTenant.checkDelete(cat, cc).toIO
-          result <- underlying.delete(id, checkEmpty)
-        } yield result
+        checkTenant.manageDelete(roRepo.getGroupCategory(id).map(Some(_)), IfAbsent.Noop(id))(_ =>
+          underlying.delete(id, checkEmpty)
+        )
     }
   }
 
   // a policy server target is a system topology object: only an administrator may create or delete it
   override def createPolicyServerTarget(target: PolicyServerTarget)(implicit cc: ChangeContext): IOResult[LDIFChangeRecord] =
-    checkTenant.checkAdmin(cc) *> underlying.createPolicyServerTarget(target)
+    checkTenant.checkAdmin *> underlying.createPolicyServerTarget(target)
 
   override def deletePolicyServerTarget(
       policyServer: PolicyServerTarget
   )(implicit cc: ChangeContext): IOResult[PolicyServerTarget] =
-    checkTenant.checkAdmin(cc) *> underlying.deletePolicyServerTarget(policyServer)
+    checkTenant.checkAdmin *> underlying.deletePolicyServerTarget(policyServer)
 }
 
 // ----- Rules -----------------------------------
@@ -706,7 +658,6 @@ class RoTenantRuleRepo(
 
 class WoTenantRuleRepo(
     checkTenant:    TenantCheckLogic,
-    tenantService:  TenantService,
     underlying:     WoRuleRepository,
     roRepo:         RoRuleRepository,
     roRuleCategory: RoRuleCategoryRepository
@@ -716,67 +667,62 @@ class WoTenantRuleRepo(
   export roRepo.*
 
   override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
-    given QueryContext = cc.toQC
-    for {
-      // an object can only be created in a category the user can see and modify
-      parentCat <- roRuleCategory.get(rule.categoryId).notOptional(s"Category with ID '${rule.categoryId.value}' was not found")
-      _         <- checkTenant.checkWriteInto(parentCat, cc)
-      status    <- tenantService.getStatus
-      result    <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
-    } yield result
+    checkTenant.manageCreate(
+      rule,
+      roRuleCategory.get(rule.categoryId).notOptional(s"Category with ID '${rule.categoryId.value}' was not found")
+    )(r => underlying.create(r))
   }
 
   override def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
-    for {
-      existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantService.getStatus
-      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.update(r))
-    } yield result
+    checkTenant.manageUpdate(
+      rule,
+      roRepo.getOpt(rule.id),
+      IfAbsent.Fail(s"Cannot update rule with id ${rule.id.serialize} : there is no rule with that id")
+    )(r => underlying.update(r))
+  }
+
+  // a restore may put back a narrower tag: that exception is defined in `manageRestore`
+  override def restore(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
+    checkTenant.manageRestore(
+      rule,
+      roRepo.getOpt(rule.id),
+      roRuleCategory.get(rule.categoryId).notOptional(s"Category with ID '${rule.categoryId.value}' was not found")
+    )(r => underlying.update(r))
   }
 
   override def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
-    for {
-      existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantService.getStatus
-      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.updateSystem(r))
-    } yield result
+    checkTenant.manageUpdate(
+      rule,
+      roRepo.getOpt(rule.id),
+      IfAbsent.Fail(s"Cannot update rule with id ${rule.id.serialize} : there is no rule with that id")
+    )(r => underlying.updateSystem(r))
   }
 
+  // `load` puts back in the active repository a rule that was unloaded: it is a save
   override def load(rule: Rule)(using cc: ChangeContext): IOResult[Unit] = {
-    for {
-      existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantService.getStatus
-      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.load(r))
-    } yield result
+    checkTenant.manageSave(
+      rule,
+      roRepo.getOpt(rule.id),
+      roRuleCategory.get(rule.categoryId).notOptional(s"Category with ID '${rule.categoryId.value}' was not found")
+    )(r => underlying.load(r))
   }
 
+  // unloading a rule that is not there is a noop
   override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = {
-    for {
-      existing <- roRepo.getOpt(ruleId)(using cc.toQC)
-      // fail-closed: `roRepo` is tenant-filtered, so `None` means absent or invisible - do not touch storage
-      result   <- existing match {
-                    case None    => ZIO.unit
-                    case Some(r) => checkTenant.checkDelete(r, cc).toIO *> underlying.unload(ruleId)
-                  }
-    } yield result
+    checkTenant.manageDelete(roRepo.getOpt(ruleId), IfAbsent.Noop(()))(_ => underlying.unload(ruleId))
   }
 
+  // here, the semantic is that an absent rule leads to an error
   override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
-    for {
-      // fail-closed: refuse to delete a rule the actor can't see (`roRepo` is tenant-filtered)
-      // Here, the semantic is that absent rule leads to error.
-      existing <- roRepo.getOpt(id)(using cc.toQC).notOptional(s"Rule '${id.serialize}' was not found")
-      _        <- checkTenant.checkDelete(existing, cc).toIO
-      result   <- underlying.delete(id)
-    } yield result
+    checkTenant.manageDelete(roRepo.getOpt(id), IfAbsent.Fail(s"Rule '${id.serialize}' was not found"))(_ =>
+      underlying.delete(id)
+    )
   }
 
   override def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
-    for {
-      existing <- roRepo.getOpt(id)(using cc.toQC).notOptional(s"Rule '${id.serialize}' was not found")
-      _        <- checkTenant.checkDelete(existing, cc).toIO
-      result   <- underlying.deleteSystemRule(id)
-    } yield result
+    checkTenant.manageDelete(roRepo.getOpt(id), IfAbsent.Fail(s"Rule '${id.serialize}' was not found"))(_ =>
+      underlying.deleteSystemRule(id)
+    )
   }
 
   override def swapRules(newRules: Seq[Rule]): IOResult[RuleArchiveId] =
@@ -801,44 +747,49 @@ class RoTenantParameterRepo(
 }
 
 class WoTenantParameterRepo(
-    checkTenant:   TenantCheckLogic,
-    tenantService: TenantService,
-    underlying:    WoParameterRepository,
-    roRepo:        RoParameterRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  WoParameterRepository,
+    roRepo:      RoParameterRepository
 ) extends RoParameterRepository with WoParameterRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
   export roRepo.*
 
+  // a global parameter lives at the root of its own namespace: there is no container to check
   override def saveParameter(parameter: GlobalParameter)(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
-    for {
-      status <- tenantService.getStatus
-      result <- checkTenant.manageCreate(parameter, cc, status)(p => underlying.saveParameter(p))
-    } yield result
+    checkTenant.manageCreate(parameter, Container.none)(p => underlying.saveParameter(p))
   }
 
   override def updateParameter(
       parameter: GlobalParameter
   )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
-    for {
-      existing <- roRepo.getGlobalParameter(parameter.name)(using cc.toQC)
-      status   <- tenantService.getStatus
-      result   <- checkTenant.manageUpdate(existing, parameter, cc, status)(p => underlying.updateParameter(p))
-    } yield result
+    checkTenant.manageUpdate(
+      parameter,
+      roRepo.getGlobalParameter(parameter.name),
+      IfAbsent.Fail(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
+    )(p => underlying.updateParameter(p))
   }
 
+  // a restore may put back a narrower tag: that exception is defined in `manageRestore`
+  override def restoreParameter(
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
+    checkTenant.manageRestore(
+      parameter,
+      roRepo.getGlobalParameter(parameter.name),
+      Container.none
+    )(p => underlying.updateParameter(p))
+  }
+
+  // deleting a parameter that does not exist is a noop
   override def delete(
       parameterName: String,
       provider:      Option[PropertyProvider]
   )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]] = {
-    for {
-      existing <- roRepo.getGlobalParameter(parameterName)(using cc.toQC)
-      // fail-closed: `roRepo` is tenant-filtered, so `None` means absent or invisible - do not touch storage
-      result   <- existing match {
-                    case None    => ZIO.none
-                    case Some(p) => checkTenant.checkDelete(p, cc).toIO *> underlying.delete(parameterName, provider)
-                  }
-    } yield result
+    checkTenant.manageDelete(
+      roRepo.getGlobalParameter(parameterName),
+      IfAbsent.Noop(Option.empty[DeleteGlobalParameterDiff])
+    )(_ => underlying.delete(parameterName, provider))
   }
 
   override def swapParameters(newParameters: Seq[GlobalParameter]): IOResult[ParameterArchiveId] =
@@ -873,48 +824,32 @@ class RoTenantRuleCategoryRepo(
 }
 
 class WoTenantRuleCategoryRepo(
-    checkTenant:   TenantCheckLogic,
-    tenantService: TenantService,
-    underlying:    WoRuleCategoryRepository,
-    roRepo:        RoRuleCategoryRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  WoRuleCategoryRepository,
+    roRepo:      RoRuleCategoryRepository
 ) extends RoRuleCategoryRepository with WoRuleCategoryRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
   export roRepo.*
 
   override def create(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      parent <- roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found")
-      _      <- checkTenant.checkWriteInto(parent, cc)
-      status <- tenantService.getStatus
-      result <- checkTenant.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
-    } yield result
+    checkTenant.manageCreate(that, roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found"))(cat =>
+      underlying.create(cat, into)
+    )
   }
 
+  // that one both changes the category and (re)places it under `into`, so both are authorized
   override def updateAndMove(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      old    <- roRepo.get(that.id).notOptional(s"Category with ID '${that.id.value}' was not found")
-      // guard on both the existing and the submitted category, so a system category can't be edited nor
-      // turned into/out of a system one by a non-admin
-      parent <- roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found")
-      _      <- checkTenant.checkWriteInto(parent, cc)
-      status <- tenantService.getStatus
-      result <- checkTenant.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
-    } yield result
+    checkTenant.manageUpdateAndMove(
+      that,
+      roRepo.get(that.id),
+      roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found"),
+      IfAbsent.Fail(s"Category with ID '${that.id.value}' was not found")
+    )(cat => underlying.updateAndMove(cat, into))
   }
 
+  // deleting a category that does not exist is a noop
   override def delete(category: RuleCategoryId, checkEmpty: Boolean)(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
-    given QueryContext = cc.toQC
-    // semantic is that if the user can't see or item already deleted, then it is a noop
-    roRepo.get(category).flatMap {
-      case None      => category.succeed
-      case Some(old) =>
-        for {
-          _      <- checkTenant.checkDelete(old, cc).toIO
-          result <- underlying.delete(category, checkEmpty)
-        } yield result
-    }
+    checkTenant.manageDelete(roRepo.get(category), IfAbsent.Noop(category))(_ => underlying.delete(category, checkEmpty))
   }
 }

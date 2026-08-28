@@ -404,7 +404,7 @@ object CoreNodeFactRepository {
               NoopFactStorage,
               NoopGetNodesBySoftwareName,
               tr,
-              new DefaultTenantCheckLogic(),
+              new DefaultTenantCheckLogic(tr),
               pending,
               accepted,
               callbacks,
@@ -714,11 +714,12 @@ class CoreNodeFactRepository(
         nodes.get(nodeId) match {
           case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
           case Some(existing) =>
-            tenantCheckLogic.checkDelete(existing, cc) match {
+            // the decision is taken under the `Ref.modify`, so it must be effect-less
+            tenantCheckLogic.manageDeletePure(existing) { n =>
+              Right(StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none))
+            } match {
               case Left(err) => (Left(err), nodes)
-              case Right(n)  =>
-                val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
-                (Right(e), nodes.removed(nodeId))
+              case Right(e)  => (Right(e), nodes.removed(nodeId))
             }
         }
       })
@@ -764,8 +765,7 @@ class CoreNodeFactRepository(
                                    Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
                                }
         (nodeFact, selected) = pair
-        tenantStatus        <- tenantService.getStatus
-        es                  <- tenantCheckLogic.manageUpdate(core, nodeFact, cc, tenantStatus) { updated =>
+        es                  <- tenantCheckLogic.manageSave(nodeFact, core.succeed, Container.none) { updated =>
                                  for {
                                    // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                                    // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.

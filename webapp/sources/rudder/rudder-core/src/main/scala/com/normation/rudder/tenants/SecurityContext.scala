@@ -406,17 +406,25 @@ final case class QueryContext(
 }
 
 object QueryContext {
+  /*
+   * These four contexts are escape hatches, and they are deliberately NOT implicit: an object's companion is
+   * part of the implicit scope of its type, so making them implicit meant that a call needing a
+   * `using QueryContext` could be satisfied without any context in scope - silently, with an all-tenants
+   * grant. The guarantee the ADR relies on ("a missing context is a compile error, not a runtime hole") only
+   * holds if getting one of these is something a caller has to write down.
+   */
+
   // for test
-  implicit val testQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+  val testQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
 
   // for place that didn't get a real node security context yet
-  implicit val todoQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+  val todoQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
 
   // for system queries (when rudder needs to look-up things)
-  implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+  val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
 
   // for no right queries
-  implicit val noneQC: QueryContext = QueryContext(EventActor("none"), TenantAccessGrant.None)
+  val noneQC: QueryContext = QueryContext(EventActor("none"), TenantAccessGrant.None)
 
   // For places where a query context may be required (UI snippets), provide a way to recover from unknown
   extension (opt: Option[QueryContext]) {
@@ -446,6 +454,9 @@ final case class ChangeContext(
 
   // some as above when modId is provided
   def withModId(modId: ModificationId): ChangeContext = this.copy(modId = modId)
+
+  // update security context
+  def withAccessGrant(tag: TenantAccessGrant): ChangeContext = this.copy(accessGrant = tag)
 }
 
 object ChangeContext {

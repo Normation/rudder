@@ -220,3 +220,26 @@ isEnabled: TRUE
 isSystem: TRUE
 policyMode: enforce
 serializedTags: []
+
+# an active technique created by `addTechniqueInUserLibrary` has NO security tag (at least the same as USER_LIB_TECHNIQUE_SECURITY_TAG)
+# while the directive created under it does get one. This pair pins what a tenant user sees in that case.
+dn: activeTechniqueId=untagged_at,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+acceptationTimestamp: {"1.0":"20231202174901.013Z"}
+activeTechniqueId: untagged_at
+techniqueId: untagged_at
+isEnabled: TRUE
+isSystem: FALSE
+
+dn: directiveId=directive-zoneA-untagged-at,activeTechniqueId=untagged_at,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: directive-zoneA-untagged-at
+techniqueVersion: 1.0
+cn: directive zoneA under an untagged active technique
+directivePriority: 5
+isEnabled: TRUE
+isSystem: FALSE
+serializedTags: []
+securityTag: {"tenants": ["zoneA"]}

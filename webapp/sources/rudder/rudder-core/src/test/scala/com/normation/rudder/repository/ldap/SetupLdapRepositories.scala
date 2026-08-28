@@ -184,7 +184,7 @@ trait SetupLdapRepositories {
 
   lazy val tenantRepo:    InMemoryTenantService =
     InMemoryTenantService.make(TenantId("zoneA") :: TenantId("zoneB") :: Nil).runNow
-  lazy val tenantService: TenantCheckLogic      = new DefaultTenantCheckLogic()
+  lazy val tenantService: TenantCheckLogic      = new DefaultTenantCheckLogic(tenantRepo)
 
   lazy val nodeFactRepo: CoreNodeFactRepository = {
     CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow
@@ -215,7 +215,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantNodeGroupRepo(tenantService, tenantRepo, ldapWo, ldapRoGroupRepo)
+    new WoTenantNodeGroupRepo(tenantService, ldapWo, ldapRoGroupRepo)
   }
 
   val mockGitRepo = new MockGitConfigRepo("")
@@ -244,7 +244,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantDirectiveRepo(tenantService, tenantRepo, ldapWo, ldapRoDirectiveRepo)
+    new WoTenantDirectiveRepo(tenantService, ldapWo, ldapRoDirectiveRepo)
   }
 
   lazy val lockRule               = new ZioTReentrantLock("rule-lock")
@@ -269,7 +269,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantRuleRepo(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo, ldapRoRuleCategoryRepo)
+    new WoTenantRuleRepo(tenantService, ldapWo, ldapRoRuleRepo, ldapRoRuleCategoryRepo)
   }
 
   lazy val lockProperty       = new ZioTReentrantLock("property-lock")
@@ -292,7 +292,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantParameterRepo(tenantService, tenantRepo, ldapWo, ldapRoPropertyRepo)
+    new WoTenantParameterRepo(tenantService, ldapWo, ldapRoPropertyRepo)
   }
 
   // event log

@@ -335,6 +335,9 @@ class WoLDAPRuleRepository(
     internalUpdate(rule, systemCall = false)
   }
 
+  // storage-wise a restore is an update: the difference is the tenant law, which the proxy applies
+  def restore(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = update(rule)
+
   def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
     internalUpdate(rule, systemCall = true)
   }

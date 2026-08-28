@@ -1140,6 +1140,9 @@ class WoLDAPNodeGroupRepository(
     internalUpdate(nodeGroup, systemCall = false, onlyUpdateNodes = false)
   }
 
+  // storage-wise a restore is an update: the difference is the tenant law, which the proxy applies
+  override def restore(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = update(group)
+
   override def updateSystemGroup(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     internalUpdate(nodeGroup, systemCall = true, onlyUpdateNodes = false)
   }

@@ -476,7 +476,8 @@ class TechniqueEditForm(
                   category.id,
                   technique.id.name,
                   techniqueRepository.getTechniqueVersions(technique.id.name).toSeq,
-                  technique.policyTypes
+                  technique.policyTypes,
+                  None
                 )(using qc.newCC(Some("User added a technique from UI")))
 
                 // update UI

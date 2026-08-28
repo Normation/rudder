@@ -65,6 +65,14 @@ trait WoParameterRepository {
       parameter: GlobalParameter
   )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]]
 
+  /*
+   * Put back a parameter in a state it had in the past (event-log rollback, archive restore). Same as
+   * `updateParameter` except that the tenant tag may go backwards - see `TenantCheckLogic.manageRestore`.
+   */
+  def restoreParameter(
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]]
+
   def delete(
       parameterName: String,
       provider:      Option[PropertyProvider]
