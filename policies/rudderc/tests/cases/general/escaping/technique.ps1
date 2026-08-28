@@ -53,7 +53,7 @@ vars.host
 	
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -109,7 +109,7 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -119,7 +119,7 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $identifier=$reportIdBase + 'a86ce2e5-d5b6-45cc-87e8-c11cca71d977'
@@ -153,7 +153,7 @@ vars.host
 	
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -199,7 +199,7 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -209,7 +209,7 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $identifier=$reportIdBase + 'a86ce2e5-d5b6-45cc-87e8-c11cca71d978'
@@ -229,7 +229,7 @@ cache_prefix="zapache-$UID-
 ${STATUS_URL//[^a-zA-Z0-9_-]/_}" 
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -268,7 +268,7 @@ plop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -278,7 +278,7 @@ plop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
