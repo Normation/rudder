@@ -4,6 +4,7 @@
 //! Tests special cases compilation
 
 use std::{
+    env,
     fs::read_to_string,
     path::{Path, PathBuf},
     sync::Once,
@@ -50,13 +51,19 @@ fn lint_file(source: &Path) {
     result.expect("Test check failed");
 }
 
+fn write_if_recomputing_tests(dst: &Path, content: &String) {
+    if env::var("RUDDERC_TESTS_RECOMPUTE").is_ok() {
+        std::fs::write(dst, content).unwrap();
+    }
+}
+
 /// Compile the metadata.xml
 fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
     let result = read_technique(methods, input, true).and_then(|p| metadata(p, source));
     let output = result.expect("Test compilation failed");
     let ref_file = source.parent().unwrap().join("metadata.xml");
     // Update ref files
-    //std::fs::write(&ref_file, &output).unwrap();
+    write_if_recomputing_tests(&ref_file, &output);
 
     let reference = read_to_string(ref_file).unwrap();
     assert_eq!(reference.trim(), output.trim());
@@ -70,7 +77,7 @@ fn compile_file(methods: &'static Methods, input: &str, source: &Path, target: T
     let output = result.expect("Test compilation failed");
     let ref_file = source.with_extension(target.extension());
     // Update ref files
-    std::fs::write(&ref_file, &output).unwrap();
+    write_if_recomputing_tests(&ref_file, &output);
 
     let reference = read_to_string(ref_file).unwrap();
     assert_eq!(reference.trim(), output.trim());
