@@ -61,6 +61,7 @@ import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -1533,7 +1534,7 @@ class SaveArchiveServicebyRepo(
     uuidGen:             StringUuidGenerator
 ) extends SaveArchiveService {
 
-  val GroupRootId = NodeGroupCategoryId("GroupRoot")
+  val GroupRootId = Constants.ROOT_GROUP_CATEGORY
 
   def saveTechniqueCat(eventMetadata: EventMetadata, a: TechniqueCategoryArchive): IOResult[Unit] = {
     val catPath = a.category.toList

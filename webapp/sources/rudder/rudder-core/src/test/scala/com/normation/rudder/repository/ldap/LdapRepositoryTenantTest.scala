@@ -39,8 +39,8 @@ package com.normation.rudder.repository.ldap
 
 import com.normation.GitVersion
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -51,7 +51,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.Visibility
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
@@ -93,7 +92,7 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
 
   val groupWithTenantId = NodeGroupId(NodeGroupUid("test-group-node1"))
 
-  val rootCat = NodeGroupCategoryId("GroupRoot")
+  val rootCat = Constants.ROOT_GROUP_CATEGORY
 
   sequential
 
@@ -499,7 +498,7 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
   }
 
   def newRule(id: String, tenant: Option[SecurityTag]): Rule =
-    Rule(RuleId(RuleUid(id)), id, RuleCategoryId("rootRuleCategory"), security = tenant)
+    Rule(RuleId(RuleUid(id)), id, Constants.ROOT_RULE_CATEGORY, security = tenant)
 
   "[Rules] Creating a rule" should {
     "lead to an error if the user has a tenant and the plugin is disabled" in {

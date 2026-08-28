@@ -50,6 +50,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
 import com.normation.rudder.configuration.GroupAndCat
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -282,7 +283,7 @@ class GitParseGroupLibrary(
 
   // the root category is stored in the group library directory itself, so contrary to the other
   // categories, its ID can not be read back from the path of the files it holds
-  private val rootCategoryId = NodeGroupCategoryId("GroupRoot")
+  private val rootCategoryId = Constants.ROOT_GROUP_CATEGORY
 
   val groupsDirectory: GitRootCategory = getGitDirectoryPath(libRootDirectory)
 

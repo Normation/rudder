@@ -65,6 +65,7 @@ import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.DB
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
@@ -1315,7 +1316,7 @@ class MockRules(mockTenants: MockTenants) {
   val t1: Long = System.currentTimeMillis()
 
   val rootRuleCategory: RuleCategory = RuleCategory(
-    RuleCategoryId("rootRuleCategory"),
+    Constants.ROOT_RULE_CATEGORY,
     "Rules",
     "This is the main category of Rules",
     RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil, security = None) :: Nil,
@@ -2752,7 +2753,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
     val categories: Ref.Synchronized[FullNodeGroupCategory] = Ref.Synchronized
       .make(
         FullNodeGroupCategory(
-          NodeGroupCategoryId("GroupRoot"),
+          Constants.ROOT_GROUP_CATEGORY,
           name = "GroupRoot",
           description = "root of group categories",
           subCategories = Nil,
@@ -3249,7 +3250,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
   }
 
   val groupLib: FullNodeGroupCategory = FullNodeGroupCategory(
-    NodeGroupCategoryId("GroupRoot"),
+    Constants.ROOT_GROUP_CATEGORY,
     "GroupRoot",
     "root of group categories",
     List(

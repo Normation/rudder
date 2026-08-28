@@ -99,7 +99,7 @@ class TestGitParseRudderObjects extends Specification with Loggable with AfterAl
   val rootCatGroupId: NodeGroupUid        = NodeGroupUid("5aa4e2ba-4e6c-4d5e-a5d4-1cbc9a1ef2d1")
   val subCatGroupId:  NodeGroupUid        = NodeGroupUid("87e3d2cb-6f43-4b7a-9c8d-2f1a0e6b3c74")
   val subCatId:       NodeGroupCategoryId = NodeGroupCategoryId("2f37b1c4-4a2e-4ff0-9e46-0a2dcd7e07a1")
-  val rootCatId:      NodeGroupCategoryId = NodeGroupCategoryId("GroupRoot")
+  val rootCatId:      NodeGroupCategoryId = Constants.ROOT_GROUP_CATEGORY
 
   lazy val groupLibRoot: File = File.newTemporaryDirectory("rudder-test-group-lib-")
 
