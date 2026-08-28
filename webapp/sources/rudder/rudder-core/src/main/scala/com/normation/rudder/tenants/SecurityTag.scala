@@ -159,4 +159,11 @@ object SecurityTag {
       case ns            => Some(SecurityTag.ByTenants(Chunk.fromIterable((ns \ "tenant").flatMap(tenant))))
     }
   }
+
+  /*
+   * The security level to use for automatically added objects in technique library.
+   * Up to Rudder 9.1, it was a de-facto `None`
+   */
+  val USER_LIB_TECHNIQUE_SECURITY_TAG: Option[SecurityTag] = None
+
 }

@@ -461,8 +461,8 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   def factStorage: NodeFactStorage
 
-  implicit val cc: ChangeContext = ChangeContext.newForRudder()
-  import QueryContext.testQC
+  given ChangeContext = ChangeContext.newForRudder()
+  given QueryContext  = QueryContext.testQC
 
   // TODO WARNING POC: this can't work on a machine with lots of node
   val callbackLog: Ref[Chunk[NodeFactChangeEvent]] = Ref.make(Chunk.empty[NodeFactChangeEvent]).runNow
@@ -486,7 +486,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
                       factStorage,
                       noopNodeBySoftwareName,
                       tenantRepo,
-                      new DefaultTenantCheckLogic(),
+                      new DefaultTenantCheckLogic(tenantRepo),
                       pending,
                       accepted,
                       callbacks,
