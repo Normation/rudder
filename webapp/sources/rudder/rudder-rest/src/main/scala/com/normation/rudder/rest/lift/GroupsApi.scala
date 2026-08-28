@@ -48,6 +48,7 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -998,7 +999,7 @@ class GroupApiService14(
     for {
       update  <- restData.create(defaultId).toIO
       category = update.toNodeGroupCategory
-      parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
+      parent   = restData.parent.getOrElse(Constants.ROOT_GROUP_CATEGORY)
       _       <- writeGroup.addGroupCategoryToCategory(category, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)

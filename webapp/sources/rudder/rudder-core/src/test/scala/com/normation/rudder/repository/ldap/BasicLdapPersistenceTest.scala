@@ -40,10 +40,10 @@ package com.normation.rudder.repository.ldap
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import java.time.Instant
@@ -156,7 +156,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
     val expected = Rule(
       ruleId,
       "User rule",
-      RuleCategoryId("rootRuleCategory"),
+      Constants.ROOT_RULE_CATEGORY,
       Set(TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set()))),
       Set(did),
       "",

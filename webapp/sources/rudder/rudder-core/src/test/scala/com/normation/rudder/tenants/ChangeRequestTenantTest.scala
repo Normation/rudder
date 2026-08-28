@@ -38,6 +38,7 @@ package com.normation.rudder.tenants
 
 import com.normation.GitVersion
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
@@ -48,7 +49,6 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.zio.*
 import org.joda.time.DateTime
 import org.junit.runner.*
@@ -78,7 +78,7 @@ class ChangeRequestTenantTest extends Specification {
   val zoneAro = grant(TenantAccess(TenantId("zoneA"), TenantPermission.Read))
 
   private def rule(id: String, security: Option[SecurityTag]): Rule =
-    Rule(RuleId(RuleUid(id)), id, RuleCategoryId("rootRuleCategory"), security = security)
+    Rule(RuleId(RuleUid(id)), id, Constants.ROOT_RULE_CATEGORY, security = security)
 
   private def ruleChanges(r: Rule): RuleChanges =
     RuleChanges(RuleChange(Some(r), RuleChangeItem(EventActor("u"), DateTime.now(), None, ModifyToRuleDiff(r)), Seq()), Seq())
