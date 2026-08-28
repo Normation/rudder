@@ -83,10 +83,14 @@ object ApiLogger extends Logger {
 }
 
 object ApiLoggerPure extends NamedZioLogger {
-  def loggerName = "api-processing"
+  override def loggerName = "api-processing"
 
-  object Metrics extends NamedZioLogger {
-    def loggerName = "api-processing.metrics"
+  object Metrics       extends NamedZioLogger {
+    override def loggerName = "api-processing.metrics"
+  }
+  // a logger used to log API errors (when they return an error message) in webapp log
+  object ResponseError extends NamedZioLogger {
+    override def loggerName = "api-processing.response-error"
   }
 }
 

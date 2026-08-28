@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import com.normation.errors.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLogger
+import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.utils.Csv
 import com.normation.zio.*
@@ -316,7 +317,18 @@ object RudderJsonResponse {
             },
             a => process(a)
           )
-          .catchAllDefect(err => zio.ZIO.succeed(internalError(id.error, ResponseSchema.fromSchema(schema), err.getMessage)))
+          .catchAllDefect { throwable =>
+            // here, we had an error that isn't caught by standard process, so we really need a debug message, and
+            // something understandable for the API
+            ApiLoggerPure.ResponseError.warn(SystemError("An internal error occurred", throwable).fullMsg) *>
+            zio.ZIO.succeed(
+              internalError(
+                id.error,
+                ResponseSchema.fromSchema(schema),
+                "An internal error occurred. Please contact your service administrator."
+              )
+            )
+          }
           .runNow
       }
     }
