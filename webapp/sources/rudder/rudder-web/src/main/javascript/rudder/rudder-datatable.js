@@ -35,11 +35,9 @@
 *************************************************************************************
 */
 
-var anOpen = [];
 var ruleCompliances = {};
 var recentChanges = {};
 var recentChangesCount = {};
-var inventories = {};
 var recentGraphs = {};
 
 $.extend(true, DataTable.defaults, {
@@ -599,211 +597,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   } );
 
 }
-
-////////////////////////////////////////////////////////////////
-///////////////////  Rule compliance details ///////////////////
-////////////////////////////////////////////////////////////////
-
-
-/*
- * We have 3 ways of displaying compliance details:
- *
- *  1/ for ONE node, by rules -> directives -> components -> values status with messages
- *  2/ for ONE rule, by directives -> components -> values compliance
- *  3/ for ONE rule, by nodes -> directives -> components -> values status with messages
- *
- *  For 1/ and 3/, the value line looks like: [ VALUE | MESSAGES | STATUS ]
- *  For 2/, they looks like: [ VALUE | COMPLIANCE ]
- */
-
-
-/*
- *   Details of a component. Used on all tables.
- *
- *   Javascript object containing all data to create a line in the DataTable
- *   { "component" : component name [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "details" : Details of values contained in the component [ Array of Component values ]
- *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
- *   }
- */
-function createComponentTable(isTopLevel, isNodeView, contextPath) {
-  if (isTopLevel) {
-    var complianceWidth = "26.3%";
-  } else {
-    var complianceWidth = "27.9%";
-    var componentSize = "72.4%";
-  }
-  var columns = [ {
-      "sWidth": componentSize
-    , "mDataProp": "component"
-    , "sTitle": "Component"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if(! oData.noExpand || isNodeView || oData.composition !== undefined ) {
-          $(nTd).addClass("listopen");
-        } else {
-          $(nTd).addClass("noExpand");
-        }
-        if( oData.unexpanded !== undefined && oData["unexpanded"] !== sData) {
-          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
-          $(nTd).append(elem);
-        }
-      }
-  } , {
-      "sWidth": complianceWidth
-    , "mDataProp": "compliancePercent"
-    , "sTitle": "Status"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-
-        var elem = buildComplianceBar(oData.compliance);
-        $(nTd).empty();
-        $(nTd).append(elem);
-      }
-  } ];
-
-  var params = {
-      "bFilter" : false
-    , "bPaginate" : false
-    , "bLengthChange": false
-    , "bInfo" : false
-    , "aaSorting": [[ 0, "asc" ]]
-    , "createdRow": function( row, data, dataIndex ) {
-        var tt = this.api().row(row)
-        if(data.composition === undefined) {
-        if(isNodeView) {
-          createInnerTablerow(tt, data, createNodeComponentValueTable(contextPath));
-        } else {
-          createInnerTablerow(tt, data, createRuleComponentValueTable(contextPath));
-        }
-        } else {
-          createInnerTablerow(tt, data,createComponentTable(isTopLevel, isNodeView, contextPath))
-        }
-    }
-  }
-
- return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
-}
-
-
-/*   Details of a value for a node
- *
- *   Javascript object containing all data to create a line in the DataTable
- *   { "value" : value of the key [String]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on stats cell [String]
- *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
- *   , "jsid"    : unique identifier for the line [String]
- *   }
- */
-function createNodeComponentValueTable(contextPath) {
-
-  var columns = [ {
-      "sWidth": "20%"
-    , "mDataProp": "value"
-    , "sTitle": "Value"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if(oData["unexpanded"] !== sData) {
-          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
-          $(nTd).append(elem);
-        }
-      }
-  } , {
-      "sWidth": "62.4%"
-    , "mDataProp": "messages"
-    , "sTitle": "Messages"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var list = $("<ul></ul>");
-        for (index in sData) {
-          var elem = $("<li></li>");
-          if(sData.length > 1) {
-            //message  is escaped server side, avoid double escape with .text()
-            elem.html('['+ sData[index].status+'] '+ sData[index].value);
-          } else {
-            //message  is escaped server side, avoid double escape with .text()
-            elem.html(sData[index].value);
-          }
-          list.append(elem);
-        }
-        $(nTd).empty();
-        $(nTd).append(list);
-      }
-  } , {
-      "sWidth": "17.6%"
-    , "mDataProp": "status"
-    , "sTitle": "Status"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("center "+oData.statusClass);
-      }
-  } ];
-
-  var params = {
-      "bFilter" : false
-    , "bPaginate" : false
-    , "bLengthChange": false
-    , "bInfo" : false
-    , "aaSorting": [[ 0, "asc" ]]
-  }
-  return function (gridId,data) {
-    createTable(gridId, data, columns, params, contextPath);
-    initBsTooltips();
-  }
-
-}
-
-/*   Details of a value for component in a directive in a rule details.
- *   We don't have a status, but a compliance (composite values)
- *
- *   Javascript object containing all data to create a line in the DataTable
- *   { "value" : value of the key [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
- *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
- *   , "jsid"    : unique identifier for the line [String]
- *   }
- */
-function createRuleComponentValueTable (contextPath) {
-  var complianceWidth = "27.7%";
-  var componentSize = "72.3%";
-
-  var columns = [ {
-      "sWidth": componentSize
-    , "mDataProp": "value"
-    , "sTitle": "Value"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if(oData["unexpanded"] !== sData) {
-          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
-          $(nTd).append(elem);
-        }
-      }
-  } , {
-        "sWidth": complianceWidth
-      , "mDataProp": "compliancePercent"
-      , "sTitle": "Status"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          var elem = buildComplianceBar(oData.compliance);
-          $(nTd).empty();
-          $(nTd).append(elem);
-        }
-  } ];
-
-  var params = {
-      "bFilter" : false
-    , "bPaginate" : false
-    , "bLengthChange": false
-    , "bInfo" : false
-    , "aaSorting": [[ 0, "asc" ]]
-  }
-
-  return function (gridId,data) {
-    createTable(gridId, data, columns, params, contextPath);
-    initBsTooltips();
-  }
-
-}
-
 
 ///////////////////////////////////////////////////
 ///////////////////  Nodes list ///////////////////
@@ -1532,62 +1325,6 @@ function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, re
 
 }
 
-/*
- *   Javascript object containing all data to create a line in the DataTable
- *   { "executionDate" : Date report was executed [DateTime]
- *   , "node": node hostname [String]
- *   , "directiveName": Directive name [String]
- *   , "directiveId": Directive id [String]
- *   , "component" : Report component [String]
- *   , "value" : Report value [String]
- *   , "message" : Report message [String]
- *   }
- */
-function createChangesTable(gridId, data, contextPath, refresh) {
-  var columns = [ {
-      "sWidth": "8%"
-      , "mDataProp": "executionDate"
-      , "sTitle": "Execution Date"
-  } , {
-      "sWidth": "10%"
-    , "mDataProp": "nodeName"
-    , "sTitle": "Node"
-  } , {
-      "sWidth": "17%"
-    , "mDataProp": "directiveName"
-    , "sTitle": "Directive"
-  } , {
-      "sWidth": "12%"
-    , "mDataProp": "component"
-    , "sTitle": "Component"
-  } , {
-      "sWidth": "12%"
-    , "mDataProp": "value"
-    , "sTitle": "Value"
-  } , {
-      "sWidth": "24%"
-    , "mDataProp": "message"
-    , "sTitle": "Message"
-  } ];
-
-  var params = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "language": {
-        "emptyTable" : "No changes have been recorded."
-      , "zeroRecords": "No changes match your filters."
-      , "search": ""
-    }
-    , "aaSorting": [[ 0, "asc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f>rt<"dataTables_wrapper_bottom"lip>'
-  };
-
-  createTable(gridId,data, columns, params, contextPath, refresh, "recent_changes");
-
-}
-
 function buildRollbackBlock(id) {
   const block = $("#rollbackDisplay").clone();
   block.html((_, h) => h
@@ -1640,27 +1377,6 @@ function cancelRollbackItem(id) {
   $('#confirmItem'+id).empty().removeClass();
   $('#rollbackItem'+id).removeClass("d-none").addClass("d-flex");
 }
-function computeCompliancePercentFromString(complianceString) {
-  var complianceArray = complianceString.split(",").map(Number);
-  // ignore every odd entry that contains the number of components, we need the percentage
-  if (Array.isArray(complianceArray)) {
-    // Enforce N/A (1 * 2 +1) + Audit N/A (9 * 2 +1) + Repaired (3 * 2 +1) + Enforce success (2* 2+1) + Audit success (10*2+1)
-    return complianceArray[3] + complianceArray[19] + complianceArray[7] + complianceArray[5] + complianceArray[21];
-  } else {
-    return  0;
-  }
-}
-
-function isApplyingFromComplianceString(complianceString) {
-  var complianceArray = complianceString.split(",").map(Number);
-  // ignore every odd entry that contains the number of components, we need the percentage
-  if (Array.isArray(complianceArray)) {
-    return complianceArray[11] > 0; // pending seems to be the 12th column
-  } else {
-    return false;
-  }
-}
-
 function computeCompliancePercent (complianceArray) {
   return computeComplianceOK(complianceArray)[1];
 }
@@ -1676,13 +1392,6 @@ function computeComplianceOK (complianceArray) {
   }
 }
 
-function reportsSum (complianceArray) {
-  if (Array.isArray(complianceArray)) {
-    return complianceArray.reduce(function(total, value) { return total + value[0] }, 0 )
-  } else {
-    return 0
-  }
-}
 /*
  * A function that build a compliance bar with colored zone for compliance
  * status cases based on Twitter Bootstrap: http://getbootstrap.com/components/#progress
@@ -1891,68 +1600,6 @@ function refreshTable (gridId, data) {
   table.clear();
   table.rows.add(data);
   table.draw();
-}
-
-function selectInterval(interval, element){
-  $("#selectedPeriod").text(interval);
-  $(".c3-bar-highlighted").each(function() {
-    this.classList.remove("c3-bar-highlighted");
-  });
-  element.classList.add("c3-bar-highlighted");
-}
-function changeCursor(clickable){
-  if(clickable){
-    $('body').toggleClass('cursorPointer');
-  }
-}
-/*
- * Function to define opening of an inner table
- */
-function createInnerTablerow(row, data,  createFunction, contextPath, kind) {
-    $(row.node()).unbind();
-    $(row.node()).click( function (e) {
-      if ($(e.target).hasClass('noExpand')) {
-        return false;
-      } else {
-        var fnData = data
-        var i = $.inArray( row.node(), anOpen );
-        var detailsId = fnData.jsid ;
-        if (kind !== undefined) {
-          detailsId += "-"+kind
-        }
-        detailsId += "-details";
-        if ( i === -1 ) {
-          $(row.node()).addClass("opened");
-          $(row.node()).find("td.listopen").removeClass("listopen").addClass("listclose");
-          var table = $("<table></table>");
-          var tableId = fnData.jsid;
-          if (kind !== undefined) {
-            tableId += "-"+kind;
-          }
-          tableId += "-table";
-          table.attr("id",tableId);
-          table.attr("cellspacing",0);
-          table.addClass("noMarginGrid");
-          var div = $("<div></div>");
-          div.addClass("innerDetails");
-          div.attr("id",detailsId);
-          div.append(table);
-          var nDetailsRow = row.child( div, 'details' ).show();
-          var res = createFunction(tableId, fnData.details);
-          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('#'+detailsId).slideDown(300);
-          anOpen.push( row.node() );
-        } else {
-          $(row.node()).removeClass("opened");
-          $(row.node()).find("td.listclose").removeClass("listclose").addClass("listopen");
-          $('#'+detailsId).slideUp(300, function () {
-            row.child().remove();
-          } );
-
-          anOpen.splice( i, 1 );
-        }
-      }
-    } );
 }
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
