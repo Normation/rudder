@@ -102,6 +102,7 @@ pub mod filters {
         }
     }
 
+    #[askama::filter_fn]
     pub fn remove_trailing_slash<T: Display>(
         s: T,
         _: &dyn askama::Values,
@@ -111,10 +112,11 @@ pub mod filters {
     }
 
     /// Format an expression to be evaluated by the agent
+    #[askama::filter_fn]
     pub fn value_fmt<T: Display>(
         s: T,
         _: &dyn askama::Values,
-        t_id: &&str,
+        t_id: &&'filter str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
         let expr: Expression = s
@@ -133,6 +135,7 @@ pub mod filters {
     }
 
     /// `my_method` -> `My-Method`
+    #[askama::filter_fn]
     pub fn dsc_case<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(s.to_string()
             .split('_')
@@ -158,18 +161,21 @@ pub mod filters {
         Ok(s.to_string().replace('\"', "`\""))
     }
 
+    #[askama::filter_fn]
     pub fn technique_name<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(super::Windows::technique_name(&s.to_string()))
     }
 
+    #[askama::filter_fn]
     pub fn raw_canonify<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(canonify(s.to_string().as_str()))
     }
 
+    #[askama::filter_fn]
     pub fn canonify_condition_with_context<T: Display>(
         s: T,
         _: &dyn askama::Values,
-        t_id: &&str,
+        t_id: &&'filter str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
         let s = s.to_string();
@@ -187,6 +193,7 @@ pub mod filters {
         }
     }
 
+    #[askama::filter_fn]
     pub fn canonify_condition<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         canonify_condition_stub(s)
     }
@@ -228,10 +235,11 @@ pub mod filters {
         }
     }
 
+    #[askama::filter_fn]
     pub fn parameter_fmt(
         p: &&(String, String, Escaping),
         _: &dyn askama::Values,
-        t_id: &&str,
+        t_id: &&'filter str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
         parameter_fmt_stub(p, t_id, t_params)
@@ -269,6 +277,7 @@ pub mod filters {
         })
     }
 
+    #[askama::filter_fn]
     pub fn policy_mode_fmt(
         op: &Option<PolicyMode>,
         _: &dyn askama::Values,
