@@ -55,10 +55,13 @@ import com.normation.zio.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Instant
 import org.joda.time.DateTime
 import zio.*
 import zio.json.*
+import zio.json.ast.Json
 import zio.syntax.*
 
 final case class PolicyHash(
@@ -72,25 +75,40 @@ object NodeConfigurationHashes {
 
   import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash.NodeConfigurationHashJson
 
-  private[nodeconfig] case class NodeConfigurationHashesJson(hashes: List[NodeConfigurationHashJson]) derives JsonCodec
-  private[nodeconfig] object NodeConfigurationHashesJson {
-    given Transformer[NodeConfigurationHashesJson, NodeConfigurationHashes] = Transformer
-      .define[NodeConfigurationHashesJson, NodeConfigurationHashes]
-      .buildTransformer
-  }
+  /*
+   * Decoding the hash list must be as fault-tolerant as possible, because a full failure lead to
+   * a full regeneration, which can be long.
+   * so we need to act in two steps: first a list of JSON objects (the file needs to be a least valid json),
+   * then each JSON object line as a node hash object.
+   */
+  private case class LenientNodeConfigurationHashesJson(hashes: Option[List[Json]]) derives JsonDecoder
 
-  private[nodeconfig] given Transformer[NodeConfigurationHashes, NodeConfigurationHashesJson] = Transformer
-    .define[NodeConfigurationHashes, NodeConfigurationHashesJson]
-    .withFieldComputed(_.hashes, _.hashes.sortBy(_.id.value).map(_.transformInto[NodeConfigurationHashJson]))
-    .buildTransformer
-
-  // we really want to have one line by node
+  /*
+   * We want to have one node by line, sorted by node ID. It makes easier to diff/grep that file,
+   * and it keeps its size reasonable (at the price of very long lines).
+   */
   def toJson(hashes: NodeConfigurationHashes): String = {
-    hashes.transformInto[NodeConfigurationHashesJson].toJsonPretty
+    val entries = hashes.hashes.sortBy(_.id.value).map(_.transformInto[NodeConfigurationHashJson].toJson)
+    if (entries.isEmpty) "{\"hashes\": [] }"
+    else entries.mkString("{\"hashes\": [\n  ", ",\n  ", "\n] }")
   }
 
   def fromJson(json: String): IOResult[NodeConfigurationHashes] = {
-    json.fromJson[NodeConfigurationHashesJson].toIO.map(_.transformInto[NodeConfigurationHashes])
+    for {
+      envelope <- json.fromJson[LenientNodeConfigurationHashesJson].toIO
+      hashes   <- ZIO.foreach(envelope.hashes.getOrElse(Nil)) { entry =>
+                    entry.as[NodeConfigurationHashJson] match {
+                      case Right(h)  => ZIO.some(h.transformInto[NodeConfigurationHash])
+                      case Left(err) =>
+                        PolicyGenerationLoggerPure
+                          .error(
+                            s"Can not parse following json as a node configuration hash: ${err}; corresponding entry " +
+                            s"will be ignored (that node will be regenerated): ${entry.toJson}"
+                          )
+                          .as(Option.empty[NodeConfigurationHash])
+                    }
+                  }
+    } yield NodeConfigurationHashes(hashes.flatten)
   }
 
 }
@@ -430,11 +448,26 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
     checkFile(hashesFile).catchAll(err => ApplicationLoggerPure.error(err.fullMsg)).runNow
   }
 
-  // read the file, of return the empty string if file does not exist
-  def readHashesAsJsonString(): IOResult[String] = {
-    IOResult.attempt(hashesFile.exists).flatMap {
-      case true  => IOResult.attempt(hashesFile.contentAsString(using StandardCharsets.UTF_8))
-      case false => "".succeed
+  /*
+   * Read the file content, or `None` if there is nothing to read at all, ie if the file does not exist or is empty
+   * (nothing was ever generated, or the cache was just cleared for a full generation).
+   */
+  def readHashesAsJsonString(): IOResult[Option[String]] = {
+    IOResult
+      .attempt(
+        if (hashesFile.exists) Some(hashesFile.contentAsString(using StandardCharsets.UTF_8))
+        else None
+      )
+      .map(_.filterNot(_.strip.isEmpty))
+  }
+
+  /*
+   * Package private for testing
+   */
+  private[nodeconfig] def readHashes(): IOResult[NodeConfigurationHashes] = {
+    readHashesAsJsonString().flatMap {
+      case None       => NodeConfigurationHashes(Nil).succeed
+      case Some(json) => NodeConfigurationHashes.fromJson(json)
     }
   }
 
@@ -449,13 +482,10 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   /*
    * We never want to fail policy generation because we didn't successfully read cache,
-   * but we want to output a BIR error, and return an empty cache.
+   * but we want to output a BIG error, and return an empty cache.
    */
   private def nonAtomicRead(): UIO[NodeConfigurationHashes] = {
-    (for {
-      json   <- readHashesAsJsonString()
-      hashes <- NodeConfigurationHashes.fromJson(json)
-    } yield hashes).catchAll(err => {
+    readHashes().catchAll(err => {
       PolicyGenerationLoggerPure.error(
         s"Error when trying to read node configuration hashes, they will be ignored: a full generation will take place. Error was: ${err.fullMsg}"
       ) *>
@@ -463,14 +493,24 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
     })
   }
 
-  private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
+  /*
+   * Atomic write of the JSON file by writing a `.tmp` file then moving it atomically to destination.
+   * The temporary file is in the same directory to guarantee that `rename` stays within one filesystem.
+   */
+  private def atomicUpdate(hashes: NodeConfigurationHashes): IOResult[Unit] = {
     import java.nio.file.StandardOpenOption.*
-    IOResult.attempt(
-      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(using
+    val tmpFile = File(hashesFile.pathAsString + ".tmp")
+    IOResult.attempt {
+      tmpFile.writeText(NodeConfigurationHashes.toJson(hashes))(using
         Seq(WRITE, CREATE, TRUNCATE_EXISTING),
         StandardCharsets.UTF_8
       )
-    )
+      try {
+        Files.move(tmpFile.path, hashesFile.path, StandardCopyOption.ATOMIC_MOVE)
+      } finally {
+        if (tmpFile.exists) tmpFile.delete()
+      }
+    }.unit
   }
 
   ///// interface implementation /////
@@ -492,7 +532,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
       for {
         hashes <- nonAtomicRead()
         updated = NodeConfigurationHashes(hashes.hashes.filterNot(c => nodeIds.contains(c.id)))
-        _      <- nonAtomicWrite(updated)
+        _      <- atomicUpdate(updated)
       } yield ()
     })
   }
@@ -502,7 +542,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
       for {
         hashes <- nonAtomicRead()
         updated = NodeConfigurationHashes(hashes.hashes.filter(c => nodeIds.contains(c.id)))
-        _      <- nonAtomicWrite(updated)
+        _      <- atomicUpdate(updated)
       } yield nodeIds
     })
   }
@@ -523,7 +563,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
             current <- nonAtomicRead()
             filtered = current.hashes.filterNot(h => nodeIds.contains(h.id))
             updated  = (filtered ++ hashes).sortBy(_.id.value)
-            _       <- nonAtomicWrite(NodeConfigurationHashes(updated))
+            _       <- atomicUpdate(NodeConfigurationHashes(updated))
           } yield nodeIds
         }
       }
