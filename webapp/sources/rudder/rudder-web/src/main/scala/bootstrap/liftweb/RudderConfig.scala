@@ -1183,6 +1183,12 @@ object RudderParsedProperties {
     }
   }
 
+  /*
+   * The INI file holding the plugin repository account, shared with `rudder package`.
+   * Exposed because plugins need it too (at least the CVE plugin)
+   */
+  val RUDDER_PLUGIN_SETTINGS_FILE: better.files.File = root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf"
+
   // Comes with the rudder-server packages
   val GENERIC_METHODS_SYSTEM_LIB: String = {
     try {
@@ -1321,6 +1327,7 @@ object RudderConfig extends Loggable {
   def RUDDER_BCRYPT_COST                           = RudderParsedProperties.RUDDER_BCRYPT_COST
   def RUDDER_ARGON2_PARAMS                         = RudderParsedProperties.RUDDER_ARGON2_PARAMS
   def RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = RudderParsedProperties.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
+  def RUDDER_PLUGIN_SETTINGS_FILE                  = RudderParsedProperties.RUDDER_PLUGIN_SETTINGS_FILE
 
   //
   // Theses services can be called from the outer world
@@ -1682,7 +1689,7 @@ object RudderConfigInit {
     )
 
     lazy val pluginSettingsService = new FilePluginSettingsService(
-      root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf",
+      RUDDER_PLUGIN_SETTINGS_FILE,
       configService.rudder_setup_done().chainError("Could not get 'setup done' property"),
       (done: Boolean) => configService.set_rudder_setup_done(value = done).chainError("Could not get 'setup done' property")
     )
