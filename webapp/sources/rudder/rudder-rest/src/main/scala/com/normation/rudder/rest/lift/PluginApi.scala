@@ -47,12 +47,16 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
 import com.normation.rudder.rest.RudderJsonRequest.*
+import com.normation.rudder.rest.RudderJsonResponse.BadRequestError
+import com.normation.rudder.rest.RudderJsonResponse.ResponseError
 import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.data.JsonPluginSettings
 import com.normation.rudder.rest.syntax.*
+import com.normation.utils.Ini
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import zio.ZIO
 
 class PluginApi(
     pluginSettingsService: PluginSettingsService,
@@ -93,16 +97,25 @@ class PluginApi(
     val schema:                                                                                                API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                   = {
       import com.normation.errors.*
+      type Result = Either[ResponseError, JsonPluginSettings]
+
       ({
         for {
-          json <- req.fromJson[JsonPluginSettings].toIO
-          _    <- pluginSettingsService.writePluginSettings(json.transformInto[PluginSettings])
-          _    <- pluginService.updateIndex()
+          json    <- req.fromJson[JsonPluginSettings].toIO
+          settings = json.transformInto[PluginSettings]
+          // We only accept values that will be read-back identically. When it's not the case, it's a result error.
+          res     <- Ini.checkEntries(settings.entries) match {
+                       case Left(err) => ZIO.succeed[Result](Left(BadRequestError(Some(err.fullMsg))))
+                       case Right(_)  =>
+                         for {
+                           _ <- pluginSettingsService.writePluginSettings(settings)
+                           _ <- pluginService.updateIndex()
+                         } yield (Right(json): Result)
+                     }
         } yield {
-          json
-
+          res
         }
-      }).toLiftResponseOne(params, schema, None)
+      }).toLiftResponseOneEither[JsonPluginSettings](params, schema, None)
     }
   }
 
