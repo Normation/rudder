@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.policies.PolicyId
 import net.liftweb.common.Box
+import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -170,6 +171,27 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     configHashesRepo.getAll().toBox must beEqualTo(Full(Map()))
   }
 
+  "having no node configuration hash to read" should {
+    "be a success when the file does not exist" in {
+      configHashesRepo.hashesFile.delete(swallowIOExceptions = true)
+      configHashesRepo.readHashes().toBox must beEqualTo(Full(NodeConfigurationHashes(Nil)))
+    }
+
+    "be a success when the file is empty, as created at startup by `checkFile`" in {
+      configHashesRepo.hashesFile.touch()
+      configHashesRepo.readHashes().toBox must beEqualTo(Full(NodeConfigurationHashes(Nil)))
+    }
+
+    "be a success when the file only holds blank characters" in {
+      configHashesRepo.hashesFile.overwrite("  \n  \n")
+      configHashesRepo.readHashes().toBox must beEqualTo(Full(NodeConfigurationHashes(Nil)))
+    }
+
+    "be a success when the json object has no 'hashes' field" in {
+      NodeConfigurationHashes.fromJson("{}").toBox must beEqualTo(Full(NodeConfigurationHashes(Nil)))
+    }
+  }
+
   "write hashes" should {
     "get them back" in {
       (configHashesRepo.save(s1) *>
@@ -178,27 +200,11 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
 
     "be written sorted" in {
       val json = {
-        """{
-          |  "hashes" : [
-          |    {
-          |      "i" : ["node0", "1970-01-01T00:00:00.100Z", 0, 0, 0],
-          |      "p" : []
-          |    },
-          |    {
-          |      "i" : ["node1", "1970-01-01T00:00:00.100Z", 0, 0, 0],
-          |      "p" : [
-          |        ["r0", "d0", "1.0", 0],
-          |        ["r1", "d1", "1.0", 0]
-          |      ]
-          |    },
-          |    {
-          |      "i" : ["node2", "1970-01-01T00:00:00.100Z", 0, 0, 0],
-          |      "p" : [
-          |        ["r0", "d0", "1.0", 0]
-          |      ]
-          |    }
-          |  ]
-          |}""".stripMargin
+        """{"hashes": [
+          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
+          |  {"i":["node1","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0],["r1","d1","1.0",0]]},
+          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]}
+          |] }""".stripMargin
       }
 
       configHashesRepo.hashesFile.contentAsString must beEqualTo(json)
@@ -216,33 +222,12 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
 
     "still be written sorted" in {
       val json = {
-        """{
-          |  "hashes" : [
-          |    {
-          |      "i" : ["node0", "1970-01-01T00:00:00.100Z", 0, 0, 0],
-          |      "p" : []
-          |    },
-          |    {
-          |      "i" : ["node1", "1970-01-01T00:00:00.500Z", 0, 0, 0],
-          |      "p" : [
-          |        ["r0", "d0", "1.0", 0],
-          |        ["r2", "d2", "1.0", 0]
-          |      ]
-          |    },
-          |    {
-          |      "i" : ["node2", "1970-01-01T00:00:00.100Z", 0, 0, 0],
-          |      "p" : [
-          |        ["r0", "d0", "1.0", 0]
-          |      ]
-          |    },
-          |    {
-          |      "i" : ["node3", "1970-01-01T00:00:00.500Z", 0, 0, 0],
-          |      "p" : [
-          |        ["r3", "d3", "1.0", 0]
-          |      ]
-          |    }
-          |  ]
-          |}""".stripMargin
+        """{"hashes": [
+          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
+          |  {"i":["node1","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r0","d0","1.0",0],["r2","d2","1.0",0]]},
+          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]},
+          |  {"i":["node3","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r3","d3","1.0",0]]}
+          |] }""".stripMargin
       }
 
       configHashesRepo.hashesFile.contentAsString must beEqualTo(json)
@@ -260,6 +245,31 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     "correctly delete all" in {
       (configHashesRepo.deleteAllNodeConfigurations() *>
       configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(Nil)
+    }
+
+    // the write is done in a temporary file then atomically moved in place
+    "not leave a temporary file behind" in {
+      (configHashesRepo.save(s1).toBox.forceGet must not(beEmpty)) and
+      (File(configHashesRepo.hashesFile.pathAsString + ".tmp").exists must beFalse)
+    }
+  }
+
+  "reading hashes" should {
+    "ignore only the entries that can not be parsed" in {
+      configHashesRepo.hashesFile.overwrite(
+        """{"hashes": [
+          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
+          |  {"i":["node9","not-a-date",0,0,0],"p":[]},
+          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]}
+          |] }""".stripMargin
+      )
+      configHashesRepo.getAll().map(_.values).toBox.forceGet must containTheSameElementsAs(List(h0_0, h2_0))
+    }
+
+    "give an empty cache when the file is not json at all" in {
+      configHashesRepo.hashesFile.overwrite("that's not json")
+      (configHashesRepo.readHashes().toBox must beAnInstanceOf[Failure]) and
+      (configHashesRepo.getAll().toBox must beEqualTo(Full(Map())))
     }
   }
 
