@@ -59,6 +59,23 @@ case class PluginSettings(
   }
 
   private def isEmpty = this == empty
+
+  /*
+   * The settings as they are laid out in `rudder-pkg.conf`, in file order. `None` and
+   * the empty string are the same thing for that file: both mean "not set".
+   *
+   * This is the single place where the mapping between the domain object and the file
+   * keys lives: `FilePluginSettingsService` writes it, and the REST API validates it
+   * (with `Ini.checkEntries`) before accepting an update.
+   */
+  def entries: List[(String, String)] = List(
+    "url"            -> url.getOrElse(""),
+    "username"       -> username.getOrElse(""),
+    "password"       -> password.getOrElse(""),
+    "proxy_url"      -> proxyUrl.getOrElse(""),
+    "proxy_user"     -> proxyUser.getOrElse(""),
+    "proxy_password" -> proxyPassword.getOrElse("")
+  )
 }
 
 object PluginSettings {

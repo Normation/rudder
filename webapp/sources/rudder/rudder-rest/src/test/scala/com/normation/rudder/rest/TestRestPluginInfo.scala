@@ -296,4 +296,34 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
     })
 
   }
+
+  /*
+   * `rudder-pkg.conf` is an INI file with no escaping mechanism: a line break in a value
+   * would not be stored, it would inject arbitrary keys - a password of
+   * `x\nurl = http://evil.example` used to silently repoint the plugin repository. Since
+   * the value can not be represented, this is a client error, not a server one.
+   */
+  "Updating plugin settings with a value that can not be stored should" >> {
+    val mockReq = new MockHttpServletRequest("http://localhost:8080")
+    mockReq.method = "POST"
+    mockReq.path = "/api/latest/plugins/settings"
+    mockReq.body = """{
+      "url": "http://localhost:8888",
+      "username": "testuser",
+      "password": "x\nurl = http://evil.example"
+    }""".getBytes
+    mockReq.headers = Map()
+    mockReq.contentType = "application/json"
+
+    test.execRequestResponse(mockReq)(response => {
+      response.map { r =>
+        val rr = r.toResponse.asInstanceOf[InMemoryResponse]
+        (rr.code, new String(rr.data, "UTF-8"))
+      } match {
+        case Full((400, json)) => json must contain("line break")
+        case e                 => ko(s"Not the expected response : ${e}")
+      }
+    })
+
+  }
 }
