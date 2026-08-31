@@ -117,8 +117,13 @@ class SimpleGitRevisionProvider(refPath: String, repo: GitRepositoryProvider) ex
       }
 
       val rw = new RevWalk(repo.db)
-      val id = rw.parseTree(treeId).getId
-      rw.dispose
+      val id = {
+        try {
+          rw.parseTree(treeId).getId
+        } finally {
+          rw.close()
+        }
+      }
       id
     }
   }

@@ -43,6 +43,7 @@ import com.normation.rudder.domain.logger.GitRepositoryLogger
 import com.normation.zio.*
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.lib.ConfigConstants
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import zio.*
@@ -87,6 +88,35 @@ class GitRepositoryProviderImpl(override val db: Repository, override val rootDi
 
 object GitRepositoryProviderImpl {
 
+  private def buildRepository(root: File): FileRepository = {
+    (new FileRepositoryBuilder().setWorkTree(root.toJava).build).asInstanceOf[FileRepository]
+  }
+
+  /*
+   * Since 7.7, JGit reads `.git/objects/pack/multi-pack-index` when `core.multiPackIndex`
+   * is true, which is the default.
+   *
+   * It seems that this option can cause `MissingObjectException` (see https://issues.rudder.io/issues/29674)
+   * so we want to disable it, esp. since our repositories should remain well below the threshold that makes
+   * multipack needed. More information on ADR `29674`.
+   */
+  private def disableMultiPackIndex(root: File, db: FileRepository): FileRepository = {
+    val config = db.getConfig
+    if (!config.getBoolean(ConfigConstants.CONFIG_CORE_SECTION, ConfigConstants.CONFIG_KEY_MULTIPACKINDEX, true)) {
+      db // already disabled, nothing to do
+    } else {
+      config.setBoolean(ConfigConstants.CONFIG_CORE_SECTION, null, ConfigConstants.CONFIG_KEY_MULTIPACKINDEX, false)
+      config.save()
+      GitRepositoryLogger.logEffect.info(
+        s"Disabling git multi-pack-index ('core.multiPackIndex') on '${root.pathAsString}': JGit does not fall back to " +
+        s"the pack index when the multi-pack-index is incomplete, which makes objects that do exist look missing"
+      )
+      // option is read when the repository is opened, so we need to close/reopen it
+      db.close()
+      buildRepository(root)
+    }
+  }
+
   /**
    * Use the provided full path as the root directory for given git provider.
    */
@@ -118,7 +148,7 @@ object GitRepositoryProviderImpl {
      */
     def checkGitRepos(root: File): IOResult[Repository] = {
       IOResult.attempt {
-        val db = (new FileRepositoryBuilder().setWorkTree(root.toJava).build).asInstanceOf[FileRepository]
+        val db = buildRepository(root)
         if (!db.getConfig.getFile.exists) {
           GitRepositoryLogger.logEffect.info(
             s"Git directory was not initialised: create a new git repository into folder '${root.pathAsString}' and add all its content as initial release"
@@ -128,7 +158,7 @@ object GitRepositoryProviderImpl {
           git.add.addFilepattern(".").call
           git.commit.setMessage("initial commit").call
         }
-        db
+        disableMultiPackIndex(root, db)
       }
     }
 
