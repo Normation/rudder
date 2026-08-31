@@ -6,92 +6,98 @@
 
 ## Context
 
-Security benchmarks (rudder-plugins-private) are the first user-facing feature configuring directive
-schedules. Requirements:
+Security benchmarks are the first user-facing feature configuring directive schedules. 
+They have specific requirements:
 
-* the schedule UI must look and behave like the system-updates campaign schedule UI, but with only a
-  frequency + start selector: the end is a **spread duration** after the start (1 to 12 hours: 0 was
-  initially considered but rejected, since a zero-length window can never match an agent run);
-* the frequency choices include **disabled** ("never run", on-demand only, with an explanation);
-* default for new benchmarks: daily, starting at 5:00, 1 hour spread;
-* directive scheduling must stay **transposable** to other consumers than benchmarks (e.g. pure
-  directive scheduling): benchmark-specific choices must not leak into how schedules are stored;
+* we must ensure consistency between Linux and Windows platform while in the same time accounting for  
+  the fact that Windows doesn't support scheduling yet;
 * the schedule is set in a "Schedule" tab at creation, displayed as a human-readable phrase under the
-  description of existing benchmarks, and editable in their "Information" tab.
+  description of existing benchmarks, and editable in their "Information" tab;
+* it must look similar to system-updates campaign schedule UI. 
+
+Moreover, the benchmark scheduling must stay transposable to other consumers than benchmarks (e.g. pure
+directive scheduling). 
 
 ## Decision
 
-### Storage: the campaign is the single serialization point, the benchmark only references it
+* the scheduling UI elements common to system-updates and benchmarks are factored out in a common part, 
+  * that ensure the benchmark case looks and behaves like the system-updates campaign schedule UI, 
+  * but we choose to have only a frequency + start selector: the end is a duration after the start (1 to 12 hours);
+  * node execution is spread on window duration like for update campaigns;
+* the frequency choices include a case **at every agent run**. It matches the behavior on Rudder 9.1 (no schedule 
+  at all). This schedule will be only frequency for Windows. 
+* schedule can be disabled, which is different from disabling the benchmark. In that case, a benchmark never 
+  automatically run, but still run on an "run now" interactive trigger.
 
-The schedule of a benchmark is serialized **only** in its directive schedule campaign.
+### Storage: benchmark only have a reference to the campaign which is the single serialization point
+
+The schedule ID of a benchmark is serialized only in its directive schedule campaign.
 `SecurityBenchmark` gains `scheduleCampaign: Option[CampaignId]`, a plain reference to that campaign
-(deterministic id `security-benchmark-<benchmarkId>`). Serializing the schedule a second time inside
-the benchmark was initially implemented and rejected in review: duplicated serialization of the same
-data is a code smell, and since the scheduling feature must be transposable beyond benchmarks, any
-duplication belongs to the consumer - so the consumer must not have one.
 
-`BenchmarkSchedule(enabled: Boolean, schedule: CampaignSchedule)` survives as the **API/UI view
-only**, assembled from the campaign by `BenchmarkScheduleService` (`enabled` maps to the campaign
-status, the recurrence is the campaign schedule) and applied back to it on update:
+The ID uses a deterministic pattern `security-benchmark-<benchmarkId>`
 
-* the recurrence is a plain core `CampaignSchedule` (wire format of the campaign API,
-  `@jsonDiscriminator("type")`): **no new schedule type is introduced**; the spread is simply
-  `end - start`, computed in the UI (`Scheduling.DataTypes.spreadHours` / `withSpreadHours`);
-* `enabled = false` (campaign disabled) keeps the recurrence (re-enabling restores it) but means
-  "never run except on demand";
-* a `None` reference only exists transiently, for benchmarks created before schedules existed: they
-  are **migrated at plugin init** (`MigrateBenchmarkSchedules`, a dedicated bootstrap check run
-  before the campaign existence check): their campaign is created with the default schedule
-  (`BenchmarkSchedule.default`: daily 5:00-6:00, server timezone), the reference is stored in the
-  benchmark, and their policies are regenerated so that their directives get the schedule id. Until
-  migration runs (or if it fails, it is retried at next start), a `None` benchmark keeps its
-  previous behavior: run at every agent run;
-* on creation without an explicit schedule, the server applies the default; on update without the
-  field, the campaign's current schedule is kept.
+`BenchmarkSchedule` is defined as an ADT used at API/UI view level and managed by `BenchmarkScheduleService`. 
+It has three cases:
+- `EveryAgentRun`: historical mode where `scheduleCampaign` is `None`; directive doesn't have a schedule id, so no run condition
+- `Recurrent(schedule)`: campaign enabled; the schedule id defines events for run during the recurrence windows. 
+- `OnDemandOnly(schedule)`: campaign is disabled but recurrence kept; run only in on-demand windows. 
 
-The campaign lifecycle follows the benchmark (`BenchmarkScheduleService`): created/updated on
-benchmark save, event generation state (`maxDate`, one-shots) preserved, deleted with the benchmark.
-At webapp start, `CheckBenchmarkScheduleCampaigns` verifies that every referenced campaign exists
-and recreates missing ones with the default schedule (e.g. a benchmark imported without its
-campaign). Benchmark directives are generated with `scheduleId = scheduleCampaign` whenever the
-reference exists, *including when the campaign is disabled* (that is what enforces "never runs").
+**INVARIANT: a benchmark has a schedule campaign if and only if its mode is not `EveryAgentRun`.**
 
-### Shared UI: `common-elm/Scheduling`, not a symlink
+This is enforced in `BenchmarkScheduleService.setSchedule`.
+
+Other aspects of schedules: 
+- on creation without an explicit schedule the server applies the default (`Recurrent`, daily
+  5:00-6:00, server timezone); 
+- on update without the field, the current mode is kept.
+
+The campaign lifecycle follows the benchmark (`BenchmarkScheduleService`): created/updated/deleted
+on benchmark save, event generation state (`maxDate`, one-shots) preserved, deleted with the
+benchmark. Benchmark directives are generated with `scheduleId = scheduleCampaign`, *including when
+the campaign is disabled* (that is what enforces "never runs except on demand").
+
+### Benchmark platform attribute for specialized behavior on Windows
+
+A scheduled directive is guarded by its schedule run condition in the generated policies, 
+then checked by the scheduler module (ADR
+[29567](29567-passing-scheduled-events-through-a-generated-json-file.md)). 
+Scheduling a Windows benchmark is not possible untile the module also exists on Windows: a schedule guard would 
+never be true and the benchmark never executed. 
+
+To be able to differentiate between Linux and Windows cases, we added a `platform` attribute to the benchmark model. 
+
+`platform` is optional, with values: 
+- `linux`: the default when absent, which is the case of every model published before it existed
+- `windows`.
+
+`BenchmarkScheduleService.forPlatform` coerces the mode of a Windows benchmark to `EveryAgentRun`.
+
+At webapp start, `CheckBenchmarkScheduleCampaigns` re-asserts both invariants: it puts back to
+`EveryAgentRun` any benchmark whose platform can not honour its schedule (which is what heals a
+Windows benchmark created before its platform was known), and recreates a referenced campaign that
+does not exist with the default schedule (e.g. a benchmark imported without its campaign).
+
+### Shared UI: `common-elm/Scheduling`
 
 The schedule selector, summary phrasing, JSON codecs and schedule data types are extracted from the
-system-updates Campaigns app into `rudder-plugins-private/common-elm/Scheduling/{DataTypes,
-DateUtils, JsonCodec, View}.elm`, consumed through elm.json `source-directories` - the repository's
-established sharing mechanism (already used by `common-elm/Dashboard`). A symlink under one plugin's
-sources was considered and rejected: shared code owned by a single plugin, fragile symlinks
-(Windows checkouts, IDE indexing), and a second ad-hoc sharing mechanism.
+system-updates Campaigns app into `rudder-plugins-private/common-elm/Scheduling`.
 
 `Scheduling.View.recurrentScheduleForm` is host-agnostic (config with an `onSchedule` message
 constructor) and supports two end modes: `ExplicitEnd` (campaigns, with the duration-lock toggle)
 and `SpreadHours` (benchmarks: a 1-12h duration selector replaces the end controls, duration is
-always preserved when the start moves). This extraction also deduplicates the two previously
-copy-pasted `scheduleForm` implementations inside system-updates. The one-shot mode and its date
-picker stay in system-updates (benchmarks don't use them).
+always preserved when the start moves). 
 
-### Benchmark screens
+This extraction also deduplicates the two previously copy-pasted `scheduleForm` implementations inside system-updates. 
+The one-shot mode and its date picker stay in system-updates since they are specific to it.
 
-* creation: a "Schedule" tab hosting the selector (frequency including
-  "Disabled (run on demand only)" with an explanation message, start, timezone - included for
-  consistency with campaigns -, spread, summary card);
-* existing benchmark: the phrase (`ViewSchedule.schedulePhrase`) under the description, above the
-  tab bar; the same selector in the "Information" tab; the "Run now" button next to the other action
-  buttons, disabled with a tooltip when the benchmark is disabled (see ADR
-  [28181 on-demand runs](28181-on-demand-runs-and-overlapping-windows.md));
-* the plugin exposes its own support endpoints (`GET .../schedule/timezones`, `GET .../schedule/tz`,
-  `POST .../schedule/preview`) mirroring the system-updates ones, so benchmarks work without the
-  system-updates plugin installed.
 
 ## Alternatives
 
 * The benchmark as the source of truth, with the schedule serialized inside it and the campaign
-  derived from it. Initially implemented (for export/import self-containment), rejected in review:
-  it serializes the same schedule in two places, and every future consumer of directive scheduling
-  would have to replicate that duplication. Trade-off accepted instead: an exported benchmark does
-  not carry its custom schedule; importing it recreates the campaign with the default schedule.
+  derived from it. Initially PoC'ed then rejected: it serializes the same schedule in two places,  
+  and every future consumer of directive scheduling would have to replicate that duplication. 
+  Trade-off accepted instead: an exported benchmark does not carry its custom schedule automatically. If it is imported, 
+  schedule needs to be imported to, else a new one with default values will be recreated. 
 * A dedicated "frequency + spread" schedule type. Rejected: `CampaignSchedule` already expresses it
   as start/end; a new type would ripple through core serialization, the scheduler and the agent
   interface for no expressiveness gain.
@@ -108,5 +114,6 @@ picker stay in system-updates (benchmarks don't use them).
   timing over to humans ("run now").
 * system-updates and security-benchmarks now share one schedule UI: future fixes/features (e.g.
   hourly frequency) land in one place.
-* Migrating legacy benchmarks changes their behavior at upgrade: they go from "checks at every
-  agent run" to the default daily schedule. This is the intended trade-off for a uniform model.
+* A user who wants the pre-scheduling behaviour back can ask for it
+* Windows benchmarks runs as in Rudder 9.1 and will be able to get the scheduling feature once 
+  the scheduler module is implemented for that platform. 
