@@ -104,16 +104,10 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val res = {
-        for {
-          campaign <- mainCampaignService.deleteCampaign(CampaignId(resources))
-        } yield {
-          resources
-        }
-      }
-
-      res.toLiftResponseOne(params, schema, _ => Some(resources))
-
+      mainCampaignService
+        .deleteCampaign(CampaignId(resources))
+        .as(resources)
+        .toLiftResponseOne(params, schema, _ => Some(resources))
     }
   }
 
