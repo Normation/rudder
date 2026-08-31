@@ -40,7 +40,8 @@ package com.normation.plugins.settings
 import better.files.File
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import java.util.Properties
+import com.normation.utils.Ini
+import java.nio.charset.StandardCharsets
 import zio.syntax.*
 
 /**
@@ -53,12 +54,23 @@ trait PluginSettingsService {
   def writePluginSettings(settings: PluginSettings): IOResult[Unit]
 }
 
+object FilePluginSettingsService {
+
+  /*
+   * `rudder-pkg.conf` is an INI file which is also read by `rudder package` with `serde_ini` (see `RawConfiguration`
+   * in `relay/sources/rudder-package/src/config.rs`).
+   * Keys living outside of that section are ignored by both implementations.
+   */
+  val RUDDER_SECTION = "Rudder"
+}
+
 /**
-  * Implementation that manages settings value in a properties file,
+  * Implementation that manages settings value in an INI file,
   * and syncs the setup state
   */
 class FilePluginSettingsService(pluginConfFile: File, readSetupDone: IOResult[Boolean], writeSetupDone: Boolean => IOResult[Unit])
     extends PluginSettingsService {
+  import FilePluginSettingsService.RUDDER_SECTION
 
   /**
     * Watch the rudder_setup_done setting to see if the plugin settings has been setup.
@@ -90,63 +102,47 @@ class FilePluginSettingsService(pluginConfFile: File, readSetupDone: IOResult[Bo
   }
 
   def readPluginSettings(): IOResult[PluginSettings] = {
-
-    val p = new Properties()
     for {
-      _ <- IOResult.attempt(s"Reading properties from ${pluginConfFile.pathAsString}")(p.load(pluginConfFile.newInputStream))
-
-      url            <- IOResult.attempt(s"Getting plugin repository url in ${pluginConfFile.pathAsString}") {
-                          val res = p.getProperty("url", "")
-                          if (res == "") None else Some(res)
-                        }
-      userName       <-
-        IOResult.attempt(s"Getting user name for plugin download in ${pluginConfFile.pathAsString}") {
-          val res = p.getProperty("username", "")
-          if (res == "") None else Some(res)
-        }
-      pass           <-
-        IOResult.attempt(s"Getting password for plugin download in ${pluginConfFile.pathAsString}") {
-          val res = p.getProperty("password", "")
-          if (res == "") None else Some(res)
-        }
-      proxy          <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
-                          val res = p.getProperty("proxy_url", "")
-                          if (res == "") None else Some(res)
-                        }
-      proxy_user     <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
-                          val res = p.getProperty("proxy_user", "")
-                          if (res == "") None else Some(res)
-                        }
-      proxy_password <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
-                          val res = p.getProperty("proxy_password", "")
-                          if (res == "") None else Some(res)
-                        }
+      content <- IOResult.attempt(s"Reading plugin settings from ${pluginConfFile.pathAsString}") {
+                   pluginConfFile.contentAsString(using StandardCharsets.UTF_8)
+                 }
+      ini     <- Ini
+                   .parse(content)
+                   .chainError(s"Error in plugin settings file ${pluginConfFile.pathAsString}")
+                   .toIO
     } yield {
-      PluginSettings(url, userName, pass, proxy, proxy_user, proxy_password)
+      def get(key: String) = ini.getNonEmpty(RUDDER_SECTION, key)
+
+      PluginSettings(
+        get("url"),
+        get("username"),
+        get("password"),
+        get("proxy_url"),
+        get("proxy_user"),
+        get("proxy_password")
+      )
     }
   }
 
   def writePluginSettings(update: PluginSettings): IOResult[Unit] = {
     for {
-      base <- readPluginSettings()
-      _    <- IOResult.attempt({
-                val settings = base.copy(
-                  url = update.url orElse base.url,
-                  username = update.username orElse base.username,
-                  password = update.password orElse base.password,
-                  proxyUrl = update.proxyUrl orElse base.proxyUrl,
-                  proxyUser = update.proxyUser orElse base.proxyUser,
-                  proxyPassword = update.proxyPassword orElse base.proxyPassword
-                )
-                pluginConfFile.write(s"""[Rudder]
-                                     |url = ${settings.url.getOrElse("")}
-                                     |username = ${settings.username.getOrElse("")}
-                                     |password = ${settings.password.getOrElse("")}
-                                     |proxy_url = ${settings.proxyUrl.getOrElse("")}
-                                     |proxy_user = ${settings.proxyUser.getOrElse("")}
-                                     |proxy_password = ${settings.proxyPassword.getOrElse("")}
-                                     |""".stripMargin)
-              })
+      base    <- readPluginSettings()
+      settings = PluginSettings(
+                   url = update.url orElse base.url,
+                   username = update.username orElse base.username,
+                   password = update.password orElse base.password,
+                   proxyUrl = update.proxyUrl orElse base.proxyUrl,
+                   proxyUser = update.proxyUser orElse base.proxyUser,
+                   proxyPassword = update.proxyPassword orElse base.proxyPassword
+                 )
+      // `Ini.render` refuses values it would not read back identically to avoid breaking persisted file content
+      content <- Ini
+                   .render(RUDDER_SECTION, settings.entries)
+                   .chainError(s"Can not write plugin settings in ${pluginConfFile.pathAsString}")
+                   .toIO
+      _       <- IOResult.attempt(s"Writing plugin settings in ${pluginConfFile.pathAsString}") {
+                   pluginConfFile.writeText(content)(using File.OpenOptions.default, StandardCharsets.UTF_8)
+                 }
     } yield {}
   }
 }

@@ -129,6 +129,7 @@ mod tests {
     use std::path::Path;
 
     use pretty_assertions::assert_eq;
+    use secrecy::ExposeSecret;
 
     use crate::config::{Configuration, Credentials, ProxyConfiguration};
 
@@ -173,5 +174,87 @@ mod tests {
         };
         let conf = Configuration::read(Path::new("./tests/config/rudder-pkg.proxy.conf")).unwrap();
         assert_eq!(reference, conf);
+    }
+
+    // `rudder-pkg.conf` is read both in Rust here and in Scala the webapp part.
+    // We must ensure that the parsing (and esp. escaping rules) are the same between the two
+    // parsers, so we use the `rudder-pkg.tricky.conf` file.
+    // A change here or in the data file needs to be mirrored in
+    // `webapp/sources/utils/src/test/scala/com/normation/utils/IniTest.scala`.
+
+    // no escape for backslash and `#`, `;` and `=` are ordinary characters inside a value
+    #[test]
+    fn it_reads_values_verbatim_without_unescaping() {
+        let conf = Configuration::read(Path::new("./tests/config/rudder-pkg.tricky.conf")).unwrap();
+
+        let credentials = conf.credentials.expect("credentials must be parsed");
+        assert_eq!(credentials.username, "user-é-ü");
+        assert_eq!(
+            credentials.password.expose_secret(),
+            r#"p@ss\w0rd\\next#hash;semi=equals "quoted" spaced"#
+        );
+
+        let proxy = conf.proxy.expect("proxy must be parsed");
+        let proxy_credentials = proxy.credentials.expect("proxy credentials must be parsed");
+        assert_eq!(proxy_credentials.username, "mario");
+        assert_eq!(proxy_credentials.password.expose_secret(), "mot-de-passe-é");
+    }
+
+    // Only keys and values are trimmed. A section name is taken verbatim between the
+    // brackets, and the line itself is not trimmed before being looked at, so an
+    // indented header or comment is not a valid section.
+    #[test]
+    fn it_does_not_trim_section_names() {
+        // `[ Rudder ]` declares a section named " Rudder ", which is not the `Rudder` field,
+        // so the credentials are ignored
+        let conf =
+            Configuration::parse("[ Rudder ]\nusername = user\npassword = s3cret\n").unwrap();
+        assert_eq!(conf.credentials, None);
+        assert_eq!(conf.url, "https://repository.rudder.io/plugins");
+    }
+
+    #[test]
+    fn it_rejects_an_indented_section_header() {
+        assert!(Configuration::parse("  [Rudder]\nusername = user\n").is_err());
+    }
+
+    #[test]
+    fn it_rejects_an_indented_comment() {
+        assert!(Configuration::parse("[Rudder]\n  # a comment\n").is_err());
+    }
+
+    #[test]
+    fn it_rejects_a_blank_but_not_empty_line() {
+        assert!(Configuration::parse("[Rudder]\n \nusername = user\n").is_err());
+        // an actually empty line is fine
+        assert!(Configuration::parse("[Rudder]\n\nusername = user\n").is_ok());
+    }
+
+    #[test]
+    fn it_rejects_a_section_name_holding_a_closing_bracket() {
+        assert!(Configuration::parse("[Rud]der]\n").is_err());
+    }
+
+    // password are trimmed of all whitespace chars
+    #[test]
+    fn it_trims_whitespace_around_keys_and_values() {
+        let conf = Configuration::parse("[Rudder]\n  username\t=\tuser  \n\tpassword =  s3cret \n")
+            .unwrap();
+
+        let credentials = conf.credentials.expect("credentials must be parsed");
+        assert_eq!(credentials.username, "user");
+        assert_eq!(credentials.password.expose_secret(), "s3cret");
+    }
+
+    #[test]
+    fn it_trims_the_unicode_definition_of_whitespace() {
+        // `str::trim` follows the Unicode White_Space property, which includes the
+        // non-breaking spaces that Java's `Character.isWhitespace` deliberately excludes
+        let conf =
+            Configuration::parse("[Rudder]\nusername = user\npassword =\u{00A0}s3cret\u{202F}\n")
+                .unwrap();
+
+        let credentials = conf.credentials.expect("credentials must be parsed");
+        assert_eq!(credentials.password.expose_secret(), "s3cret");
     }
 }
