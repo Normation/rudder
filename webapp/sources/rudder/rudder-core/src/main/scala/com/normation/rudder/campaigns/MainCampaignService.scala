@@ -42,6 +42,7 @@ import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.utils.StringUuidGenerator
 import org.joda.time.{Duration as JTDuration, *}
 import zio.*
+import zio.syntax.*
 
 /*
  * Method used by API of the campaign service, implemented by the top level
@@ -142,6 +143,10 @@ class MainCampaignService(
     handlersRef.update(h :: _)
   }
 
+  private val noopDelete: PartialFunction[Campaign, IOResult[EventOrchestration]] = {
+    case _ => EventOrchestration.IgnoreAndStop.succeed
+  }
+
   // entry point for API
   override def deleteCampaign(id: CampaignId): IOResult[Unit] = {
     for {
@@ -150,7 +155,7 @@ class MainCampaignService(
       _        <- ZIO.foreachDiscard(events) { event =>
                     handlersRef.get.flatMap(services => {
                       ZIO
-                        .foreachDiscard(services)(s => s.delete(event)(campaign).unit)
+                        .foreachDiscard(services)(s => s.delete(event).orElse(noopDelete)(campaign).unit)
                         .catchAll { _ =>
                           CampaignLogger.warn(
                             s"An error occurred while cleaning campaign event ${event.id.value} during deletion of campaign ${id.value}"
@@ -180,15 +185,15 @@ class MainCampaignService(
                     for {
                       campaign <- campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${id.value} not found")
                       _        <-
-                        handlersRef.get.flatMap(services => {
+                        handlersRef.get.flatMap { services =>
                           ZIO
-                            .foreachDiscard(services)(s => s.delete(event)(campaign).unit)
-                            .catchAll(_ => {
+                            .foreachDiscard(services)(s => s.delete(event).orElse(noopDelete)(campaign).unit)
+                            .catchAll { _ =>
                               CampaignLogger.warn(
                                 s"An error occurred while cleaning campaign event ${event.id.value} during deletion of campaign ${id.value}"
                               )
-                            })
-                        })
+                            }
+                        }
                     } yield ()
                   }
       _        <- repo.deleteEvent(Some(id))
