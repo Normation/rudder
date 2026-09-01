@@ -67,7 +67,7 @@ view model =
                         [ label [ for "newPropName", class "fw-bold" ] [ text "Add a new property:" ]
                         , div [ class "input-group has-validation align-items-start" ]
                             [ input
-                                [ placeholder "Name"
+                                [ placeholder "Property name"
                                 , class
                                     ("form-control input-key"
                                         ++ (if (checkEmptyName && checkPristineName) || checkAlreadyUsedName then
