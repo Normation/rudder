@@ -3418,7 +3418,6 @@ object RudderConfigInit {
         () => configService.rudder_generation_continue_on_error()
       )
       new PolicyGenerationServiceImpl(
-        woRuleRepository,
         nodeConfigurationHashRepo,
         updateExpectedRepo,
         findNewNodeStatusReports,
