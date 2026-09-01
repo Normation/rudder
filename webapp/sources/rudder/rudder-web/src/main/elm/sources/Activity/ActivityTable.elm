@@ -17,34 +17,30 @@ initTable (ContextPath contextPath) timezone =
     let
         {-
            Add a link on the id to navigate to the detail of this activity log on change log page.
-           Build the json parameters to query on this activity log with the directive id as search value and activity
-           date as start date:
+           Build the json parameters to query on this activity log with the log id.
            {
+             "id":{"value":1234,"regex":false,"fixed":[]},
+             "draw":1,
              "start":0,
-             "length":5,
-             "search":{"value":"123e4567-e89b-12d3-a456-426614174000","regex":false,"fixed":[]},
-             "startDate":"2026-07-29 10:49:48",
-             "draw":1
+             "length":5
            }
         -}
         idWithLink : Activity -> Html msg
         idWithLink activity =
             let
-                search =
+                id =
                     object
-                        [ ( "value", activity.id |> String.fromInt |> string )
+                        [ ( "value", activity.id |> int )
                         , ( "regex", bool False )
                         , ( "fixed", list bool [] )
                         ]
 
                 json =
                     object
-                        [ ( "search", search )
-                        , ( "startDate", string (posixToStringWithHoursMinutesAndSecondsTo0 timezone activity.date) )
-                        , ( "endDate", string (posixToStringWithoutTimeZoneOffset timezone activity.date) )
+                        [ ( "id", id )
                         , ( "draw", int 1 )
                         , ( "start", int 0 )
-                        , ( "length", int 10 )
+                        , ( "length", int 5 )
                         ]
                         |> encode 0
             in
