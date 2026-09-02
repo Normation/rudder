@@ -64,7 +64,7 @@ initTable (ContextPath contextPath) timezone =
                 , renderHtml = \activity -> idWithLink activity
                 , ordering = Ordering.byField .id
                 }
-                [ { name = ColumnName "Actor", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
+                [ { name = ColumnName "User", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
                 , { name = ColumnName "Description"
                   , renderHtml = .description >> toHtml
                   , ordering = Ordering.byField (.description >> toString)
