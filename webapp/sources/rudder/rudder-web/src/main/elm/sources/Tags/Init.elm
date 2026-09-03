@@ -4,7 +4,7 @@ import Json.Decode exposing (..)
 import Tags.DataTypes exposing (..)
 import Tags.JsonDecoder exposing (..)
 import Tags.JsonEncoder exposing (..)
-import Tags.Model exposing (Model, Tag)
+import Tags.Model exposing (Model, Tag, initModel)
 
 
 
@@ -27,14 +27,4 @@ subscriptions model =
 
 init : { contextPath : String, hasWriteRights : Bool, tags : List Tag, filterId : String, isEditForm : Bool, objectType : String, objectId : String } -> ( Model, Cmd Msg )
 init flags =
-    let
-        initTag =
-            Tag "" ""
-
-        initUi =
-            Tags.Model.UI flags.hasWriteRights flags.isEditForm flags.objectType [] [] []
-
-        initModel =
-            Model flags.contextPath initUi initTag flags.tags
-    in
-    ( initModel, updateResult (encodeTags flags.tags) )
+    ( initModel flags, updateResult (encodeTags flags.tags) )

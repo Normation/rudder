@@ -1,4 +1,4 @@
-module Tags.Model exposing (..)
+module Tags.Model exposing (CompletionValue, Model, Tag, UI, initModel)
 
 
 type alias Model =
@@ -27,4 +27,29 @@ type alias UI =
 
 type alias CompletionValue =
     { value : String
+    }
+
+
+initTag : Tag
+initTag =
+    Tag "" ""
+
+
+initUi : { a | hasWriteRights : Bool, isEditForm : Bool, objectType : String } -> UI
+initUi flags =
+    { hasWriteRights = flags.hasWriteRights
+    , isEditForm = flags.isEditForm
+    , objectType = flags.objectType
+    , completionKeys = []
+    , completionValues = []
+    , filterTags = []
+    }
+
+
+initModel : { a | contextPath : String, hasWriteRights : Bool, isEditForm : Bool, objectType : String, tags : List Tag } -> Model
+initModel flags =
+    { contextPath = flags.contextPath
+    , ui = initUi flags
+    , newTag = initTag
+    , tags = flags.tags
     }
