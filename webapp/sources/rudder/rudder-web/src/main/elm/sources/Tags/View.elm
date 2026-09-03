@@ -81,8 +81,19 @@ displayTags newTag tags addAction removeAction editForm isFilter filterTags =
         (tags |> List.map displayTag)
 
 
-displayTagForm : Tag -> List Tag -> List CompletionValue -> List CompletionValue -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Html msg
-displayTagForm newTag tags completionKeys completionValues updateAction addAction disableBtn =
+type alias TagForm msg =
+    { newTag : Tag
+    , tags : List Tag
+    , completionKeys : List CompletionValue
+    , completionValues : List CompletionValue
+    , updateAction : Completion -> Tag -> msg
+    , addAction : Action -> List Tag -> msg
+    , disableBtn : Bool
+    }
+
+
+displayTagForm : TagForm msg -> Html msg
+displayTagForm { newTag, tags, completionKeys, completionValues, updateAction, addAction, disableBtn } =
     let
         alreadyExist =
             List.member newTag tags
@@ -107,14 +118,24 @@ displayTagForm newTag tags completionKeys completionValues updateAction addActio
 
 
 view : Model -> Html Msg
-view model =
+view { newTag, tags, ui } =
     let
         addBtnDisabled =
-            String.isEmpty model.newTag.key || String.isEmpty model.newTag.value
+            String.isEmpty newTag.key || String.isEmpty newTag.value
+
+        tagForm : TagForm Msg
+        tagForm =
+            { newTag = newTag
+            , tags = tags
+            , completionKeys = ui.completionKeys
+            , completionValues = ui.completionValues
+            , updateAction = UpdateTag
+            , addAction = UpdateTags
+            , disableBtn = addBtnDisabled
+            }
     in
     div [ id "tagApp" ]
         [ div [ id "tagForm" ]
-            [ displayTagForm model.newTag model.tags model.ui.completionKeys model.ui.completionValues UpdateTag UpdateTags addBtnDisabled
-            ]
-        , displayTags model.newTag model.tags AddToFilter UpdateTags model.ui.isEditForm False model.ui.filterTags
+            [ displayTagForm tagForm ]
+        , displayTags newTag tags AddToFilter UpdateTags ui.isEditForm False ui.filterTags
         ]

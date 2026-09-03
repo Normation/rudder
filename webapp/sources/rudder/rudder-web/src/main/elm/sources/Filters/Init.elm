@@ -2,8 +2,8 @@ port module Filters.Init exposing (..)
 
 import Filters.DataTypes exposing (..)
 import Json.Decode exposing (..)
-import Tags.DataTypes exposing (Action, CompletionValue, Tag)
 import Tags.JsonDecoder exposing (decodeTag)
+import Tags.Model exposing (CompletionValue, Tag)
 
 
 

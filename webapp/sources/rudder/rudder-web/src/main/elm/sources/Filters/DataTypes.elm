@@ -2,7 +2,8 @@ module Filters.DataTypes exposing (..)
 
 import Http exposing (Error)
 import Json.Decode as D exposing (..)
-import Tags.DataTypes exposing (..)
+import Tags.Model exposing (..)
+import Tags.Update exposing (Action)
 
 
 

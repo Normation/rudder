@@ -7,8 +7,9 @@ import Filters.Init exposing (..)
 import Filters.JsonEncoder exposing (..)
 import Filters.View exposing (view)
 import Json.Encode exposing (..)
-import Tags.DataTypes exposing (Action, Completion, Tag)
 import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Completion, Tag)
+import Tags.Update exposing (Action)
 
 
 main =
@@ -74,10 +75,10 @@ update msg model =
             let
                 newTag =
                     case action of
-                        Tags.DataTypes.Add ->
+                        Tags.Update.Add ->
                             Tag "" ""
 
-                        Tags.DataTypes.Remove ->
+                        Tags.Update.Remove ->
                             model.newTag
 
                 newModel =
@@ -97,10 +98,10 @@ update msg model =
                     let
                         newModel =
                             case completion of
-                                Tags.DataTypes.Key ->
+                                Tags.Model.Key ->
                                     { model | completionKeys = l }
 
-                                Tags.DataTypes.Val ->
+                                Tags.Model.Val ->
                                     { model | completionValues = l }
                     in
                     ( newModel, Cmd.none )
@@ -121,7 +122,7 @@ update msg model =
         ResetFilters ->
             let
                 ( prevModel, updateTags ) =
-                    update (UpdateTags Tags.DataTypes.Remove []) model
+                    update (UpdateTags Tags.Update.Remove []) model
 
                 ( newModel, updateFilter ) =
                     update (UpdateFilter "") prevModel

@@ -2,10 +2,8 @@ module Filters.ApiCalls exposing (..)
 
 import Filters.DataTypes exposing (..)
 import Http exposing (..)
-import Json.Encode exposing (Value)
-import Tags.DataTypes exposing (Completion, Tag)
 import Tags.JsonDecoder exposing (..)
-import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Completion)
 import Url.Builder exposing (QueryParameter)
 
 
@@ -19,10 +17,10 @@ getCompletionTags model completion =
     let
         param =
             case completion of
-                Tags.DataTypes.Key ->
+                Tags.Model.Key ->
                     [ "key", model.newTag.key ]
 
-                Tags.DataTypes.Val ->
+                Tags.Model.Val ->
                     [ "value", model.newTag.key, model.newTag.value ]
 
         req =

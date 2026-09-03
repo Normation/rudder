@@ -4,8 +4,8 @@ import Filters.DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, id, placeholder, style, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
-import Tags.DataTypes exposing (Msg(..), Tag)
-import Tags.View exposing (displayTagForm, displayTags)
+import Tags.Update
+import Tags.View exposing (TagForm, displayTagForm, displayTags)
 
 
 view : Model -> Html Filters.DataTypes.Msg
@@ -16,6 +16,17 @@ view model =
 
         addBtnDisabled =
             String.isEmpty newTag.key && String.isEmpty newTag.value
+
+        tagForm : TagForm Msg
+        tagForm =
+            { newTag = model.newTag
+            , tags = model.tags
+            , completionKeys = model.completionKeys
+            , completionValues = model.completionValues
+            , updateAction = Filters.DataTypes.UpdateTag
+            , addAction = Filters.DataTypes.UpdateTags
+            , disableBtn = addBtnDisabled
+            }
     in
     div [ id "directiveFilter" ]
         [ div [ class "header-filter" ]
@@ -46,13 +57,13 @@ view model =
             ]
             [ div [ class "filterTag" ]
                 [ div [ id "form-tag" ]
-                    [ displayTagForm model.newTag model.tags model.completionKeys model.completionValues Filters.DataTypes.UpdateTag Filters.DataTypes.UpdateTags addBtnDisabled
+                    [ displayTagForm tagForm
                     , if List.isEmpty model.tags then
                         text ""
 
                       else
                         div [ class "only-tags" ]
-                            [ button [ class "btn btn-default btn-xs pull-right clear-tags", onClick (Filters.DataTypes.UpdateTags Tags.DataTypes.Remove []) ]
+                            [ button [ class "btn btn-default btn-xs pull-right clear-tags", onClick (Filters.DataTypes.UpdateTags Tags.Update.Remove []) ]
                                 [ text "Clear all tags"
                                 , i [ class "fa fa-trash" ] []
                                 ]
