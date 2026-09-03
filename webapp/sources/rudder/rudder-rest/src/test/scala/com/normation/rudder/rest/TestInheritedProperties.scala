@@ -95,6 +95,11 @@ class TestInheritedProperties extends ZIOSpecDefault {
     )
     .getOrElse(null) // for test
 
+  // a string overriding the object value of the `rudder` global parameter, which is owned by the `system` provider:
+  // an inconsistent hierarchy that must nonetheless be reported as `overridden`, else it can not be corrected
+  // anymore. See https://issues.rudder.io/issues/29682
+  val gRudderProp: GroupProperty = GroupProperty("rudder", GitVersion.DEFAULT_REV, "a string".toConfigValue, None, None)
+
   import com.softwaremill.quicklens.*
 
   implicit val qc: QueryContext  = QueryContext.testQC
@@ -103,7 +108,7 @@ class TestInheritedProperties extends ZIOSpecDefault {
   val g0Id: NodeGroupId = restTestSetUp.mockNodeGroups.g0.id
   (for {
     g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id).notOptional("test")
-    up = g._1.modify(_.properties).using(_.appended(gProp))
+    up = g._1.modify(_.properties).using(_.appendedAll(List(gProp, gRudderProp)))
     _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up)
     _ <- restTestSetUp.mockNodeGroups.propService.updateAll() // the properties also need to be recomputed after group is updated
   } yield ()).runNow

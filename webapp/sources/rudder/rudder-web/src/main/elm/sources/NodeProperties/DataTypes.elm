@@ -270,3 +270,38 @@ getPossibleFormatsFromPropertyName model propertyName =
     in
     mergedValueTypes
         |> Maybe.withDefault []
+
+
+{-| Check if a property has a value defined at the leaf-node place ("own" value)
+-}
+hasOwnValue : Model -> Property -> Bool
+hasOwnValue model property =
+    case property.hierarchyStatus of
+        Just hierarchyStatus ->
+            case hierarchyStatus.fullHierarchy of
+                ParentGlobal _ ->
+                    False
+
+                ParentGroup prop ->
+                    prop.id == model.nodeId
+
+                ParentNode prop ->
+                    prop.id == model.nodeId
+
+        Nothing ->
+            -- without any inheritance information, the only possible value is the one of the object itself
+            True
+
+
+{-| A property managed by a provider (the inventory, a plugin like datasources, Rudder itself, ...) can only be
+changed by it. `inherited` and `overridden` are not real providers, they only tell how the displayed value is
+built along the hierarchy.
+-}
+isManagedByProvider : Property -> Bool
+isManagedByProvider property =
+    case property.provider of
+        Just provider ->
+            provider /= "inherited" && provider /= "overridden"
+
+        Nothing ->
+            False

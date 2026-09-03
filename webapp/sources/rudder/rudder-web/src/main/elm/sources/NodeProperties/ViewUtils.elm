@@ -357,7 +357,7 @@ displayNodePropertyRow model =
                 editedProperty =
                     Dict.get p.name model.ui.editedProperties
 
-                ( providerBadge, editRight, deleteRight ) =
+                providerBadge =
                     case p.provider of
                         Just pr ->
                             let
@@ -372,7 +372,7 @@ displayNodePropertyRow model =
                                         _ ->
                                             "<h4 class='tags-tooltip-title'>" ++ pr ++ "</h4> <div class='tooltip-inner-content'>This property is managed by its provider ‘<b>" ++ pr ++ "</b>’ and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.</div>"
                             in
-                            ( span
+                            span
                                 [ class "rudder-label label-provider label-sm bs-tooltip ms-1"
                                 , attribute "data-bs-toggle" "tooltip"
                                 , attribute "data-bs-placement" "right"
@@ -380,12 +380,19 @@ displayNodePropertyRow model =
                                 , title pTitle
                                 ]
                                 [ text pr ]
-                            , pr == "overridden" || pr == "inherited"
-                            , pr == "overridden"
-                            )
 
                         Nothing ->
-                            ( text "", True, True )
+                            text ""
+
+                -- only the provider owning a property can change it. Everything else can be edited: either the
+                -- property has a value on that object, or we can add one that overrides its inherited value.
+                editRight =
+                    not (isManagedByProvider p)
+
+                -- a value set on that object can always be removed there, whatever the hierarchy it overrides:
+                -- see https://issues.rudder.io/issues/26191
+                deleteRight =
+                    editRight && hasOwnValue model p
 
                 isTooLong : Value -> Bool
                 isTooLong value =
