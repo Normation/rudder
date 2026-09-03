@@ -1,21 +1,34 @@
-module Tags.Update exposing (..)
+port module Tags.Update exposing (..)
 
 import Http
-import Json.Decode as D
+import Json.Decode as D exposing (Value, decodeValue, list)
 import Tags.ApiCalls exposing (getCompletionTags)
-import Tags.Init exposing (addToFilters, updateResult)
+import Tags.JsonDecoder exposing (decodeTag)
 import Tags.JsonEncoder exposing (encodeTag, encodeTags)
-import Tags.Model exposing (CompletionValue, Model, Tag)
+import Tags.Model exposing (Completion(..), CompletionValue, Model, Tag)
+
+
+
+-- PORTS / SUBSCRIPTIONS
+
+
+port updateResult : String -> Cmd msg
+
+
+port addToFilters : Value -> Cmd msg
+
+
+port getFilterTags : (Value -> msg) -> Sub msg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    getFilterTags (GetFilterTags << decodeValue (list decodeTag))
 
 
 type Action
     = Add
     | Remove
-
-
-type Completion
-    = Key
-    | Val
 
 
 type Msg
@@ -40,7 +53,7 @@ update msg model =
             ( model, Cmd.none )
 
         UpdateTag completion tag ->
-            ( { model | newTag = tag }, getCompletionTags model completion )
+            ( { model | newTag = tag }, getCompletionTags model completion (GetCompletionTags completion) )
 
         UpdateTags action tags ->
             let

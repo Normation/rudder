@@ -2,7 +2,7 @@ module Tags exposing (..)
 
 import Browser
 import Tags.Init exposing (..)
-import Tags.Update exposing (update)
+import Tags.Update exposing (subscriptions, update)
 import Tags.View exposing (view)
 
 

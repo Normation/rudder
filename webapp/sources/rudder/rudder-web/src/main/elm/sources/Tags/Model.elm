@@ -1,4 +1,4 @@
-module Tags.Model exposing (CompletionValue, Model, Tag, UI, initModel)
+module Tags.Model exposing (Completion(..), CompletionValue, Model, Tag, UI, initModel)
 
 
 type alias Model =
@@ -28,6 +28,11 @@ type alias UI =
 type alias CompletionValue =
     { value : String
     }
+
+
+type Completion
+    = Key
+    | Val
 
 
 initTag : Tag
