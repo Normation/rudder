@@ -205,6 +205,26 @@ CREATE TABLE NodeLastCompliance (
 , details             jsonb NOT NULL
 );
 
+-- Details of compliance can be very big and occupy TOAST space (depending on directives numbers and size).
+--
+-- Trigger for autovacuum is: autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor × reltuples
+-- Default is 50 + 0.2 * rows, also applies to TOAST.
+--
+-- We don't want fixed threshold, but scaled factor that would adapt to any number of nodes, behave
+-- the same across different installations.
+--
+-- Finally, we need a factor lower than the default, since by default it leaves quite high number of dead tuples
+-- in the TOAST table without triggering, find it with this query:
+-- SELECT relid::regclass, n_live_tup, n_dead_tup, n_ins_since_vacuum,
+--        last_autovacuum, autovacuum_count,
+--        pg_size_pretty(pg_relation_size(relid)) AS heap,
+--        pg_size_pretty(pg_indexes_size(relid))  AS idx
+-- FROM pg_stat_all_tables
+-- WHERE relid = (SELECT reltoastrelid FROM pg_class WHERE oid='nodelastcompliance'::regclass)
+--
+ALTER TABLE NodeLastCompliance set (toast.autovacuum_vacuum_threshold = 0);
+ALTER TABLE NodeLastCompliance set (toast.autovacuum_vacuum_scale_factor = 0.05);
+
 
 
 /*
