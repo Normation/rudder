@@ -6,8 +6,8 @@ import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra exposing (find, remove)
 import String
-import Tags.DataTypes exposing (..)
 import Tags.Model exposing (CompletionValue, Model, Tag)
+import Tags.Update exposing (Action(..), Completion(..), Msg(..))
 
 
 displayTags : Tag -> List Tag -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Bool -> List Tag -> Html msg

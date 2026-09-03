@@ -1,10 +1,31 @@
 module Tags.Update exposing (..)
 
+import Http
+import Json.Decode as D
 import Tags.ApiCalls exposing (getCompletionTags)
-import Tags.DataTypes exposing (Action(..), Completion(..), Msg(..))
 import Tags.Init exposing (addToFilters, updateResult)
 import Tags.JsonEncoder exposing (encodeTag, encodeTags)
-import Tags.Model exposing (Model)
+import Tags.Model exposing (CompletionValue, Model, Tag)
+
+
+type Action
+    = Add
+    | Remove
+
+
+type Completion
+    = Key
+    | Val
+
+
+type Msg
+    = Ignore
+    | CallApi (Model -> Cmd Msg)
+    | UpdateTag Completion Tag
+    | UpdateTags Action (List Tag)
+    | AddToFilter Completion Tag
+    | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
+    | GetFilterTags (Result D.Error (List Tag))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

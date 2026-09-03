@@ -6,6 +6,7 @@ import Tags.DataTypes exposing (..)
 import Tags.JsonDecoder exposing (..)
 import Tags.JsonEncoder exposing (..)
 import Tags.Model exposing (Model)
+import Tags.Update exposing (Completion(..), Msg(..))
 import Url.Builder exposing (QueryParameter)
 
 

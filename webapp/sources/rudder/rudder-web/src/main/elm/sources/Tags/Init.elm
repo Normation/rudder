@@ -1,10 +1,10 @@
 port module Tags.Init exposing (..)
 
 import Json.Decode exposing (..)
-import Tags.DataTypes exposing (..)
 import Tags.JsonDecoder exposing (..)
 import Tags.JsonEncoder exposing (..)
 import Tags.Model exposing (Model, Tag, initModel)
+import Tags.Update exposing (Msg(..))
 
 
 

@@ -2,7 +2,6 @@ module Tags.JsonDecoder exposing (..)
 
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Tags.DataTypes exposing (..)
 import Tags.Model exposing (CompletionValue, Tag)
 
 

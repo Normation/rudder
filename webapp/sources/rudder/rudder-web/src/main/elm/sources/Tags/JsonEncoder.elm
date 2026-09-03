@@ -1,7 +1,6 @@
 module Tags.JsonEncoder exposing (..)
 
 import Json.Encode exposing (..)
-import Tags.DataTypes exposing (..)
 import Tags.Model exposing (Tag)
 
 
