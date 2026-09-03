@@ -46,7 +46,6 @@ import io.scalaland.chimney.*
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
-import org.joda.time.DateTime
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -149,15 +148,15 @@ object CampaignHookTypes                                       extends Enum[Camp
 }
 
 @jsonHint("enabled")
-case object Enabled                                 extends CampaignStatus {
+case object Enabled                                       extends CampaignStatus {
   val value: CampaignStatusValue = CampaignStatusValue.Enabled
 }
 @jsonHint("disabled")
-case class Disabled(reason: String)                 extends CampaignStatus {
+case class Disabled(reason: String)                       extends CampaignStatus {
   val value: CampaignStatusValue = CampaignStatusValue.Disabled
 }
 @jsonHint("archived")
-case class Archived(reason: String, date: DateTime) extends CampaignStatus {
+case class Archived(reason: String, date: OffsetDateTime) extends CampaignStatus {
   val value: CampaignStatusValue = CampaignStatusValue.Archived
 }
 
@@ -480,13 +479,14 @@ object CompatV21 {
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventState,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType
   )
 
   object CampaignEvent {
-    import com.normation.utils.DateFormaterService.json.*
+    import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsDecoder
+    import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsEncoder
     implicit val codecCampaignEvent: JsonCodec[CampaignEvent] = DeriveJsonCodec.gen
   }
 }

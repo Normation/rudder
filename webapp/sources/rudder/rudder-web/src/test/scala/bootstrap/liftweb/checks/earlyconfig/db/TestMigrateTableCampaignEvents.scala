@@ -43,6 +43,7 @@ import com.normation.rudder.campaigns.*
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.json.implicits.*
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toOffsetDateTime
 import com.normation.zio.*
 import doobie.*
 import doobie.implicits.*
@@ -328,8 +329,8 @@ class TestMigrateTableCampaignEvents extends DBCommon {
           None,
           Some(5),
           None,
-          afterDate = Some(DateTime.parse("2024-03-01T10:00:00+00")),
-          beforeDate = Some(DateTime.parse("2024-05-01T10:00:00+00")),
+          afterDate = Some(DateTime.parse("2024-03-01T10:00:00+00").toOffsetDateTime),
+          beforeDate = Some(DateTime.parse("2024-05-01T10:00:00+00").toOffsetDateTime),
           Some(CampaignSortOrder.StartDate),
           Some(CampaignSortDirection.Desc)
         )

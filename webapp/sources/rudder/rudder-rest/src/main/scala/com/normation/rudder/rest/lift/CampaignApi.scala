@@ -11,6 +11,7 @@ import com.normation.rudder.rest.CampaignApi as API
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.syntax.*
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toOffsetDateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentOffsetDateTimeUTC
 import net.liftweb.common.EmptyBox
@@ -224,7 +225,17 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(
+          states,
+          campaignType,
+          campaignId,
+          limit,
+          offset,
+          afterDate.map(_.toOffsetDateTime),
+          beforeDate.map(_.toOffsetDateTime),
+          order,
+          asc
+        )
         .toLiftResponseList(params, schema)
     }
   }
@@ -265,7 +276,17 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(
+          states,
+          campaignType,
+          Some(CampaignId(resources)),
+          limit,
+          offset,
+          afterDate.map(_.toOffsetDateTime),
+          beforeDate.map(_.toOffsetDateTime),
+          order,
+          asc
+        )
         .toLiftResponseList(params, schema)
     }
   }
