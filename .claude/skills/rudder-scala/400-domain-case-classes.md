@@ -27,15 +27,18 @@ final case class Plugin(
 
 ## Wrap identifiers and scalars
 
-Don't pass bare `String`/`Int` for domain concepts. Wrap them:
+Don't pass bare `String`/`Int` for domain concepts
+([principle 6](../rudder-principles/SKILL.md#6-name-domain-concepts-as-types--and-propose-the-zero-cost-form)).
+Wrap them:
 
 ```scala
 final case class Licensee(value: String)   extends AnyVal   // existing common form
 opaque type NodeName = String                               // modern newtype, zero overhead
 ```
 
-This makes signatures self-documenting and prevents mixing up a `RuleId` with a
-`DirectiveId`. See [`001`](001-scala3-idioms.md) for value-class vs opaque-type choice.
+See [`001`](001-scala3-idioms.md) for the value-class vs opaque-type choice — for **new**
+single-value wrappers the `opaque type` is preferred, and being zero-cost it is the form to
+propose even on a hot path.
 
 ## ADTs for closed sets
 
