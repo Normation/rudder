@@ -11,4 +11,6 @@ CVE-2026-59710
 CVE-2026-59711
 # XSS in change logs, OK because page has strict CSP (jsondiffpatch is vulnerable to Cross-site Scripting (XSS) via HtmlFormatter::nodeBegin)
 CVE-2025-9910
+# prototype pollution in change logs with jsondiffpatch.patch(), OK because jsondiffpatch.patch() is unused
+CVE-2026-8657
 
