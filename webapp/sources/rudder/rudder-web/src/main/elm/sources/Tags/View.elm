@@ -7,6 +7,7 @@ import List
 import List.Extra exposing (find, remove)
 import String
 import Tags.DataTypes exposing (..)
+import Tags.Model exposing (CompletionValue, Model, Tag)
 
 
 displayTags : Tag -> List Tag -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Bool -> List Tag -> Html msg

@@ -2,36 +2,13 @@ module Tags.DataTypes exposing (..)
 
 import Http exposing (Error)
 import Json.Decode as D exposing (..)
+import Tags.Model exposing (CompletionValue, Model, Tag)
 
 
 
 --
 -- All our data types
 --
-
-
-type alias UI =
-    { hasWriteRights : Bool
-    , isEditForm : Bool
-    , objectType : String
-    , completionKeys : List CompletionValue
-    , completionValues : List CompletionValue
-    , filterTags : List Tag
-    }
-
-
-type alias Tag =
-    { key : String
-    , value : String
-    }
-
-
-type alias Model =
-    { contextPath : String
-    , ui : UI
-    , newTag : Tag
-    , tags : List Tag
-    }
 
 
 type Action
@@ -42,11 +19,6 @@ type Action
 type Completion
     = Key
     | Val
-
-
-type alias CompletionValue =
-    { value : String
-    }
 
 
 type Msg

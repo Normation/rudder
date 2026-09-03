@@ -8,6 +8,7 @@ import Tags.ApiCalls exposing (getCompletionTags)
 import Tags.DataTypes exposing (..)
 import Tags.Init exposing (..)
 import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Model)
 import Tags.View exposing (view)
 
 
@@ -48,7 +49,7 @@ update msg model =
                 newTag =
                     case action of
                         Add ->
-                            Tag "" ""
+                            Tags.Model.Tag "" ""
 
                         _ ->
                             model.newTag

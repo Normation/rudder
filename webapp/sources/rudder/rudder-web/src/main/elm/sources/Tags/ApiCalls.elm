@@ -5,6 +5,7 @@ import Json.Encode exposing (Value)
 import Tags.DataTypes exposing (..)
 import Tags.JsonDecoder exposing (..)
 import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Model)
 import Url.Builder exposing (QueryParameter)
 
 

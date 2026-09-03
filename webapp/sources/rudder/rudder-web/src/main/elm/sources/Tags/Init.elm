@@ -4,6 +4,7 @@ import Json.Decode exposing (..)
 import Tags.DataTypes exposing (..)
 import Tags.JsonDecoder exposing (..)
 import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Model, Tag)
 
 
 
@@ -31,7 +32,7 @@ init flags =
             Tag "" ""
 
         initUi =
-            UI flags.hasWriteRights flags.isEditForm flags.objectType [] [] []
+            Tags.Model.UI flags.hasWriteRights flags.isEditForm flags.objectType [] [] []
 
         initModel =
             Model flags.contextPath initUi initTag flags.tags
