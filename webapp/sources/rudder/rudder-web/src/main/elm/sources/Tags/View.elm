@@ -4,13 +4,13 @@ import Html exposing (..)
 import Html.Attributes exposing (class, disabled, for, id, list, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
-import List.Extra exposing (find, remove)
+import List.Extra
 import String
 import Tags.Model exposing (Completion(..), CompletionValue, Model, Tag)
 import Tags.Update exposing (Action(..), Msg(..))
 
 
-displayTags : Tag -> List Tag -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Bool -> List Tag -> Html msg
+displayTags : Tag -> List Tag -> (Completion -> Tag -> msg) -> (Action -> msg) -> Bool -> Bool -> List Tag -> Html msg
 displayTags newTag tags addAction removeAction editForm isFilter filterTags =
     let
         displayTag tag =
@@ -59,7 +59,7 @@ displayTags newTag tags addAction removeAction editForm isFilter filterTags =
                     , span [ class "fa fa-search-plus" ] []
                     ]
                 , if editForm then
-                    button [ type_ "button", class "btn btn-default", onClick (removeAction Remove (remove tag tags)) ]
+                    button [ type_ "button", class "btn btn-default", onClick (removeAction (Remove tag)) ]
                         [ span [ class "fa fa-times" ] []
                         ]
 
@@ -87,7 +87,7 @@ type alias TagForm msg =
     , completionKeys : List CompletionValue
     , completionValues : List CompletionValue
     , updateAction : Completion -> Tag -> msg
-    , addAction : Action -> List Tag -> msg
+    , addAction : Action -> msg
     , disableBtn : Bool
     }
 
@@ -110,7 +110,7 @@ displayTagForm { newTag, tags, completionKeys, completionValues, updateAction, a
             , input [ id "newTagValue", class "form-control input-value", list "completion-val-list", placeholder "value", value newTag.value, onInput (\s -> updateAction Val { newTag | value = s }) ] []
             , datalist [ id "completion-val-list" ]
                 (List.map (\c -> option [ value c.value ] []) completionValues)
-            , button [ type_ "button", class "btn btn-default", onClick (addAction Add (newTag :: tags)), disabled (alreadyExist || disableBtn) ]
+            , button [ type_ "button", class "btn btn-default", onClick (addAction (Add newTag)), disabled (alreadyExist || disableBtn) ]
                 [ span [ class "fa fa-plus" ] []
                 ]
             ]

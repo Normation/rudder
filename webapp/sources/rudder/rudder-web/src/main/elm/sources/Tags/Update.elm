@@ -2,10 +2,11 @@ port module Tags.Update exposing (..)
 
 import Http
 import Json.Decode as D exposing (Value, decodeValue, list)
+import List.Extra
 import Tags.ApiCalls exposing (getCompletionTags)
 import Tags.JsonDecoder exposing (decodeTag)
 import Tags.JsonEncoder exposing (encodeTag, encodeTags)
-import Tags.Model exposing (Completion(..), CompletionValue, Model, Tag)
+import Tags.Model exposing (Completion(..), CompletionValue, Model, Tag, emptyTag, setNewTag, updateTags)
 
 
 
@@ -27,15 +28,16 @@ subscriptions model =
 
 
 type Action
-    = Add
-    | Remove
+    = Add Tag
+    | Remove Tag
+    | Clear
 
 
 type Msg
     = Ignore
     | CallApi (Model -> Cmd Msg)
     | UpdateTag Completion Tag
-    | UpdateTags Action (List Tag)
+    | UpdateTags Action
     | AddToFilter Completion Tag
     | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
     | GetFilterTags (Result D.Error (List Tag))
@@ -53,22 +55,28 @@ update msg model =
             ( model, Cmd.none )
 
         UpdateTag completion tag ->
-            ( { model | newTag = tag }, getCompletionTags model completion (GetCompletionTags completion) )
+            ( model |> setNewTag tag
+            , getCompletionTags model completion (GetCompletionTags completion)
+            )
 
-        UpdateTags action tags ->
+        UpdateTags action ->
             let
+                (tags, newTag) =
+                    case action of
+                        Add tag ->
+                            (tag :: model.tags, emptyTag)
+
+                        Remove tag ->
+                            (List.Extra.remove tag model.tags, model.newTag)
+
+                        Clear ->
+                            ([], model.newTag)
+
                 cmd =
                     updateResult (encodeTags tags)
 
-                newTag =
-                    case action of
-                        Add ->
-                            Tags.Model.Tag "" ""
-
-                        _ ->
-                            model.newTag
             in
-            ( { model | tags = tags, newTag = newTag }, cmd )
+            ( model |> updateTags tags newTag, cmd )
 
         GetCompletionTags completion res ->
             case res of

@@ -7,8 +7,9 @@ import Filters.Init exposing (..)
 import Filters.JsonEncoder exposing (..)
 import Filters.View exposing (view)
 import Json.Encode exposing (..)
+import List.Extra
 import Tags.JsonEncoder exposing (..)
-import Tags.Model exposing (Completion, Tag)
+import Tags.Model exposing (Completion, Tag, emptyTag)
 import Tags.Update exposing (Action)
 
 
@@ -71,15 +72,18 @@ update msg model =
         UpdateTag completion tag ->
             ( { model | newTag = tag }, getCompletionTags model completion )
 
-        UpdateTags action tags ->
+        UpdateTags action ->
             let
-                newTag =
+                (tags, newTag) =
                     case action of
-                        Tags.Update.Add ->
-                            Tag "" ""
+                        Tags.Update.Add tag ->
+                            (tag :: model.tags, emptyTag)
 
-                        Tags.Update.Remove ->
-                            model.newTag
+                        Tags.Update.Remove tag ->
+                            (List.Extra.remove tag model.tags, model.newTag)
+
+                        Tags.Update.Clear ->
+                            ([], model.newTag)
 
                 newModel =
                     { model | tags = tags, newTag = newTag }
@@ -122,7 +126,7 @@ update msg model =
         ResetFilters ->
             let
                 ( prevModel, updateTags ) =
-                    update (UpdateTags Tags.Update.Remove []) model
+                    update (UpdateTags Tags.Update.Clear) model
 
                 ( newModel, updateFilter ) =
                     update (UpdateFilter "") prevModel

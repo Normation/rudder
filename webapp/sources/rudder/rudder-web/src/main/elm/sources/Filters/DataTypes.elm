@@ -33,7 +33,7 @@ type Msg
     | ShowMore
     | AddToFilter (Result D.Error Tag)
     | UpdateTag Completion Tag
-    | UpdateTags Action (List Tag)
+    | UpdateTags Action
     | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
     | ToggleHideUnusedTechniques Bool
     | ResetFilters

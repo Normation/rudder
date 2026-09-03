@@ -63,7 +63,7 @@ view model =
 
                       else
                         div [ class "only-tags" ]
-                            [ button [ class "btn btn-default btn-xs pull-right clear-tags", onClick (Filters.DataTypes.UpdateTags Tags.Update.Remove []) ]
+                            [ button [ class "btn btn-default btn-xs pull-right clear-tags", onClick (Filters.DataTypes.UpdateTags Tags.Update.Clear) ]
                                 [ text "Clear all tags"
                                 , i [ class "fa fa-trash" ] []
                                 ]

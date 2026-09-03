@@ -1,4 +1,4 @@
-module Tags.Model exposing (Completion(..), CompletionValue, Model, Tag, UI, initModel)
+module Tags.Model exposing (Completion(..), CompletionValue, Model, Tag, UI, initModel, setNewTag, emptyTag, updateTags)
 
 
 type alias Model =
@@ -58,3 +58,14 @@ initModel flags =
     , newTag = initTag
     , tags = flags.tags
     }
+
+emptyTag : Tag
+emptyTag = { key = "", value = "" }
+
+setNewTag : Tag -> Model -> Model
+setNewTag tag model =
+    { model | newTag = tag }
+
+updateTags : List Tag -> Tag -> Model -> Model
+updateTags tags newTag model =
+    { model | tags = tags, newTag = newTag }
