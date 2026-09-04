@@ -18,8 +18,8 @@ import Ui.Datatable exposing (Category, SortOrder(..), generateLoadingTable, get
 import Utils.CsvExportUtils exposing (exportToCsvButton)
 
 
-nodesTab : Model -> RuleDetails -> Html Msg
-nodesTab model details =
+nodesTab : RuleDetails -> Model -> Html Msg
+nodesTab details model =
     let
         ui =
             details.ui
@@ -213,16 +213,7 @@ nodesTab model details =
     in
     div [ class "tab-table-content" ]
         (List.append
-            [ div [ class "table-title mb-3" ]
-                [ h4 [ class "mb-0" ] [ text "Compliance by node" ]
-                , if model.ui.hasWriteRights then
-                    button [ class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | ui = { ui | editGroups = True }, tab = Groups }) ]
-                        [ text "Select groups", i [ class "fa fa-plus-circle" ] [] ]
-
-                  else
-                    text ""
-                ]
-            , if details.rule.enabled then
+            [ if details.rule.enabled then
                 text ""
 
               else
