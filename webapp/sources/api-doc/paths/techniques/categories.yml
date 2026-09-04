@@ -40,3 +40,165 @@ get:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/categories.sh
+post:
+  summary: Create or rename a category
+  description: >-
+    Create a technique category, or update an existing one. Only categories under `ncf_techniques` can be managed.
+    On creation, the id of the category is derived from the normalized name and used for the
+    directory name on FS. It must be free (case-insensitively) in the whole library.
+  operationId: saveTechniqueCategory
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          oneOf:
+            - type: object
+              title: create
+              required:
+                - action
+                - parent
+                - name
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - create
+                parent:
+                  type: string
+                  description: Path of the category to create the new one into
+                  example: ncf_techniques
+                name:
+                  type: string
+                  description: Name of the new category
+                  example: Linux hardening
+                description:
+                  type: string
+                  description: Description of the new category
+                  example: Linux default hardening
+            - type: object
+              title: update
+              required:
+                - action
+                - path
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - update
+                path:
+                  type: string
+                  description: Path of the category to update
+                  example: ncf_techniques/my_category
+                name:
+                  type: string
+                  description: >-
+                    Optional new name of the category, must be non empty.
+                  example: My renamed category
+                description:
+                  type: string
+                  description: >-
+                    Optional new description of the category. Send an empty string to remove it.
+                  example: Linux default hardening
+  responses:
+    "200":
+      description: Category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - saveTechniqueCategory
+              data:
+                type: object
+                required:
+                  - techniqueCategories
+                properties:
+                  techniqueCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/technique-category.yml
+  tags:
+    - Techniques
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/categories-save.sh
+delete:
+  summary: Delete a category
+  description: >-
+    Delete a technique category and the sub-categories it holds. It must be a sub-category of
+    `ncf_techniques`, and no technique must be defined anywhere below it.
+  operationId: deleteTechniqueCategory
+  parameters:
+    - name: path
+      in: query
+      required: true
+      description: Path of the category to delete
+      schema:
+        type: string
+        example: ncf_techniques/my_category
+  responses:
+    "200":
+      description: Deleted category
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteTechniqueCategory
+              data:
+                type: object
+                required:
+                  - techniqueCategories
+                properties:
+                  techniqueCategories:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - path
+                      properties:
+                        id:
+                          type: string
+                          description: Category ID
+                          example: my_category
+                        path:
+                          type: string
+                          description: Category's path
+                          example: ncf_techniques/my_category
+  tags:
+    - Techniques
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/categories-delete.sh

@@ -206,6 +206,7 @@ period of time to allow migration from previous versions.
       <td><ul>
         <li>Campaigns CSV</li>
         <li>excluded-packages in System/software update campaigns</li>
+        <li>Create, rename and delete the technique categories of the technique editor</li>
       </ul></td>
     </tr>
   </tbody>

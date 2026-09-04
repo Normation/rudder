@@ -106,6 +106,8 @@ import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
 import com.normation.rudder.ncf.RuddercTechniqueCompiler
 import com.normation.rudder.ncf.TechniqueActiveStatus
+import com.normation.rudder.ncf.TechniqueCategoryWriter
+import com.normation.rudder.ncf.TechniqueCategoryWriterImpl
 import com.normation.rudder.ncf.TechniqueCheckStatusService
 import com.normation.rudder.ncf.TechniqueCompilationSyncService
 import com.normation.rudder.ncf.TechniqueWriterImpl
@@ -543,6 +545,13 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
     override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = ZIO.succeed(0L)
   }
+
+  val techniqueCategoryWriter: TechniqueCategoryWriter = new TechniqueCategoryWriterImpl(
+    techniqueArchiver,
+    techniqueRepo,
+    techniqueRepo,
+    mockGit.configurationRepositoryRoot.pathAsString
+  )
 
   val techniqueWriter = new TechniqueWriterImpl(
     techniqueArchiver,

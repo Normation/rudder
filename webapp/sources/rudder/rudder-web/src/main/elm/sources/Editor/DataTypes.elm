@@ -8,6 +8,7 @@ import Either exposing (Either)
 import File exposing (File)
 import Http exposing (Error)
 import Http.Detailed
+import Regex
 import Time exposing (Posix)
 
 
@@ -251,6 +252,7 @@ type alias TechniqueParameter =
 type alias TechniqueCategory =
     { id : String
     , name : String
+    , description : String
     , path : String
     , subCategories : SubCategories
     }
@@ -258,6 +260,56 @@ type alias TechniqueCategory =
 
 type SubCategories
     = SubCategories (List TechniqueCategory)
+
+
+{-| User technique category: the only part of the library a user can reorganize.
+-}
+userTechniquesPath : String
+userTechniquesPath =
+    "ncf_techniques"
+
+
+{-| What can be done with a category, which its place in the library decides.
+-}
+type CategoryKind
+    = StandardCategory -- provided by Rudder, read only
+    | UserTechniquesRoot -- `ncf_techniques`: can be renamed, and hold new sub-categories
+    | UserCategory -- created by a user: can be renamed and deleted
+
+
+categoryKind : TechniqueCategory -> CategoryKind
+categoryKind category =
+    if category.path == userTechniquesPath then
+        UserTechniquesRoot
+
+    else if String.startsWith (userTechniquesPath ++ "/") category.path then
+        UserCategory
+
+    else
+        StandardCategory
+
+
+{-| Category ID, derived from the name. The server is authoritative, this only shows the user
+what the ID will be. Keep in sync with `TechniqueCategoryDirName` on the Scala side.
+-}
+categoryDirName : String -> String
+categoryDirName displayName =
+    let
+        replace pattern replacement s =
+            case Regex.fromString pattern of
+                Just re ->
+                    Regex.replace re (always replacement) s
+
+                Nothing ->
+                    s
+    in
+    displayName
+        |> String.toLower
+        |> replace "[^a-z0-9_-]" "_"
+        |> replace "_+" "_"
+        |> String.left 255
+        |> replace "^[._]+" ""
+        |> replace "[._]+$" ""
 
 
 allCategories t =
@@ -299,8 +351,55 @@ type alias DeletionTechnique =
     }
 
 
+{-| A category is edited either as itself, or as a sub-category to create under it.
+-}
+type CategoryState
+    = EditCategory TechniqueCategory
+    | NewSubCategory TechniqueCategory
+
+
+type alias CategoryForm =
+    { state : CategoryState
+    , name : String
+    , description : String
+    , saving : Bool
+    }
+
+
+{-| The sub-categories that go away with the deleted one, to tell the user what they lose.
+-}
+type alias DeletionCategory =
+    { path : String
+    , name : String
+    , subCategories : List String
+    }
+
+
 type ModalState
     = DeletionValidation DeletionTechnique
+    | CategoryDeletionValidation DeletionCategory
+
+
+categoryFormOf : CategoryState -> CategoryForm
+categoryFormOf state =
+    case state of
+        EditCategory category ->
+            CategoryForm state category.name category.description False
+
+        NewSubCategory _ ->
+            CategoryForm state "" "" False
+
+
+{-| The edited category, or the parent of the one to create.
+-}
+categoryFormParent : CategoryState -> TechniqueCategory
+categoryFormParent state =
+    case state of
+        EditCategory category ->
+            category
+
+        NewSubCategory parent ->
+            parent
 
 
 type DragElement
@@ -489,6 +588,7 @@ type Mode
     = Introduction
     | TechniqueErrorDetails TechniqueError TechniqueErrorUiInfo
     | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
+    | CategoryDetails CategoryForm
 
 
 type CheckMode
@@ -515,6 +615,14 @@ type Msg
     | GetTechniqueResources (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
     | CopyResources (Result (Http.Detailed.Error Bytes) ())
     | GetCategories (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueCategory ))
+    | SelectCategory TechniqueCategory
+    | StartNewSubCategory TechniqueCategory
+    | UpdateCategoryForm CategoryForm
+    | StartSavingCategory
+    | SaveCategory (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueCategory ))
+    | OpenCategoryDeletionPopup DeletionCategory
+    | StartDeletingCategory DeletionCategory
+    | DeleteCategory (Result (Http.Detailed.Error String) String)
     | GetMethods (Result (Http.Detailed.Error String) ( Http.Metadata, Dict String Method ))
     | CheckOutJson CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
     | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))

@@ -142,7 +142,7 @@ object YamlTechniqueSerializer {
         technique.id,
         technique.version,
         technique.name,
-        technique.category.getOrElse("ncf_techniques"),
+        technique.category.getOrElse(UserTechniqueCategory.path),
         items,
         technique.description.getOrElse(""),
         technique.documentation.getOrElse(""),

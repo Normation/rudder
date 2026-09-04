@@ -2,6 +2,7 @@ module Editor.ViewTechniqueList exposing (..)
 
 import Dict
 import Editor.DataTypes exposing (..)
+import Editor.ViewUtils exposing (categoryIconClass)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -42,6 +43,9 @@ foldUnfoldCategory treeFilters catId =
     { treeFilters | folded = foldedList }
 
 
+{-| An empty category is only hidden while filtering: without a filter, it is precisely the one
+the user wants to select, to fill it or to delete it.
+-}
 treeCategory : Model -> List TreeTechnique -> TechniqueCategory -> Maybe (Html Msg)
 treeCategory model techniques category =
     let
@@ -50,29 +54,65 @@ treeCategory model techniques category =
                 |> List.filter (.category >> (==) category.path)
                 |> List.map (techniqueItem model)
 
-        subCategories =
+        subCategoriesElem =
             case category.subCategories of
                 SubCategories l ->
-                    l
+                    List.filterMap (treeCategory model techniques) l
+
+        filtering =
+            not (String.isEmpty (String.trim model.techniqueFilter.filter))
 
         childsList =
-            case ( techniquesElem, List.filterMap (treeCategory model techniques) subCategories ) of
+            case ( subCategoriesElem, techniquesElem ) of
                 ( [], [] ) ->
-                    Nothing
+                    if filtering then
+                        Nothing
 
-                ( cats, tech ) ->
-                    Just (List.concat [ cats, tech ])
+                    else
+                        Just []
+
+                ( subCats, techs ) ->
+                    -- sub-categories before techniques, like a file browser
+                    Just (subCats ++ techs)
+
+        activeClass =
+            case model.mode of
+                CategoryDetails catForm ->
+                    if (categoryFormParent catForm.state).path == category.path then
+                        " jstree-clicked"
+
+                    else
+                        ""
+
+                _ ->
+                    ""
     in
     Maybe.map
         (\children ->
-            li [ class ("jstree-node " ++ foldedClass model.techniqueFilter category.id) ]
-                [ i [ class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id)) ] []
-                , a [ class "jstree-anchor" ]
-                    [ i [ class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom" ] []
-                    , span [ class "treeGroupCategoryName" ] [ text category.name ]
-                    ]
-                , ul [ class "jstree-children" ] children
-                ]
+            let
+                -- a category holding nothing is a leaf, like a technique: an expander that opens
+                -- onto nothing looks broken
+                ( nodeClass, expander, subTree ) =
+                    if List.isEmpty children then
+                        ( "jstree-node jstree-leaf"
+                        , i [ class "jstree-icon jstree-ocl" ] []
+                        , []
+                        )
+
+                    else
+                        ( "jstree-node " ++ foldedClass model.techniqueFilter category.id
+                        , i [ class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id)) ] []
+                        , [ ul [ class "jstree-children" ] children ]
+                        )
+            in
+            li [ class nodeClass ]
+                (expander
+                    :: a [ class ("jstree-anchor" ++ activeClass), onClick (SelectCategory category) ]
+                        [ i [ class ("jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom" ++ categoryIconClass category) ] []
+                        , span [ class "treeGroupCategoryName" ] [ text category.name ]
+                        ]
+                    :: subTree
+                )
         )
         childsList
 
@@ -90,16 +130,18 @@ techniqueList model techniques =
             List.sortWith (\t1 t2 -> N.compare t1.technique.name t2.technique.name) (List.filter (\t -> String.contains strFilter (String.toLower t.technique.name) && Maybe.Extra.isNothing t.origin) (Dict.values model.drafts))
 
         techniqueItems =
-            if List.isEmpty techniques && Dict.isEmpty model.drafts then
-                div [ class "empty" ] [ text "The techniques list is empty." ]
+            case ( filteredTechniques, filteredDrafts ) of
+                ( [], [] ) ->
+                    if List.isEmpty techniques && Dict.isEmpty model.drafts then
+                        -- no technique yet, but categories are still there to organize
+                        treeCategory model [] model.categories
+                            |> Maybe.withDefault (div [ class "empty" ] [ text "The techniques list is empty." ])
 
-            else
-                case ( filteredTechniques, filteredDrafts ) of
-                    ( [], [] ) ->
+                    else
                         div [ class "empty" ] [ text "No techniques match your filters." ]
 
-                    ( list, _ ) ->
-                        treeCategory model list model.categories |> Maybe.withDefault (text "")
+                ( list, _ ) ->
+                    treeCategory model list model.categories |> Maybe.withDefault (text "")
 
         drafts =
             if List.isEmpty filteredDrafts then
