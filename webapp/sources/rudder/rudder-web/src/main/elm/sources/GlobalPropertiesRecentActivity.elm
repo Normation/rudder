@@ -2,7 +2,7 @@ port module GlobalPropertiesRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), string2Id)
 import Browser
 import Dict
 import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
@@ -62,12 +62,12 @@ init flags =
             , zone = zone
             }
 
-        -- full text search on directive id to keep activity related to this directive
-        search =
-            string2Search flags.globalPropertyId
+        -- id filter on global property id to keep activity related to this global property
+        globalPropertyId =
+            string2Id flags.globalPropertyId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "parameters")) ]
+            [ Cmd.map ActivityMessage (getActivities globalPropertyId initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 
