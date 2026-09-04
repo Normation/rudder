@@ -138,6 +138,7 @@ class MockLdapFactStorage {
   val softwareGet                 = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldapRo, inventoryMapper)
   val softwareSave                = new NameAndVersionIdFinder("check_name_and_version", ldapRo, inventoryMapper, acceptedDIT)
 
+  // bulk version
   val nodeFactStorage = new LdapNodeFactStorage(
     ldap,
     nodeDit,
@@ -149,6 +150,21 @@ class MockLdapFactStorage {
     softwareGet,
     softwareSave,
     new StringUuidGeneratorImpl()
+  )
+
+  // old node by node version
+  val nodeFactStorageNodeByNode = new LdapNodeFactStorage(
+    ldap,
+    nodeDit,
+    inventoryDitService,
+    ldapMapper,
+    inventoryMapper,
+    new ZioTReentrantLock("node-lock"),
+    ldapFullInventoryRepository,
+    softwareGet,
+    softwareSave,
+    new StringUuidGeneratorImpl(),
+    bulkLoadAtBoot = false
   )
 
 }

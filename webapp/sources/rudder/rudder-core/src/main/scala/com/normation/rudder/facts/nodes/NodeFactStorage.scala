@@ -53,6 +53,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.One
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.StreamedSearchResult
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -283,6 +284,16 @@ object StorageChangeEventDelete {
   }
 }
 
+// make the semantic of the return of loadAllCoreNodeFacts clearer:
+case class AllCoreNodeFacts(
+    pending:  Map[NodeId, CoreNodeFact],
+    accepted: Map[NodeId, CoreNodeFact]
+)
+
+object AllCoreNodeFacts {
+  def empty = AllCoreNodeFacts(Map(), Map())
+}
+
 trait NodeFactStorage {
 
   /*
@@ -310,6 +321,21 @@ trait NodeFactStorage {
 
   def getAllPending()(implicit attrs:  SelectFacts = SelectFacts.default): IOStream[NodeFact]
   def getAllAccepted()(implicit attrs: SelectFacts = SelectFacts.default): IOStream[NodeFact]
+
+  /*
+   * Load every pending/accepted nodes in one go. Used to CodeNodeFactRepository cache initialization.
+   * This method imposes SelectFacts = SelectFacts.none given we want to optimize for the startup scenario.
+   */
+  def loadAllCoreNodeFacts(): IOResult[AllCoreNodeFacts] = {
+    // give a default implementation that matched node-by-node pre-9.1.5 behavior, so that all
+    // mock and testing implementation have at least that behavior.
+    implicit val attrs: SelectFacts = SelectFacts.none
+    for {
+      pending  <- getAllPending().map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
+      accepted <- getAllAccepted().map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
+    } yield AllCoreNodeFacts(pending, accepted)
+
+  }
 }
 
 /*
@@ -327,6 +353,7 @@ object NoopFactStorage extends NodeFactStorage {
   override def getAllAccepted()(implicit @unused attrs: SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
   override def getPending(nodeId:                       NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
   override def getAccepted(nodeId:                      NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
+  override def loadAllCoreNodeFacts(): IOResult[AllCoreNodeFacts] = AllCoreNodeFacts.empty.succeed
 }
 
 /*
@@ -471,7 +498,7 @@ class GitNodeFactStorageImpl(
     gitRepo.rootDirectory / relativePath / AcceptedInventory.name
   )
 
-  // We saving, we must ignore attrs that are "ignored" - ie in that case, if the source list is empty, we take the existing one
+  // When saving, we must ignore attrs that are "ignored" - ie in that case, if the source list is empty, we take the existing one
   // Save does not know about status change. If it's called with a status change, this leads to duplicated data.
   override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts): IOResult[StorageChangeEventSave] = {
     if (nodeFact.rudderSettings.status == RemovedInventory) {
@@ -619,6 +646,9 @@ class GitNodeFactStorageImpl(
 
 object LdapNodeFactStorage {
 
+  // name of the property that turns the bulk loading for cold start off
+  val bulkLoadAtBootProperty = "rudder.facts.bulkLoadAtBoot"
+
   /*
    * We have 3 main places where facts can be stored:
    * - in ou=Nodes,cn=rudder-configuration
@@ -678,7 +708,10 @@ class LdapNodeFactStorage(
     fullInventoryRepository: FullInventoryRepositoryImpl,
     softwareGet:             ReadOnlySoftwareDAO,
     softwareSave:            SoftwareDNFinderAction,
-    uuidGen:                 StringUuidGenerator
+    uuidGen:                 StringUuidGenerator,
+    // whether the node fact cache is filled at boot with a handful of searches instead of node by node
+    // See: https://issues.rudder.io/issues/29696
+    bulkLoadAtBoot:          Boolean = true
 ) extends NodeFactStorage {
 
   // for save, we always store the full node. Since we don't know how to restrict attributes to save
@@ -968,5 +1001,138 @@ class LdapNodeFactStorage(
 
   override def getAllAccepted()(implicit attrs: SelectFacts): IOStream[NodeFact] = {
     getAllNodeFacts(nodeDit.NODES.dn, getAccepted)
+  }
+
+  /*
+   * Bulk load with streaming ldap search.
+   * It can be disabled with `bulkLoadAtBootProperty` set to false.
+   * We only do 3 search (nodes and pending/accepted inventories) and create map of NodeId -> Entry, then
+   * merge them as usual.
+   */
+  override def loadAllCoreNodeFacts(): IOResult[AllCoreNodeFacts] = {
+    if (bulkLoadAtBoot) {
+      // take the read lock since inventories can come, and we want to keep consistency and only proceed them after
+      // initial cache init step
+      NodeLoggerPure.debug(s"Bulk load of node facts ('${LdapNodeFactStorage.bulkLoadAtBootProperty}=true' )")
+      nodeLibMutex.readLock(bulkLoadAllCoreNodeFacts())
+    } else {
+      // pre-9.1.5 way of loading all nodes
+      NodeLoggerPure.info(s"Loading node facts node by node ('${LdapNodeFactStorage.bulkLoadAtBootProperty}=false')")
+      *> super.loadAllCoreNodeFacts()
+    }
+  }
+
+  private def bulkLoadAllCoreNodeFacts(): IOResult[AllCoreNodeFacts] = {
+    val nodeAttrs      = NodeInfoService.nodeInfoAttributes
+    // software update needed in addition, see `getFromLdapInfo`
+    val inventoryAttrs = NodeInfoService.nodeInfoAttributes :+ LDAPConstants.A_SOFTWARE_UPDATE
+
+    def searchSubtree[A](con: RwLDAPConnection, baseDN: DN, attrs: Seq[String])(
+        map: LDAPEntry => Either[String, A]
+    ): IOResult[StreamedSearchResult[A]] = {
+      // only search ONE (level) scope: here, we don't need machine or node inventory subtrees like CPU, FS, etc.
+      con.searchStreamed(baseDN, One, ALL, attrs*)(map)
+    }
+
+    def mapWithId(e: LDAPEntry): Either[String, (NodeId, LDAPEntry)] = {
+      e(A_NODE_UUID) match {
+        // it should never happen, but still
+        case None    => Left("") // we actually don't care of special message here
+        case Some(x) => Right((NodeId(x), e))
+      }
+    }
+
+    for {
+      con <- ldap
+
+      // the rudder node entries are not partitioned by status, so one search covers both
+      rudderEntries <- searchSubtree(con, nodeDit.NODES.dn, nodeAttrs)(mapWithId)
+      // log mapping errors
+      _             <- ZIO.when(!rudderEntries.mappingErrors.isEmpty) {
+                         NodeLoggerPure.warn(
+                           s"${rudderEntries.mappingErrors.size} entries have no '${A_NODE_UUID}' attribute and are ignored: ${rudderEntries.mappingErrors
+                               .map(_._1.toString)
+                               .mkString(", ")}"
+                         )
+                       }
+      rudderNodes    = rudderEntries.results.toMap
+
+      accepted <- loadInventories(con, AcceptedInventory, rudderNodes, inventoryAttrs)
+      pending  <- loadInventories(con, PendingInventory, rudderNodes, inventoryAttrs)
+    } yield AllCoreNodeFacts(pending, accepted)
+  }
+
+  /*
+   * Load the inventory part of fact: one search for the inventory node entries
+   * If some machine are not in the correct branch, we get them one by one.
+   */
+  private def loadInventories(
+      con:            RwLDAPConnection,
+      status:         InventoryStatus,
+      rudderNodes:    Map[NodeId, LDAPEntry],
+      inventoryAttrs: Seq[String]
+  ): IOResult[Map[NodeId, CoreNodeFact]] = {
+    val dit = inventoryDitService.getDit(status)
+
+    def machineKey(dn: DN): String = dn.toNormalizedString // more efficient comparison key
+
+    for {
+      t0 <- currentTimeMillis
+
+      inventoryEntries <- con.searchStreamed(dit.NODES.dn, One, ALL, inventoryAttrs*)(Right.apply)
+      machineEntries   <- con.searchStreamed(dit.MACHINES.dn, One, ALL, inventoryAttrs*)(e => Right((machineKey(e.dn), e)))
+      machines          = machineEntries.results.toMap
+
+      // a node can point to a machine that is not in its own status subtree (it happens when an
+      // acceptation only moved part of the entries). Those are fetched one by one
+      strayMachineDns = inventoryEntries.results
+                          .flatMap(_(A_CONTAINER_DN))
+                          .distinct
+                          .filterNot(dn => machines.contains(machineKey(new DN(dn))))
+      _              <- ZIO.when(strayMachineDns.nonEmpty)(
+                          NodeLoggerPure.debug(
+                            s"${strayMachineDns.size} ${status.name} nodes reference a machine that is not in " +
+                            s"'${dit.MACHINES.dn}', fetching them individually"
+                          )
+                        )
+      strayMachines  <-
+        ZIO
+          .foreach(strayMachineDns)(dn => con.get(new DN(dn), inventoryAttrs*).map(_.map((machineKey(new DN(dn)), _))))
+          .map(_.flatten.toMap)
+      allMachines     = machines ++ strayMachines
+
+      facts <- ZIO.foreach(inventoryEntries.results) { inventoryEntry =>
+                 val optFact = for {
+                   id         <- inventoryEntry(A_NODE_UUID).map(NodeId(_))
+                   rudderNode <- rudderNodes.get(id)
+                 } yield (id, rudderNode)
+
+                 optFact match {
+                   // no rudder entry for that inventory, or no id at all: skip
+                   case None                  => None.succeed
+                   case Some((id, nodeEntry)) =>
+                     val machineEntry = inventoryEntry(A_CONTAINER_DN).flatMap(m => allMachines.get(machineKey(new DN(m))))
+                     (for {
+                       info <- nodeMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry, machineEntry)
+                       up   <- InventoryMapper.getSoftwareUpdate(inventoryEntry)
+                     } yield {
+                       Some((id, NodeFact.fromCompat(info, Left(status), Seq(), Some(up)).toCore))
+                     }).catchAll { err =>
+                       // continue but warn on log
+                       NodeLoggerPure.warn(
+                         s"Unable to retrieve node with id '${id.value}' from LDAP storage. It will be ignored: ${err.fullMsg}"
+                       ) *> None.succeed
+                     }
+                 }
+               }
+
+      result = facts.flatten.toMap
+      t2    <- currentTimeMillis
+      _     <- NodeLoggerPure.Metrics.info(
+                 s"Loaded ${result.size} ${status.name} node facts in ${t2 - t0} ms " +
+                 s"(${inventoryEntries.results.size} inventory entries, ${allMachines.size} machine entries, " +
+                 s"${inventoryEntries.results.size - result.size} skipped)"
+               )
+    } yield result
   }
 }
