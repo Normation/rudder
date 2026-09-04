@@ -3011,87 +3011,95 @@ object RudderConfigInit {
 
     ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
     lazy val gitModificationRepository = new GitModificationRepositoryImpl(doobie)
-    lazy val gitRuleArchiver:                    GitRuleArchiver                    = new GitRuleArchiverImpl(
-      gitConfigRepo,
-      ruleSerialisation,
-      rulesDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
-    lazy val gitRuleCategoryArchiver:            GitRuleCategoryArchiver            = new GitRuleCategoryArchiverImpl(
-      gitConfigRepo,
-      ruleCategorySerialisation,
-      ruleCategoriesDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      "category.xml",
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
-    lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = {
-      new GitActiveTechniqueCategoryArchiverImpl(
+
+    /**
+     * The item archivers are grouped in an object rather than declared as `lazy val`
+     * (same motive as [[ApiInit]] to avoid JVM limit of parameters, see https://issues.rudder.io/issues/26416)
+     */
+    import GitArchiversInit.*
+    object GitArchiversInit {
+      lazy val gitRuleArchiver:                    GitRuleArchiver                    = new GitRuleArchiverImpl(
         gitConfigRepo,
-        activeTechniqueCategorySerialisation,
-        userLibraryDirectoryName,
+        ruleSerialisation,
+        rulesDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        RUDDER_CHARSET.name,
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      )
+      lazy val gitRuleCategoryArchiver:            GitRuleCategoryArchiver            = new GitRuleCategoryArchiverImpl(
+        gitConfigRepo,
+        ruleCategorySerialisation,
+        ruleCategoriesDirectoryName,
         prettyPrinter,
         gitModificationRepository,
         RUDDER_CHARSET.name,
         "category.xml",
         RUDDER_GROUP_OWNER_CONFIG_REPO
       )
+      lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = {
+        new GitActiveTechniqueCategoryArchiverImpl(
+          gitConfigRepo,
+          activeTechniqueCategorySerialisation,
+          userLibraryDirectoryName,
+          prettyPrinter,
+          gitModificationRepository,
+          RUDDER_CHARSET.name,
+          "category.xml",
+          RUDDER_GROUP_OWNER_CONFIG_REPO
+        )
+      }
+      lazy val gitActiveTechniqueArchiver:         GitActiveTechniqueArchiverImpl     = new GitActiveTechniqueArchiverImpl(
+        gitConfigRepo,
+        activeTechniqueSerialisation,
+        userLibraryDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        Buffer(),
+        RUDDER_CHARSET.name,
+        "activeTechniqueSettings.xml",
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      )
+      lazy val gitDirectiveArchiver:               GitDirectiveArchiver               = new GitDirectiveArchiverImpl(
+        gitConfigRepo,
+        directiveSerialisation,
+        userLibraryDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        RUDDER_CHARSET.name,
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      )
+      // only for `UpdatePiOnActiveTechniqueEvent`, see where it is registered
+      lazy val gitDirectiveArchiverWithoutModId:   GitDirectiveArchiver               = new GitDirectiveArchiverImpl(
+        gitConfigRepo,
+        directiveSerialisation,
+        userLibraryDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        RUDDER_CHARSET.name,
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      ) with GitConfigItemRepositoryWithoutModId
+      lazy val gitNodeGroupArchiver:               GitNodeGroupArchiver               = new GitNodeGroupArchiverImpl(
+        gitConfigRepo,
+        nodeGroupSerialisation,
+        nodeGroupCategorySerialisation,
+        groupLibraryDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        RUDDER_CHARSET.name,
+        "category.xml",
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      )
+      lazy val gitParameterArchiver:               GitParameterArchiver               = new GitParameterArchiverImpl(
+        gitConfigRepo,
+        globalParameterSerialisation,
+        parametersDirectoryName,
+        prettyPrinter,
+        gitModificationRepository,
+        RUDDER_CHARSET.name,
+        RUDDER_GROUP_OWNER_CONFIG_REPO
+      )
     }
-    lazy val gitActiveTechniqueArchiver:         GitActiveTechniqueArchiverImpl     = new GitActiveTechniqueArchiverImpl(
-      gitConfigRepo,
-      activeTechniqueSerialisation,
-      userLibraryDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      Buffer(),
-      RUDDER_CHARSET.name,
-      "activeTechniqueSettings.xml",
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
-    lazy val gitDirectiveArchiver:               GitDirectiveArchiver               = new GitDirectiveArchiverImpl(
-      gitConfigRepo,
-      directiveSerialisation,
-      userLibraryDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
-    // only for `UpdatePiOnActiveTechniqueEvent`, see where it is registered
-    lazy val gitDirectiveArchiverWithoutModId:   GitDirectiveArchiver               = new GitDirectiveArchiverImpl(
-      gitConfigRepo,
-      directiveSerialisation,
-      userLibraryDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    ) with GitConfigItemRepositoryWithoutModId
-    lazy val gitNodeGroupArchiver:               GitNodeGroupArchiver               = new GitNodeGroupArchiverImpl(
-      gitConfigRepo,
-      nodeGroupSerialisation,
-      nodeGroupCategorySerialisation,
-      groupLibraryDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      "category.xml",
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
-    lazy val gitParameterArchiver:               GitParameterArchiver               = new GitParameterArchiverImpl(
-      gitConfigRepo,
-      globalParameterSerialisation,
-      parametersDirectoryName,
-      prettyPrinter,
-      gitModificationRepository,
-      RUDDER_CHARSET.name,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
-    )
     ////////////// MUTEX FOR rwLdap REPOS //////////////
 
     lazy val uptLibReadWriteMutex    = new ZioTReentrantLock("directive-lock")
