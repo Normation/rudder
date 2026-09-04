@@ -478,6 +478,23 @@ impl Scheduler {
                 }
             })
     }
+
+    /// Get next run time for given as requested by cli
+    pub fn get_next_run(&self, job_name: &str) -> Result<DateTime<Local>> {
+        let jobs = self.schedules.iter().filter(|s| s.name == job_name).next();
+        let job = match jobs {
+            Some(j) => j,
+            None => bail!("No job named '{}' found", job_name),
+        };
+        let next_run = match job.schedule.next_run(Local::now(), self.uuid_hash) {
+            Some(t) => t,
+            None => bail!(
+                "Next schedule for job '{}' cannot be expressed in current timezone",
+                job.name
+            ),
+        };
+        Ok(next_run)
+    }
 }
 
 #[cfg(test)]
