@@ -190,7 +190,7 @@ class SectionTest extends Specification {
   private def readFile(fileName: String): Elem = {
     val doc = {
       try {
-        XmlSafe.load(ClassLoader.getSystemResourceAsStream(fileName))
+        XmlSafe.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with " + fileName)
         case e: java.net.MalformedURLException => throw new FileNotFoundException("%s file not found".format(fileName))

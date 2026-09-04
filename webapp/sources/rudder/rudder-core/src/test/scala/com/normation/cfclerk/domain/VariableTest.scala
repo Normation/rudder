@@ -96,7 +96,7 @@ class VariableTest extends Specification {
   val variables: mutable.Map[String, Variable] = {
     val doc = {
       try {
-        XmlSafe.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
+        XmlSafe.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("testVariable.xml"))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with testVariable.xml ")
         case e: java.net.MalformedURLException => throw new FileNotFoundException("testVariable.xml file not found ")
@@ -133,7 +133,7 @@ class VariableTest extends Specification {
   "SYSTEM_VARIABLE tag" should {
     "lead to an exception" in {
       val sysvar = (for {
-        elt      <- (XmlSafe.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
+        elt      <- (XmlSafe.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
         specNode <- elt.nonEmptyChildren
         if (!specNode.isInstanceOf[Text])
       } yield {
