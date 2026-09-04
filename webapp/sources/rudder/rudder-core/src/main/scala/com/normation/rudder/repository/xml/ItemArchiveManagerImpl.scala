@@ -640,15 +640,17 @@ object PartialArchive {
   val ruleArchive:      PartialArchive = PartialArchive("rules/")
   val directiveArchive: PartialArchive = PartialArchive("directives/")
   val ncfArchive:       PartialArchive = PartialArchive("ncf/")
+  val techniqueArchive: PartialArchive = PartialArchive("techniques/")
   val parameterArchive: PartialArchive = PartialArchive("parameters/")
 }
 
 import com.normation.rudder.repository.xml.PartialArchive.*
 
 case object TechniqueLibraryArchive extends ArchiveMode {
-  def configureRm(rmCmd: RmCommand): RmCommand = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+  def configureRm(rmCmd: RmCommand):             RmCommand       =
+    directiveArchive.configureRm(ncfArchive.configureRm(techniqueArchive.configureRm(rmCmd)))
   def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand =
-    directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
+    directiveArchive.configureCheckout(ncfArchive.configureCheckout(techniqueArchive.configureCheckout(coCmd)))
 }
 case object FullArchive             extends ArchiveMode {
 
