@@ -528,12 +528,15 @@ pub fn entry() -> Result<(), anyhow::Error> {
 
 pub fn get_used_cmd(p: &CommandsParameters) -> String {
     let command = &p.command;
-    let cmd_args = format!("{command} {}", p.args.join(" "));
 
     if p.in_shell {
-        format!("{} -c '{}'", p.shell_path, cmd_args)
+        let quoted_command = shlex::try_quote(command)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|_| command.clone());
+        format!("{} -c {}", p.shell_path, quoted_command)
     } else {
-        cmd_args
+        let words = std::iter::once(command.as_str()).chain(p.args.iter().map(String::as_str));
+        shlex::try_join(words).unwrap_or_else(|_| format!("{command} {}", p.args.join(" ")))
     }
 }
 
@@ -718,8 +721,8 @@ mod tests {
         use super::*;
 
         let cmd = CommandsParameters {
-            command: "echo".to_string(),
-            args: vec!["OK".to_string()],
+            command: "echo OK".to_string(),
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -742,6 +745,166 @@ mod tests {
 
         let cmd_string = get_used_cmd(&cmd);
         assert_eq!(cmd_string, "/bin/sh -c 'echo OK'");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_escapes_args_with_spaces() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: vec!["hello world".to_string()],
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "echo 'hello world'");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_escapes_args_with_shell_metacharacters() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: vec!["$HOME".to_string(), "a;rm -rf /".to_string()],
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "echo '$HOME' 'a;rm -rf /'");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_escapes_args_with_single_quotes() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: vec!["it's a test".to_string()],
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "echo \"it's a test\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_escapes_args_with_double_quotes() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: vec!["say \"hi\"".to_string()],
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "echo 'say \"hi\"'");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_in_shell_escapes_command_with_single_quote() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo 'hello'".to_string(),
+            args: Vec::new(),
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "/bin/sh -c \"echo 'hello'\"");
     }
 
     #[test]
