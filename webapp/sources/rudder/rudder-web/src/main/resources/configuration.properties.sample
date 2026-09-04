@@ -473,6 +473,12 @@ rudder.facts.repo.writeNodeState=false
 # property to true:
 rudder.facts.repo.historizeNodeChange=false
 
+# At boot, Rudder loads all node facts from LDAP to fill its cache.
+# Set this to 'false' to get back to the node-by-node loading, which is what Rudder did up to 9.1.4.
+# It is only useful if there's warning in the boot sequence related to loading nodes
+# or if you notice missing nodes on restart.
+rudder.facts.bulkLoadAtBoot=true
+
 ###############################
 # Dynamic group configuration  ######################################################
 ###############################

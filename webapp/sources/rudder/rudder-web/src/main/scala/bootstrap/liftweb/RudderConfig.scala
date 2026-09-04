@@ -743,6 +743,16 @@ object RudderParsedProperties {
     }
   }
 
+  // control the bulk load of node facts from LDAP. Default to true; fasle revert to the
+  // pre-9.1.5 behavior.
+  val RUDDER_NODEFACTS_BULK_LOAD_AT_BOOT: Boolean = {
+    try {
+      config.getBoolean(LdapNodeFactStorage.bulkLoadAtBootProperty)
+    } catch {
+      case ex: Exception => true
+    }
+  }
+
   val RUDDER_DIR_TECHNIQUES:                        String = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL:         Int    = config.getInt("rudder.batch.dyngroup.updateInterval") // in minutes
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL: Int    =
@@ -1991,7 +2001,8 @@ object RudderConfigInit {
       deprecated.ldapFullInventoryRepository,
       deprecated.softwareInventoryDAO,
       deprecated.ldapSoftwareSave,
-      stringUuidGenerator
+      stringUuidGenerator,
+      RUDDER_NODEFACTS_BULK_LOAD_AT_BOOT
     )
 
     lazy val getNodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(deprecated.softwareInventoryDAO)
