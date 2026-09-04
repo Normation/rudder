@@ -340,12 +340,14 @@ object EventLogJdbcRepository {
         .flatMap(p => p.exclude.map(nec => fragments.notIn(fr"eventtype", nec.map(_.serialize))))
     }
 
+    val id = filter.flatMap(f => f.id).map(id => fr"id = ${id.value}")
+
     val search = filter.flatMap(f => f.search).flatMap(toFragment)
 
     val tenant = TenantSql.readerScopeFragment(readerScope, "securitytag")
 
     val where =
-      Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search, tenant)
+      Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search, tenant, id)
 
     val fromWithSearchFragment = {
       fr"""
