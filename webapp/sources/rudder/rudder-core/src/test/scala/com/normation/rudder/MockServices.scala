@@ -267,10 +267,25 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
     }
   }
 
-  val gitModificationRepository: GitModificationRepository = new GitModificationRepository {
-    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-      DB.GitCommitJoin(commit, modId).succeed
+  val gitModificationRepository: MockGitModificationRepository = new MockGitModificationRepository()
+}
+
+class MockGitModificationRepository extends GitModificationRepository {
+
+  private val commits: Ref[Map[ModificationId, Chunk[GitCommitId]]] =
+    Ref.make(Map.empty[ModificationId, Chunk[GitCommitId]]).runNow
+
+  // get all the commits recorded for that modId, in insertion order
+  def getAllCommits(modificationId: ModificationId): IOResult[Chunk[GitCommitId]] = {
+    commits.get.map(_.getOrElse(modificationId, Chunk.empty))
+  }
+
+  override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = {
+    getAllCommits(modificationId).map(_.headOption)
+  }
+
+  override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] = {
+    commits.update(m => m + (modId -> (m.getOrElse(modId, Chunk.empty) :+ commit))).as(DB.GitCommitJoin(commit, modId))
   }
 }
 

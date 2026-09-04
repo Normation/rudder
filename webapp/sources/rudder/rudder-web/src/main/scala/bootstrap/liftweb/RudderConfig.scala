@@ -77,6 +77,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitConfigItemRepositoryWithoutModId
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
@@ -3061,6 +3062,16 @@ object RudderConfigInit {
       RUDDER_CHARSET.name,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
+    // only for `UpdatePiOnActiveTechniqueEvent`, see where it is registered
+    lazy val gitDirectiveArchiverWithoutModId:   GitDirectiveArchiver               = new GitDirectiveArchiverImpl(
+      gitConfigRepo,
+      directiveSerialisation,
+      userLibraryDirectoryName,
+      prettyPrinter,
+      gitModificationRepository,
+      RUDDER_CHARSET.name,
+      RUDDER_GROUP_OWNER_CONFIG_REPO
+    ) with GitConfigItemRepositoryWithoutModId
     lazy val gitNodeGroupArchiver:               GitNodeGroupArchiver               = new GitNodeGroupArchiverImpl(
       gitConfigRepo,
       nodeGroupSerialisation,
@@ -3114,8 +3125,12 @@ object RudderConfigInit {
         RUDDER_AUTOARCHIVEITEMS
       )
 
+      // re-archiving the directives is only a consequence of archiving their active technique, which does not
+      // link its commits to the modification: those directives must not link theirs either, else a change on
+      // the reference technique library would link a second commit to its modification, see
+      // https://issues.rudder.io/issues/29500
       gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
-        gitDirectiveArchiver,
+        gitDirectiveArchiverWithoutModId,
         techniqueRepositoryImpl,
         roLdapDirectiveRepository
       )
