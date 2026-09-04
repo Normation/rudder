@@ -40,6 +40,9 @@ import com.unboundid.ldap.sdk.ReadOnlyLDAPRequest
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.ResultCode.*
 import com.unboundid.ldap.sdk.SearchRequest
+import com.unboundid.ldap.sdk.SearchResultEntry
+import com.unboundid.ldap.sdk.SearchResultListener
+import com.unboundid.ldap.sdk.SearchResultReference
 import com.unboundid.ldif.LDIFChangeRecord
 import scala.jdk.CollectionConverters.*
 import zio.*
@@ -49,6 +52,16 @@ import zio.syntax.*
  * Logger for LDAP connection related information.
  */
 object LDAPConnectionLogger extends NamedZioLogger() { def loggerName = "ldap-connection" }
+
+/*
+ * A dedicated type to accumulate.
+ * Since we map along the way to release entries asap, we need a way to also accumulate entry that
+ * where found but for which mapping failed.
+ */
+case class StreamedSearchResult[+A](
+    results:       Chunk[A],
+    mappingErrors: Chunk[(DN, String)]
+)
 
 trait ReadOnlyEntryLDAPConnection {
 
@@ -174,6 +187,40 @@ trait ReadOnlyEntryLDAPConnection {
    */
   def searchSub(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] =
     search(baseDn, Sub, filter, attributes*)
+
+  /**
+   * Like `search`, but entries are mapped as they arrive from the directory instead of being
+   * all accumulated first. For the cases where the result set is big and each entry can be
+   * processed then dropped, so that neither this process nor the directory has to hold the
+   * whole result set.
+   *
+   * Two differences with `search`:
+   * - `onEntry` is called from the connection reader thread, one entry at a time. It must be
+   *   cheap and pure (and so not block on anything, esp. that could wait for this same connection)
+   * - a server side size or time limit makes this fail. `search` reports it and returns the
+   *   truncated result, which is a real error in that case.
+   *
+   * @param sr
+   *   SearchRequest object which define the search operation to send to LDAP directory.
+   *   It must not carry a SearchResultListener, this method sets its own.
+   * @param onEntry
+   *   Mapping applied to each entry as it arrives. If Left, the entry is dropped from `results` and message is
+   *   added to mappingErrors.
+   * @return
+   *   The mapped entries, in the order the directory returned them, and the mapping errors.
+   */
+  def searchStreamed[A](sr: SearchRequest)(onEntry: LDAPEntry => Either[String, A]): LDAPIOResult[StreamedSearchResult[A]]
+
+  /**
+   * `searchStreamed` with the commonly used parameters.
+   * @see searchStreamed
+   * @see search
+   */
+  def searchStreamed[A](baseDn: DN, scope: SearchScope, filter: Filter, attributes: String*)(
+      onEntry: LDAPEntry => Either[String, A]
+  ): LDAPIOResult[StreamedSearchResult[A]] = {
+    searchStreamed(new SearchRequest(baseDn.toString, scope.toUnboundid, filter, attributes*))(onEntry)
+  }
 }
 
 trait WriteOnlyEntryLDAPConnection {
@@ -335,6 +382,52 @@ sealed class RoLDAPConnection(
       case ex: LDAPException                                                =>
         LDAPRudderError
           .BackendException(s"Error during search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}", ex)
+          .fail
+      // catchAll is a lie, but if other kind of exception happens, we want to crash
+      case ex => throw ex
+    }
+  }
+
+  override def searchStreamed[A](
+      sr: SearchRequest
+  )(onEntry: LDAPEntry => Either[String, A]): LDAPIOResult[StreamedSearchResult[A]] = {
+    blocking {
+      // none of these variables escape the scope of that method. They are mutable for memory efficiency.
+      val mapped   = Chunk.newBuilder[A]
+      val errors   = Chunk.newBuilder[(DN, String)]
+      val listener = new SearchResultListener {
+        override def searchEntryReturned(entry: SearchResultEntry): Unit = {
+          val e = LDAPEntry(entry)
+          onEntry(e) match {
+            case Left(err) => errors += ((e.dn, err))
+            case Right(x)  => mapped += x
+          }
+        }
+        override def searchReferenceReturned(reference: SearchResultReference): Unit = ()
+      }
+      val streamed = new SearchRequest(
+        listener,
+        sr.getBaseDN,
+        sr.getScope,
+        sr.getDereferencePolicy,
+        sr.getSizeLimit,
+        sr.getTimeLimitSeconds,
+        sr.typesOnly(),
+        sr.getFilter,
+        sr.getAttributes.toSeq*
+      )
+      sr.getControlList.asScala.foreach(streamed.addControl)
+      backed.search(streamed)
+      StreamedSearchResult(mapped.result(), errors.result())
+    } catchAll {
+      // no `onlyReportOnSearch` here on purpose: a truncated result would silently mean
+      // "these objects do not exist" to whoever asked for the whole set
+      case ex: LDAPException =>
+        LDAPRudderError
+          .BackendException(
+            s"Error during streamed search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}",
+            ex
+          )
           .fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash
       case ex => throw ex
