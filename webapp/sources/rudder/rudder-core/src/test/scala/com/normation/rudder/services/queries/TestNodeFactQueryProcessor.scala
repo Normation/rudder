@@ -134,7 +134,7 @@ class TestNodeFactQueryProcessor {
                mockLdapFactStorage.nodeFactStorage,
                NoopNodeBySoftware,
                tenantRepository,
-               new DefaultTenantCheckLogic,
+               new DefaultTenantCheckLogic(tenantRepository),
                Chunk.empty
              )
     } yield r).runNow

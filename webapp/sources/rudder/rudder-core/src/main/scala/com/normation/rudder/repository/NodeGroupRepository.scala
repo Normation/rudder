@@ -426,6 +426,12 @@ trait WoNodeGroupRepository {
    */
   def update(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
 
+  /*
+   * Put back a group in a state it had in the past (event-log rollback, archive restore). Same as `update`
+   * except that the tenant tag may go backwards - see `TenantCheckLogic.manageRestore`.
+   */
+  def restore(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
+
   /**
    * Only add / remove some nodes in an atomic way from the group
    */

@@ -157,7 +157,8 @@ class GiveReasonPopup(
                         ActiveTechniqueCategoryId(destCatId.value),
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                        policyTypes = PolicyTypes.rudderBase
+                        policyTypes = PolicyTypes.rudderBase,
+                        None
                       )(using qc.newCC(crReasons.map(_.get)))
                       .toBox
                     ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)

@@ -507,7 +507,8 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
                             ActiveTechniqueCategoryId(destCatId),
                             ptName,
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                            policyTypes = PolicyTypes.rudderBase
+                            policyTypes = PolicyTypes.rudderBase,
+                            None
                           )(using qc.newCC(Some("Active technique added by user from UI")))
                           .toBox
                         ?~! errorMess.format(sourceactiveTechniqueId, destCatId))

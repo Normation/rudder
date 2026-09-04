@@ -22,15 +22,18 @@ Managing (create / modify / move / delete) a **system** object is allowed only t
 all-tenants (admin) grant. This is enforced uniformly, on every write of every tenant-scoped repository,
 inside `TenantCheckLogic`:
 
-* folded into `checkModify`, `checkDelete` and `manageCreate`/`manageUpdate` (which read `obj.isSystem`);
+* folded into the preamble shared by every `manageXXX` operation (which reads `obj.isSystem` on the existing
+  object and, for an update, on the submitted one too). That same preamble carries the rest of the write law:
+  when the tenant feature is disabled only an all-tenants grant may write, and an actor with no writable
+  tenant may not write at all - a delete obeys the same law as an update;
 * `checkAdmin` covers system operations that have no `HasSecurityTag` object (e.g. policy server targets).
 
 `HasSecurityTag.isSystem` has **no default**: each instance states its own system notion explicitly (a rule/
 directive/group/category exposes its `isSystem`; an active technique is system when it carries the system
 policy type; properties, parameters and nodes are never system).
 
-Container checks (`checkWriteInto`) are intentionally **not** system-gated: creating a tenant object under a
-system root category is normal and must stay allowed.
+The container check (the `into` argument of `manageCreate` / `manageMove`) is intentionally **not**
+system-gated: creating a tenant object under a system root category is normal and must stay allowed.
 
 ## Consequences
 
@@ -39,6 +42,6 @@ system root category is normal and must stay allowed.
   closing the `Open`/`ByTenants` system-object case.
 * `system` becomes a load-bearing, cross-tenant protection: an object's "system" meaning and behavior are an
   administrator responsibility.
-* The distinction between "modify this object" (`checkModify`, system-gated) and "create under this
-  container" (`checkWriteInto`, not system-gated) is essential - conflating them would forbid tenants from
-  creating anything under the system root categories.
+* The distinction between "modify this object" (system-gated) and "create under this container" (not
+  system-gated) is essential - conflating them would forbid tenants from creating anything under the system
+  root categories.
