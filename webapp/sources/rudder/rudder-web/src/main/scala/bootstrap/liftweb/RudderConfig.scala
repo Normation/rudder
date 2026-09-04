@@ -1945,6 +1945,13 @@ object RudderConfigInit {
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
 
+    lazy val ncfTechniqueCategoryWriter: TechniqueCategoryWriter = new TechniqueCategoryWriterImpl(
+      techniqueArchiver,
+      updateTechniqueLibrary,
+      techniqueRepository,
+      RUDDER_GIT_ROOT_CONFIG_REPO
+    )
+
     lazy val pipelinedInventoryParser: InventoryParser = {
       val fusionReportParser = {
         new FusionInventoryParser(
@@ -2345,6 +2352,7 @@ object RudderConfigInit {
               techniqueCompiler
             ),
             ncfTechniqueWriter,
+            ncfTechniqueCategoryWriter,
             ncfTechniqueReader,
             techniqueRepository,
             techniqueSerializer,

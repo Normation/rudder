@@ -247,3 +247,26 @@ encodeExportTechnique technique =
         , ( "version", string "4.0" )
         , ( "data", encodeTechnique technique )
         ]
+
+
+{-| `POST /techniques/categories` takes both the creation and the rename of a category, told
+apart by the `action` field: a creation needs the parent to hang the new directory under, a
+rename needs the path of the category to change.
+-}
+encodeCategoryForm : CategoryForm -> Value
+encodeCategoryForm form =
+    let
+        ( action, target ) =
+            case form.state of
+                EditCategory category ->
+                    ( "update", ( "path", string category.path ) )
+
+                NewSubCategory parent ->
+                    ( "create", ( "parent", string parent.path ) )
+    in
+    object
+        [ ( "action", string action )
+        , target
+        , ( "name", string form.name )
+        , ( "description", string form.description )
+        ]

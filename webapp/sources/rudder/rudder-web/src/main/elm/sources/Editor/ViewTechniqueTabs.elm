@@ -449,6 +449,14 @@ getSubElems cat =
             subs
 
 
+{-| A technique of the editor can only live under `User Techniques`: the rest of the library is
+provided by Rudder packages could be changed on upgrade.
+-}
+userTechniqueCategories : Model -> Maybe TechniqueCategory
+userTechniqueCategories model =
+    List.head (List.filter (\c -> c.path == userTechniquesPath) (allCategorieswithoutRoot model))
+
+
 buildListCategoriesWithoutRoot : String -> String -> TechniqueCategory -> List (Html Msg)
 buildListCategoriesWithoutRoot sep category c =
     let
@@ -496,7 +504,13 @@ techniqueTab model technique creation ui =
         disableCategory =
             if creation then
                 select [ class "form-select", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique { technique | category = s }) ]
-                    (buildListCategoriesWithoutRoot "" technique.category model.categories)
+                    (case userTechniqueCategories model of
+                        Just userCategories ->
+                            buildListCategoriesWithoutRoot "" technique.category userCategories
+
+                        Nothing ->
+                            []
+                    )
 
             else
                 input [ readonly True, class "form-control", id "category", value categoryName ] []
@@ -528,7 +542,7 @@ techniqueTab model technique creation ui =
     case ui.tab of
         General ->
             div [ class "tab tab-general" ]
-                [ div [ class "row form-group", style "margin-top" "15px" ]
+                [ div [ class "row form-group" ]
                     [ label [ for "techniqueName", class "col-sm-12" ]
                         [ text "Name"
                         , span [ class "mandatory-param" ] [ text " *" ]

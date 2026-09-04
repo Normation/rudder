@@ -715,34 +715,40 @@ response:
       "data" : {
         "techniqueCategories" : {
           "name" : "/",
+          "description" : "\n        This is the root category for the Techniques library. It contains Techniques provided by Normation.\n    ",
           "path" : "",
           "id" : "/",
           "subCategories" : [
             {
               "name" : "Application management",
+              "description" : "This category contains Techniques designed to install, configure and manage applications",
               "path" : "applications",
               "id" : "applications",
               "subCategories" : []
             },
             {
               "name" : "Distributing files",
+              "description" : "\n        Manage node files.\n    ",
               "path" : "fileDistribution",
               "id" : "fileDistribution",
               "subCategories" : []
             },
             {
               "name" : "Meta Techniques",
+              "description" : "\n    Meta Techniques created using the ncf framework.\n  ",
               "path" : "ncf_techniques",
               "id" : "ncf_techniques",
               "subCategories" : []
             },
             {
               "name" : "System settings",
+              "description" : "This category contains Techniques to configure the basic components of a system: name resolution, time synchronization, remote access, networking...",
               "path" : "systemSettings",
               "id" : "systemSettings",
               "subCategories" : [
                 {
                   "name" : "Miscellaneous",
+                  "description" : "This sub-category contains various Techniques to configure system settings.",
                   "path" : "systemSettings/misc",
                   "id" : "misc",
                   "subCategories" : []
@@ -751,12 +757,14 @@ response:
             },
             {
               "name" : "System Techniques",
+              "description" : "\n        This category contains internal Techniques (system).\n        These Techniques should not be used directly.\n    ",
               "path" : "system",
               "id" : "system",
               "subCategories" : []
             },
             {
               "name" : "testing things",
+              "description" : "Category for testing",
               "path" : "test_only",
               "id" : "test_only",
               "subCategories" : []

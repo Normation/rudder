@@ -18,6 +18,8 @@ import Url.Builder exposing (QueryParameter)
 -- Summary:
 -- GET    /techniques : get the list of techniques (from technique editor)
 -- GET    /techniques/categories : get the list of techniques categories (all categories from lib)
+-- POST   /techniques/categories : create a technique category, or rename an existing one
+-- DELETE /techniques/categories?path=${path} : delete an empty technique category
 -- GET    /methods : get the list of available generic methods
 -- PUT    /techniques : create a new technique (error if existing)
 -- POST   /techniques : update an existing technique (error if doesn't exist yet)
@@ -119,6 +121,40 @@ getTechniquesCategories model =
                 , url = getUrl model "techniques/categories"
                 , body = emptyBody
                 , expect = Detailed.expectJson GetCategories (Json.Decode.at [ "data", "techniqueCategories" ] decodeCategory)
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
+saveCategory : CategoryForm -> Model -> Cmd Msg
+saveCategory form model =
+    let
+        req =
+            request
+                { method = "POST"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model "techniques/categories"
+                , body = encodeCategoryForm form |> jsonBody
+                , expect = Detailed.expectJson SaveCategory (Json.Decode.at [ "data", "techniqueCategories" ] (list decodeCategory) |> headList)
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
+deleteCategory : DeletionCategory -> Model -> Cmd Msg
+deleteCategory category model =
+    let
+        req =
+            request
+                { method = "DELETE"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrlNew model [ "techniques", "categories" ] [ Url.Builder.string "path" category.path ]
+                , body = emptyBody
+                , expect = Detailed.expectJson (ignoreMetadata >> DeleteCategory) (Json.Decode.at [ "data", "techniqueCategories" ] (list decodeDeleteCategoryResponse) |> headList)
                 , timeout = Nothing
                 , tracker = Nothing
                 }
