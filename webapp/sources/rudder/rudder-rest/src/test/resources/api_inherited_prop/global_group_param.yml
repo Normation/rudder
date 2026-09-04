@@ -106,7 +106,8 @@ response:
             "properties":[
               {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
               {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}},
-              {"name":"badOverrideType","value" : {"now" :"a json"}}
+              {"name":"badOverrideType","value" : {"now" :"a json"}},
+              {"name":"rudder","value":"a string"}
             ],
             "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
             "system":false
@@ -136,6 +137,7 @@ response:
                   "now" : "a json"
                 },
                 "description" : "a string at first",
+                "provider" : "overridden",
                 "hierarchy" : {
                   "kind" : "group",
                   "name" : "Real nodes",
@@ -222,18 +224,32 @@ response:
               },
               {
                 "name":"rudder",
-                "value":{ "compliance_expiration_policy":{"mode":"expire_immediately"} },
+                "value":"a string",
                 "description":"rudder system config",
-                "provider":"inherited",
+                "provider":"overridden",
                 "hierarchy":{
-                  "kind":"global",
-                  "value":{ "compliance_expiration_policy":{"mode":"expire_immediately"} }
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":"a string",
+                  "resolvedValue":"a string",
+                  "parent":{
+                    "kind":"global",
+                    "value":{ "compliance_expiration_policy":{"mode":"expire_immediately"} }
+                  }
                 },
                 "hierarchyStatus":{
-                  "hasChildTypeConflicts":false,
-                  "fullHierarchy":{"kind":"global","valueType":"Object"}
+                  "hasChildTypeConflicts":true,
+                  "fullHierarchy":{
+                    "kind":"group",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "valueType":"String",
+                    "parent":{"kind":"global","valueType":"Object"}
+                  },
+                  "errorMessage":"Conflicting types in inherited node properties"
                 },
-                "origval":{ "compliance_expiration_policy":{"mode":"expire_immediately"} }
+                "origval":"a string"
               },
               {
                 "name":"stringParam",
@@ -301,6 +317,7 @@ response:
                   "now":"a json"
                 },
                "description":"a string at first",
+               "provider":"overridden",
                "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"a string\"</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"now\" : \"a json\"\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : true,
@@ -380,26 +397,25 @@ response:
               },
               {
                 "name":"rudder",
-                "value" : {
-                  "compliance_expiration_policy" : {
-                    "mode":"expire_immediately"
-                  }
-                },
+                "value":"a string",
                "description":"rudder system config",
-                "provider":"inherited",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
+                "provider":"overridden",
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"a string\"</pre></p>",
                 "hierarchyStatus" : {
-                  "hasChildTypeConflicts" : false,
+                  "hasChildTypeConflicts" : true,
                  "fullHierarchy" : {
-                   "kind":"global",
-                   "valueType":"Object"
-                 }
+                   "kind":"group",
+                   "name":"Real nodes",
+                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                   "valueType":"String",
+                   "parent" : {
+                      "kind":"global",
+                      "valueType":"Object"
+                    }
+                 },
+                  "errorMessage":"Conflicting types in inherited node properties"
                 },
-                "origval" : {
-                  "compliance_expiration_policy" : {
-                    "mode":"expire_immediately"
-                  }
-                }
+                "origval":"a string"
               },
               {
                 "name":"stringParam",
@@ -494,7 +510,8 @@ response:
             "properties":[
               {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
               {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}},
-              {"name":"badOverrideType","value" : {"now" :"a json"}}
+              {"name":"badOverrideType","value" : {"now" :"a json"}},
+              {"name":"rudder","value":"a string"}
             ],
             "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
             "system":false
@@ -662,6 +679,7 @@ response:
                 "now":"a json"
               },
              "description":"a string at first",
+              "provider":"inherited",
              "hierarchy" : {
                "kind":"group",
                "name":"Real nodes",
@@ -800,33 +818,39 @@ response:
             },
             {
               "name":"rudder",
-              "value" : {
-                "compliance_expiration_policy" : {
-                  "mode":"expire_immediately"
-                }
-              },
+              "value":"a string",
              "description":"rudder system config",
               "provider":"inherited",
              "hierarchy" : {
-               "kind":"global",
-               "value" : {
-                 "compliance_expiration_policy" : {
-                   "mode":"expire_immediately"
+               "kind":"group",
+               "name":"Real nodes",
+               "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+               "value":"a string",
+               "resolvedValue":"a string",
+               "parent" : {
+                 "kind":"global",
+                 "value" : {
+                   "compliance_expiration_policy" : {
+                     "mode":"expire_immediately"
+                    }
                   }
                 }
              },
               "hierarchyStatus" : {
-                "hasChildTypeConflicts" : false,
+                "hasChildTypeConflicts" : true,
                "fullHierarchy" : {
-                 "kind":"global",
-                 "valueType":"Object"
-               }
+                 "kind":"group",
+                 "name":"Real nodes",
+                 "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                 "valueType":"String",
+                 "parent" : {
+                   "kind":"global",
+                   "valueType":"Object"
+                 }
+               },
+                "errorMessage":"Conflicting types in inherited node properties"
               },
-              "origval" : {
-                "compliance_expiration_policy" : {
-                  "mode":"expire_immediately"
-                }
-              }
+              "origval":"a string"
             },
             {
               "name":"stringParam",
