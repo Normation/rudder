@@ -39,9 +39,9 @@ package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.schedule.ScheduleWindows.Windows
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
@@ -50,7 +50,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ScheduleWindowsTest extends Specification {
 
-  val utc: Option[ScheduleTimeZone] = Some(ScheduleTimeZone("UTC"))
+  val utc: Option[ScheduleTimeZone] = Some(ScheduleTimeZone.UTC)
 
   def date(day: Int, hour: Int, minute: Int = 0): Instant = {
     OffsetDateTime.of(2026, 6, day, hour, minute, 0, 0, ZoneOffset.UTC).toInstant
@@ -135,7 +135,7 @@ class ScheduleWindowsTest extends Specification {
 
   "a one shot schedule" should {
     // OneShot is still a Joda-Time API
-    val oneShot = OneShot(date(10, 4).toJodaDateTime, date(10, 6).toJodaDateTime)
+    val oneShot = OneShot(date(10, 4).atOffset(ZoneOffset.UTC), date(10, 6).atOffset(ZoneOffset.UTC))
 
     "have no window before it" in {
       ScheduleWindows.findWindows(oneShot, date(9, 12)) must beRight(Windows(None, None))
@@ -154,14 +154,17 @@ class ScheduleWindowsTest extends Specification {
     }
 
     "be an error when end is before start" in {
-      ScheduleWindows.findWindows(OneShot(date(10, 6).toJodaDateTime, date(10, 4).toJodaDateTime), date(10, 5)) must beLeft
+      ScheduleWindows.findWindows(
+        OneShot(date(10, 6).atOffset(ZoneOffset.UTC), date(10, 4).atOffset(ZoneOffset.UTC)),
+        date(10, 5)
+      ) must beLeft
     }
   }
 
   "a daily schedule on a timezone with DST" should {
     // Europe/Paris switches to summer time on 2026-03-29 (02:00 CET -> 03:00 CEST)
     // and back to winter time on 2026-10-25 (03:00 CEST -> 02:00 CET)
-    val paris = Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("Europe/Paris")))
+    val paris = Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone(ZoneId.of("Europe/Paris"))))
 
     def utcDate(month: Int, day: Int, hour: Int, minute: Int = 0): Instant = {
       OffsetDateTime.of(2026, month, day, hour, minute, 0, 0, ZoneOffset.UTC).toInstant
@@ -190,7 +193,7 @@ class ScheduleWindowsTest extends Specification {
       // jump from 2:00 CET to 3:00 CEST) and both bounds resolve to 01:00 UTC. That empty
       // window can never contain a run: it is skipped, and the last closed window is the one
       // of the previous day (so no false 'missing' can be reported for the gap day).
-      val skipped = Daily(Time(2, 0), Time(3, 0), Some(ScheduleTimeZone("Europe/Paris")))
+      val skipped = Daily(Time(2, 0), Time(3, 0), Some(ScheduleTimeZone(ZoneId.of("Europe/Paris"))))
 
       ScheduleWindows.findWindows(skipped, utcDate(3, 29, 1, 30)) must beRight(
         Windows(Some(ScheduleWindow(utcDate(3, 28, 1), utcDate(3, 28, 2))), None)

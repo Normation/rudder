@@ -3793,7 +3793,9 @@ object RudderConfigInit {
     )
 
     lazy val mainCampaignService = {
-      val m = MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
+      val m = MainCampaignService
+        .make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1.hour, 1.hour)
+        .runNow
       m.registerService(
         new com.normation.rudder.schedule.DirectiveScheduleCampaignHandler(
           directiveScheduleManagement,

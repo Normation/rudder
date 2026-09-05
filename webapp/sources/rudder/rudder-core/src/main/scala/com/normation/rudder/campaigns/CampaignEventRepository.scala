@@ -42,14 +42,13 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
-import com.normation.utils.DateFormaterService.toJavaInstant
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.time.Instant
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 import zio.*
 import zio.interop.catz.*
 import zio.json.*
@@ -78,8 +77,8 @@ trait CampaignEventRepository {
       states:       List[CampaignEventStateType] = Nil,
       campaignType: Option[CampaignType] = None,
       campaignId:   Option[CampaignId] = None,
-      afterDate:    Option[DateTime] = None,
-      beforeDate:   Option[DateTime] = None
+      afterDate:    Option[OffsetDateTime] = None,
+      beforeDate:   Option[OffsetDateTime] = None
   ): IOResult[Unit]
 
   /*
@@ -93,8 +92,8 @@ trait CampaignEventRepository {
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
       offset:       Option[Int] = None,
-      afterDate:    Option[DateTime] = None,
-      beforeDate:   Option[DateTime] = None,
+      afterDate:    Option[OffsetDateTime] = None,
+      beforeDate:   Option[OffsetDateTime] = None,
       order:        Option[CampaignSortOrder] = None,
       asc:          Option[CampaignSortDirection] = None
   ): IOResult[List[CampaignEvent]]
@@ -102,7 +101,6 @@ trait CampaignEventRepository {
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
-  import com.normation.rudder.db.Doobie.DateTimeMeta
   import doobie.*
 
   implicit val campaignEventStateMeta: Meta[CampaignEventStateType] =
@@ -179,8 +177,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventStateType,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType
   )
 
@@ -201,8 +199,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventStateType,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType,
       data:         Option[DATA]
   ) {
@@ -236,8 +234,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       import com.normation.rudder.campaigns.CampaignEventState.*
       Transformer
         .define[CampaignEvent, CampaignEventHistoryInsert]
-        .withFieldComputed(_.start, x => x.start.toJavaInstant)
-        .withFieldComputed(_.end, x => Some(x.end.toJavaInstant))
+        .withFieldComputed(_.start, x => x.start.toInstant)
+        .withFieldComputed(_.end, x => Some(x.end.toInstant))
         .withFieldComputed(_.state, _.state.value)
         .withFieldComputed(
           _.data,
@@ -281,8 +279,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
       offset:       Option[Int] = None,
-      afterDate:    Option[DateTime] = None,
-      beforeDate:   Option[DateTime] = None,
+      afterDate:    Option[OffsetDateTime] = None,
+      beforeDate:   Option[OffsetDateTime] = None,
       order:        Option[CampaignSortOrder],
       asc:          Option[CampaignSortDirection]
   ): IOResult[List[CampaignEvent]] = {
@@ -295,8 +293,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.toNel.map(c => Fragments.in(fr"campaignType", c))
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"e.state", s))
-    val afterQuery        = afterDate.map(d => fr"e.endDate >= ${new java.sql.Timestamp(d.getMillis)}")
-    val beforeQuery       = beforeDate.map(d => fr"e.startDate <= ${new java.sql.Timestamp(d.getMillis)}")
+    val afterQuery        = afterDate.map(d => fr"e.endDate >= $d}")
+    val beforeQuery       = beforeDate.map(d => fr"e.startDate <= $d}")
     val where             = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
 
     val limitQuery  = limit.map(i => fr" limit $i").getOrElse(fr"")
@@ -372,8 +370,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       states:       List[CampaignEventStateType],
       campaignType: Option[CampaignType],
       campaignId:   Option[CampaignId],
-      afterDate:    Option[DateTime],
-      beforeDate:   Option[DateTime]
+      afterDate:    Option[OffsetDateTime],
+      beforeDate:   Option[OffsetDateTime]
   ): ConnectionIO[RuntimeFlags] = {
 
     import _root_.cats.syntax.list.*
@@ -381,8 +379,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"state", s))
-    val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
-    val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
+    val afterQuery        = afterDate.map(d => fr"endDate >= $d}")
+    val beforeQuery       = beforeDate.map(d => fr"startDate <= $d}")
     val where             = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
     val query             = sql"""delete from campaignEvents """ ++ where
 
@@ -394,8 +392,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       states:       List[CampaignEventStateType] = Nil,
       campaignType: Option[CampaignType] = None,
       campaignId:   Option[CampaignId] = None,
-      afterDate:    Option[DateTime] = None,
-      beforeDate:   Option[DateTime] = None
+      afterDate:    Option[OffsetDateTime] = None,
+      beforeDate:   Option[OffsetDateTime] = None
   ): IOResult[Unit] = {
     if (List[Iterable[Any]](id, states, campaignType, campaignId, afterDate, beforeDate).exists(_.nonEmpty)) {
       transactIOResult(s"error when deleting campaign event")(xa =>

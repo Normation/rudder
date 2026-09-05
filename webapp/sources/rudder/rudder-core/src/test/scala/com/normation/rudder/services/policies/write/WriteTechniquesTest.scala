@@ -223,7 +223,7 @@ class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringT
     CampaignId("test-schedule"),
     e = true,
     d = Some(Instant.parse("2026-03-01T00:00:00Z")),
-    s = Daily(Time(14, 0), Time(16, 0), Some(ScheduleTimeZone("UTC"))),
+    s = Daily(Time(14, 0), Time(16, 0), Some(ScheduleTimeZone.UTC)),
     os = Nil
   )
 

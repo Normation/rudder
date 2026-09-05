@@ -49,14 +49,15 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.TimeZone
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import org.specs2.specification.BeforeEach
 import scala.annotation.nowarn
 import zio.json.*
 import zio.json.ast.Json
@@ -64,9 +65,7 @@ import zio.json.ast.JsonCursor
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
-class CampaignApiTest extends Specification with AfterAll with Loggable with JsonSpecMatcher {
-
-  val tz = DateTimeZone.getDefault().getID()
+class CampaignApiTest extends Specification with BeforeEach with AfterAll with Loggable with JsonSpecMatcher {
 
   val restTestSetUp = RestTestSetUp.newEnv
   ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
@@ -76,6 +75,10 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
     s"/tmp/test-rudder-campaign-${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}"
   )
   testDir.createDirectoryIfNotExists(true)
+
+  override def before(): Unit = {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+  }
 
   override def afterAll(): Unit = {
     if (System.getProperty("tests.clean.tmp") != "false") {
@@ -133,18 +136,13 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
     }
 
     "get one campaign with same schedule timezone when server timezone changes" in {
-      // MIGRATION to java-time WARNING !
-      // This may be specific to Joda, if java-time is implemented, the change in server timezone should be a different operation
-      DateTimeZone.setDefault(DateTimeZone.forID("Antarctica/South_Pole"))
+      TimeZone.setDefault(TimeZone.getTimeZone("Antarctica/South_Pole"))
 
       val resp = s"""[$c0json]"""
 
       restTest.testGETResponse("/secure/api/campaigns") {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
-          (map.asInstanceOf[Map[String, List[Json]]]("campaigns").toJson must equalsJsonSemantic(resp)) and {
-            DateTimeZone.setDefault(DateTimeZone.forID(tz))
-            DateTimeZone.getDefault().getID() must beEqualTo(tz)
-          }
+          (map.asInstanceOf[Map[String, List[Json]]]("campaigns").toJson must equalsJsonSemantic(resp))
         case err                                                                        =>
           ko(s"I got an error in test: ${err}")
       }
@@ -163,7 +161,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
             val next = events.collectFirst { case x if x.id != ce0.id => x }
               .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
-            (next.start.getMillis must be_>(System.currentTimeMillis())) and
+            (next.start must be_>(OffsetDateTime.now())) and
             (next.state.value must beEqualTo(ScheduledType)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
@@ -178,7 +176,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
          |"name":"second campaign",
          |"description":"a test campaign present when rudder boot",
          |"status":{"value":"enabled"},
-         |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"tz":"${tz}","type":"weekly"}
+         |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"tz":"UTC","type":"weekly"}
          |},
          |"details":{"name":"campaign #0"},
          |"campaignType":"test-campaign",
@@ -237,7 +235,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
     }
 
     "save campaign without schedule timezone" in {
-      val resp = s"[${c2jsonTz(tz)}]"
+      val resp = s"[${c2jsonTz("UTC")}]"
 
       restTest.testPOSTResponse("/secure/api/campaigns", parseJson(c2json)) {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>

@@ -141,7 +141,6 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -150,6 +149,8 @@ import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 import doobie.Fragment
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -3503,8 +3504,8 @@ class MockCampaign() {
       c0.info.id,
       "campaign #0",
       CampaignEventState.Finished,
-      new DateTime(0, DateTimeZone.UTC),
-      new DateTime(1, DateTimeZone.UTC),
+      Instant.ofEpochMilli(0).atOffset(ZoneOffset.UTC),
+      Instant.ofEpochMilli(1).atOffset(ZoneOffset.UTC),
       TestCampaignType
     )
   }
@@ -3566,8 +3567,8 @@ class MockCampaign() {
       val h = CampaignEventHistory(
         e0.id,
         e0.state,
-        e0.start.toJavaInstant,
-        Some(e0.end.toJavaInstant)
+        e0.start.toInstant,
+        Some(e0.end.toInstant)
       )
       Ref.make(Map((e0.id -> (e0, h :: Nil)))).runNow
     }
@@ -3586,8 +3587,8 @@ class MockCampaign() {
         val h       = CampaignEventHistory(
           event.id,
           event.state,
-          event.start.toJavaInstant,
-          Some(event.end.toJavaInstant)
+          event.start.toInstant,
+          Some(event.end.toInstant)
         )
         map + ((event.id, (event, h :: history)))
       }
@@ -3599,8 +3600,8 @@ class MockCampaign() {
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
         offset:       Option[Int],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime],
+        afterDate:    Option[OffsetDateTime],
+        beforeDate:   Option[OffsetDateTime],
         order:        Option[CampaignSortOrder],
         asc:          Option[CampaignSortDirection]
     ): IOResult[List[CampaignEvent]] = {
@@ -3672,8 +3673,8 @@ class MockCampaign() {
         states:       List[CampaignEventStateType],
         campaignType: Option[CampaignType],
         campaignId:   Option[CampaignId],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime]
+        afterDate:    Option[OffsetDateTime],
+        beforeDate:   Option[OffsetDateTime]
     ): IOResult[Unit] = {
 
       val eventIdFiltered: CampaignEvent => Boolean = id match {
@@ -3723,8 +3724,8 @@ class MockCampaign() {
         repo,
         NoopCampaignHooksService,
         new StringUuidGeneratorImpl(),
-        0,
-        0
+        0.hour,
+        0.hour
       )
       .runNow
   }

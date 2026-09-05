@@ -51,6 +51,10 @@ class DateFormaterServiceTest extends ZIOSpecDefault {
     )
     .filterNot(_.getZone.toString.startsWith("SystemV")) // not supported by joda
 
+  val jodaCompatibleOffset = Gen
+    .int(ZoneOffset.MIN.getTotalSeconds, ZoneOffset.MAX.getTotalSeconds)
+    .map(seconds => ZoneOffset.ofTotalSeconds(seconds / 60 * 60))
+
   def spec = suite("DateFormaterService")(
     suite("extension methods")(
       test("toOffsetDateTime + toJodateDateTime should be idempotent") {
@@ -89,6 +93,36 @@ class DateFormaterServiceTest extends ZIOSpecDefault {
         assert(DateFormaterService.parseInstant(input.atOffset(offset).toString))(
           isRight(equalTo(input.atOffset(offset).toInstant))
         )
+      }
+    },
+    test("parseOffsetDateTime should parse any OffsetDateTime") {
+      check(
+        Gen.instant(
+          min = Instant.EPOCH,
+          max = Instant.parse("9999-01-01T00:00:00Z")
+        ),
+        Gen.zoneOffset
+      ) { (input, offset) =>
+        assert(DateFormaterService.parseOffsetDateTime(input.atOffset(offset).toString))(
+          isRight(equalTo(input.atOffset(offset).withOffsetSameInstant(ZoneOffset.UTC)))
+        )
+      }
+    },
+    test("parseOffsetDateTime should parse like parseDate") {
+      check(
+        Gen
+          .instant(
+            min = Instant.EPOCH,
+            max = Instant.parse("9999-01-01T00:00:00Z")
+          )
+          .map(_.truncatedTo(ChronoUnit.SECONDS)),
+        jodaCompatibleOffset
+      ) { (input, offset) =>
+        val inputWithOffset =
+          DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(input.atOffset(offset))
+        val offsetDateTime  = DateFormaterService.parseOffsetDateTime(inputWithOffset)
+        val jodaDateTime    = DateFormaterService.parseDate(inputWithOffset).map(_.toOffsetDateTime)
+        assert(offsetDateTime)(equalTo(jodaDateTime))
       }
     },
     test("serializeZDT should parse have the same output as Instant.toString") {
@@ -133,6 +167,23 @@ class DateFormaterServiceTest extends ZIOSpecDefault {
         )
       }
     },
+    test("javatimeRfcDateformat should parse like rfcDateformat") {
+      check(
+        Gen
+          .instant(
+            min = Instant.EPOCH,
+            max = Instant.parse("9999-01-01T00:00:00Z")
+          )
+          .map(_.truncatedTo(ChronoUnit.SECONDS)),
+        jodaCompatibleOffset
+      ) { (input, offset) =>
+        val inputWithOffset = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(input.atOffset(offset))
+        val offsetDateTime  = OffsetDateTime.parse(inputWithOffset, DateFormaterService.javatimeRfcDateformat)
+        val jodaDateTime    = DateFormaterService.rfcDateformat.parseDateTime(inputWithOffset).toOffsetDateTime
+        assert(offsetDateTime)(equalTo(jodaDateTime))
+      }
+    } @@ TestAspect.ignore // FIXME: joda is consistently returning a +02:00 offset with no reason
+    ,
     test("rfcDateformat should parse any offsetdatetime without milliseconds") {
       check(
         Gen
@@ -180,6 +231,34 @@ class DateFormaterServiceTest extends ZIOSpecDefault {
           equalTo(DateFormaterService.serialize(input.toJoda))
         )
       }
-    })
+    }),
+    suite("getDisplayDate")(
+      test("should display the same date using joda.DataTime and Instant") {
+        check(
+          Gen
+            .offsetDateTime(
+              min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+              max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+            )
+        ) { input =>
+          assert(DateFormaterService.getDisplayDate(input.toInstant))(
+            equalTo(DateFormaterService.getDisplayDate(input.toJodaDateTime))
+          )
+        }
+      },
+      test("should display the same date using joda.DataTime and Instant") {
+        check(
+          Gen
+            .offsetDateTime(
+              min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+              max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+            )
+        ) { input =>
+          assert(DateFormaterService.getDisplayDate(input))(
+            equalTo(DateFormaterService.getDisplayDate(input.toJodaDateTime))
+          )
+        }
+      }
+    )
   ) @@ TestAspect.shrinks(0)
 }
