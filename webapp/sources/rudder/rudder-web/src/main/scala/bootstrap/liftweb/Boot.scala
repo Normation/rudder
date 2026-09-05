@@ -442,6 +442,8 @@ class Boot extends Loggable {
     // If one day we handle it in Rudder we should start from here by modifying code here..
     Locale.setDefault(Locale.ENGLISH)
 
+    BootProgress.advance(BootStep(BootPhase.WebApplication, "configure web application"))
+
     LiftRules.early.append({ (req: provider.HTTPRequest) => req.setCharacterEncoding("UTF-8") })
     LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
@@ -878,6 +880,8 @@ class Boot extends Loggable {
     // Run a health check
     RudderConfig.healthcheckNotificationService.init
 
+    // boot is over: stop the progress watchdog and log where the time went
+    BootProgress.finished()
   }
 
   private def addPluginsMenuTo(plugins: List[RudderPluginDef], menus: List[Menu]): List[Menu] = {
@@ -931,7 +935,11 @@ class Boot extends Loggable {
       ResourceServer.allow {
         case base :: _ if (base == plugin.shortName) => true
       }
-      plugin.init
+      // plugin init is synchronous and can be long (it loads plugin caches), and a plugin that
+      // runs its own boot checks would otherwise get its time charged to the last of them
+      BootProgress.step(BootPhase.Plugins, plugin.name.value) {
+        plugin.init
+      }
 
       // add APIs
       plugin.apis.foreach { (api: GenericLiftApiModuleProvider[?]) =>

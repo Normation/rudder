@@ -100,10 +100,17 @@ class SequentialImmediateBootStrapChecks(sequenceName: String, logger: NamedZioL
       _ <- logger.info(s"Starting bootchecks for ${sequenceName}")
       _ <- ZIO.foreach(checkActions.zipWithIndex) {
              case (check, i) =>
-               val msg = s"[#${i}] ${check.description}"
+               val msg  = s"[#${i}] ${check.description}"
+               val step = BootStep(BootPhase.BootChecks(sequenceName), check.description)
                for {
                  _ <- logger.info(msg)
+                 // each check is a unit of boot progress: that is what tells a watcher that boot is
+                 // still moving
+                 _ <- ZIO.succeed(BootProgress.advance(step))
                  r <- IOResult.attempt(check.checks()).catchAll(err => logger.error(s"${msg}: ${err.fullMsg}")).timed
+                 // the check duration is the one measured here, and nothing else: what happens
+                 // after the last check of the sequence is not part of it
+                 _ <- ZIO.succeed(BootProgress.record(step, r._1))
                  _ <- logger.debug(s"${msg}: OK in [${DateFormaterService.formatJavaDuration(r._1)}]")
                } yield ()
            }
