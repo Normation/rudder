@@ -1,21 +1,33 @@
-module Utils.CsvExportUtils exposing (exportToCsvButton)
+module Utils.CsvExportUtils exposing (csvExportDropdownAllEntries)
 
-import Html exposing (Html, button, i, span, text)
-import Html.Attributes exposing (attribute, class, title)
+import Html exposing (Html, button, div, i, li, span, text, ul)
+import Html.Attributes exposing (attribute, class)
 import Html.Events exposing (onClick)
-import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
-exportToCsvButton : msg -> Html msg
-exportToCsvButton onClickAction =
-    button
-        [ class "btn btn-sm btn-primary btn-export me-2"
-        , attribute "data-bs-toggle" "tooltip"
-        , title (buildTooltipContent "Export to CSV" "User-defined filters are not taken into account when exporting this table to CSV (the full compliance table will be exported).")
-        , onClick onClickAction
-        ]
-        [ span []
-            [ text "Export "
-            , i [ class "fa fa-download" ] []
+csvExportDropdownAllEntries : msg -> String -> Html msg
+csvExportDropdownAllEntries onClickAction btnClass =
+    div
+        [ class ("btn-group " ++ btnClass) ]
+        [ button
+            [ attribute "data-bs-toggle" "dropdown"
+            , attribute "aria-expanded" "false"
+            , class "btn btn-primary export-dropdown-toggle dropdown-toggle"
+            ]
+            [ span [ class "me-2 fa fa-file-download" ] []
+            , text "Export CSV"
+            , i [ class "ms-2 fa fa-dl" ] []
+            , i [ class "caret" ] []
+            ]
+        , ul
+            [ class "dropdown-menu" ]
+            [ li []
+                [ button
+                    [ class "dropdown-item"
+                    , onClick onClickAction
+                    ]
+                    [ span [] [ text "All entries" ]
+                    ]
+                ]
             ]
         ]

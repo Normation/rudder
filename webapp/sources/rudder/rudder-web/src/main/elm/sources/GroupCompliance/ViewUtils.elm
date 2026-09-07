@@ -19,7 +19,7 @@ import String
 import Task
 import Tuple3
 import Ui.Datatable exposing (SortOrder(..))
-import Utils.CsvExportUtils exposing (exportToCsvButton)
+import Utils.CsvExportUtils exposing (csvExportDropdownAllEntries)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
@@ -564,8 +564,8 @@ filtersView model =
                 ]
             , div
                 [ class "ms-auto my-auto" ]
-                [ exportToCsvButton (ExportCsv (Task.perform exportCsv Date.today))
-                , button [ class "btn btn-default btn-sm btn-refresh", onClick (RefreshCompliance complianceScope) ]
+                [ csvExportDropdownAllEntries (ExportCsv (Task.perform exportCsv Date.today)) "me-2"
+                , button [ class "btn btn-default btn-refresh", onClick (RefreshCompliance complianceScope) ]
                     [ i [ class "fa fa-refresh" ] [] ]
                 ]
             ]

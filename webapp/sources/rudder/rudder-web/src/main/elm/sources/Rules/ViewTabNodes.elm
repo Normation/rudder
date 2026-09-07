@@ -15,7 +15,7 @@ import Rules.ViewUtils exposing (..)
 import Task
 import Tuple3
 import Ui.Datatable exposing (Category, SortOrder(..), generateLoadingTable, getAllElems)
-import Utils.CsvExportUtils exposing (exportToCsvButton)
+import Utils.CsvExportUtils exposing (csvExportDropdownAllEntries)
 
 
 nodesTab : RuleDetails -> Model -> Html Msg
@@ -155,8 +155,8 @@ nodesTab details model =
                                 []
                             ]
                         , div [ class "ms-auto my-auto" ]
-                            [ exportToCsvButton (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByNode details.rule.id) Date.today))
-                            , button [ class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id) ] [ i [ class "fa fa-refresh" ] [] ]
+                            [ csvExportDropdownAllEntries (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByNode details.rule.id) Date.today)) "me-2"
+                            , button [ class "btn btn-default btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id) ] [ i [ class "fa fa-refresh" ] [] ]
                             ]
                         ]
                     , displayComplianceFilters complianceFilters UpdateComplianceFilters
