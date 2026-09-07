@@ -11,15 +11,14 @@ import Maybe.Extra exposing (isNothing)
 import NaturalOrdering as N
 import Rudder.Table
 import Rules.ApiCalls exposing (..)
-import Rules.ChangeRequest exposing (ChangeRequestSettings)
 import Rules.DataTypes exposing (..)
 import Rules.ViewCategoryDetails exposing (..)
 import Rules.ViewRuleDetails exposing (..)
-import Rules.ViewRulesTable exposing (..)
 import Rules.ViewUtils exposing (..)
 import String
 import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable, getSubElems)
+import Utils.CsvExportUtils exposing (csvExportDropdownFilteredEntries)
 
 
 view : Model -> Html Msg
@@ -254,7 +253,7 @@ view model =
                         ]
                     , if model.ui.hasWriteRights then
                         div [ class "header-buttons" ]
-                            [ Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
+                            [ csvExportDropdownFilteredEntries RequestCsvExportAllRules
                             , button [ class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s)) ] [ text "Add category" ]
                             , button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
                             ]
