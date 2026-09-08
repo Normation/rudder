@@ -43,8 +43,8 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
-import com.normation.rudder.api.ApiAccountNoToken
 import com.normation.rudder.api.ApiAccountKind
+import com.normation.rudder.api.ApiAccountNoToken
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.batch.ErrorStatus
