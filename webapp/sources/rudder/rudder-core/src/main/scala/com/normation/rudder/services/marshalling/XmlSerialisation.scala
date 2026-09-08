@@ -39,7 +39,7 @@ package com.normation.rudder.services.marshalling
 
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountNoToken
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -377,7 +377,7 @@ trait APIAccountSerialisation {
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
      </apiAccount>
    */
-  def serialise(account: ApiAccount): Elem
+  def serialise(account: ApiAccountNoToken): Elem
 }
 
 /**

@@ -867,7 +867,7 @@ class EventLogDetailsServiceImpl(
   }
 
   // API Account
-  def getApiAccountFromXML(xml: NodeSeq, changeType: String): Box[ApiAccount] = {
+  def getApiAccountFromXML(xml: NodeSeq, changeType: String): Box[ApiAccountNoToken] = {
     for {
       entry           <- getEntryContent(xml)
       account         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~! (s"Entry type is not an API Account: ${entry}")

@@ -39,7 +39,7 @@ package com.normation.rudder.services.marshalling
 
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.PureResult
-import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountNoToken
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -321,7 +321,7 @@ trait ApiAccountUnserialisation {
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
      </apiAccount>
    */
-  def unserialise(xml: XNode): Box[ApiAccount]
+  def unserialise(xml: XNode): Box[ApiAccountNoToken]
 }
 
 /**

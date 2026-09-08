@@ -829,7 +829,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     })
   }
 
-  def unserialise(entry: XNode): Box[ApiAccount] = {
+  def unserialise(entry: XNode): Box[ApiAccountNoToken] = {
     for {
       apiAccount     <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
@@ -884,11 +884,10 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)
       }
 
-      ApiAccount(
+      ApiAccountNoToken(
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        None,
         description,
         isEnabled,
         creationDate,

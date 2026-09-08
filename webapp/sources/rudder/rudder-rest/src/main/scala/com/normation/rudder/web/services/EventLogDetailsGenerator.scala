@@ -949,7 +949,7 @@ class EventLogDetailsGenerator(
                           case Some(_) =>
                             <ul class="evlogviewpad"><li><b>Token regenerated</b></li></ul>
                           case None    =>
-                            <ul class="evlogviewpad"><li><b>Token unchanged</b></li></ul>
+                            <ul class="evlogviewpad"><li><b>Token value unchanged</b></li></ul>
                         }
                       } &
                       "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
@@ -1331,7 +1331,7 @@ class EventLogDetailsGenerator(
       "#description" #> globalParameter.description
   )(xml)
 
-  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = {
+  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccountNoToken) = {
     val (expiration, kind, authz) = apiAccount.kind match {
       case ApiAccountKind.System                                    => ("N/A", "system", Text("N/A"))
       case ApiAccountKind.User                                      => ("N/A", "user", Text("N/A"))
@@ -1350,7 +1350,6 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
