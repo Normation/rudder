@@ -543,7 +543,7 @@ class TestMergeGroupProperties extends Specification {
         )
       merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
         (l.size must beEqualTo(1)) and
-        (l.head.resolvedValue.valueAsString must beEqualTo("scoped")) and
+        (GenericProperty.serializeToJson(l.head.resolvedValue.value) must beEqualTo("scoped")) and
         (l.head.kind.entryName must beEqualTo("target"))
       })
     }
@@ -566,7 +566,7 @@ class TestMergeGroupProperties extends Specification {
       val merged = MergeNodeProperties
         .checkPropertyMerge(Map.empty, Map("foo" -> "global".toConfigValue.toGP("foo", None)), Nil)
       merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
-        (l.head.resolvedValue.valueAsString must beEqualTo("global")) and
+        (GenericProperty.serializeToJson(l.head.resolvedValue.value) must beEqualTo("global")) and
         (l.head.kind.entryName must beEqualTo("global"))
       })
     }
@@ -580,7 +580,7 @@ class TestMergeGroupProperties extends Specification {
         )
       // parent1 defines foo=bar1
       merged.toEither must beRight((l: List[VertexParentProperty[?]]) => {
-        (l.head.resolvedValue.valueAsString must beEqualTo("bar1")) and
+        (GenericProperty.serializeToJson(l.head.resolvedValue.value) must beEqualTo("bar1")) and
         (l.head.kind.entryName must beEqualTo("group"))
       })
     }
