@@ -205,7 +205,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
   def config: Config
   def fromConfig(v: Config): P
 
-  final def name: String           = config.getString(NAME)
+  final def name: String           = GenericProperty.getName(config)
   final def rev:  Option[Revision] = {
     if (config.hasPath(REV_ID)) Some(Revision(config.getString(REV_ID)))
     else None
@@ -216,10 +216,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     case Some(r)                             => s"${name}+${r.value}"
   }
 
-  final def value: ConfigValue = {
-    if (config.hasPath(VALUE)) config.getValue(VALUE)
-    else ConfigValueFactory.fromAnyRef("")
-  }
+  final def value: ConfigValue = GenericProperty.getValue(config)
 
   final def provider: Option[PropertyProvider] = {
     // optional, default "rudder"
@@ -227,10 +224,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     else None
   }
 
-  final def description: String = {
-    if (config.hasPath(GenericProperty.DESCRIPTION)) config.getString(GenericProperty.DESCRIPTION)
-    else ""
-  }
+  final def description: String = GenericProperty.getDescription(config)
 
   final def inheritMode: Option[InheritMode] = {
     GenericProperty.getMode(config)
@@ -241,10 +235,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     else None
   }
 
-  final def visibility: Visibility = {
-    if (config.hasPath(VISIBILITY)) Visibility.withNameOption(config.getString(VISIBILITY)).getOrElse(Visibility.default)
-    else Visibility.default
-  }
+  final def visibility: Visibility = GenericProperty.getVisibility(config)
 
   final def security: Option[SecurityTag] = {
     if (config.hasPath(SECURITY)) config.getString(SECURITY).fromJson[SecurityTag].toOption
@@ -301,6 +292,21 @@ object GenericProperty {
   val INHERIT_MODE = "inheritMode" // options: inheritance mode
   val VISIBILITY   = "visibility"  // optional, if missing Visibility.default
   val SECURITY     = "security"    // optional, if missing None
+
+  // readers of the parts of a property, shared by the properties themselves and their resolved value
+  def getName(config: Config): String = config.getString(NAME)
+  def getValue(config: Config):       ConfigValue = {
+    if (config.hasPath(VALUE)) config.getValue(VALUE)
+    else ConfigValueFactory.fromAnyRef("")
+  }
+  def getDescription(config: Config): String      = {
+    if (config.hasPath(DESCRIPTION)) config.getString(DESCRIPTION)
+    else ""
+  }
+  def getVisibility(config: Config):  Visibility  = {
+    if (config.hasPath(VISIBILITY)) Visibility.withNameOption(config.getString(VISIBILITY)).getOrElse(Visibility.default)
+    else Visibility.default
+  }
 
   def getMode(config: Config):                            Option[InheritMode] = {
     if (config.hasPath(INHERIT_MODE)) {

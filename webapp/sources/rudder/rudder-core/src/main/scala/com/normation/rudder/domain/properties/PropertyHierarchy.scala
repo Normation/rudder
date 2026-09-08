@@ -8,7 +8,9 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.properties.GroupProp
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigRenderOptions
+import com.typesafe.config.ConfigValue
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import org.apache.commons.text.StringEscapeUtils
@@ -28,6 +30,38 @@ object ParentPropertyKind extends Enum[ParentPropertyKind] with EnumCodec[Parent
   override def values: IndexedSeq[ParentPropertyKind] = findValues
 }
 
+/**
+ * The value of a property once resolved along its hierarchy, ie the composition of the values defined at each of
+ * its levels (see `ParentProperty#resolvedValue`).
+ *
+ * Contrary to the properties it is composed of, a resolved value belongs to nobody: composing values does not
+ * compose their providers (see https://issues.rudder.io/issues/29682).
+
+ * The other metadata (description, visibility, inherit mode, security tags) are inherited along the hierarchy:
+ * the most specific level defining one wins.
+ */
+final case class ResolvedProperty private (private[properties] val config: Config) {
+  def name:        String              = GenericProperty.getName(config)
+  def value:       ConfigValue         = GenericProperty.getValue(config)
+  def description: String              = GenericProperty.getDescription(config)
+  def visibility:  Visibility          = GenericProperty.getVisibility(config)
+  def inheritMode: Option[InheritMode] = GenericProperty.getMode(config)
+}
+
+object ResolvedProperty {
+
+  /** A property which does not override anything resolves to itself, minus its provider */
+  def from(property: GenericProperty[?]): ResolvedProperty = build(property.config)
+
+  /** Compose the value overriding a resolved one with it, according to the inherit mode of the overridden one */
+  def resolve(overridden: ResolvedProperty, overriding: GenericProperty[?]): ResolvedProperty = {
+    build(GenericProperty.mergeConfig(overridden.config, overriding.config)(using overridden.inheritMode))
+  }
+
+  // the only place where a resolved value is built: merging keeps everything but the value of the parents
+  private def build(config: Config): ResolvedProperty = ResolvedProperty(config.withoutPath(GenericProperty.PROVIDER))
+}
+
 /*
  * A property with its inheritance context as a parent of some other property:
  * - key / provider
@@ -41,7 +75,7 @@ sealed trait ParentProperty[P <: GenericProperty[?]] {
   def id:            String
   def name:          String
   def value:         GenericProperty[P]
-  def resolvedValue: GenericProperty[P]
+  def resolvedValue: ResolvedProperty
 }
 
 object ParentProperty {
@@ -53,12 +87,11 @@ object ParentProperty {
       override val value: NodeProperty,
       parentProperty:     Option[VertexParentProperty[?]]
   ) extends ParentProperty[NodeProperty] {
-    override val kind:          ParentPropertyKind            = ParentPropertyKind.Node
-    override def id:            String                        = nodeId.value
-    override val resolvedValue: GenericProperty[NodeProperty] = parentProperty match {
-      case None    => value
-      case Some(v) =>
-        NodeProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
+    override val kind:          ParentPropertyKind = ParentPropertyKind.Node
+    override def id:            String             = nodeId.value
+    override val resolvedValue: ResolvedProperty   = parentProperty match {
+      case None    => ResolvedProperty.from(value)
+      case Some(v) => ResolvedProperty.resolve(v.resolvedValue, value)
     }
 
   }
@@ -74,21 +107,20 @@ object ParentProperty {
       override val value: GroupProperty,
       parentProperty:     Option[VertexParentProperty[?]]
   ) extends VertexParentProperty[GroupProperty] {
-    override val kind:          ParentPropertyKind             = ParentPropertyKind.Group
-    override def id:            String                         = groupId.serialize
-    override val resolvedValue: GenericProperty[GroupProperty] = parentProperty match {
-      case None    => value
-      case Some(v) =>
-        GroupProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
+    override val kind:          ParentPropertyKind = ParentPropertyKind.Group
+    override def id:            String             = groupId.serialize
+    override val resolvedValue: ResolvedProperty   = parentProperty match {
+      case None    => ResolvedProperty.from(value)
+      case Some(v) => ResolvedProperty.resolve(v.resolvedValue, value)
     }
   }
 
   // a global parameter has the same name as property so no need to be specific for name
   final case class Global(override val value: GlobalParameter) extends VertexParentProperty[GlobalParameter] {
-    override val name:          String                           = value.name
-    override def id:            String                           = value.name
-    override val kind:          ParentPropertyKind               = ParentPropertyKind.Global
-    override val resolvedValue: GenericProperty[GlobalParameter] = value
+    override val name:          String             = value.name
+    override def id:            String             = value.name
+    override val kind:          ParentPropertyKind = ParentPropertyKind.Global
+    override val resolvedValue: ResolvedProperty   = ResolvedProperty.from(value)
   }
 }
 
@@ -103,9 +135,11 @@ sealed trait PropertyHierarchy {
 
 case class NodePropertyHierarchy(id: NodeId, override val hierarchy: ParentProperty[?])             extends PropertyHierarchy {
   override lazy val prop: GenericProperty[?] = hierarchy match {
-    case n: ParentProperty.Node =>
-      val prop = NodeProperty(hierarchy.resolvedValue.config)
-      if (n.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
+    // the node defines that property and does not override anything: it is that property, provider included
+    case n: ParentProperty.Node if n.parentProperty.isEmpty =>
+      n.value
+    case _: ParentProperty.Node                             =>
+      NodeProperty(hierarchy.resolvedValue.config).withProvider(GroupProp.OVERRIDE_PROVIDER)
     case _ =>
       NodeProperty(hierarchy.resolvedValue.config)
         .withProvider(GroupProp.INHERITANCE_PROVIDER)
@@ -114,9 +148,11 @@ case class NodePropertyHierarchy(id: NodeId, override val hierarchy: ParentPrope
 }
 case class GroupPropertyHierarchy(id: NodeGroupId, override val hierarchy: VertexParentProperty[?]) extends PropertyHierarchy {
   override lazy val prop: GenericProperty[?] = hierarchy match {
-    case g: ParentProperty.Group if g.groupId == id =>
-      val prop = GroupProperty(hierarchy.resolvedValue.config)
-      if (g.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
+    // the group defines that property and does not override anything: it is that property, provider included
+    case g: ParentProperty.Group if g.groupId == id && g.parentProperty.isEmpty =>
+      g.value
+    case g: ParentProperty.Group if g.groupId == id                             =>
+      GroupProperty(hierarchy.resolvedValue.config).withProvider(GroupProp.OVERRIDE_PROVIDER)
     case _ =>
       GroupProperty(hierarchy.resolvedValue.config)
         .withProvider(GroupProp.INHERITANCE_PROVIDER)
@@ -143,7 +179,7 @@ sealed trait PropertyHierarchySpecificError extends PropertyHierarchyError {
    * a hierarchy of inherited properties from parents that lead to the error,
    * and an error message
    */
-  def propertiesErrors: Map[String, (GenericProperty[?], NonEmptyChunk[ParentProperty[?]], String)]
+  def propertiesErrors: Map[String, (ResolvedProperty, NonEmptyChunk[ParentProperty[?]], String)]
 }
 
 object PropertyHierarchyError {
@@ -167,7 +203,7 @@ object PropertyHierarchyError {
 
   // There are conflicts by node property
   case class PropertyHierarchySpecificInheritanceConflicts(
-      conflicts: Map[GenericProperty[?], NonEmptyChunk[VertexParentProperty[?]]]
+      conflicts: Map[ResolvedProperty, NonEmptyChunk[VertexParentProperty[?]]]
   ) extends PropertyHierarchySpecificError {
     override def toString(): String = debugString
 
@@ -199,7 +235,7 @@ object PropertyHierarchyError {
     }
 
     // the map needs to be evaluated eagerly to get all property errors at once and atomic checks
-    override val propertiesErrors: Map[String, (GenericProperty[?], NonEmptyChunk[ParentProperty[?]], String)] = {
+    override val propertiesErrors: Map[String, (ResolvedProperty, NonEmptyChunk[ParentProperty[?]], String)] = {
       conflicts.map {
         case (k, props) =>
           (
@@ -209,7 +245,7 @@ object PropertyHierarchyError {
       }
     }
 
-    private def conflictMessage(prop: GenericProperty[?], conflicts: NonEmptyChunk[ParentProperty[?]]): String = {
+    private def conflictMessage(prop: ResolvedProperty, conflicts: NonEmptyChunk[ParentProperty[?]]): String = {
       def inheritanceName(p: ParentProperty[?]): String = {
         p match {
           case n: ParentProperty.Node =>
@@ -239,7 +275,7 @@ object PropertyHierarchyError {
      * Represent a single failure from a property and the conflicting inheritance lines
      */
     def one(
-        prop:    GenericProperty[?],
+        prop:    ResolvedProperty,
         parents: NonEmptyChunk[VertexParentProperty[?]]
     ): PropertyHierarchySpecificInheritanceConflicts = {
       PropertyHierarchySpecificInheritanceConflicts(

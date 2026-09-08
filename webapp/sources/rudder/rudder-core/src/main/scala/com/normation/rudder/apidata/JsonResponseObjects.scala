@@ -1329,7 +1329,7 @@ object JsonResponseObjects {
             s.prop.prop.value,
             s.nonEmptyDescription,
             s.prop.prop.inheritMode,
-            s.prop.prop.provider,
+            s.provider,
             parents,
             Some(hierarchyStatus),
             Some(origval)
@@ -1603,8 +1603,12 @@ object JsonResponseObjects {
 
     def inheritMode: Option[InheritMode] = property.resolvedValue.inheritMode
 
-    def description:           String                   = property.resolvedValue.description
-    def provider:              Option[PropertyProvider] = property.resolvedValue.provider
+    def description: String = property.resolvedValue.description
+
+    /**
+     * It needs to be property's one to avoid https://issues.rudder.io/issues/26191
+     */
+    def provider:              Option[PropertyProvider] = property.value.provider
     def hasChildTypeConflicts: Boolean
 
     def nonEmptyDescription: Option[String] = Some(description).filter(_.nonEmpty)
@@ -1617,6 +1621,8 @@ object JsonResponseObjects {
 
     override def errorMessage:          Option[String] = None
     override def hasChildTypeConflicts: Boolean        = false
+
+    override def provider: Option[PropertyProvider] = prop.prop.provider
 
     /**
      * The hierarchy of the main property, not the one as seen by the descendants (parentsInheritedProps)
@@ -1650,7 +1656,10 @@ object JsonResponseObjects {
         prop.hierarchy,
         Some("Conflicting types in inherited node properties"),
         hasChildTypeConflicts = true
-      ) {}
+      ) {
+    // a type conflict does not change who owns the property: keep the inherited/overridden information
+    override def provider: Option[PropertyProvider] = prop.prop.provider
+  }
 
   object InheritedPropertyStatus {
 
