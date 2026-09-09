@@ -169,12 +169,13 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
                     const block = buildRollbackBlock(id);
                     block.prepend(html);
                     table.row(row).child(block).show();
+                    initBsTooltips("#rollbackDisplay" + id + " [data-bs-toggle='tooltip']");
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
                       const rollback = "#rollbackConfiguration" + id
                       $(rollback).removeClass("d-flex").addClass("d-none");
                       const confirm = "#confirmConfiguration" + id.toString();
-                      const radios = $("#restoreConfiguration .radio-btn");
+                      const radios = $("#restoreConfiguration" + id + " .radio-btn");
                       const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
                       if (action !== null) {
                         const confirmHtml = "<div class='d-flex text-start column-gap-2'><div class='py-2'><i class='fa fa-exclamation-triangle fs-2' aria-hidden='true'></i></div><div><div>Are you sure you want to restore configuration policy " + action + " this change? </div><div class='mt-2'><button class='btn btn-default rollback-action'>Cancel</button><button class='btn btn-danger rollback-action ms-2'>Confirm</button></div></div>";
