@@ -232,6 +232,7 @@ case class EventLogRequest(
     start:      Int,
     length:     Int,
     id:         Option[EventLogRequest.Id],
+    objectId:   Option[EventLogRequest.ObjectId],
     search:     Option[EventLogRequest.Search],
     startDate:  Option[Instant],
     endDate:    Option[Instant],
@@ -264,6 +265,7 @@ case class EventLogRequest(
 object EventLogRequest {
 
   final case class Id(value: Int)
+  final case class ObjectId(value: String)
   final case class Search(value: String)
   final case class Order(column: Column, dir: Direction)
 
@@ -310,6 +312,7 @@ object EventLogRequest {
       start = 0,
       length = 25,
       id = None,
+      objectId = None,
       search = None,
       startDate = None,
       endDate = None,

@@ -3,7 +3,7 @@ port module GroupHistory exposing (..)
 import Browser
 import Dict
 import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
-import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), ObjectId, Search, string2ObjectId)
 import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
@@ -92,12 +92,12 @@ init flags =
             , zone = zone
             }
 
-        search : Search
-        search =
-            string2Search flags.groupId
+        id : ObjectId
+        id =
+            string2ObjectId flags.groupId
 
         initActions =
-            [ Cmd.map HistoryMessage (getEventLogs search 100 initModel.contextPath (Just "groups")) ]
+            [ Cmd.map HistoryMessage (getEventLogs id 100 initModel.contextPath (Just "groups")) ]
     in
     ( initModel, Cmd.batch initActions )
 

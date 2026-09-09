@@ -149,6 +149,13 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
       )
     )
   )
+  check(
+    EventLogJdbcRepository.getEventLogCountSQL(
+      Some(
+        defaultFilter.copy(objectId = Some(EventLogRequest.ObjectId(value = "globalparamname")))
+      )
+    )
+  )
   check(EventLogJdbcRepository.getEventLogByCriteriaSQL(None))
   check(EventLogJdbcRepository.getEventLogByCriteriaSQL(Some(defaultFilter)))
 
@@ -182,6 +189,6 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
     )
   )
 
-  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None, None, None)
+  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None, None, None, None)
 
 }
