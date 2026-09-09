@@ -55,6 +55,7 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio.*
+import io.scalaland.chimney.syntax.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import zio.*
@@ -271,7 +272,7 @@ final class WoLDAPApiAccountRepository(
                       }
       oldAccount   <- mapper.entry2ApiAccount(entry).toIO
       deleted      <- ldap.delete(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
-      diff          = DeleteApiAccountDiff(oldAccount)
+      diff          = DeleteApiAccountDiff(oldAccount.transformInto[ApiAccountNoToken])
       loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None)
     } yield {
       id

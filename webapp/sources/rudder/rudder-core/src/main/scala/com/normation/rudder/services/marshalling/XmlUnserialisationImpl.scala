@@ -829,7 +829,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     })
   }
 
-  def unserialise(entry: XNode): Box[ApiAccount] = {
+  def unserialise(entry: XNode): Box[ApiAccountNoToken] = {
     for {
       apiAccount     <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
@@ -838,8 +838,6 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
       _              <- TestFileFormat(apiAccount)
       id             <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
       name           <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
-      token          <-
-        (apiAccount \ "token").headOption.map(_.text) ?~! (s"Missing attribute 'token' in entry type API Account : ${entry}")
       description    <- (apiAccount \ "description").headOption.map(
                           _.text
                         ) ?~! (s"Missing attribute 'description' in entry type API Account : ${entry}")
@@ -886,11 +884,10 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)
       }
 
-      ApiAccount(
+      ApiAccountNoToken(
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        Some(ApiTokenHash.fromHashValue(token)),
         description,
         isEnabled,
         creationDate,

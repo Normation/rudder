@@ -952,11 +952,9 @@ class EventLogFactoryImpl(
           SimpleDiff.toXml[DateTime](<tokenGenerationDate/>, x)(x => Text(x.toString(ISODateTimeFormat.dateTime())))
         ) ++
         diff.modExpirationDate.map(x => {
-          SimpleDiff.toXml[Option[DateTime]](<expirationDate/>, x) { x =>
-            x match {
-              case None    => NodeSeq.Empty
-              case Some(d) => Text(d.toString(ISODateTimeFormat.dateTime()))
-            }
+          SimpleDiff.toXml[Option[DateTime]](<expirationDate/>, x) {
+            case None    => NodeSeq.Empty
+            case Some(d) => Text(d.toString(ISODateTimeFormat.dateTime()))
           }
         }) ++
         diff.modAccountKind.map(x => SimpleDiff.stringToXml(<accountKind/>, x)) ++
