@@ -74,7 +74,7 @@ on string codecs for custom scalars (see the `AcceptationDateTime` codec in
   (new code must use `given`).
 - Don't reach for circe/jackson/play-json — zio-json only.
 
-## Enums {#enums}
+## Enums
 
 We use **enumeratum** for enumerations (name/value, lookup-by-name, `values`) — we do
 **not** use the native Scala 3 `enum` keyword. The pattern is a `sealed` base extending

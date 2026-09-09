@@ -49,7 +49,7 @@ discoverability.
   technical-layer home also exists. Prefer adding to `…/properties/` over `…/services/`.
 - **Don't** add new files under the legacy `domain/` `repository/` `services/` trees,
   and **don't** mass-migrate existing ones on sight — moving files is costly to
-  [up-merge](000-coding-philosophy.md#concurrent-branches--up-merge). Migrate a concept
+  [up-merge](../rudder-principles/SKILL.md#working-in-a-long-lived-codebase). Migrate a concept
   when you're already substantially reworking it.
 - Module boundaries (`rudder-core`, `rudder-rest`, `rudder-web`, `ldap-inventory`, …)
   still matter and are orthogonal to this: within a module, lay out by context.

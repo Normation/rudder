@@ -80,6 +80,21 @@ puts two requirements on every migration:
   it forks the effect and returns. The forked migration is "convergent and asynchronous:
   it does not block boot, and can be interrupted and restarted afterward."
 
+## Schema files vs migrations — change **both**
+
+A DDL change has two audiences, and forgetting either breaks one of them:
+
+- **fresh installs** read the canonical schema, `rudder-core/src/main/resources/reportsSchema.sql` (Postgres)
+  — add the column/table/constraint there;
+- **existing installs** never re-run that file — they only get the change from an **idempotent bootstrap
+  migration** (`ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, …).
+
+So a column added to a table means: edit `reportsSchema.sql` **and** add a migration, and keep the two
+consistent (same name, type, nullability). A migration without the schema edit leaves fresh installs missing
+the column on the next release; a schema edit without the migration leaves every upgraded instance missing it.
+If new code reads the column immediately (e.g. every insert now writes it), the migration must be
+**synchronous** so the column exists before that code runs.
+
 ## The hard balance
 
 Async is the default, but **when correctness depends on the migration finishing before
@@ -92,7 +107,8 @@ to run in the background. Document, per migration, what is sync and why.
 
 1. Write a class extending `BootstrapChecks` in the right package
    (`earlyconfig.db`/`.ldap` if services depend on it; `endconfig.*` otherwise), with a
-   clear `description` and an idempotent body.
+   clear `description` and an idempotent body. For a schema change, also update the canonical
+   schema file (`reportsSchema.sql`) so fresh installs get it — see "Schema files vs migrations" above.
 2. Decide sync vs async (default async via `.forkDaemon`); keep the synchronous portion
    minimal.
 3. Wire it into the matching sequence in `RudderConfig` (`earlyDbChecks`,
