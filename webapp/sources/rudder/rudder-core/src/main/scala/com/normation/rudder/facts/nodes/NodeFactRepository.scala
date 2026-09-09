@@ -364,12 +364,10 @@ object CoreNodeFactRepository {
       callbacks:        Chunk[NodeFactChangeEventCallback],
       savePreChecks:    Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
-    _        <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
-    pending  <- storage.getAllPending()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
-    _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
-    accepted <- storage.getAllAccepted()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
-    _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, tenantService, tenantCheckLogic, pending, accepted, callbacks, savePreChecks)
+    _    <- InventoryDataLogger.debug("Getting node info for node fact repos")
+    all  <- storage.loadAllCoreNodeFacts()
+    _    <- InventoryDataLogger.debug("Creating node fact repos")
+    repo <- make(storage, softByName, tenantService, tenantCheckLogic, all.pending, all.accepted, callbacks, savePreChecks)
   } yield {
     repo
   }
