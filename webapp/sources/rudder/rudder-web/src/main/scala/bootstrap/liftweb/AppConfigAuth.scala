@@ -429,9 +429,9 @@ class AppConfigAuth extends ApplicationContextAware {
  */
 class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean)
     extends SimpleUrlAuthenticationSuccessHandler("/secure/index.html") {
-  private val otpRedirect = enforceOtp
+  import RudderUrlAuthenticationSuccessHandler.*
 
-  private val otpRedirectUri = "/secure/otp.html"
+  private val otpRedirect = enforceOtp
 
   private val requestCache = new HttpSessionRequestCache()
 
@@ -493,19 +493,35 @@ class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean)
       authentication: Authentication
   ): String = {
     def nextOtpRedirect = {
-      Option(requestCache.getRequest(request, response))
-        .map(_.getRedirectUrl)
-        .map(url => {
-          requestCache.removeRequest(request, response) // clean is recommended since we intercept it only in this request
-          s"?redirect=${URLEncoder.encode(url, StandardCharsets.UTF_8)}"
-        })
-        .getOrElse("")
+      val savedUrl = Option(requestCache.getRequest(request, response)).map(_.getRedirectUrl)
+      // clean is recommended since we intercept it only in this request
+      savedUrl.foreach(_ => requestCache.removeRequest(request, response))
+      otpRedirectParam(savedUrl)
     }
     def fallback        = super.determineTargetUrl(request, response, authentication)
     withUserOtpRequired(authentication)(
       _ => otpRedirectUri + nextOtpRedirect,
       _ => fallback
     ).getOrElse(fallback)
+  }
+}
+
+object RudderUrlAuthenticationSuccessHandler {
+
+  val otpRedirectUri = "/secure/otp.html"
+
+  /*
+   * Build the "redirect" query parameter to append to the OTP page URL, based on the URL of the request.
+   * It needs:
+   * - URL encoding
+   * - to prevent redirect to OTP page itself, see https://issues.rudder.io/issues/29726.
+   * It's the only param (due to '?'), and can be empty
+   */
+  def otpRedirectParam(savedUrl: Option[String]): String = {
+    savedUrl
+      .filterNot(_.takeWhile(_ != '?').endsWith(otpRedirectUri))
+      .map(url => s"?redirect=${URLEncoder.encode(url, StandardCharsets.UTF_8)}")
+      .getOrElse("")
   }
 }
 
