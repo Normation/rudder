@@ -2,7 +2,7 @@ port module GroupRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Id, Search, string2Id)
 import Browser
 import Dict
 import Html exposing (Html, div)
@@ -91,12 +91,12 @@ init flags =
             , zone = zone
             }
 
-        search : Search
-        search =
-            string2Search flags.groupId
+        id : Id
+        id =
+            string2Id flags.groupId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "groups")) ]
+            [ Cmd.map ActivityMessage (getActivities id initModel.contextPath (Just "groups")) ]
     in
     ( initModel, Cmd.batch initActions )
 

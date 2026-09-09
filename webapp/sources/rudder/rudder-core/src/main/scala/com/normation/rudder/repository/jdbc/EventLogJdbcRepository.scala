@@ -346,6 +346,18 @@ object EventLogJdbcRepository {
 
     val tenant = TenantSql.readerScopeFragment(readerScope, "securitytag")
 
+    // TODO
+
+    /*
+
+    
+      SELECT id, eventtype
+      FROM eventlog
+      WHERE (xpath('/entry/*/name/text()', data))[1]::text = 'some_global_property' OR (xpath('/entry/*/id/text()', data))[1]::text = 'some_global_property';
+    */
+     */
+     */
+
     val where =
       Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search, tenant, id)
 
