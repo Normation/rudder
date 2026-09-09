@@ -904,6 +904,9 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
 
     override def dataContainer: Option[String] = Some("resources")
   }
+
+  // TODO
+
   case object CopyResourcesWhenCloning extends TechniqueApiPriv with TwoParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Copy resources from a technique to a technique draft"
