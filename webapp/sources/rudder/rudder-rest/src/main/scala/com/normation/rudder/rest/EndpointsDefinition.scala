@@ -842,7 +842,7 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
   }
   case object GetAllTechniqueCategories extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Get all technique categories"
+    val description    = "Get all non-system technique categories"
     val (action, path) = GET / "techniques" / "categories"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
 

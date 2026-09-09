@@ -754,20 +754,6 @@ response:
                   "subCategories" : []
                 }
               ]
-            },
-            {
-              "name" : "System Techniques",
-              "description" : "\n        This category contains internal Techniques (system).\n        These Techniques should not be used directly.\n    ",
-              "path" : "system",
-              "id" : "system",
-              "subCategories" : []
-            },
-            {
-              "name" : "testing things",
-              "description" : "Category for testing",
-              "path" : "test_only",
-              "id" : "test_only",
-              "subCategories" : []
             }
           ]
         }

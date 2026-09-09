@@ -445,7 +445,10 @@ class TechniqueApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = JsonTechniqueCategoryTree(
-        JsonTechniqueCategory.fromCategory(techniqueRepository.getTechniqueLibrary, techniqueRepository.getAllCategories)
+        JsonTechniqueCategory.fromCategory(
+          techniqueRepository.getTechniqueLibrary,
+          techniqueRepository.getAllCategories.filterNot((_, c) => c.isSystem)
+        )
       )
 
       response.succeed.toLiftResponseOne(params, schema, None)
