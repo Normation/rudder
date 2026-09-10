@@ -3604,6 +3604,7 @@ object RudderConfigInit {
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       "post-service instantiation checks",
       BootstrapLogger,
+      new MigrateProcessCommandNameQuery(rwLdap, rudderDit),
       new MigrateNodeAcceptationInventories(
         nodeFactRepository,
         inventoryHistoryLogRepository,
