@@ -1096,6 +1096,9 @@ update msg model =
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
+        RequestCsvExportAllRules ->
+            ( model, Task.perform ExportCsvWithCurrentDate Date.today )
+
         -- Export full rules table to CSV
         ExportCsvWithCurrentDate date ->
             let
@@ -1235,9 +1238,6 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
                     update parentMsg { model | rulesTable = groupsTable }
             in
             ( newModel, Cmd.batch [ newMsg, tabMsg ] )
-
-        Just CsvExportRequested ->
-            ( model, Task.perform ExportCsvWithCurrentDate Date.today )
 
         _ ->
             ( { model | rulesTable = groupsTable }, tabMsg )

@@ -92,9 +92,9 @@ const csvRenameFilename = (filename) => (({
 // Shared config for DataTables Button CSV
 const csvButtonConfig = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
+  className: 'btn btn-primary ' + (additionalCls ?? ''),
   filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
-  text: 'Export',
+  text: '<span class="me-2 fa fa-file-download"></span>Export CSV',
   exportOptions: {
     orthogonal: 'exportCsv',
     customizeData: function (data) {

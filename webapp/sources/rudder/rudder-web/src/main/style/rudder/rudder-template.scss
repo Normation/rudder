@@ -245,10 +245,10 @@ ul {
   }
 
   .dropdown-toggle{
-    &:not(.btn-success){
+    &:not(.btn-success, .btn-primary){
       border: 1px solid rudder.$border-color-default;
     }
-    &:not(.btn-success):hover{
+    &:not(.btn-success, .btn-primary):hover{
       background-color: rudder.$bg-gray;
     }
   }
