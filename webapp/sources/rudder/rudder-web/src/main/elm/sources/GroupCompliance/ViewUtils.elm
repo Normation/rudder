@@ -467,7 +467,12 @@ filtersView : Model -> Html Msg
 filtersView model =
     let
         filters =
-            model.ui.ruleFilters
+            case model.ui.viewMode of
+                RulesView ->
+                    model.ui.ruleFilters
+
+                NodesView ->
+                    model.ui.nodeFilters
 
         complianceFilters =
             model.ui.complianceFilters
