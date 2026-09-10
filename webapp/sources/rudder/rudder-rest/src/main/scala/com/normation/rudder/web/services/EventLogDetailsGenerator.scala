@@ -210,11 +210,15 @@ class EventLogDetailsGenerator(
 
     def editorTechniqueDesc(x: EventLog, actionName: NodeSeq) = {
       val id           = (x.details \ "technique" \ "id").text
-      val name         = (x.details \ "technique" \ "displayName").text
+      val name        = (x.details \ "technique" \ "name").text
+      val displayName         = (x.details \ "technique" \ "displayName").text
       val previousName = (x.details \ "technique" \ "previousName").text
+
       Text("Technique ") ++ {
-        if (name.length < 1) <a href={techniqueLink(id)}>{previousName}</a> ++ actionName
-        else <a href={techniqueLink(id)}>{name}</a> ++ actionName
+        if (name.length > 0) <a href={techniqueLink(id)}>{name}</a> ++ actionName
+        else
+          if (displayName.length < 1) <a href={techniqueLink(id)}>{previousName}</a> ++ actionName
+          else <a href={techniqueLink(id)}>{displayName}</a> ++ actionName
       }
     }
 

@@ -1,6 +1,6 @@
 module Activity.ApiCalls exposing (..)
 
-import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..), Id, Search)
+import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..), ObjectId, Search)
 import Activity.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
 import Activity.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
@@ -8,7 +8,7 @@ import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : Id -> ContextPath -> Maybe String -> Cmd ActivityMsg
+getActivities : ObjectId -> ContextPath -> Maybe String -> Cmd ActivityMsg
 getActivities id (ContextPath contextPath) resourceTypeOpt =
     let
         url =

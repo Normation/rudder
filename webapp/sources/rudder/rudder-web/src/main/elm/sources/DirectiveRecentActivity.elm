@@ -2,7 +2,7 @@ port module DirectiveRecentActivity exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Id)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2ObjectId)
 import Browser
 import Dict
 import Html exposing (Html, div)
@@ -61,7 +61,7 @@ init flags =
 
         -- id search on directive id to keep activity related to this directive
         id =
-            string2Id flags.directiveId
+            string2ObjectId flags.directiveId
 
         initActions =
             [ Cmd.map ActivityMessage (getActivities id initModel.contextPath (Just "directives")) ]

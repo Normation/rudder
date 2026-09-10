@@ -4,25 +4,18 @@ import Activity.DataTypes exposing (..)
 import Json.Encode exposing (Value, int, list, object, string)
 
 
-encodeRestEventLogFilter : Id -> Value
-encodeRestEventLogFilter id =
+encodeRestEventLogFilter : ObjectId -> Value
+encodeRestEventLogFilter objectId =
     let
         isIdEmpty =
-            id2String id == ""
+            objectId2String objectId == ""
 
-        encodeId =
+        encodeObjectId =
             if isIdEmpty then
                 Nothing
 
             else
-                Just ( "id", object [ ( "value", string (id2String id) ) ] )
-
-        encodeSearch =
-            if isIdEmpty then
-                Nothing
-
-            else
-                Just ( "search", object [ ( "value", string (search2String id) ) ] )
+                Just ( "objectId", object [ ( "value", string (objectId2String objectId) ) ] )
     in
     object
         (List.filterMap identity
@@ -30,8 +23,7 @@ encodeRestEventLogFilter id =
             , Just ( "start", int 0 )
             , Just ( "length", int 20 )
             , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder 0 "desc" "" ] )
-            , encodeId
-            , encodeSearch
+            , encodeObjectId
             ]
         )
 

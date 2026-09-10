@@ -1,4 +1,4 @@
-module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, Id, Search, id2String, listString2FilterTypes, search2String, string2Id)
+module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, ObjectId, Search, listString2FilterTypes, objectId2String, search2String, string2ObjectId)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -20,22 +20,26 @@ type alias Search =
     Maybe String
 
 
-type alias Id =
+
+-- TODO delete ?
+
+
+type alias ObjectId =
     Maybe String
 
 
-id2String : Id -> String
-id2String s =
+objectId2String : ObjectId -> String
+objectId2String s =
     Maybe.withDefault "" s
 
 
-search2String : Id -> String
+search2String : ObjectId -> String
 search2String s =
     Maybe.withDefault "" s
 
 
-string2Id : String -> Id
-string2Id s =
+string2ObjectId : String -> ObjectId
+string2ObjectId s =
     Just s
 
 
