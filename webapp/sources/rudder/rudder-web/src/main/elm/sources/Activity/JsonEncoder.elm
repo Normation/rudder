@@ -7,7 +7,7 @@ import Json.Encode exposing (Value, int, list, object, string)
 encodeRestEventLogFilter : ObjectId -> Value
 encodeRestEventLogFilter objectId =
     let
-        isIdEmpty =
+        isObjectIdEmpty =
             objectId2String objectId == ""
     in
     object
@@ -16,7 +16,7 @@ encodeRestEventLogFilter objectId =
             , Just ( "start", int 0 )
             , Just ( "length", int 20 )
             , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder 0 "desc" "" ] )
-            , if isIdEmpty then
+            , if isObjectIdEmpty then
                 Nothing
 
               else
