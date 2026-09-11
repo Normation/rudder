@@ -104,7 +104,6 @@ impl Schedule {
                     // we already passed the start of the current interval
                     current_start + period
                 };
-                info!("next_start {}", next_start);
                 // if there is a calculation error (or if it falls tomorrow) return nothing
                 let final_time =
                     NaiveTime::from_num_seconds_from_midnight_opt(next_start as u32, 0)?;
@@ -311,7 +310,7 @@ impl Scheduler {
         match timeout(item.max_execution_duration, child.wait()).await {
             Ok(Ok(status)) => {
                 // wait properly finished
-                if !status.success() {
+                if status.success() {
                     info!("Command {} exited with status {}", item.command, status);
                 } else {
                     // TODO, on linux, if the process received a signal, this might not be the proper status
@@ -321,7 +320,6 @@ impl Scheduler {
             Ok(Err(_e)) => {
                 // wait timeouted
                 match child.kill().await {
-                    // TODO should we timeout the kill
                     Ok(()) => {
                         warn!(
                             "Command {} killed by timeout after {}s",
@@ -398,7 +396,8 @@ impl Scheduler {
                 // event has trigger too long ago
                 } else {
                     // just drop the event
-                    warn!("TODO WARN event dropped {:?}", self.schedules[evt.id]);
+                    let schedule = &self.schedules[evt.id];
+                    warn!("WARN event dropped: we should have run '{}', but the machine has been on sleep mode ", schedule.name);
                     false
                 }
             });
@@ -416,7 +415,6 @@ impl Scheduler {
                     Some(t) => t,
                     None => continue, // no event
                 };
-                info!("Found event at {}", next_run);
                 if next_run - now < TimeDelta::zero() {
                     error!(
                         "Next run calculated event in the past : {} for {:?}",
@@ -424,6 +422,7 @@ impl Scheduler {
                     );
                 } else if next_run - now < TimeDelta::seconds(WAKE_UP_DELAY_S + ACCEPTABLE_DRIFT_S)
                 {
+                    debug!("Next start of {} at {}", self.schedules[i].name, next_run);
                     let event = Event {
                         when: next_run,
                         id: i,
@@ -436,12 +435,6 @@ impl Scheduler {
             // probably not useful as long as we have only one or 2 schedules
             let time_lost = Local::now() - now;
 
-            debug!(
-                "Current time is {}, waiting for {}, time lost {}",
-                Local::now(),
-                next_sleep,
-                time_lost
-            );
             time::sleep((next_sleep - time_lost).to_std().unwrap_or(Duration::ZERO)).await
         }
     }
@@ -467,7 +460,7 @@ impl Scheduler {
                 loop {
                     match receiver.recv().await {
                         Some(ServiceMessage::Stop) => {
-                            info!("Shutdown signal receivedX");
+                            info!("Shutdown signal received");
                             // TODO kill tasks
                             return ExitType::Ok;
                         }
