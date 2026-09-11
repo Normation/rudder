@@ -194,8 +194,6 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-
-        --, Cmd.map ActivityMessage (getActivities Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
