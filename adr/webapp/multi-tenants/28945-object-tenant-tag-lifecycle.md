@@ -22,6 +22,10 @@ attempt to change the list is ignored and the existing tag kept. This also makes
 round-trip safe: a tenant only ever reads the tenants it owns, so re-saving the object cannot accidentally
 drop the tenants it could not see.
 
+**No tag submitted means "unchanged".** For a monotonic object, an update whose submitted object carries no
+tag at all keeps the existing one; it never means "remove the tenants". 
+Reassignable objects (nodes) are unaffected: for them, clearing the tag is explicit and legitimate.
+
 **Monotonic growth (accepted; implementation pending).** An object may only *gain* visibility, never lose it
 (`None ⊂ ByTenants(S ⊆ S') ⊂ Open`). To narrow an object's tenants, one duplicates it into a fresh object and
 chooses the narrower list at creation time. This law makes event-log filtering sound: record the object's

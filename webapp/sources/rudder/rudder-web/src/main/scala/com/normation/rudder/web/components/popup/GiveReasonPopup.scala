@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
@@ -157,7 +158,8 @@ class GiveReasonPopup(
                         ActiveTechniqueCategoryId(destCatId.value),
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                        policyTypes = PolicyTypes.rudderBase
+                        policyTypes = PolicyTypes.rudderBase,
+                        USER_LIB_TECHNIQUE_SECURITY_TAG
                       )(using qc.newCC(crReasons.map(_.get)))
                       .toBox
                     ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)

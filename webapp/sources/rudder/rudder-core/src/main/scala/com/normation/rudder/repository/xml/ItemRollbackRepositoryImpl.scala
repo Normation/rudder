@@ -231,7 +231,7 @@ class ItemRollbackRepositoryImpl(
                                         .setTo(GitVersion.DEFAULT_REV)
                                         .modify(_.techniqueVersion)
                                         .using(v => if (v.rev == rev) v.withRevision(GitVersion.DEFAULT_REV) else v)
-      _                            <- woDirectiveRepository.saveDirective(activeTechnique.id, restoredDirective)
+      _                            <- woDirectiveRepository.restoreDirective(activeTechnique.id, restoredDirective)
     } yield ()
   }
 
@@ -248,7 +248,7 @@ class ItemRollbackRepositoryImpl(
       restoredGroup = group.group.modify(_.id.rev).setTo(GitVersion.DEFAULT_REV)
       existing     <- roGroupRepository.getNodeGroupOpt(id)
       _            <- existing match {
-                        case Some(_) => woGroupRepository.update(restoredGroup).unit
+                        case Some(_) => woGroupRepository.restore(restoredGroup).unit
                         case None    => woGroupRepository.create(restoredGroup, group.categoryId).unit
                       }
     } yield ()
@@ -266,7 +266,7 @@ class ItemRollbackRepositoryImpl(
           )
       existing <- roParameterRepository.getGlobalParameter(name)
       _        <- existing match {
-                    case Some(_) => woParameterRepository.updateParameter(param).unit
+                    case Some(_) => woParameterRepository.restoreParameter(param).unit
                     case None    => woParameterRepository.saveParameter(param).unit
                   }
     } yield ()
@@ -296,7 +296,7 @@ class ItemRollbackRepositoryImpl(
       restoredRule = rule.modify(_.id.rev).setTo(GitVersion.DEFAULT_REV)
       existing    <- roRuleRepository.getOpt(id)
       _           <- existing match {
-                       case Some(_) => woRuleRepository.update(restoredRule).unit
+                       case Some(_) => woRuleRepository.restore(restoredRule).unit
                        case None    => woRuleRepository.create(restoredRule).unit
                      }
     } yield ()

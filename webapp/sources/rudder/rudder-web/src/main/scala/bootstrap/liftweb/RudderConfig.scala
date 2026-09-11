@@ -1443,7 +1443,7 @@ object RudderConfig extends Loggable {
   def RUDDER_PLUGIN_SETTINGS_FILE                  = RudderParsedProperties.RUDDER_PLUGIN_SETTINGS_FILE
 
   //
-  // Theses services can be called from the outer world
+  // These services can be called from the outer world
   // They must be typed with there abstract interface, as
   // such service must not expose implementation details
   //
@@ -1770,6 +1770,16 @@ case class RudderServiceApi(
  * This object is in charge of class instantiation in a method to avoid dead lock.
  * See: https://issues.rudder.io/issues/22645
  */
+
+/*
+ * We don't want to expose the raw (non tenant filtered) repository, but we still may have
+ * some need for it, so at least we put it in a clearly named data structure:
+ * - storage is the raw backend, not tenant filtered,
+ * - repository is the think to use, tenant aware.
+ */
+final case class TenantScopedRead[RO, STORAGE](repository: RO, storage: STORAGE)
+final case class TenantScopedWrite[WO, STORAGE](repository: WO, storage: STORAGE)
+
 object RudderConfigInit {
   import RudderParsedProperties.*
 
@@ -1872,17 +1882,31 @@ object RudderConfigInit {
       }
     }
 
-    lazy val roRuleCategoryRepository: RoRuleCategoryRepository =
-      new RoTenantRuleCategoryRepo(tenantCheckLogic, roLDAPRuleCategoryRepository)
-    lazy val ruleCategoryService:      RuleCategoryService      = new RuleCategoryService()
-    lazy val woRuleCategoryRepository: WoRuleCategoryRepository = {
-      new WoTenantRuleCategoryRepo(
-        tenantCheckLogic,
-        tenantService,
-        woLDAPRuleCategoryRepository,
-        roLDAPRuleCategoryRepository
+    lazy val ruleCategoryRead: TenantScopedRead[RoRuleCategoryRepository, RoLDAPRuleCategoryRepository] = {
+      val storage = new RoLDAPRuleCategoryRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        ruleCatReadWriteMutex
       )
+
+      TenantScopedRead(new RoTenantRuleCategoryRepo(tenantCheckLogic, storage), storage)
     }
+
+    lazy val ruleCategoryWrite: TenantScopedWrite[WoRuleCategoryRepository, WoLDAPRuleCategoryRepository] = {
+      val storage = new WoLDAPRuleCategoryRepository(
+        ruleCategoryRead.storage,
+        rwLdap,
+        stringUuidGenerator,
+        gitRuleCategoryArchiver,
+        personIdentServiceImpl,
+        RUDDER_AUTOARCHIVEITEMS
+      )
+
+      TenantScopedWrite(new WoTenantRuleCategoryRepo(tenantCheckLogic, storage, ruleCategoryRead.storage), storage)
+    }
+
+    lazy val ruleCategoryService: RuleCategoryService = new RuleCategoryService()
 
     lazy val changeRequestEventLogService: ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
     lazy val secretEventLogService:        SecretEventLogService        = new SecretEventLogServiceImpl(eventLogRepository)
@@ -1908,14 +1932,14 @@ object RudderConfigInit {
     lazy val commitAndDeployChangeRequest: CommitAndDeployChangeRequestService = {
       new CommitAndDeployChangeRequestServiceImpl(
         stringUuidGenerator,
-        roDirectiveRepository,
-        woDirectiveRepository,
-        roNodeGroupRepository,
-        woNodeGroupRepository,
-        roRuleRepository,
-        woRuleRepository,
-        roLDAPParameterRepository,
-        woLDAPParameterRepository,
+        directiveRead.repository,
+        directiveWrite.repository,
+        groupRead.repository,
+        groupWrite.repository,
+        ruleRead.repository,
+        ruleWrite.repository,
+        globalPropertyRead.repository,
+        globalPropertyWrite.repository,
         asyncDeploymentAgent,
         dependencyAndDeletionService,
         configService.rudder_workflow_enabled,
@@ -1976,10 +2000,11 @@ object RudderConfigInit {
 
     lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService, stringUuidGenerator)
 
-    lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
+    lazy val linkUtil = new LinkUtil(ruleRead.repository, groupRead.repository, directiveRead.repository, nodeFactRepository)
 
     // REST API - old
-    lazy val restCompletion = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository), userService)
+    lazy val restCompletion =
+      new RestCompletion(new RestCompletionService(directiveRead.repository, ruleRead.repository), userService)
 
     lazy val clearCacheService = new ClearCacheServiceImpl(
       nodeConfigurationHashRepo,
@@ -2018,7 +2043,7 @@ object RudderConfigInit {
     )
 
     lazy val techniqueStatusReaderService: ReadEditorTechniqueActiveStatus = new TechniqueActiveStatusService(
-      roDirectiveRepository
+      directiveRead.repository
     )
 
     lazy val (
@@ -2041,8 +2066,8 @@ object RudderConfigInit {
       new DeleteEditorTechniqueImpl(
         techniqueArchiver,
         updateTechniqueLibrary,
-        roDirectiveRepository,
-        woDirectiveRepository,
+        directiveRead.repository,
+        directiveWrite.repository,
         techniqueRepository,
         workflowLevelService,
         techniqueCheckSyncService,
@@ -2110,7 +2135,7 @@ object RudderConfigInit {
     lazy val getNodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(deprecated.softwareInventoryDAO)
 
     lazy val tenantService    = InMemoryTenantService.make(Nil).runNow
-    lazy val tenantCheckLogic = new DefaultTenantCheckLogic()
+    lazy val tenantCheckLogic = new DefaultTenantCheckLogic(tenantService)
 
     lazy val nodeFactRepository = {
 
@@ -2151,7 +2176,7 @@ object RudderConfigInit {
       InMemoryPropertiesRepository.make(nodeFactRepository, tenantCheckLogic).runNow
 
     lazy val propertiesService: NodePropertiesService =
-      new NodePropertiesServiceImpl(roLDAPParameterRepository, roNodeGroupRepository, nodeFactRepository, propertiesRepository)
+      new NodePropertiesServiceImpl(globalPropertyRead.repository, groupRead.repository, nodeFactRepository, propertiesRepository)
 
     lazy val propertiesSyncService: NodePropertiesSyncService =
       new NodePropertiesSyncServiceImpl(propertiesService, propertiesRepository, asyncDeploymentAgent)
@@ -2276,11 +2301,11 @@ object RudderConfigInit {
 
     // RudderConfig.complianceService used in NodeGroupForm
     lazy val complianceAPIService = new ComplianceAPIService(
-      roRuleRepository,
+      ruleRead.repository,
       nodeFactRepository,
-      roNodeGroupRepository,
+      groupRead.repository,
       reportingService,
-      roDirectiveRepository,
+      directiveRead.repository,
       globalComplianceModeService.getGlobalComplianceMode,
       configService.rudder_global_policy_mode()
     )
@@ -2337,7 +2362,7 @@ object RudderConfigInit {
           nodeDit,
           acceptedNodesDit,
           rudderDit,
-          roDirectiveRepository,
+          directiveRead.repository,
           nodeFactRepository,
           ncfTechniqueReader
         ),
@@ -2348,16 +2373,16 @@ object RudderConfigInit {
 
       lazy val ruleApiService13 = {
         new RuleApiService14(
-          roRuleRepository,
-          woRuleRepository,
+          ruleRead.repository,
+          ruleWrite.repository,
           configurationRepository,
           stringUuidGenerator,
           asyncDeploymentAgent,
           workflowLevelService,
-          roRuleCategoryRepository,
-          woRuleCategoryRepository,
-          roDirectiveRepository,
-          roNodeGroupRepository,
+          ruleCategoryRead.repository,
+          ruleCategoryWrite.repository,
+          directiveRead.repository,
+          groupRead.repository,
           nodeFactRepository,
           configService.rudder_global_policy_mode,
           ruleApplicationStatus
@@ -2366,7 +2391,7 @@ object RudderConfigInit {
 
       lazy val parameterApiService14 = {
         new ParameterApiService14(
-          roLDAPParameterRepository,
+          globalPropertyRead.repository,
           workflowLevelService
         )
       }
@@ -2374,9 +2399,9 @@ object RudderConfigInit {
       lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
 
       lazy val ruleInternalApiService =
-        new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
+        new RuleInternalApiService(ruleRead.repository, groupRead.repository, ruleCategoryRead.repository, nodeFactRepository)
 
-      lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
+      lazy val groupInternalApiService = new GroupInternalApiService(groupRead.repository)
 
       lazy val systemApiService13 = new SystemApiService13(
         healthcheckService,
@@ -2390,10 +2415,10 @@ object RudderConfigInit {
             new FileArchiveNameService(),
             configurationRepository,
             gitParseTechniqueLibrary,
-            roLdapNodeGroupRepository,
-            roRuleRepository,
-            roRuleCategoryRepository,
-            roDirectiveRepository,
+            groupRead.repository,
+            ruleRead.repository,
+            ruleCategoryRead.repository,
+            directiveRead.repository,
             techniqueRepository
           )
         }
@@ -2406,14 +2431,14 @@ object RudderConfigInit {
           new SaveArchiveServicebyRepo(
             techniqueArchiver,
             techniqueReader,
-            roDirectiveRepository,
-            woDirectiveRepository,
-            roNodeGroupRepository,
-            woNodeGroupRepository,
-            roRuleRepository,
-            woRuleRepository,
-            roRuleCategoryRepository,
-            woRuleCategoryRepository,
+            directiveRead.repository,
+            directiveWrite.repository,
+            groupRead.repository,
+            groupWrite.repository,
+            ruleRead.repository,
+            ruleWrite.repository,
+            ruleCategoryRead.repository,
+            ruleCategoryWrite.repository,
             updateTechniqueLibrary,
             asyncDeploymentAgent,
             stringUuidGenerator
@@ -2426,7 +2451,7 @@ object RudderConfigInit {
         import com.normation.rudder.rest.lift.*
 
         List(
-          new ComplianceApi(complianceAPIService, roDirectiveRepository),
+          new ComplianceApi(complianceAPIService, directiveRead.repository),
           new GroupsApi(
             propertiesService,
             zioJsonExtractor,
@@ -2434,8 +2459,8 @@ object RudderConfigInit {
             userPropertyService,
             new GroupApiService14(
               nodeFactRepository,
-              roNodeGroupRepository,
-              woNodeGroupRepository,
+              groupRead.repository,
+              groupWrite.repository,
               propertiesRepository,
               propertiesService,
               stringUuidGenerator,
@@ -2450,9 +2475,9 @@ object RudderConfigInit {
             zioJsonExtractor,
             stringUuidGenerator,
             new DirectiveApiService14(
-              roDirectiveRepository,
+              directiveRead.repository,
               configurationRepository,
-              woDirectiveRepository,
+              directiveWrite.repository,
               stringUuidGenerator,
               asyncDeploymentAgent,
               workflowLevelService,
@@ -2496,7 +2521,7 @@ object RudderConfigInit {
           ),
           new TechniqueApi(
             new TechniqueAPIService14(
-              roDirectiveRepository,
+              directiveRead.repository,
               gitParseTechniqueLibrary,
               ncfTechniqueReader,
               techniqueSerializer,
@@ -2548,7 +2573,7 @@ object RudderConfigInit {
           new InventoryApi(inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
           new PluginApi(pluginSettingsService, pluginSystemService, PluginsInfo.pluginJsonInfos.succeed),
           new PluginInternalApi(pluginSystemService),
-          new RecentChangesAPI(recentChangesService, roRuleRepository),
+          new RecentChangesAPI(recentChangesService, ruleRead.repository),
           new RulesInternalApi(ruleInternalApiService, ruleApiService13),
           new GroupsInternalApi(groupInternalApiService),
           new CampaignApi(
@@ -2610,10 +2635,10 @@ object RudderConfigInit {
       "metadata.xml"
     )
     lazy val configurationRepository  = new ConfigurationRepositoryImpl(
-      roLdapDirectiveRepository,
+      directiveRead.repository,
       techniqueRepository,
-      roLdapRuleRepository,
-      roNodeGroupRepository,
+      ruleRead.repository,
+      groupRead.repository,
       parseActiveTechniqueLibrary,
       gitParseTechniqueLibrary,
       parseRules,
@@ -2737,7 +2762,7 @@ object RudderConfigInit {
      * For now, we don't want to query server other
      * than the accepted ones.
      */
-    lazy val getSubGroupChoices = new DefaultSubGroupComparatorRepository(roLdapNodeGroupRepository)
+    lazy val getSubGroupChoices = new DefaultSubGroupComparatorRepository(groupRead.repository)
     lazy val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices, instanceIdService)
     lazy val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
     lazy val queryParser        = CmdbQueryParser.jsonStrictParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
@@ -2937,7 +2962,7 @@ object RudderConfigInit {
     // query processor for accepted nodes
     lazy val queryProcessor = new NodeFactQueryProcessor(
       nodeFactRepository,
-      new DefaultSubGroupComparatorRepository(roNodeGroupRepository),
+      new DefaultSubGroupComparatorRepository(groupRead.repository),
       deprecated.internalAcceptedQueryProcessor,
       AcceptedInventory
     )
@@ -2945,7 +2970,7 @@ object RudderConfigInit {
     // we need a roLdap query checker for nodes in pending
     lazy val inventoryQueryChecker = new NodeFactQueryProcessor(
       nodeFactRepository,
-      new DefaultSubGroupComparatorRepository(roNodeGroupRepository),
+      new DefaultSubGroupComparatorRepository(groupRead.repository),
       deprecated.internalPendingQueryProcessor,
       PendingInventory
     )
@@ -2955,7 +2980,7 @@ object RudderConfigInit {
     lazy val pendingNodeCheckGroup = new CheckPendingNodeInDynGroups(inventoryQueryChecker)
 
     lazy val unitRefuseGroup: UnitRefuseInventory =
-      new RefuseGroups("refuse_node:delete_id_in_groups", roLdapNodeGroupRepository, woLdapNodeGroupRepository)
+      new RefuseGroups("refuse_node:delete_id_in_groups", groupRead.repository, groupWrite.repository)
 
     lazy val acceptHostnameAndIp: UnitCheckAcceptInventory = new AcceptHostnameAndIp(
       "accept_new_server:check_hostname_unicity",
@@ -2980,21 +3005,21 @@ object RudderConfigInit {
     lazy val eventListDisplayerImpl   = new EventListDisplayer(eventLogService, staticResourceRewrite)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
-      roLdapNodeGroupRepository,
+      groupRead.repository,
       nodeFactRepository,
-      roLDAPRuleCategoryRepository,
+      ruleCategoryRead.repository,
       modificationService,
       // inlined: RudderConfigInit is at the JVM limit of 254 parameters, it can't take more lazy val
       new ItemRollbackServiceImpl(
         gitModificationRepository,
         new ItemRollbackRepositoryImpl(
-          roLdapRuleRepository,
-          woLdapRuleRepository,
-          woLdapDirectiveRepository,
-          roLdapNodeGroupRepository,
-          woLdapNodeGroupRepository,
-          roLdapParameterRepository,
-          woLdapParameterRepository,
+          ruleRead.repository,
+          ruleWrite.repository,
+          directiveWrite.repository,
+          groupRead.repository,
+          groupWrite.repository,
+          globalPropertyRead.repository,
+          globalPropertyWrite.repository,
           gitConfigRepo,
           parseRules,
           parseActiveTechniqueLibrary,
@@ -3018,7 +3043,7 @@ object RudderConfigInit {
     lazy val personIdentServiceImpl: PersonIdentService = new TrivialPersonIdentService
     lazy val personIdentService = personIdentServiceImpl
 
-    lazy val roParameterServiceImpl = new RoParameterServiceImpl(roLDAPParameterRepository)
+    lazy val roParameterServiceImpl = new RoParameterServiceImpl(globalPropertyRead.repository)
 
     ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
     lazy val gitModificationRepository = new GitModificationRepositoryImpl(doobie)
@@ -3120,20 +3145,24 @@ object RudderConfigInit {
     lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
     lazy val ruleCatReadWriteMutex   = new ZioTReentrantLock("rule-cat-lock")
 
-    lazy val roLdapDirectiveRepository = {
-      new RoLDAPDirectiveRepository(
+    /*
+     * We don't want to expose the storage-level (tenant-agnostic) repositories, so we build them inside
+     * tenant filtered repository instance block.
+     */
+    lazy val directiveRead: TenantScopedRead[RoDirectiveRepository, RoLDAPDirectiveRepository] = {
+      val storage = new RoLDAPDirectiveRepository(
         rudderDitImpl,
         roLdap,
         ldapEntityMapper,
         techniqueRepositoryImpl,
         uptLibReadWriteMutex
       )
+      TenantScopedRead(new RoTenantDirectiveRepo(tenantCheckLogic, storage), storage)
     }
-    lazy val roDirectiveRepository: RoDirectiveRepository =
-      new RoTenantDirectiveRepo(tenantCheckLogic, roLdapDirectiveRepository)
-    lazy val woLdapDirectiveRepository = {
-      val repo = new WoLDAPDirectiveRepository(
-        roLdapDirectiveRepository,
+
+    lazy val directiveWrite: TenantScopedWrite[WoDirectiveRepository, WoLDAPDirectiveRepository] = {
+      val storage = new WoLDAPDirectiveRepository(
+        directiveRead.storage,
         rwLdap,
         ldapDiffMapper,
         logRepository,
@@ -3151,7 +3180,7 @@ object RudderConfigInit {
       gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
         gitDirectiveArchiverWithoutModId,
         techniqueRepositoryImpl,
-        roLdapDirectiveRepository
+        directiveRead.storage
       )
 
       techniqueRepositoryImpl.registerCallback(
@@ -3159,132 +3188,97 @@ object RudderConfigInit {
           "SaveDirectivesOnTechniqueCallback",
           100,
           directiveEditorServiceImpl,
-          roLdapDirectiveRepository,
-          repo
+          directiveRead.storage,
+          storage
         )
       )
 
-      repo
-    }
-    lazy val woDirectiveRepository: WoDirectiveRepository = {
-      new WoTenantDirectiveRepo(
-        tenantCheckLogic,
-        tenantService,
-        woLdapDirectiveRepository,
-        roLdapDirectiveRepository
-      )
+      TenantScopedWrite(new WoTenantDirectiveRepo(tenantCheckLogic, storage, directiveRead.storage), storage)
     }
 
-    lazy val roLdapRuleRepository =
-      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
-    lazy val roRuleRepository: RoRuleRepository =
-      new RoTenantRuleRepo(tenantCheckLogic, roLdapRuleRepository)
+    lazy val directiveWrite.repository: WoDirectiveRepository = directiveWrite.repository
 
-    lazy val woLdapRuleRepository = new WoLDAPRuleRepository(
-      roLdapRuleRepository,
-      rwLdap,
-      ldapDiffMapper,
-      roLdapNodeGroupRepository,
-      logRepository,
-      gitRuleArchiver,
-      personIdentServiceImpl,
-      RUDDER_AUTOARCHIVEITEMS
-    )
-    lazy val woRuleRepository: WoRuleRepository = {
-      new WoTenantRuleRepo(
-        tenantCheckLogic,
-        tenantService,
-        woLdapRuleRepository,
-        roLdapRuleRepository,
-        roLDAPRuleCategoryRepository
-      )
+    // see the note on `directiveRead`: the storage repository only exists inside the block
+    lazy val ruleRead: TenantScopedRead[RoRuleRepository, RoLDAPRuleRepository] = {
+      val storage = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
+      TenantScopedRead(new RoTenantRuleRepo(tenantCheckLogic, storage), storage)
     }
 
-    lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
-      rudderDitImpl,
-      roLdap,
-      ldapEntityMapper,
-      nodeFactRepository,
-      groupLibReadWriteMutex
-    )
-    lazy val roNodeGroupRepository: RoNodeGroupRepository =
-      new RoTenantNodeGroupRepo(tenantCheckLogic, roLdapNodeGroupRepository)
-
-    lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
-      roLdapNodeGroupRepository,
-      rwLdap,
-      ldapDiffMapper,
-      logRepository,
-      gitNodeGroupArchiver,
-      personIdentServiceImpl,
-      RUDDER_AUTOARCHIVEITEMS
-    )
-    lazy val woNodeGroupRepository: WoNodeGroupRepository = {
-      new WoTenantNodeGroupRepo(
-        tenantCheckLogic,
-        tenantService,
-        woLdapNodeGroupRepository,
-        roLdapNodeGroupRepository
-      )
-    }
-
-    lazy val roLDAPRuleCategoryRepository = {
-      new RoLDAPRuleCategoryRepository(
-        rudderDitImpl,
-        roLdap,
-        ldapEntityMapper,
-        ruleCatReadWriteMutex
-      )
-    }
-
-    lazy val woLDAPRuleCategoryRepository = {
-      new WoLDAPRuleCategoryRepository(
-        roLDAPRuleCategoryRepository,
+    lazy val ruleWrite: TenantScopedWrite[WoRuleRepository, WoLDAPRuleRepository] = {
+      val storage = new WoLDAPRuleRepository(
+        ruleRead.storage,
         rwLdap,
-        stringUuidGenerator,
-        gitRuleCategoryArchiver,
+        ldapDiffMapper,
+        groupRead.storage,
+        logRepository,
+        gitRuleArchiver,
         personIdentServiceImpl,
         RUDDER_AUTOARCHIVEITEMS
       )
-    }
-
-    lazy val roLdapParameterRepository = new RoLDAPParameterRepository(
-      rudderDitImpl,
-      roLdap,
-      ldapEntityMapper,
-      parameterReadWriteMutex
-    )
-    lazy val roLDAPParameterRepository: RoParameterRepository =
-      new RoTenantParameterRepo(tenantCheckLogic, roLdapParameterRepository)
-
-    lazy val woLdapParameterRepository = new WoLDAPParameterRepository(
-      roLdapParameterRepository,
-      rwLdap,
-      ldapDiffMapper,
-      logRepository,
-      gitParameterArchiver,
-      personIdentServiceImpl,
-      RUDDER_AUTOARCHIVEITEMS
-    )
-    lazy val woLDAPParameterRepository: WoParameterRepository = {
-      new WoTenantParameterRepo(
-        tenantCheckLogic,
-        tenantService,
-        woLdapParameterRepository,
-        roLdapParameterRepository
+      TenantScopedWrite(
+        new WoTenantRuleRepo(tenantCheckLogic, storage, ruleRead.storage, ruleCategoryRead.repository),
+        storage
       )
     }
 
+    // see the note on `directiveRead`: the storage repository only exists inside the block
+    lazy val groupRead: TenantScopedRead[RoNodeGroupRepository, RoLDAPNodeGroupRepository] = {
+      val storage = new RoLDAPNodeGroupRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        nodeFactRepository,
+        groupLibReadWriteMutex
+      )
+      TenantScopedRead(new RoTenantNodeGroupRepo(tenantCheckLogic, storage), storage)
+    }
+
+    lazy val groupWrite: TenantScopedWrite[WoNodeGroupRepository, WoLDAPNodeGroupRepository] = {
+      val storage = new WoLDAPNodeGroupRepository(
+        groupRead.storage,
+        rwLdap,
+        ldapDiffMapper,
+        logRepository,
+        gitNodeGroupArchiver,
+        personIdentServiceImpl,
+        RUDDER_AUTOARCHIVEITEMS
+      )
+      TenantScopedWrite(new WoTenantNodeGroupRepo(tenantCheckLogic, storage, groupRead.storage), storage)
+    }
+
+    lazy val globalPropertyRead: TenantScopedRead[RoParameterRepository, RoLDAPParameterRepository] = {
+      val storage = new RoLDAPParameterRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        parameterReadWriteMutex
+      )
+      TenantScopedRead(new RoTenantParameterRepo(tenantCheckLogic, storage), storage)
+    }
+
+    lazy val globalPropertyWrite: TenantScopedWrite[WoParameterRepository, WoLDAPParameterRepository] = {
+      val storage = new WoLDAPParameterRepository(
+        globalPropertyRead.storage,
+        rwLdap,
+        ldapDiffMapper,
+        logRepository,
+        gitParameterArchiver,
+        personIdentServiceImpl,
+        RUDDER_AUTOARCHIVEITEMS
+      )
+      TenantScopedWrite(new WoTenantParameterRepo(tenantCheckLogic, storage, globalPropertyRead.storage), storage)
+    }
+
     lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
-      roLdapRuleRepository,
-      woLdapRuleRepository,
-      roLDAPRuleCategoryRepository,
-      roLdapDirectiveRepository,
-      woLdapDirectiveRepository,
-      roLdapNodeGroupRepository,
-      woLdapNodeGroupRepository,
-      roLdapParameterRepository,
-      woLdapParameterRepository,
+      ruleRead.repository,
+      ruleWrite.repository,
+      ruleCategoryRead.repository,
+      directiveRead.repository,
+      directiveWrite.repository,
+      groupRead.repository,
+      groupWrite.repository,
+      globalPropertyRead.repository,
+      globalPropertyWrite.repository,
       gitConfigRepo,
       gitRuleArchiver,
       gitRuleCategoryArchiver,
@@ -3378,8 +3372,8 @@ object RudderConfigInit {
       new TechniqueAcceptationUpdater(
         "UpdatePTAcceptationDatetime",
         50,
-        roLdapDirectiveRepository,
-        woLdapDirectiveRepository,
+        directiveRead.repository,
+        directiveWrite.repository,
         techniqueRepository
       )
     )
@@ -3421,11 +3415,11 @@ object RudderConfigInit {
       )
       val buildNodeContext        = new NodeContextBuilderImpl(interpolationCompiler, systemVariableService)
       val fetchAllInfoServiceImpl = new FetchAllInfoServiceImpl(
-        roLdapRuleRepository,
+        ruleRead.repository,
         nodeFactRepository,
         configurationRepository,
-        roNodeGroupRepository,
-        roLDAPParameterRepository,
+        groupRead.repository,
+        globalPropertyRead.repository,
         globalAgentRunService,
         propertiesRepository,
         globalComplianceModeService,
@@ -3444,7 +3438,6 @@ object RudderConfigInit {
         () => configService.rudder_generation_continue_on_error()
       )
       new PolicyGenerationServiceImpl(
-        woLdapRuleRepository,
         nodeConfigurationHashRepo,
         updateExpectedRepo,
         findNewNodeStatusReports,
@@ -3667,14 +3660,14 @@ object RudderConfigInit {
 
     lazy val dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
       new FindDependenciesImpl(roLdap, rudderDitImpl, ldapEntityMapper),
-      roLdapDirectiveRepository,
-      woLdapDirectiveRepository,
-      woLdapRuleRepository,
-      woLdapNodeGroupRepository
+      directiveRead.repository,
+      directiveWrite.repository,
+      ruleWrite.repository,
+      groupWrite.repository
     )
 
     lazy val logDisplayerImpl:               LogDisplayer               =
-      new LogDisplayer(reportsRepositoryImpl, configurationRepository, roLdapRuleRepository)
+      new LogDisplayer(reportsRepositoryImpl, configurationRepository, ruleRead.repository)
     lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer()
     lazy val dyngroupUpdaterBatch:           UpdateDynamicGroups        = new UpdateDynamicGroups(
       dynGroupServiceImpl,
@@ -3688,7 +3681,7 @@ object RudderConfigInit {
     lazy val updateDynamicGroups = dyngroupUpdaterBatch
 
     lazy val dynGroupUpdaterService =
-      new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, woLdapNodeGroupRepository, queryProcessor)
+      new DynGroupUpdaterServiceImpl(groupRead.repository, groupWrite.repository, queryProcessor)
 
     lazy val dbCleaner: AutomaticReportsCleaning = {
       val cleanFrequency = AutomaticReportsCleaning.buildFrequency(
@@ -3731,7 +3724,7 @@ object RudderConfigInit {
       RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
     )
 
-    lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
+    lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(directiveRead.repository, techniqueRepositoryImpl)
 
     /*
      * Cleaning actions are run in the case where the node was accepted, deleted, and unknown
@@ -3747,7 +3740,7 @@ object RudderConfigInit {
     lazy val postNodeDeleteActions = Ref
       .make(
         //      new RemoveNodeInfoFromCache(ldapNodeInfoServiceImpl)
-        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository)
+        new RemoveNodeFromGroups(groupRead.repository, groupWrite.repository)
         :: new CloseNodeConfiguration(updateExpectedRepo)
         :: new DeletePolicyServerPolicies(policyServerManagementService)
         :: new CleanUpCFKeys()
@@ -3856,18 +3849,18 @@ object RudderConfigInit {
         rudderDitImpl,
         rwLdap,
         techniqueRepositoryImpl,
-        roLdapDirectiveRepository,
-        woLdapDirectiveRepository,
+        directiveRead.repository,
+        directiveWrite.repository,
         stringUuidGenerator,
         asyncDeploymentAgentImpl
       ), // new CheckDirectiveBusinessRules()
 
-      new CheckRudderGlobalProperties(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
+      new CheckRudderGlobalProperties(globalPropertyRead.repository, globalPropertyWrite.repository, stringUuidGenerator),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
       new MigrateDirectiveWithSelectInputBroken(
         ncfTechniqueReader,
-        roDirectiveRepository,
-        woDirectiveRepository,
+        directiveRead.repository,
+        directiveWrite.repository,
         stringUuidGenerator
       ),
       new CheckNcfTechniqueUpdate(
@@ -3885,7 +3878,7 @@ object RudderConfigInit {
         stringUuidGenerator
       ),
       new RemoveFaultyLdapEntries(
-        woDirectiveRepository,
+        directiveWrite.repository,
         stringUuidGenerator
       ),
       new RemoveDefaultRootDescription(nodeFactRepository),
@@ -3970,8 +3963,8 @@ object RudderConfigInit {
     lazy val directiveEditorService = directiveEditorServiceImpl
 
     lazy val reportDisplayerImpl = new ReportDisplayer(
-      roLdapRuleRepository,
-      roLdapDirectiveRepository,
+      ruleRead.repository,
+      directiveRead.repository,
       nodeFactRepository,
       configService,
       logDisplayerImpl
@@ -3980,8 +3973,8 @@ object RudderConfigInit {
     lazy val autoReportLogger    = new AutomaticReportLogger(
       propertyRepository,
       reportsRepositoryImpl,
-      roLdapRuleRepository,
-      roLdapDirectiveRepository,
+      ruleRead.repository,
+      directiveRead.repository,
       nodeFactRepository,
       RUDDER_BATCH_REPORTS_LOGINTERVAL
     )
@@ -4141,15 +4134,15 @@ object RudderConfigInit {
       acceptedNodesDitImpl,
       nodeDitImpl,
       rudderDit,
-      roLdapRuleRepository,
-      woRuleRepository,
-      roLdapNodeGroupRepository,
-      woLdapNodeGroupRepository,
+      ruleRead.repository,
+      ruleWrite.repository,
+      groupRead.repository,
+      groupWrite.repository,
       techniqueRepositoryImpl,
       techniqueArchiver,
       techniqueRepositoryImpl,
-      roLdapDirectiveRepository,
-      woLdapDirectiveRepository,
+      directiveRead.repository,
+      directiveWrite.repository,
       deprecated.softwareInventoryDAO,
       eventLogRepository,
       eventLogDetailsServiceImpl,
@@ -4215,8 +4208,8 @@ object RudderConfigInit {
       rudderApi,
       authorizationApiMapping,
       roleApiMapping,
-      roRuleCategoryRepository,
-      woRuleCategoryRepository,
+      ruleCategoryRead.repository,
+      ruleCategoryWrite.repository,
       workflowLevelService,
       ncfTechniqueReader,
       recentChangesService,
@@ -4243,8 +4236,8 @@ object RudderConfigInit {
       rwLdap,
       apiAuthorizationLevelService,
       tokenGenerator,
-      roLDAPParameterRepository,
-      woLDAPParameterRepository,
+      globalPropertyRead.repository,
+      globalPropertyWrite.repository,
       interpolationCompiler,
       policyGenerationHookService,
       campaignEventRepo,

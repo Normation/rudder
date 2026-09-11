@@ -48,6 +48,7 @@ import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
@@ -476,7 +477,8 @@ class TechniqueEditForm(
                   category.id,
                   technique.id.name,
                   techniqueRepository.getTechniqueVersions(technique.id.name).toSeq,
-                  technique.policyTypes
+                  technique.policyTypes,
+                  USER_LIB_TECHNIQUE_SECURITY_TAG
                 )(using qc.newCC(Some("User added a technique from UI")))
 
                 // update UI

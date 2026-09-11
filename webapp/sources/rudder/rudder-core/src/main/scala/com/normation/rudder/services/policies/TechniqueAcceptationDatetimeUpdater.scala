@@ -383,7 +383,8 @@ class TechniqueAcceptationUpdater(
                                              parentCat._1,
                                              name,
                                              mods.keys.toSeq,
-                                             policyTypes
+                                             policyTypes,
+                                             security = SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
                                            )
                                            .chainError(
                                              s"Error when automatically activating technique '${name.value}'"

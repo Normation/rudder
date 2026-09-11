@@ -159,6 +159,11 @@ class WoLDAPParameterRepository(
     )
   }
 
+  // storage-wise a restore is an update: the difference is the tenant law, which the proxy applies
+  def restoreParameter(
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = updateParameter(parameter)
+
   def updateParameter(
       parameter: GlobalParameter
   )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
