@@ -59,7 +59,7 @@ init flags =
             , zone = zone
             }
 
-        -- id search on directive id to keep activity related to this directive
+        -- directive id to keep activity related to this directive
         id =
             string2ObjectId flags.directiveId
 
