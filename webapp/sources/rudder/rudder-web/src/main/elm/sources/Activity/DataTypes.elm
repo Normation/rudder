@@ -20,10 +20,6 @@ type alias Search =
     Maybe String
 
 
-
--- TODO delete ?
-
-
 type alias ObjectId =
     Maybe String
 
