@@ -1,10 +1,10 @@
-port module GlobalPropertiesRecentActivity exposing (..)
+port module GlobalPropertiesHistory exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), string2Search)
 import Browser
 import Dict
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), string2Search)
+import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class, colspan, rowspan)
 import Rudder.Table exposing (updateData)
@@ -24,7 +24,7 @@ type GlobalPropertyId
 
 type alias Model =
     { globalPropertyId : GlobalPropertyId
-    , activityTable : Rudder.Table.Model Activity Msg
+    , historyTable : Rudder.Table.Model EventLog Msg
     , contextPath : ContextPath
     , zone : Zone
     }
@@ -33,7 +33,7 @@ type alias Model =
 type Msg
     = CallApi (Model -> Cmd Msg)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage ActivityMsg
+    | HistoryMessage EventLogsMsg
 
 
 init :
@@ -58,26 +58,22 @@ init flags =
         initModel : Model
         initModel =
             { globalPropertyId = GlobalPropertyId flags.globalPropertyId
-            , activityTable = initTable flags.canReadChangeLogs contextPath zone
+            , historyTable = initTable flags.canReadChangeLogs contextPath zone
             , contextPath = contextPath
             , zone = zone
             }
 
-        -- full text search on directive id to keep activity related to this directive
+        -- full text search on directive id to get history related to this global property
         search =
             string2Search flags.globalPropertyId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search 100 initModel.contextPath (Just "parameters")) ]
+            [ Cmd.map HistoryMessage (getEventLogs search 100 initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 
 
-
-{- Table of the recent activity -}
-
-
-tableView : Rudder.Table.Model Activity Msg -> Html Msg
+tableView : Rudder.Table.Model EventLog Msg -> Html Msg
 tableView tableModel =
     if Rudder.Table.getRows tableModel == [] then
         text "-"
@@ -90,7 +86,7 @@ tableView tableModel =
 
 view : Model -> Html Msg
 view model =
-    tableView model.activityTable
+    tableView model.historyTable
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,25 +97,25 @@ update msg model =
 
         RudderTableMsg m ->
             let
-                ( activityTable, tableMsg, _ ) =
-                    Rudder.Table.update m model.activityTable
+                ( historyTable, tableMsg, _ ) =
+                    Rudder.Table.update m model.historyTable
             in
-            ( { model | activityTable = activityTable }, tableMsg )
+            ( { model | historyTable = historyTable }, tableMsg )
 
-        ActivityMessage a ->
+        HistoryMessage a ->
             case a of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
-                        Ok ( _, activities ) ->
+                        Ok ( _, history ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData history model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

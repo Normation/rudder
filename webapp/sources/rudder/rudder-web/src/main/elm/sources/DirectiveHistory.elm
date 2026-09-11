@@ -1,10 +1,10 @@
-port module DirectiveRecentActivity exposing (..)
+port module DirectiveHistory exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 import Rudder.Table exposing (..)
@@ -24,7 +24,7 @@ type DirectiveId
 
 type alias Model =
     { directiveId : DirectiveId
-    , activityTable : Rudder.Table.Model Activity Msg
+    , historyTable : Rudder.Table.Model EventLog Msg
     , contextPath : ContextPath
     , zone : Zone
     }
@@ -33,7 +33,7 @@ type alias Model =
 type Msg
     = CallApi (Model -> Cmd Msg)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage ActivityMsg
+    | HistoryMessage EventLogsMsg
 
 
 init :
@@ -55,28 +55,24 @@ init flags =
         initModel : Model
         initModel =
             { directiveId = DirectiveId flags.directiveId
-            , activityTable = initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
+            , historyTable = initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }
 
-        -- full text search on directive id to keep activity related to this directive
+        -- full text search on directive id to get history related to this directive
         search =
             string2Search flags.directiveId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search 100 initModel.contextPath (Just "directives")) ]
+            [ Cmd.map HistoryMessage (getEventLogs search 100 initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 
 
-
-{- Table of the recent activity -}
-
-
 table : Model -> Html Msg
 table model =
-    div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view model.activityTable) ]
+    div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view model.historyTable) ]
 
 
 view : Model -> Html Msg
@@ -92,25 +88,25 @@ update msg model =
 
         RudderTableMsg m ->
             let
-                ( activityTable, tableMsg, _ ) =
-                    Rudder.Table.update m model.activityTable
+                ( historyTable, tableMsg, _ ) =
+                    Rudder.Table.update m model.historyTable
             in
-            ( { model | activityTable = activityTable }, tableMsg )
+            ( { model | historyTable = historyTable }, tableMsg )
 
-        ActivityMessage a ->
+        HistoryMessage a ->
             case a of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
-                        Ok ( _, activities ) ->
+                        Ok ( _, history ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData history model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )
