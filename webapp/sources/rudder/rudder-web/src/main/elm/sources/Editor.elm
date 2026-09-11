@@ -143,7 +143,7 @@ mainInit : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 mainInit initValues =
     let
         model =
-            Model [] [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True [] "default"
+            Model [] [] Dict.empty (TechniqueCategory "" "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True [] "default"
     in
     ( model, Cmd.batch [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model, getPolicyMode model ] )
 
@@ -321,10 +321,140 @@ update msg model =
 
         -- UI high level stuff: list/filter techniques, create/import/select technique
         GetCategories (Ok ( _, categories )) ->
-            ( { model | categories = categories }, Cmd.none )
+            let
+                -- the form must follow the category it is about, or close
+                newMode =
+                    case model.mode of
+                        CategoryDetails catForm ->
+                            let
+                                path =
+                                    (categoryFormParent catForm.state).path
+                            in
+                            case List.Extra.find (.path >> (==) path) (allCategories categories) of
+                                Just category ->
+                                    CategoryDetails (categoryFormOf (EditCategory category))
 
-        GetCategories (Err _) ->
-            ( model, Cmd.none )
+                                Nothing ->
+                                    Introduction
+
+                        m ->
+                            m
+            in
+            ( { model | categories = categories, mode = newMode }, Cmd.none )
+
+        GetCategories (Err err) ->
+            ( model, errorNotification ("Error when getting technique categories: " ++ debugHttpErr err) )
+
+        SelectCategory category ->
+            let
+                alreadySelected =
+                    case model.mode of
+                        CategoryDetails catForm ->
+                            (categoryFormParent catForm.state).path == category.path
+
+                        _ ->
+                            False
+            in
+            if alreadySelected then
+                ( { model | mode = Introduction }, initInputs "" )
+
+            else
+                ( { model | mode = CategoryDetails (categoryFormOf (EditCategory category)) }, initInputs "" )
+
+        StartNewSubCategory parent ->
+            ( { model | mode = CategoryDetails (categoryFormOf (NewSubCategory parent)) }, initInputs "" )
+
+        UpdateCategoryForm catForm ->
+            ( { model | mode = CategoryDetails catForm }, Cmd.none )
+
+        StartSavingCategory ->
+            case model.mode of
+                CategoryDetails catForm ->
+                    update (CallApi (saveCategory catForm)) { model | mode = CategoryDetails { catForm | saving = True } }
+
+                _ ->
+                    ( model, Cmd.none )
+
+        SaveCategory (Ok ( _, category )) ->
+            let
+                -- the parent we were creating into, if any
+                createdIn =
+                    case model.mode of
+                        CategoryDetails catForm ->
+                            case catForm.state of
+                                NewSubCategory parent ->
+                                    Just parent
+
+                                EditCategory _ ->
+                                    Nothing
+
+                        _ ->
+                            Nothing
+
+                modelTechniqueFilter =
+                    model.techniqueFilter
+
+                -- a new category must be visible, even if its parent was folded
+                techniqueFilter =
+                    case createdIn of
+                        Just parent ->
+                            { modelTechniqueFilter | folded = List.Extra.remove parent.id modelTechniqueFilter.folded }
+
+                        Nothing ->
+                            modelTechniqueFilter
+
+                notification =
+                    if Maybe.Extra.isJust createdIn then
+                        "Category '" ++ category.name ++ "' created!"
+
+                    else
+                        "Category '" ++ category.name ++ "' saved!"
+            in
+            -- the tree changed shape, so read it again
+            ( { model | mode = CategoryDetails (categoryFormOf (EditCategory category)), techniqueFilter = techniqueFilter }
+            , Cmd.batch [ getTechniquesCategories model, successNotification notification ]
+            )
+
+        SaveCategory (Err err) ->
+            let
+                newMode =
+                    case model.mode of
+                        CategoryDetails catForm ->
+                            CategoryDetails { catForm | saving = False }
+
+                        m ->
+                            m
+            in
+            ( { model | mode = newMode }, errorNotification ("Error when saving category: " ++ debugHttpErr err) )
+
+        OpenCategoryDeletionPopup category ->
+            ( { model | modal = Just (CategoryDeletionValidation category) }, Cmd.none )
+
+        StartDeletingCategory category ->
+            case model.mode of
+                CategoryDetails catForm ->
+                    update (CallApi (deleteCategory category)) { model | mode = CategoryDetails { catForm | saving = True } }
+
+                _ ->
+                    ( model, deleteCategory category model )
+
+        DeleteCategory (Ok path) ->
+            ( { model | mode = Introduction }
+            , Cmd.batch [ getTechniquesCategories model, successNotification ("Category '" ++ path ++ "' deleted!") ]
+            )
+
+        DeleteCategory (Err err) ->
+            let
+                -- clear the in-progress flag, or the buttons stay disabled
+                newMode =
+                    case model.mode of
+                        CategoryDetails catForm ->
+                            CategoryDetails { catForm | saving = False }
+
+                        m ->
+                            m
+            in
+            ( { model | mode = newMode }, errorNotification ("Error when deleting category: " ++ debugHttpErr err) )
 
         GetTechniques (Ok ( _, techniquesOrError )) ->
             let

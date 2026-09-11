@@ -1,0 +1,193 @@
+description: Create a technique category
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "create",
+    "parent": "ncf_techniques",
+    "name": "Linux hardening",
+    "description": "Linux default hardening"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : [
+          {
+            "name" : "Linux hardening",
+            "description" : "Linux default hardening",
+            "path" : "ncf_techniques/linux_hardening",
+            "id" : "linux_hardening",
+            "subCategories" : []
+          }
+        ]
+      }
+    }
+---
+description: Refuse a creation whose name leads to an already used ID
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "create",
+    "parent": "ncf_techniques",
+    "name": "LINUX Hardening!",
+    "description": "same ID as the previous one"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "error",
+      "errorDetails" : "A category with directory name 'linux_hardening' already exists at 'ncf_techniques/linux_hardening': directory names must be unique in the whole technique library"
+    }
+---
+description: Refuse a creation outside of the technique editor categories
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "create",
+    "parent": "systemSettings",
+    "name": "Not there",
+    "description": ""
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "error",
+      "errorDetails" : "Category '/systemSettings' is not under 'ncf_techniques': only the categories of the technique editor can be managed here"
+    }
+---
+description: Update the name and the description of a category
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "update",
+    "path": "ncf_techniques/linux_hardening",
+    "name": "Linux hardening (CIS)",
+    "description": "Following the CIS benchmark"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : [
+          {
+            "name" : "Linux hardening (CIS)",
+            "description" : "Following the CIS benchmark",
+            "path" : "ncf_techniques/linux_hardening",
+            "id" : "linux_hardening",
+            "subCategories" : []
+          }
+        ]
+      }
+    }
+---
+description: Update only the description, the name is left as it is
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "update",
+    "path": "ncf_techniques/linux_hardening",
+    "description": "Following the CIS benchmark, level 1"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : [
+          {
+            "name" : "Linux hardening (CIS)",
+            "description" : "Following the CIS benchmark, level 1",
+            "path" : "ncf_techniques/linux_hardening",
+            "id" : "linux_hardening",
+            "subCategories" : []
+          }
+        ]
+      }
+    }
+---
+description: Remove a description with an empty one
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "update",
+    "path": "ncf_techniques/linux_hardening",
+    "description": ""
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : [
+          {
+            "name" : "Linux hardening (CIS)",
+            "description" : "",
+            "path" : "ncf_techniques/linux_hardening",
+            "id" : "linux_hardening",
+            "subCategories" : []
+          }
+        ]
+      }
+    }
+---
+description: Refuse an empty name on update
+method: POST
+url: /api/latest/techniques/categories
+body: >-
+  {
+    "action": "update",
+    "path": "ncf_techniques/linux_hardening",
+    "name": "  "
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "saveTechniqueCategory",
+      "result" : "error",
+      "errorDetails" : "The name of a category can not be empty"
+    }
+---
+description: Delete a technique category
+method: DELETE
+url: /api/latest/techniques/categories
+comment: the path goes in `params` and not in the url, and the form content type is what makes the test harness pass it on a DELETE
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+params:
+  path: "ncf_techniques/linux_hardening"
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "deleteTechniqueCategory",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : [
+          {
+            "id" : "linux_hardening",
+            "path" : "ncf_techniques/linux_hardening"
+          }
+        ]
+      }
+    }

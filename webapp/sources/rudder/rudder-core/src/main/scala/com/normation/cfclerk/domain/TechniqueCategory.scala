@@ -38,7 +38,7 @@
 package com.normation.cfclerk.domain
 
 import better.files.File
-import com.normation.errors.IOResult
+import com.normation.errors.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.tenants.HasSecurityTag
@@ -55,6 +55,10 @@ import zio.json.*
  * a given categories must have different names)
  */
 final case class TechniqueCategoryName(value: String) extends AnyVal
+
+object TechniqueCategoryName {
+  given JsonCodec[TechniqueCategoryName] = JsonCodec.string.transform(TechniqueCategoryName(_), _.value)
+}
 
 /*
  * Just the name / description of a technique category without all the
@@ -187,6 +191,35 @@ object TechniqueCategoryId {
 
   private val empty = """^[\s]*$""".r
 
+  /*
+   * The non-blank parts of a path, which is what makes "/a/b", "a/b", "/a//b/" and "/a/ /b" the
+   * same id.
+   */
+  private def parts(path: String): List[String] = {
+    ("/" + path).split("/").filterNot(x => empty.findFirstIn(x).isDefined).toList
+  }
+
+  private def fromParts(parts: List[String]): TechniqueCategoryId = {
+    parts.foldLeft(RootTechniqueCategoryId: TechniqueCategoryId) { (id, name) =>
+      SubTechniqueCategoryId(TechniqueCategoryName(name), id)
+    }
+  }
+
+  /**
+   * Same as `buildId`, but also check for simple path traversal
+   */
+  def parse(path: String): PureResult[TechniqueCategoryId] = {
+    val ps = parts(path)
+    if (ps.exists(p => p == "." || p == "..")) {
+      Left(Inconsistency(s"'${path}' is not a valid technique category path"))
+    } else Right(fromParts(ps))
+  }
+
+  /*
+   * The path of a category from the library root, as clients send it: `ncf_techniques/foo`.
+   */
+  def serialize(id: TechniqueCategoryId): String = id.getPathFromRoot.tail.map(_.value).mkString("/")
+
   /**
    * Build a category id from a path.
    * The path must follow the unix syntaxe (a/b/c).
@@ -203,13 +236,15 @@ object TechniqueCategoryId {
    *   root is appended to the relative path, and then all other element are empty
    * - "    " is valid and == "/"
    */
-  def buildId(path: String): TechniqueCategoryId = {
-    val absPath = "/" + path
-    val parts   = absPath.split("/").filterNot(x => empty.findFirstIn(x).isDefined)
-    parts.foldLeft((RootTechniqueCategoryId: TechniqueCategoryId)) { (id, name) =>
-      SubTechniqueCategoryId(TechniqueCategoryName(name), id)
-    }
-  }
+  def buildId(path: String): TechniqueCategoryId = fromParts(parts(path))
+
+  /*
+   * A category id keeps its path from the library root
+   */
+  given JsonCodec[TechniqueCategoryId] = JsonCodec.string.transformOrFail(
+    parse(_).left.map(_.fullMsg),
+    serialize
+  )
 }
 
 /**

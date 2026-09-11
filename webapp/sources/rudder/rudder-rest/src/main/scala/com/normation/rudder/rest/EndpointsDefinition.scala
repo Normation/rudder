@@ -842,12 +842,30 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
   }
   case object GetAllTechniqueCategories extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Get all technique categories"
+    val description    = "Get all non-system technique categories"
     val (action, path) = GET / "techniques" / "categories"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
 
     override def name:          String         = "techniqueCategories"
     override def dataContainer: Option[String] = None
+  }
+  case object SaveTechniqueCategory     extends TechniqueApiPub with ZeroParam with StartsAtVersion23 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Create a technique category, or update the name and description of an existing one"
+    val (action, path) = POST / "techniques" / "categories"
+    val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
+
+    override def name:          String         = "saveTechniqueCategory"
+    override def dataContainer: Option[String] = Some("techniqueCategories")
+  }
+  case object DeleteTechniqueCategory   extends TechniqueApiPub with ZeroParam with StartsAtVersion23 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Delete a technique category, given by its 'path' parameter"
+    val (action, path) = DELETE / "techniques" / "categories"
+    val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
+
+    override def name:          String         = "deleteTechniqueCategory"
+    override def dataContainer: Option[String] = Some("techniqueCategories")
   }
   case object ListTechniques            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value

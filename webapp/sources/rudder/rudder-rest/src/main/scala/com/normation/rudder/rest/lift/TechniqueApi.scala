@@ -53,8 +53,13 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
+import com.normation.rudder.rest.lift.TechniqueApi.JsonDeletedTechniqueCategory
+import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategory
+import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryAction
+import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryTree
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
@@ -69,6 +74,9 @@ import zio.json.yaml.*
 import zio.syntax.*
 
 object TechniqueApi {
+  import io.scalaland.chimney.dsl.*
+  import zio.json.*
+
   sealed trait QueryFormat
   object QueryFormat {
     def parse(s: String): QueryFormat = {
@@ -81,18 +89,97 @@ object TechniqueApi {
     case object Json extends QueryFormat
     case object Yaml extends QueryFormat
   }
+
+  /*
+   * Body of `POST /techniques/categories`: a creation needs the parent to hang the new directory
+   * under, an update needs the path of the category to change.
+   */
+  @jsonDiscriminator("action")
+  sealed trait JsonTechniqueCategoryAction
+
+  object JsonTechniqueCategoryAction {
+    @jsonHint("create")
+    final case class Create(parent: String, name: String, description: String = "") extends JsonTechniqueCategoryAction
+    @jsonHint("update")
+    // absent means "leave as it is", so an empty description removes it
+    final case class Update(path: String, name: Option[String] = None, description: Option[String] = None)
+        extends JsonTechniqueCategoryAction
+
+    implicit val decoder: JsonDecoder[JsonTechniqueCategoryAction] = DeriveJsonDecoder.gen
+  }
+
+  /*
+   * The JSON object view of a technique category
+   */
+  final case class JsonTechniqueCategory(
+      name:          String,
+      description:   String,
+      path:          TechniqueCategoryId,
+      id:            TechniqueCategoryName,
+      subCategories: Chunk[JsonTechniqueCategory]
+  ) derives JsonCodec
+
+  object JsonTechniqueCategory {
+
+    // `all` is the whole library: a category only knows the ids of its children
+
+    def fromCategory(
+        cat: TechniqueCategory,
+        all: Map[TechniqueCategoryId, TechniqueCategory]
+    ): JsonTechniqueCategory = {
+      cat
+        .into[JsonTechniqueCategory]
+        // the root of the library has no name of its own
+        .withFieldComputed(
+          _.name,
+          {
+            case _: RootTechniqueCategory => "/"
+            case c => c.name
+          }
+        )
+        .withFieldComputed(_.path, _.id)
+        .withFieldComputed(_.id, _.id.name)
+        .withFieldComputed(
+          _.subCategories,
+          c => {
+            Chunk
+              .fromIterable(c.subCategoryIds.flatMap(all.get))
+              // by name, so that the tree does not shuffle between two calls
+              .sortWith((a, b) => a.name.compareToIgnoreCase(b.name) <= 0)
+              .map(fromCategory(_, all))
+          }
+        )
+        .transform
+    }
+
+    // for a category that was just written: what it holds is of no interest here
+    def fromInfo(info: TechniqueCategoryInfo): JsonTechniqueCategory = {
+      info
+        .into[JsonTechniqueCategory]
+        .withFieldComputed(_.path, _.id)
+        .withFieldComputed(_.id, _.id.name)
+        .withFieldConst(_.subCategories, Chunk.empty[JsonTechniqueCategory])
+        .transform
+    }
+  }
+
+  // `GET /techniques/categories` answers the tree under its own key, not in the data container
+  final case class JsonTechniqueCategoryTree(techniqueCategories: JsonTechniqueCategory) derives JsonEncoder
+
+  final case class JsonDeletedTechniqueCategory(id: TechniqueCategoryName, path: TechniqueCategoryId) derives JsonEncoder
 }
 
 class TechniqueApi(
-    service:             TechniqueAPIService14,
-    techniqueWriter:     TechniqueWriter,
-    techniqueReader:     EditorTechniqueReader,
-    techniqueRepository: TechniqueRepository,
-    techniqueSerializer: TechniqueSerializer,
-    uuidGen:             StringUuidGenerator,
-    userPropertyService: UserPropertyService,
-    resourceFileService: ResourceFileService,
-    configRepoPath:      String
+    service:                 TechniqueAPIService14,
+    techniqueWriter:         TechniqueWriter,
+    techniqueCategoryWriter: TechniqueCategoryWriter,
+    techniqueReader:         EditorTechniqueReader,
+    techniqueRepository:     TechniqueRepository,
+    techniqueSerializer:     TechniqueSerializer,
+    uuidGen:                 StringUuidGenerator,
+    userPropertyService:     UserPropertyService,
+    resourceFileService:     ResourceFileService,
+    configRepoPath:          String
 ) extends LiftApiModuleProvider[API] {
 
   import zio.json.*
@@ -119,6 +206,8 @@ class TechniqueApi(
       case API.UpdateMethods             => UpdateMethods
       case API.UpdateTechniques          => UpdateTechniques
       case API.GetAllTechniqueCategories => GetAllTechniqueCategories
+      case API.SaveTechniqueCategory     => SaveTechniqueCategory
+      case API.DeleteTechniqueCategory   => DeleteTechniqueCategory
       case API.GetTechniqueAllVersion    => GetTechniqueDetailsAllVersion
       case API.GetTechnique              => GetTechnique
       case API.CheckTechnique            => CheckTechnique
@@ -345,33 +434,79 @@ class TechniqueApi(
 
   }
 
+  /*
+   * The JSON view of a technique category: `id` is the name of its directory, `path` its full
+   * path from the library root. The technique editor needs both: the path addresses the
+   * category, the id is what the user sees of the file system.
+   */
   object GetAllTechniqueCategories extends LiftApiModule0 {
 
     val schema: API.GetAllTechniqueCategories.type = API.GetAllTechniqueCategories
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val response = {
-        val categories = techniqueRepository.getAllCategories
-        def serializeTechniqueCategory(t: TechniqueCategory): Json.Obj = {
-          val subs = Chunk
-            .fromIterable(t.subCategoryIds.flatMap(categories.get))
-            .sortWith((a, b) => a.name.compareToIgnoreCase(b.name) <= 0)
-            .map(serializeTechniqueCategory)
-          val name = t match {
-            case t: RootTechniqueCategory => "/"
-            case _ => t.name
-          }
-          Json.Obj(
-            ("name", Json.Str(name)),
-            ("path", Json.Str(t.id.getPathFromRoot.tail.map(_.value).mkString("/"))),
-            ("id", Json.Str(t.id.name.value)),
-            ("subCategories", Json.Arr(subs))
-          )
-        }
-        Json.Obj(("techniqueCategories", serializeTechniqueCategory(techniqueRepository.getTechniqueLibrary)))
-      }
+      val response = JsonTechniqueCategoryTree(
+        JsonTechniqueCategory.fromCategory(
+          techniqueRepository.getTechniqueLibrary,
+          techniqueRepository.getAllCategories.filterNot((_, c) => c.isSystem)
+        )
+      )
 
       response.succeed.toLiftResponseOne(params, schema, None)
+    }
+  }
+
+  object SaveTechniqueCategory extends LiftApiModule0 {
+
+    val schema: API.SaveTechniqueCategory.type = API.SaveTechniqueCategory
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val cc: ChangeContext = authzToken.qc.newCC()
+
+      val response = for {
+        action   <- req.body match {
+                      case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
+                      case Full(bytes) =>
+                        new String(bytes, RestUtils.getCharset(req)).fromJson[JsonTechniqueCategoryAction].toIO
+                    }
+        category <- action match {
+                      case JsonTechniqueCategoryAction.Create(parent, name, description)  =>
+                        TechniqueCategoryId
+                          .parse(parent)
+                          .toIO
+                          .flatMap(techniqueCategoryWriter.createCategory(_, name, description))
+                      case JsonTechniqueCategoryAction.Update(catPath, name, description) =>
+                        TechniqueCategoryId
+                          .parse(catPath)
+                          .toIO
+                          .flatMap(techniqueCategoryWriter.updateCategory(_, name, description))
+                    }
+      } yield {
+        JsonTechniqueCategory.fromInfo(category)
+      }
+
+      response.toLiftResponseOne(params, schema, None)
+    }
+  }
+
+  object DeleteTechniqueCategory extends LiftApiModule0 {
+
+    val schema: API.DeleteTechniqueCategory.type = API.DeleteTechniqueCategory
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val cc: ChangeContext = authzToken.qc.newCC()
+
+      val response = for {
+        catPath <- req.params
+                     .get("path")
+                     .flatMap(_.headOption)
+                     .notOptional("Parameter 'path' is mandatory: it tells which technique category must be deleted")
+        id      <- TechniqueCategoryId.parse(catPath).toIO
+        _       <- techniqueCategoryWriter.deleteCategory(id)
+      } yield {
+        JsonDeletedTechniqueCategory(id.name, id)
+      }
+
+      response.toLiftResponseOne(params, schema, None)
     }
   }
 

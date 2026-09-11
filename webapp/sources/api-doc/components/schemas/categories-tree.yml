@@ -3,23 +3,28 @@
 type: object
 required:
   - name
+  - description
   - path
   - id
-  - subcategories
+  - subCategories
 properties:
   name:
     type: string
     description: Category's name
     example: "/"
+  description:
+    type: string
+    description: Category's description
+    example: This is the root category for the Techniques library.
   path:
     type: string
-    description: Category's path
+    description: Category path from the library root
     example: ""
   id:
     type: string
-    description: Category ID
+    description: Category ID (by default the name of its directory in the configuration repository)
     example: "/"
-  subcategories:
+  subCategories:
     type: array
     description: List of sub categories
     items:

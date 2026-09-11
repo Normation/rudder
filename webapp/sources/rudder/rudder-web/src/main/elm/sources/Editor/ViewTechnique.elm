@@ -9,8 +9,10 @@ import Editor.MethodElemUtils exposing (..)
 import Editor.ViewBlock exposing (..)
 import Editor.ViewMethod exposing (..)
 import Editor.ViewMethodsList exposing (..)
+import Editor.ViewTechniqueCategory exposing (categoryDeletionPopup, showTechniqueCategory)
 import Editor.ViewTechniqueList exposing (..)
 import Editor.ViewTechniqueTabs exposing (..)
+import Editor.ViewUtils exposing (viewBtnSave)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -826,6 +828,9 @@ view model =
                 TechniqueErrorDetails error ui ->
                     showTechniqueError model ui error
 
+                CategoryDetails catForm ->
+                    showTechniqueCategory model catForm
+
         classes =
             "rudder-template "
                 ++ (if model.genericMethodsOpen then
@@ -852,7 +857,7 @@ view model =
                 text ""
 
             Just (DeletionValidation technique) ->
-                div [ class "modal fade show", style "display" "block" ]
+                div [ class "modal fade show d-block" ]
                     [ div [ class "modal-backdrop fade show" ] []
                     , div [ class "modal-dialog" ]
                         [ div [ class "modal-content" ]
@@ -879,6 +884,9 @@ view model =
                             ]
                         ]
                     ]
+
+            Just (CategoryDeletionValidation category) ->
+                categoryDeletionPopup category
         ]
 
 
@@ -897,53 +905,6 @@ viewYamlEdit edit =
         , value edit
         ]
         []
-
-
-viewBtnSave : Bool -> List ( Bool, String ) -> Msg -> Html Msg
-viewBtnSave saving disableChecks action =
-    let
-        disable =
-            disableChecks |> List.any (\( check, _ ) -> check == True)
-
-        btnTitle =
-            if disable then
-                String.append
-                    (disableChecks
-                        |> List.filter (\( check, _ ) -> check == True)
-                        |> List.map (\( _, txt ) -> txt)
-                        |> String.join ".\n"
-                    )
-                    "."
-
-            else
-                ""
-
-        icon =
-            if saving then
-                "fa-spinner fa-pulse"
-
-            else if disable then
-                "fa-ban"
-
-            else
-                "fa-download"
-    in
-    button
-        [ class
-            ("btn btn-success btn-save"
-                ++ (if saving then
-                        " saving"
-
-                    else
-                        ""
-                   )
-            )
-        , type_ "button"
-        , Html.Attributes.title btnTitle
-        , disabled (saving || disable)
-        , onClick action
-        ]
-        [ i [ class ("fa " ++ icon) ] [] ]
 
 
 onContentEditableInput : (String -> msg) -> Attribute msg
