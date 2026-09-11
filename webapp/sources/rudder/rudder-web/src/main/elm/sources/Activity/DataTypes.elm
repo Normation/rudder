@@ -1,4 +1,4 @@
-module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, ObjectId, Search, listString2FilterTypes, objectId2String, search2String, string2ObjectId)
+module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, ObjectId, Search, listString2FilterTypes, objectId2String, string2ObjectId)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -30,11 +30,6 @@ type alias ObjectId =
 
 objectId2String : ObjectId -> String
 objectId2String s =
-    Maybe.withDefault "" s
-
-
-search2String : ObjectId -> String
-search2String s =
     Maybe.withDefault "" s
 
 
