@@ -47,42 +47,43 @@
     </div>
   </div>
 
-  <div class="rollbackBlock">
-    <div id="rollbackDisplay" class="d-flex flex-row gap-4">
-      <div class='d-flex flex-column gap-2' id="restoreItem">
-        <fieldset class='rollbackFieldSet pt-3 card card-body'>
-          <legend>Rollback this item</legend>
-          <div id='{{rollbackItemId}}' class="d-flex w-auto align-items-center justify-content-center column-gap-2">
-            <span class='alignRollback'>Restore this item its state previous to the change</span>
-            <button class="btn btn-default ms-2" id='{{rollbackBtnId}}'>Restore</button>
-          </div>
-          <div id='{{confirmItemId}}'></div>
-        </fieldset>
-        <fieldset class='rollbackFieldSet pt-3'>
-          <legend class="text-secondary">
-            <i class="fa fa-caret-right"></i>
-            <a class="text-reset" data-bs-toggle="collapse" href="#restoreConfiguration" aria-expanded="false" aria-controls="restoreConfiguration">
-              <span class="fs-4">Rollback all changes</span>
-            </a>
-          </legend>
-          <div class="collapse" id="restoreConfiguration">
-            <div id='{{rollbackConfigurationId}}' class="d-flex w-auto align-items-center column-gap-2">
-              <span class='alignRollback'>Restore configuration policy to</span>
+  <div class="rollbackBlock d-none">
+    <div id="rollbackDisplay">
+      <div class="callout-fade callout-info rollbackCallout my-2">
+        <div class="marker">
+          <span class="fa fa-exclamation-triangle"></span>
+        </div>
+        <h4>Restore previous state of item</h4>
+        <div id='{{rollbackItemId}}' class="d-flex flex-wrap align-items-center justify-content-between column-gap-3 row-gap-2">
+          <em>Restore this item to its state before this change:</em>
+          <button class="btn btn-default" id='{{rollbackBtnId}}'>Restore</button>
+        </div>
+        <div id='{{confirmItemId}}'></div>
 
-              <div class="btn-group" role="group" aria-label="Rollback actions">
-                <input type="radio" class="btn-check radio-btn" name="action" id="before" value="before" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="before">Before</label>
+        <div class="rollbackAll mt-3 pt-2">
+          <a class="text-secondary text-decoration-none" data-bs-toggle="collapse" href="#{{restoreConfigurationId}}" aria-expanded="false" aria-controls="{{restoreConfigurationId}}">
+            <i class="fa fa-caret-down"></i>
+            Rollback all configuration
+          </a>
+          <span class="fa fa-exclamation-triangle text-warning ms-1" aria-label="Warning:" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title="<h4 class='tags-tooltip-title'>Rollback all configuration</h4><div class='tooltip-inner-content'>This restores <b>all</b> the Rudder configuration to the state it had at the point in time that was preceding (before) or following (after) this change. This discards every change made since then.<br>This feature will be deprecated in a future version.</div>"></span>
+          <div class="collapse" id="{{restoreConfigurationId}}">
+            <div id='{{rollbackConfigurationId}}' class="d-flex flex-wrap align-items-center justify-content-between column-gap-2 row-gap-2 mt-2">
+              <div>
+                <span>Restore all configuration policy to the state it had:</span>
 
-                <input type="radio" class="btn-check radio-btn" name="action" id="after" value="after" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="after">After</label>
+                <div class="btn-group" role="group" aria-label="Rollback actions">
+                  <input type="radio" class="btn-check radio-btn" name='{{actionRadioName}}' id='{{beforeRadioId}}' value="before" autocomplete="off">
+                  <label class="btn btn-outline-secondary" for='{{beforeRadioId}}'>Before</label>
+
+                  <input type="radio" class="btn-check radio-btn" name='{{actionRadioName}}' id='{{afterRadioId}}' value="after" autocomplete="off" checked>
+                  <label class="btn btn-outline-secondary" for='{{afterRadioId}}'>After</label>
+                </div>
               </div>
-
-              <span class='alignRollback'>this change</span>
               <button class="btn btn-default ms-2" id='{{restoreBtnId}}'>Restore</button>
             </div>
             <div id='{{confirmConfigurationId}}'></div>
           </div>
-        </fieldset>
+        </div>
       </div>
     </div>
   </div>
