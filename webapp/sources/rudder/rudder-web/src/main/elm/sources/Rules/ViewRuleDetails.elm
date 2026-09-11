@@ -380,16 +380,16 @@ editionTemplate model details =
                         , type_ "button"
                         , class
                             ("nav-link"
-                                ++ (if details.tab == RecentActivity then
+                                ++ (if details.tab == History then
                                         " active"
 
                                     else
                                         ""
                                    )
                             )
-                        , onClick (UpdateRuleForm { details | tab = RecentActivity })
+                        , onClick (UpdateRuleForm { details | tab = History })
                         ]
-                        [ text "Recent activity" ]
+                        [ text "History" ]
                     ]
                 ]
             ]

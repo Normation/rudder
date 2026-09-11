@@ -194,12 +194,12 @@ class NodeGroupForm(
           GroupTarget(group.id)
         ) ++ showGroupCompliance(
           group.id.uid.value
-        ) ++ showGroupRecentActivity(group.id.uid.value)
+        ) ++ showGroupHistory(group.id.uid.value)
       case Right(group)                     =>
         showFormNodeGroup(group)(html) ++
         showRelatedRulesTree(GroupTarget(group.id)) ++
         showGroupCompliance(group.id.uid.value) ++
-        showGroupRecentActivity(group.id.uid.value)
+        showGroupHistory(group.id.uid.value)
     })
   }
 
@@ -275,17 +275,17 @@ class NodeGroupForm(
     )
   }
 
-  private def showGroupRecentActivity(targetOrGroupIdStr: String): NodeSeq = {
+  private def showGroupHistory(targetOrGroupIdStr: String): NodeSeq = {
     Script(
       OnLoad(
         JsRaw(s"""
-                 |var main = document.getElementById("groupRecentActivityApp")
+                 |var main = document.getElementById("groupHistoryApp")
                  |var initValues = {
                  |  groupId : "${targetOrGroupIdStr}",
                  |  contextPath : contextPath,
                  |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
                  |};
-                 |var app = Elm.GroupRecentActivity.init({node: main, flags: initValues});
+                 |var app = Elm.GroupHistory.init({node: main, flags: initValues});
                  |app.ports.errorNotification.subscribe(function(str) {
                  |  createErrorNotification(str)
                  |});
@@ -455,7 +455,7 @@ class NodeGroupForm(
                              <button id="complianceLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupComplianceTab" type="button" role="tab" aria-controls="groupComplianceTab" aria-selected="false">Compliance</button>
                            </li>
                            <li class="nav-item">
-                             <button id="recentActivityLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRecentActivityTab" type="button" role="tab" aria-controls="groupRecentActivityTab" aria-selected="false">Recent activity</button>
+                             <button id="recentActivityLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupHistoryTab" type="button" role="tab" aria-controls="groupHistoryTab" aria-selected="false">History</button>
                            </li>
                          </ul>
     & "group-rudderid" #> <div>

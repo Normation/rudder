@@ -8,9 +8,9 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports exposing (technicalLogsTab)
 import Rules.ViewTabDirectives exposing (directivesComplianceTab, selectDirectivesTab)
 import Rules.ViewTabGroups exposing (groupsTab)
+import Rules.ViewTabHistory exposing (historyTab)
 import Rules.ViewTabInformation exposing (informationTab)
 import Rules.ViewTabNodes exposing (nodesTab)
-import Rules.ViewTabRecentActivity exposing (recentActivityTab)
 
 
 
@@ -40,8 +40,8 @@ tabContent model details =
         Rules ->
             div [] []
 
-        RecentActivity ->
-            recentActivityTab model.activityTable
+        History ->
+            historyTab model.historyTable
 
 
 viewComplianceTab : Model -> RuleDetails -> ComplianceSortBy -> Html Msg

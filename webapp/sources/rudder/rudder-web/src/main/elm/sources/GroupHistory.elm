@@ -1,4 +1,4 @@
-port module GroupRecentActivity exposing (..)
+port module GroupHistory exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)

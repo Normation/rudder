@@ -411,12 +411,12 @@ class DirectiveEditForm(
                  |}else{
                  |$$("#complianceNav").show();
                  |}
-                 |const recentActivityMain = document.getElementById("directiveRecentActivityApp")
-                 |const recentActivityInitValues = {
+                 |const historyMain = document.getElementById("directiveHistoryApp")
+                 |const historyInitValues = {
                  |  directiveId : "${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}",
                  |  contextPath : contextPath
                  |};
-                 |const recentActivityApp = Elm.DirectiveRecentActivity.init({node: recentActivityMain, flags: initValues});
+                 |const historyApp = Elm.DirectiveHistory.init({node: historyMain, flags: initValues});
                  |
                  |""".stripMargin) // JsRaw OK, input are encoded via encJs
       )
