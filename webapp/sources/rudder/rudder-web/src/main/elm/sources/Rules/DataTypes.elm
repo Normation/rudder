@@ -30,7 +30,7 @@ type TabMenu
     | Groups
     | TechnicalLogs
     | Rules
-    | RecentActivity
+    | History
 
 
 type alias Tag =
@@ -337,7 +337,7 @@ type alias Model =
     , ui : UI
     , rulesTable : Rudder.Table.Model RuleWithCompliance Msg
     , csvExportOptions : Rudder.Table.CsvExportOptions RuleWithCompliance Msg
-    , activityTable : Rudder.Table.Model Activity Msg
+    , historyTable : Rudder.Table.Model Activity Msg
     }
 
 
@@ -402,4 +402,4 @@ type Msg
     | ExportRuleComplianceByDirective RuleId Date.Date
     | ExportRuleComplianceByNode RuleId Date.Date
     | RuleComplianceCsvExported String (Result Error String)
-    | ActivityMessage ActivityMsg
+    | HistoryMessage ActivityMsg

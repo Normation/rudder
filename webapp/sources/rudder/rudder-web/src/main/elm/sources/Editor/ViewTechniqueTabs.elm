@@ -51,10 +51,10 @@ techniqueResource resource =
         ]
 
 
-techniqueRecentActivity : Rudder.Table.Model Activity Msg -> Html Msg
-techniqueRecentActivity activityTable =
+techniqueHistory : Rudder.Table.Model Activity Msg -> Html Msg
+techniqueHistory historyTable =
     div [ class "tab" ]
-        [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view activityTable) ]
+        [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view historyTable) ]
         ]
 
 
@@ -753,8 +753,8 @@ techniqueTab model technique creation ui =
         Directives ->
             techniqueDirectives model technique
 
-        RecentActivity ->
-            techniqueRecentActivity model.activityTable
+        History ->
+            techniqueHistory model.activityTable
 
         Output ->
             case technique.output of

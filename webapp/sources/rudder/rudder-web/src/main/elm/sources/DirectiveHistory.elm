@@ -1,4 +1,4 @@
-port module DirectiveRecentActivity exposing (..)
+port module DirectiveHistory exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)

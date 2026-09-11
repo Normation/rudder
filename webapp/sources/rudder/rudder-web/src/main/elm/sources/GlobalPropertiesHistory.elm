@@ -1,4 +1,4 @@
-port module GlobalPropertiesRecentActivity exposing (..)
+port module GlobalPropertiesHistory exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)

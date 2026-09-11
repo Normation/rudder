@@ -484,7 +484,7 @@ type Tab
     | Parameters
     | Resources
     | Directives
-    | RecentActivity
+    | History
     | Output
     | None
 

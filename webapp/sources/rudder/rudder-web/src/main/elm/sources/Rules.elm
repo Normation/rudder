@@ -526,7 +526,7 @@ update msg model =
                     ( { model | mode = RuleForm details }
                     , Cmd.batch
                         [ initTooltips ""
-                        , Cmd.map ActivityMessage callGetActivities
+                        , Cmd.map HistoryMessage callGetActivities
                         ]
                     )
 
@@ -1146,7 +1146,7 @@ update msg model =
                 Err err ->
                     processApiError "Export rule compliance" err model
 
-        ActivityMessage activityMsg ->
+        HistoryMessage activityMsg ->
             case activityMsg of
                 GetActivities res ->
                     case res of
@@ -1154,9 +1154,9 @@ update msg model =
                         Ok ( _, activities ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData activities model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
                             ( model, processActivityApiError "Getting activities list" err errorNotification )

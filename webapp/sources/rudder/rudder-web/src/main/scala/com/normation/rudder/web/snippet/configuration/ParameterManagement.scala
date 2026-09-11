@@ -216,7 +216,7 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
           };
 
           function fnFormatActivity(id) {
-            return '<span><ul class="ms-2"><li><b>Recent activity:</b></li></ul></span><div class="box-body"><div id="globalPropertiesRecentActivityApp"></div></div>'
+            return '<span><ul class="ms-2"><li><b>Recent activity:</b></li></ul></span><div class="box-body"><div id="globalPropertiesHistoryApp"></div></div>'
           };
 
           ${jsVarNameForId(gridName)}.rows().nodes().to$$().each( function () {
@@ -262,14 +262,14 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
 
 
                   if (globalPropertyName !== 'rudder') {
-                    const recentActivityMain = document.getElementById("globalPropertiesRecentActivityApp")
+                    const recentActivityMain = document.getElementById("globalPropertiesHistoryApp")
                     const initValues = {
                       globalPropertyId : globalPropertyName,
                       contextPath : contextPath,
                       timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
                     };
   
-                    const app = Elm.GlobalPropertiesRecentActivity.init({node: recentActivityMain, flags: initValues});
+                    const app = Elm.GlobalPropertiesHistory.init({node: recentActivityMain, flags: initValues});
                     app.ports.errorNotification.subscribe(function(str) {
                       createErrorNotification(str)
                     });
