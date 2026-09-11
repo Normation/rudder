@@ -133,6 +133,7 @@ final case class RestEventLogFilter(
     start:      Int,
     length:     Int,
     id:         Option[EventLogRequest.Id],
+    objectId:   Option[EventLogRequest.ObjectId],
     search:     Option[EventLogRequest.Search],
     startDate:  Option[LocalDateTime],
     endDate:    Option[LocalDateTime],
@@ -145,6 +146,7 @@ final case class RestEventLogFilter(
       start,
       length,
       id,
+      objectId,
       search,
       startDate.map(_.toInstant(ZoneOffset.UTC)),
       endDate.map(_.toInstant(ZoneOffset.UTC)),
@@ -162,6 +164,7 @@ object RestEventLogFilter  {
     JsonDecoder[String].mapOrFail(t => EventTypeFactory.get(t).toRight(s"Type ${t} doesn't exist"))
 
   implicit val idDecoder:                 JsonDecoder[Id]                        = DeriveJsonDecoder.gen[Id]
+  implicit val objectIdDecoder:           JsonDecoder[ObjectId]                  = DeriveJsonDecoder.gen[ObjectId]
   implicit val searchDecoder:             JsonDecoder[Search]                    = DeriveJsonDecoder.gen[Search]
   implicit val columnDecoder:             JsonDecoder[Column]                    = JsonDecoder[Int].mapOrFail(Column.fromId)
   implicit val directionDecoder:          JsonDecoder[Direction]                 = JsonDecoder[String].mapOrFail(Direction.parse)
