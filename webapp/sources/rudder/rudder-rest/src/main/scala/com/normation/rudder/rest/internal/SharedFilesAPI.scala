@@ -67,6 +67,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.fileupload2.core.FileUploadSizeException
+import org.apache.commons.io.IOUtils
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import zio.ZIO
@@ -244,6 +245,17 @@ class SharedFilesAPI(
       newdirectory.createDirectoryIfNotExists(false)
       basicSuccessResponse
     }
+  }
+
+  /*
+   * The multipart parser rejects a too big upload without reading the body.
+   * We need to read that body and throw it away in that case, see https://issues.rudder.io/issues/29226
+   */
+  private def discardBody(req: Req): Unit = {
+    IOResult
+      .attempt("Error while discarding the body of a rejected file upload")(IOUtils.consume(req.request.inputStream))
+      .catchAll(err => logger.warn(s"Could not discard the body of a rejected file upload: ${err.fullMsg}").succeed)
+      .runNow
   }
 
   def requestDispatch(basePath: File): PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -465,6 +477,7 @@ class SharedFilesAPI(
           case ex: FileUploadSizeException => {
             // This is rounded to MB which is the order of magnitude of file upload limit
             val allowedSizeMb: Long = ex.getPermitted / 1024 / 1024
+            discardBody(req)
             errorResponse(s"File exceeds the maximum upload size of ${allowedSizeMb}MB", code = 413)
           }
         }
