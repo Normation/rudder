@@ -45,13 +45,12 @@ import com.normation.rudder.services.policies.ComputeSchedule
 import com.normation.rudder.services.policies.ScheduleData
 import com.normation.rudder.services.policies.ScheduleManagement
 import com.normation.rudder.services.policies.ScheduleRepository
-import com.normation.utils.DateFormaterService.toJavaInstant
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.syntax.*
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.annotation.tailrec
@@ -155,11 +154,11 @@ object DirectiveScheduleEvents {
       if (remaining <= 0) Right(acc.reverse)
       else {
         // nextCampaignDate is still a Joda-Time API: bridge at that boundary only
-        CampaignDateScheduler.nextCampaignDate(schedule, cursor.toJodaDateTime) match {
+        CampaignDateScheduler.nextCampaignDate(schedule, cursor.atOffset(ZoneOffset.UTC)) match {
           case Left(err)                 => Left(err)
           case Right(None)               => Right(acc.reverse)
           case Right(Some((start, end))) =>
-            val w = ScheduleWindow(start.toJavaInstant, end.toJavaInstant)
+            val w = ScheduleWindow(start.toInstant, end.toInstant)
             if (w.isClosedAt(cursor)) {
               Left(Inconsistency(s"Cannot compute occurrences of schedule ${schedule} from ${from}: not moving forward"))
             }

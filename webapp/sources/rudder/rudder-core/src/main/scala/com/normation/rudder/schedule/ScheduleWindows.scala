@@ -39,9 +39,8 @@ package com.normation.rudder.schedule
 
 import com.normation.errors.*
 import com.normation.rudder.campaigns.*
-import com.normation.utils.DateFormaterService.toJavaInstant
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import java.time.Instant
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 
@@ -74,7 +73,7 @@ object ScheduleWindows {
   def findWindows(schedule: CampaignSchedule, t: Instant): PureResult[Windows] = {
     schedule match {
       case OneShot(start, end) =>
-        val w = ScheduleWindow(start.toJavaInstant, end.toJavaInstant)
+        val w = ScheduleWindow(start.toInstant, end.toInstant)
         if (w.start.isBefore(w.end)) {
           if (w.isClosedAt(t)) Right(Windows(Some(w), None))
           else if (w.contains(t)) Right(Windows(None, Some(w)))
@@ -104,11 +103,11 @@ object ScheduleWindows {
             Left(Inconsistency(s"Cannot compute schedule windows at ${t} for schedule ${schedule}: no convergence"))
           } else {
             // nextCampaignDate is still a Joda-Time API: bridge at that boundary only
-            CampaignDateScheduler.nextCampaignDate(schedule, from.toJodaDateTime) match {
+            CampaignDateScheduler.nextCampaignDate(schedule, from.atOffset(ZoneOffset.UTC)) match {
               case Left(err)                 => Left(err)
               case Right(None)               => Right(Windows(lastClosed, None))
               case Right(Some((start, end))) =>
-                val w = ScheduleWindow(start.toJavaInstant, end.toJavaInstant)
+                val w = ScheduleWindow(start.toInstant, end.toInstant)
                 // a window can be empty when the schedule falls in a DST gap (e.g. a 2:00-3:00
                 // schedule on the day clocks jump from 2:00 to 3:00: both bounds resolve to the
                 // same instant). It can never contain a run: it must be neither current nor

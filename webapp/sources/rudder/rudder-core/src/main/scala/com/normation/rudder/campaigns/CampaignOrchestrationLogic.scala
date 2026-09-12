@@ -44,7 +44,7 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
-import org.joda.time.{Duration as JTDuration, *}
+import java.time.OffsetDateTime
 import zio.*
 import zio.syntax.*
 
@@ -120,7 +120,7 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
    * error (fiber or whatever), it needs to be taken care by the workflow engine runtime based on what makes sens for
    * it. (in the queue case, just let it crash)
    */
-  def handle(eventId: CampaignEventId, now: DateTime, startDelay: JTDuration, endDelay: JTDuration): UIO[Unit] = {
+  def handle(eventId: CampaignEventId, now: OffsetDateTime, startDelay: Duration, endDelay: Duration): UIO[Unit] = {
 
     effects
       .getEventInfo(eventId)
@@ -175,9 +175,9 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
   def orchestrateEventType(
       campaign:   Campaign,
       event:      CampaignEvent,
-      now:        DateTime,
-      startDelay: JTDuration,
-      endDelay:   JTDuration
+      now:        OffsetDateTime,
+      startDelay: Duration,
+      endDelay:   Duration
   ): IOResult[EventOrchestration] = {
     event.state.value match {
 
@@ -211,10 +211,10 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
                 _ <-
                   CampaignLogger.debug(
                     s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
-                        .serialize(effectiveStart)}, ${startDelay.getStandardHours} hour${if (startDelay.getStandardHours > 1) "s"
+                        .serializeOffsetDateTime(effectiveStart)}, ${startDelay.toHours} hour${if (startDelay.toHours > 1) "s"
                       else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
                   )
-                _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
+                _ <- ZIO.sleep(Duration.fromInterval(now, effectiveStart))
                 // re-post processing because anything can happen during the sleep, it will need to
                 // be managed as a new event handling
               } yield EventOrchestration.Queue(event.id)
@@ -250,7 +250,7 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
             _ <-
               CampaignLogger.warn(
                 s"Campaign event ${event.id.value} was considered Running but we are before its start date, setting state to Schedule and wait for event to start, on ${DateFormaterService
-                    .serialize(effectiveStart)}, ${startDelay.getStandardHours} hour${if (startDelay.getStandardHours > 1) "s"
+                    .serializeOffsetDateTime(effectiveStart)}, ${startDelay.toHours} hour${if (startDelay.toHours > 1) "s"
                   else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
               )
           } yield EventOrchestration.SaveAndQueue(event.copy(state = Scheduled))
@@ -259,9 +259,9 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
             _ <-
               CampaignLogger.debug(
                 s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService
-                    .serialize(effectiveEnd)}, ${endDelay.getStandardHours} hour${if (endDelay.getStandardHours > 1) "s" else ""} after official end date, so that we can gather results"
+                    .serializeOffsetDateTime(effectiveEnd)}, ${endDelay.toHours} hour${if (endDelay.toHours > 1) "s" else ""} after official end date, so that we can gather results"
               )
-            _ <- ZIO.sleep(Duration.fromMillis(effectiveEnd.getMillis - now.getMillis))
+            _ <- ZIO.sleep(Duration.fromInterval(now, effectiveEnd))
             // reprocess event as a new things, anything can happen during sleep
           } yield EventOrchestration.Queue(event.id)
         } else {
@@ -358,8 +358,8 @@ object CampaignOrchestrationLogic {
   def bootstrapEvent(
       campaign: Campaign,
       uuid:     String,
-      start:    DateTime,
-      end:      DateTime,
+      start:    OffsetDateTime,
+      end:      OffsetDateTime,
       index:    Int
   ): EventOrchestration.SaveAndQueue = {
     EventOrchestration.SaveAndQueue(
@@ -391,7 +391,7 @@ trait CampaignOrchestrationEffects {
    * clean existing things from the previous scheduled if any exists.
    * Return the number of scheduled events
    */
-  def createNextScheduledCampaignEvent(campaign: Campaign, date: DateTime): IOResult[EventOrchestration]
+  def createNextScheduledCampaignEvent(campaign: Campaign, date: OffsetDateTime): IOResult[EventOrchestration]
 
   /*
    * Retrieve information about an event and its campaign
@@ -460,7 +460,7 @@ class DefaultCampaignOrchestrationEffects(
    * Return the number of scheduled events.
    * It looks like it should belong to campaign repository for main parts
    */
-  override def createNextScheduledCampaignEvent(campaign: Campaign, date: DateTime): IOResult[EventOrchestration] = {
+  override def createNextScheduledCampaignEvent(campaign: Campaign, date: OffsetDateTime): IOResult[EventOrchestration] = {
 
     campaign.info.status match {
       case Enabled =>

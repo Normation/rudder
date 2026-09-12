@@ -48,12 +48,14 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.SignStyle
 import java.time.temporal.ChronoField.*
+import java.time.temporal.ChronoUnit
 import java.util.TimeZone
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.*
+import scala.util.Try
 import scala.util.control.NonFatal
 import zio.*
 import zio.json.*
@@ -106,6 +108,16 @@ object DateFormaterService {
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
       JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
 
+    // by having two codecs for the OffsetDateTime, the caller has to make an explicit
+    // choice to please to compiler, preventing accidental behaviours
+    implicit val offsetDateTimeTruncatedToSecondsEncoder: JsonEncoder[OffsetDateTime] =
+      JsonEncoder.offsetDateTime.contramap(_.truncatedTo(ChronoUnit.SECONDS))
+    implicit val offsetDateTimeTruncatedToSecondsDecoder: JsonDecoder[OffsetDateTime] =
+      JsonDecoder.offsetDateTime.map(_.truncatedTo(ChronoUnit.SECONDS))
+
+    implicit val offsetDateTimeEncoder: JsonEncoder[OffsetDateTime] = JsonEncoder.offsetDateTime
+    implicit val offsetDateTimeDecoder: JsonDecoder[OffsetDateTime] = JsonDecoder.offsetDateTime
+
     implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
@@ -113,6 +125,8 @@ object DateFormaterService {
     }
 
     implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = _.toJavaInstant
+
+    implicit val transformOffsetDateTimeInstant: Transformer[OffsetDateTime, Instant] = _.toInstant
 
     implicit val transformInstantDateTime: Transformer[Instant, DateTime] = _.toJodaDateTime
 
@@ -154,6 +168,10 @@ object DateFormaterService {
     getDisplayDate(toDateTime(instant))
   }
 
+  def getDisplayDate(offsetDateTime: OffsetDateTime): String = {
+    getDisplayDate(offsetDateTime.toJodaDateTime)
+  }
+
   /*
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
@@ -185,7 +203,7 @@ object DateFormaterService {
    * The string must be an RFC 3339 date time.
    * We are more lenient than java strict instant parsing, since we accept time zone.
    */
-  def parseInstant(instant: String): PureResult[Instant] = {
+  def parseInstant(instant: String):      PureResult[Instant]        = {
     try {
       Right(Instant.parse(instant))
     } catch {
@@ -196,6 +214,14 @@ object DateFormaterService {
           zdt => Right(zdt.toInstant)
         )
     }
+  }
+  /*
+   * Parse a string as an OffsetDateTime.
+   * The string must be an RFC 3339 date time.
+   */
+  def parseOffsetDateTime(input: String): PureResult[OffsetDateTime] = {
+    Try(OffsetDateTime.parse(input).withOffsetSameInstant(ZoneOffset.UTC)).toEither.left
+      .map(ex => Inconsistency(s"String '${input}' can't be parsed as an ISO date: ${ex.getMessage}"))
   }
 
   def parseDateOnly(date: String): PureResult[DateTime] = {
