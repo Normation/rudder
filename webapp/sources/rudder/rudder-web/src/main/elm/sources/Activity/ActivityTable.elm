@@ -9,7 +9,7 @@ import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions)
 import Time exposing (Zone)
-import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
+import Utils.DateUtils exposing (posixToString)
 
 
 initTable : ContextPath -> Zone -> Rudder.Table.Model Activity msg
