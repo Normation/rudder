@@ -273,6 +273,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     The following logger take care of information about reading techniques in repository
   -->
   <logger name="techniques.reader" level="info" />
+  <!--
+    The following logger take care of information about writing techniques in the technique editor
+  -->
+  <logger name="techniques.writer" level="info" />
 
 
   <!--
