@@ -173,7 +173,6 @@ case class FetchAllInfo(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class PolicyGenerationServiceImpl(
-    override val woRuleRepo:                     WoRuleRepository,
     override val nodeConfigurationService:       NodeConfigurationHashRepository,
     override val confExpectedRepo:               UpdateExpectedReportsRepository,
     override val complianceCache:                FindNewNodeStatusReports,
@@ -903,7 +902,6 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
 trait PolicyGeneration_updateAndWriteRule {
 
   def nodeConfigurationService:  NodeConfigurationHashRepository
-  def woRuleRepo:                WoRuleRepository
   def promisesFileWriterService: PolicyWriterService
 
   /**

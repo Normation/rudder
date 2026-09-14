@@ -207,7 +207,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   // enable tenants for these tests
   tenantRepository.setTenantEnabled(true).runNow
 
-  val tenantService = new DefaultTenantCheckLogic()
+  val tenantService = new DefaultTenantCheckLogic(tenantRepository)
 
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))

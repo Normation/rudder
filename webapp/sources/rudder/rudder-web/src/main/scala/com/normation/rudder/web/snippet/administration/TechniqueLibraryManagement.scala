@@ -44,6 +44,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.*
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
@@ -507,7 +508,8 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
                             ActiveTechniqueCategoryId(destCatId),
                             ptName,
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                            policyTypes = PolicyTypes.rudderBase
+                            policyTypes = PolicyTypes.rudderBase,
+                            SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
                           )(using qc.newCC(Some("Active technique added by user from UI")))
                           .toBox
                         ?~! errorMess.format(sourceactiveTechniqueId, destCatId))

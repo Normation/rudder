@@ -38,6 +38,7 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.GitVersion
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -46,6 +47,7 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -414,6 +416,55 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
       (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beFalse) and
       (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beFalse)
+    }
+  }
+
+  // An active technique created outside any tenant context (migration from 9.1, shared library initialization,
+  // a new technique version, archive import) carries no tag and so it is admin-grant only.
+  // A directive of a tenant that would end up under such an active technique is then not visible to that tenant
+  // either: the library tree is pruned at the active technique level. That is the current, deliberate
+  // behaviour and these tests pin it, so that the day the shared library is made visible to tenants, the
+  // change is a conscious one.
+  val directiveUnderUntaggedAt = DirectiveUid("directive-zoneA-untagged-at")
+
+  "[Directives] A zoneA directive under an UNTAGGED active technique" should {
+    "be visible to an admin" in {
+      given qc: QueryContext = QueryContext.systemQC
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      lib.allDirectives.keySet.map(_.uid.value).contains(directiveUnderUntaggedAt.value) must beTrue
+    }
+    "be hidden from the zoneB user it does not belong to" in {
+      given qc: QueryContext = zoneB
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      lib.allDirectives.keySet.map(_.uid.value).contains(directiveUnderUntaggedAt.value) must beFalse
+    }
+    "be hidden from a single read by that same zoneB user" in {
+      given qc: QueryContext = zoneB
+      roDirectiveRepo.getDirective(directiveUnderUntaggedAt).runNow must beNone
+    }
+    // this one documents the consequence of the untagged active technique: even its owner does not see it
+    // in the library, because the tree is pruned at the active technique level
+    "not even be visible to its own zoneA owner, as long as the active technique carries no tag" in {
+      given qc: QueryContext = zoneA
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      lib.allDirectives.keySet.map(_.uid.value).contains(directiveUnderUntaggedAt.value) must beFalse
+    }
+  }
+
+  "[ActiveTechniques] Creating an active technique" should {
+    // the tag `manageCreate` computes must actually reach LDAP
+    "get the tenant of the user creating it" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val name = TechniqueName("technique-created-by-zoneA")
+      (tenantRepo.setTenantEnabled(true) *>
+      woDirectiveRepo.addTechniqueInUserLibrary(atRootCat, name, Nil, PolicyTypes.rudderBase, None) *>
+      roDirectiveRepo.getActiveTechnique(name)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+    "and be visible to that user, and only to them" in {
+      val name = TechniqueName("technique-created-by-zoneA")
+      (roDirectiveRepo.getActiveTechnique(name)(using zoneA).runNow must beSome) and
+      (roDirectiveRepo.getActiveTechnique(name)(using zoneB).runNow must beNone)
     }
   }
 
