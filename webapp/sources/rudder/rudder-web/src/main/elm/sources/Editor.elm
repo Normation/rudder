@@ -15,7 +15,7 @@ import Editor.ViewMethod exposing (accumulateErrorConstraint)
 import Editor.ViewTechnique exposing (checkTechniqueUiState, view)
 import Editor.ViewTechniqueList exposing (allMethodCalls)
 import Either exposing (Either(..))
-import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
 import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
 import EventLogs.Table exposing (initTable)
 import File
@@ -184,7 +184,7 @@ mainInit initValues =
             , loadingTechniques = True
             , recClone = []
             , policyMode = "default"
-            , activityTable = initTable (ContextPath initValues.contextPath) zone
+            , historyTable = initTable (ContextPath initValues.contextPath) zone
             }
     in
     ( model
@@ -194,7 +194,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getEventLogs Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
+        , Cmd.map HistoryMessage (getEventLogs Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -440,10 +440,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map HistoryMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map HistoryMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let
@@ -1608,25 +1608,25 @@ update msg model =
 
         RudderTableMsg m ->
             let
-                ( activityTable, tableMsg, _ ) =
-                    Rudder.Table.update m model.activityTable
+                ( historyTable, tableMsg, _ ) =
+                    Rudder.Table.update m model.historyTable
             in
-            ( { model | activityTable = activityTable }, tableMsg )
+            ( { model | historyTable = historyTable }, tableMsg )
 
-        ActivityMessage activityMsg ->
-            case activityMsg of
+        HistoryMessage eventLogMsg ->
+            case eventLogMsg of
                 GetEventLogs res ->
                     case res of
                         -- Update table data
-                        Ok ( _, activities ) ->
+                        Ok ( _, history ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData history model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

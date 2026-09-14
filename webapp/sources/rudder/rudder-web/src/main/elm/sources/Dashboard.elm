@@ -39,7 +39,7 @@ type Msg
     = CallApi (Model -> Cmd Msg)
     | Tick Posix
     | Copy String
-    | EventLogsMessage EventLogsMsg
+    | ActivityMessage EventLogsMsg
 
 
 
@@ -79,7 +79,7 @@ init flags =
 
         initActions : List (Cmd Msg)
         initActions =
-            [ Cmd.map EventLogsMessage (getEventLogs Nothing (ContextPath initModel.contextPath) Nothing)
+            [ Cmd.map ActivityMessage (getEventLogs Nothing (ContextPath initModel.contextPath) Nothing)
             , initTooltips ""
             , Task.perform Tick Time.now
             ]
@@ -106,8 +106,8 @@ update msg model =
         Copy s ->
             ( model, copy s )
 
-        EventLogsMessage activityMsg ->
-            case activityMsg of
+        ActivityMessage eventLogsMsg ->
+            case eventLogsMsg of
                 GetEventLogs res ->
                     case res of
                         Ok ( metadata, activities ) ->
@@ -116,7 +116,7 @@ update msg model =
                             )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

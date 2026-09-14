@@ -2,7 +2,7 @@ port module GroupHistory exposing (..)
 
 import Browser
 import Dict
-import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
 import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
 import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div)
@@ -28,7 +28,7 @@ type GroupId
 
 type alias Model =
     { groupId : GroupId
-    , activityTable : Rudder.Table.Model EventLog Msg
+    , historyTable : Rudder.Table.Model EventLog Msg
     , contextPath : ContextPath
     , zone : Zone
     }
@@ -37,7 +37,7 @@ type alias Model =
 type Msg
     = CallApi (Model -> Cmd Msg)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage EventLogsMsg
+    | HistoryMessage EventLogsMsg
 
 
 subscriptions : Model -> Sub Msg
@@ -60,7 +60,7 @@ main =
 
 table : Model -> Html Msg
 table model =
-    div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view model.activityTable) ]
+    div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view model.historyTable) ]
 
 
 view : Model -> Html Msg
@@ -86,7 +86,7 @@ init flags =
         initModel : Model
         initModel =
             { groupId = GroupId flags.groupId
-            , activityTable = initTable (ContextPath flags.contextPath) zone
+            , historyTable = initTable (ContextPath flags.contextPath) zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }
@@ -96,7 +96,7 @@ init flags =
             string2Search flags.groupId
 
         initActions =
-            [ Cmd.map ActivityMessage (getEventLogs search initModel.contextPath (Just "groups")) ]
+            [ Cmd.map HistoryMessage (getEventLogs search initModel.contextPath (Just "groups")) ]
     in
     ( initModel, Cmd.batch initActions )
 
@@ -115,12 +115,12 @@ update msg model =
 
         RudderTableMsg m ->
             let
-                ( activityTable, tableMsg, _ ) =
-                    Rudder.Table.update m model.activityTable
+                ( historyTable, tableMsg, _ ) =
+                    Rudder.Table.update m model.historyTable
             in
-            ( { model | activityTable = activityTable }, tableMsg )
+            ( { model | historyTable = historyTable }, tableMsg )
 
-        ActivityMessage a ->
+        HistoryMessage a ->
             case a of
                 GetEventLogs res ->
                     case res of
@@ -128,12 +128,12 @@ update msg model =
                         Ok ( _, activities ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData activities model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting activities list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

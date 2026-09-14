@@ -16,8 +16,8 @@ initTable : ContextPath -> Zone -> Rudder.Table.Model EventLog msg
 initTable (ContextPath contextPath) timezone =
     let
         {-
-           Add a link on the id to navigate to the detail of this activity log on change log page.
-           Build the json parameters to query on this activity log with the log id.
+           Add a link on the id to navigate to the detail of this event log on change log page.
+           Build the json parameters to query on this event log with the log id.
            {
              "id":{"value":1234,"regex":false,"fixed":[]},
              "draw":1,
@@ -26,11 +26,11 @@ initTable (ContextPath contextPath) timezone =
            }
         -}
         idWithLink : EventLog -> Html msg
-        idWithLink activity =
+        idWithLink eventLog =
             let
                 id =
                     object
-                        [ ( "value", activity.id |> int )
+                        [ ( "value", eventLog.id |> int )
                         , ( "regex", bool False )
                         , ( "fixed", list bool [] )
                         ]
@@ -51,13 +51,13 @@ initTable (ContextPath contextPath) timezone =
                         ++ json
                     )
                 ]
-                [ text (String.fromInt activity.id) ]
+                [ text (String.fromInt eventLog.id) ]
 
         columns : NonEmptyList.Nonempty (Rudder.Table.Column EventLog msg)
         columns =
             NonEmptyList.Nonempty
                 { name = ColumnName "Id"
-                , renderHtml = \activity -> idWithLink activity
+                , renderHtml = \eventLog -> idWithLink eventLog
                 , ordering = Ordering.byField .id
                 }
                 [ { name = ColumnName "User", renderHtml = .actor >> text, ordering = Ordering.byField .actor }

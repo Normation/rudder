@@ -1,7 +1,7 @@
 module EventLogs.ApiCalls exposing (..)
 
 import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..), Search)
-import EventLogs.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
+import EventLogs.JsonDecoder exposing (decodeErrorDetails, decodeEventLogs)
 import EventLogs.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
 import Http.Detailed as Detailed
@@ -25,7 +25,7 @@ getEventLogs search (ContextPath contextPath) resourceTypeOpt =
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
                 , body = encodeRestEventLogFilter search |> jsonBody
-                , expect = Detailed.expectJson GetEventLogs decodeGetActivities
+                , expect = Detailed.expectJson GetEventLogs decodeEventLogs
                 , timeout = Nothing
                 , tracker = Nothing
                 }
@@ -33,8 +33,8 @@ getEventLogs search (ContextPath contextPath) resourceTypeOpt =
     req
 
 
-processActivityApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
-processActivityApiError apiName err errorNotification =
+processEventLogsApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
+processEventLogsApiError apiName err errorNotification =
     let
         message =
             case err of

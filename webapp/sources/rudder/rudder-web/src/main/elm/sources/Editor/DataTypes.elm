@@ -337,7 +337,7 @@ type alias Model =
     , loadingTechniques : Bool
     , recClone : List Msg
     , policyMode : String
-    , activityTable : Rudder.Table.Model EventLog Msg
+    , historyTable : Rudder.Table.Model EventLog Msg
     }
 
 
@@ -577,7 +577,7 @@ type Msg
     | EnableDragDrop CallId
     | HoverMethod (Maybe CallId)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage EventLogsMsg
+    | HistoryMessage EventLogsMsg
 
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement

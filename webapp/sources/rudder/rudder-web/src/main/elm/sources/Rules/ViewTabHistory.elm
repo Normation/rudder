@@ -8,7 +8,7 @@ import Rules.DataTypes exposing (..)
 
 
 historyTab : Rudder.Table.Model EventLog Msg -> Html Msg
-historyTab activityTable =
+historyTab historyTable =
     div [ class "tab" ]
-        [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view activityTable) ]
+        [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view historyTable) ]
         ]

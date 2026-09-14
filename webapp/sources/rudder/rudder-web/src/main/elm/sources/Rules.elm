@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Date
 import Dict
 import Dict.Extra
-import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
 import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..))
 import File.Download
 import Http exposing (..)
@@ -1146,20 +1146,20 @@ update msg model =
                 Err err ->
                     processApiError "Export rule compliance" err model
 
-        HistoryMessage activityMsg ->
-            case activityMsg of
+        HistoryMessage eventLogsMsg ->
+            case eventLogsMsg of
                 GetEventLogs res ->
                     case res of
                         -- Update table data
-                        Ok ( _, activities ) ->
+                        Ok ( _, history ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.historyTable
+                                    updateData history model.historyTable
                             in
                             ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

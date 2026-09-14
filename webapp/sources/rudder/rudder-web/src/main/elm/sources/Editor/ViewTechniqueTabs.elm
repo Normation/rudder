@@ -754,7 +754,7 @@ techniqueTab model technique creation ui =
             techniqueDirectives model technique
 
         History ->
-            techniqueHistory model.activityTable
+            techniqueHistory model.historyTable
 
         Output ->
             case technique.output of

@@ -10,13 +10,13 @@ import List exposing (drop, head)
 import String exposing (join, split)
 
 
-decodeGetActivities : Decoder (List EventLog)
-decodeGetActivities =
-    at [ "data" ] (list decodeActivity)
+decodeEventLogs : Decoder (List EventLog)
+decodeEventLogs =
+    at [ "data" ] (list decodeEventLog)
 
 
-decodeActivity : Decoder EventLog
-decodeActivity =
+decodeEventLog : Decoder EventLog
+decodeEventLog =
     succeed EventLog
         |> required "id" int
         |> required "actor" string
