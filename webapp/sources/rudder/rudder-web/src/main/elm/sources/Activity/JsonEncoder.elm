@@ -9,13 +9,16 @@ encodeRestEventLogFilter search =
     let
         isSearchEmpty =
             search2String search == ""
+
+        byDate =
+            1
     in
     object
         (List.filterMap identity
             [ Just ( "draw", int 1 )
             , Just ( "start", int 0 )
-            , Just ( "length", int 20 )
-            , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder 0 "desc" "" ] )
+            , Just ( "length", int 100 )
+            , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder byDate "desc" "" ] )
             , if isSearchEmpty then
                 Nothing
 
