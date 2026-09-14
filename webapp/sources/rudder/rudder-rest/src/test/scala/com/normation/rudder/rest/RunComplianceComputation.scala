@@ -244,6 +244,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
     override def getIds(includeSystem:            Boolean)(using qc: QueryContext):  IOResult[Set[RuleId]]            = ???
     override def create(rule:                     Rule)(using cc:    ChangeContext): IOResult[AddRuleDiff]            = ???
     override def update(rule:                     Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
+    override def restore(rule:                    Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
     override def load(rule:                       Rule)(using cc:    ChangeContext): IOResult[Unit]                   = ???
     override def unload(ruleId:                   RuleId)(using cc:  ChangeContext): IOResult[Unit]                   = ???
     override def updateSystem(rule:               Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???

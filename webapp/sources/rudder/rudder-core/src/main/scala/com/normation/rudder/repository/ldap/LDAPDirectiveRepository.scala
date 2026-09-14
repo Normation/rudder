@@ -71,6 +71,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
@@ -860,6 +861,12 @@ class WoLDAPDirectiveRepository(
     internalSaveDirective(inActiveTechniqueId, directive, systemCall = false)
   }
 
+  // storage-wise a restore is a save: the difference is the tenant law, which the proxy applies
+  override def restoreDirective(
+      inActiveTechniqueId: ActiveTechniqueId,
+      directive:           Directive
+  )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = saveDirective(inActiveTechniqueId, directive)
+
   override def saveSystemDirective(
       inActiveTechniqueId: ActiveTechniqueId,
       directive:           Directive
@@ -1173,7 +1180,8 @@ class WoLDAPDirectiveRepository(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      policyTypes:   PolicyTypes
+      policyTypes:   PolicyTypes,
+      security:      Option[SecurityTag]
   )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
     // check if the technique is already in user lib, and if the category exists
     userLibMutex.writeLock(for {
@@ -1193,7 +1201,8 @@ class WoLDAPDirectiveRepository(
                              techniqueName,
                              AcceptationDateTime(versions.map(x => x -> now).toMap),
                              policyTypes = policyTypes,
-                             security = None
+                             // here we assume that the change was already processed by `TenantService`
+                             security = security
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
       result            <- con.save(uptEntry, removeMissingAttributes = true)

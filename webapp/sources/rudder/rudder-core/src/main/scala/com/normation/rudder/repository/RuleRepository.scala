@@ -102,6 +102,13 @@ trait WoRuleRepository {
    */
   def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]]
 
+  /*
+   * Put back a rule in a state it had in the past (event-log rollback, archive restore). Same as `update`
+   * except that the tenant tag may go backwards - see `TenantCheckLogic.manageRestore`, which is where that
+   * exception to the write law is defined and justified.
+   */
+  def restore(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]]
+
   /**
    * Load a rule with a specific revision in LDAP for generation - that means
    * save it into LDAP.

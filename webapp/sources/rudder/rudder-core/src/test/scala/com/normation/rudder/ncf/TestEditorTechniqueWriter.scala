@@ -90,6 +90,7 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.zio.*
 import java.io.File as JFile
 import java.io.InputStream
@@ -236,6 +237,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   def writeDirectives: WoDirectiveRepository = new WoDirectiveRepository {
+    def restoreDirective(
+        inActiveTechniqueId: ActiveTechniqueId,
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
         directive:           Directive
@@ -251,7 +256,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes
+        policyTypes:   PolicyTypes,
+        security:      Option[SecurityTag]
     )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = ???
     def move(
         id:            ActiveTechniqueId,
