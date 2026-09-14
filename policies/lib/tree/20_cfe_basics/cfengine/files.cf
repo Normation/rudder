@@ -1867,6 +1867,20 @@ body depth_search recurse_ignore(d,list)
 
 ##
 
+body depth_search recurse_ignore_with_base(d,list)
+# @brief Search files and directories recursively including the root folder,
+# but don't recurse into the specified directories
+#
+# @param d The maximum search depth
+# @param list The list of directories to be excluded
+{
+      depth           => "${d}";
+      exclude_dirs    => { @{list} };
+      include_basedir => "true";
+}
+
+##
+
 body depth_search include_base
 # @brief Search files and directories recursively,
 # starting from the base directory.
