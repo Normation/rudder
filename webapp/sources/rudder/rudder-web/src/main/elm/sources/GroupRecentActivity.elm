@@ -96,7 +96,7 @@ init flags =
             string2Search flags.groupId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "groups")) ]
+            [ Cmd.map ActivityMessage (getActivities search 100 initModel.contextPath (Just "groups")) ]
     in
     ( initModel, Cmd.batch initActions )
 
