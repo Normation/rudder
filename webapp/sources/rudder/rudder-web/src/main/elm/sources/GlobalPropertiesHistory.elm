@@ -1,10 +1,10 @@
 port module GlobalPropertiesHistory exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), string2Search)
 import Browser
 import Dict
+import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), string2Search)
+import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class, colspan, rowspan)
 import Rudder.Table exposing (updateData)
@@ -24,7 +24,7 @@ type GlobalPropertyId
 
 type alias Model =
     { globalPropertyId : GlobalPropertyId
-    , activityTable : Rudder.Table.Model Activity Msg
+    , activityTable : Rudder.Table.Model EventLog Msg
     , contextPath : ContextPath
     , zone : Zone
     }
@@ -33,7 +33,7 @@ type alias Model =
 type Msg
     = CallApi (Model -> Cmd Msg)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage ActivityMsg
+    | ActivityMessage EventLogsMsg
 
 
 init :
@@ -67,7 +67,7 @@ init flags =
             string2Search flags.globalPropertyId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "parameters")) ]
+            [ Cmd.map ActivityMessage (getEventLogs search initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 
@@ -76,7 +76,7 @@ init flags =
 {- Table of the recent activity -}
 
 
-tableView : Rudder.Table.Model Activity Msg -> Html Msg
+tableView : Rudder.Table.Model EventLog Msg -> Html Msg
 tableView tableModel =
     if Rudder.Table.getRows tableModel == [] then
         text "-"
@@ -107,7 +107,7 @@ update msg model =
 
         ActivityMessage a ->
             case a of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
                         Ok ( _, activities ) ->

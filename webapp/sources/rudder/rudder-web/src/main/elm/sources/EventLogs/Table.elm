@@ -1,7 +1,7 @@
-module Activity.ActivityTable exposing (..)
+module EventLogs.Table exposing (..)
 
-import Activity.DataTypes exposing (Activity, ActivityMsg, ContextPath(..))
-import Activity.HtmlParserAdapter exposing (toHtml, toString)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg)
+import EventLogs.HtmlParserAdapter exposing (toHtml, toString)
 import Html exposing (Html, a, text)
 import Html.Attributes exposing (class, href)
 import Json.Encode exposing (Value, bool, encode, int, list, object, string)
@@ -12,7 +12,7 @@ import Time exposing (Zone)
 import Utils.DateUtils exposing (posixToString)
 
 
-initTable : ContextPath -> Zone -> Rudder.Table.Model Activity msg
+initTable : ContextPath -> Zone -> Rudder.Table.Model EventLog msg
 initTable (ContextPath contextPath) timezone =
     let
         {-
@@ -25,7 +25,7 @@ initTable (ContextPath contextPath) timezone =
              "length":5
            }
         -}
-        idWithLink : Activity -> Html msg
+        idWithLink : EventLog -> Html msg
         idWithLink activity =
             let
                 id =
@@ -53,7 +53,7 @@ initTable (ContextPath contextPath) timezone =
                 ]
                 [ text (String.fromInt activity.id) ]
 
-        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity msg)
+        columns : NonEmptyList.Nonempty (Rudder.Table.Column EventLog msg)
         columns =
             NonEmptyList.Nonempty
                 { name = ColumnName "Id"

@@ -1,12 +1,12 @@
 port module Rules exposing (..)
 
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..))
 import Browser
 import Browser.Navigation as Nav
 import Date
 import Dict
 import Dict.Extra
+import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..))
 import File.Download
 import Http exposing (..)
 import Json.Encode exposing (..)
@@ -521,7 +521,7 @@ update msg model =
                             ContextPath model.contextPath
 
                         callGetActivities =
-                            getActivities (Just details.rule.id.value) contextPath (Just "rules")
+                            getEventLogs (Just details.rule.id.value) contextPath (Just "rules")
                     in
                     ( { model | mode = RuleForm details }
                     , Cmd.batch
@@ -1148,7 +1148,7 @@ update msg model =
 
         HistoryMessage activityMsg ->
             case activityMsg of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
                         Ok ( _, activities ) ->

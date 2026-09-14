@@ -1,10 +1,10 @@
 port module DirectiveHistory exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict
+import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 import Rudder.Table exposing (..)
@@ -24,7 +24,7 @@ type DirectiveId
 
 type alias Model =
     { directiveId : DirectiveId
-    , activityTable : Rudder.Table.Model Activity Msg
+    , activityTable : Rudder.Table.Model EventLog Msg
     , contextPath : ContextPath
     , zone : Zone
     }
@@ -33,7 +33,7 @@ type alias Model =
 type Msg
     = CallApi (Model -> Cmd Msg)
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ActivityMessage ActivityMsg
+    | ActivityMessage EventLogsMsg
 
 
 init :
@@ -64,7 +64,7 @@ init flags =
             string2Search flags.directiveId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "directives")) ]
+            [ Cmd.map ActivityMessage (getEventLogs search initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 
@@ -98,7 +98,7 @@ update msg model =
 
         ActivityMessage a ->
             case a of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
                         Ok ( _, activities ) ->

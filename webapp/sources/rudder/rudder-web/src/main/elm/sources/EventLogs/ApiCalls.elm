@@ -1,15 +1,15 @@
-module Activity.ApiCalls exposing (..)
+module EventLogs.ApiCalls exposing (..)
 
-import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..), Search)
-import Activity.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
-import Activity.JsonEncoder exposing (encodeRestEventLogFilter)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..), Search)
+import EventLogs.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
+import EventLogs.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
 import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : Search -> ContextPath -> Maybe String -> Cmd ActivityMsg
-getActivities search (ContextPath contextPath) resourceTypeOpt =
+getEventLogs : Search -> ContextPath -> Maybe String -> Cmd EventLogsMsg
+getEventLogs search (ContextPath contextPath) resourceTypeOpt =
     let
         url =
             case resourceTypeOpt of
@@ -25,7 +25,7 @@ getActivities search (ContextPath contextPath) resourceTypeOpt =
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
                 , body = encodeRestEventLogFilter search |> jsonBody
-                , expect = Detailed.expectJson GetActivities decodeGetActivities
+                , expect = Detailed.expectJson GetEventLogs decodeGetActivities
                 , timeout = Nothing
                 , tracker = Nothing
                 }

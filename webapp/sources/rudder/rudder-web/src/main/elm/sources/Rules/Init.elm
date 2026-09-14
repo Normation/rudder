@@ -1,10 +1,10 @@
 module Rules.Init exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.DataTypes exposing (Activity, ContextPath(..), Search)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter)
 import Dict
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, Search)
+import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div, i, span, text)
 import Html.Attributes exposing (attribute, class, title)
 import Html.Events exposing (onClick)
@@ -60,7 +60,7 @@ init flags =
             , ui = initUI
             , rulesTable = initTable
             , csvExportOptions = exportCsvOptions.csvExport
-            , historyTable = Activity.ActivityTable.initTable (ContextPath flags.contextPath) zone
+            , historyTable = EventLogs.Table.initTable (ContextPath flags.contextPath) zone
             }
 
         listCRActions =

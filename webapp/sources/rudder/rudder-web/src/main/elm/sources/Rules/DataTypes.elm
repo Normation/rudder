@@ -1,9 +1,9 @@
 module Rules.DataTypes exposing (..)
 
-import Activity.DataTypes exposing (Activity, ActivityMsg)
 import Compliance.DataTypes exposing (..)
 import Date
 import Dict exposing (Dict)
+import EventLogs.DataTypes exposing (EventLog, EventLogsMsg)
 import Http exposing (Error)
 import Rudder.Table
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
@@ -337,7 +337,7 @@ type alias Model =
     , ui : UI
     , rulesTable : Rudder.Table.Model RuleWithCompliance Msg
     , csvExportOptions : Rudder.Table.CsvExportOptions RuleWithCompliance Msg
-    , historyTable : Rudder.Table.Model Activity Msg
+    , historyTable : Rudder.Table.Model EventLog Msg
     }
 
 
@@ -402,4 +402,4 @@ type Msg
     | ExportRuleComplianceByDirective RuleId Date.Date
     | ExportRuleComplianceByNode RuleId Date.Date
     | RuleComplianceCsvExported String (Result Error String)
-    | HistoryMessage ActivityMsg
+    | HistoryMessage EventLogsMsg

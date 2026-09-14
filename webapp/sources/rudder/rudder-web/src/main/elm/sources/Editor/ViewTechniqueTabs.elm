@@ -1,10 +1,10 @@
 module Editor.ViewTechniqueTabs exposing (..)
 
-import Activity.DataTypes exposing (Activity)
 import Compliance.Utils exposing (badgePolicyMode)
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
 import Editor.MethodElemUtils exposing (policyModeValue)
+import EventLogs.DataTypes exposing (EventLog)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -51,7 +51,7 @@ techniqueResource resource =
         ]
 
 
-techniqueHistory : Rudder.Table.Model Activity Msg -> Html Msg
+techniqueHistory : Rudder.Table.Model EventLog Msg -> Html Msg
 techniqueHistory historyTable =
     div [ class "tab" ]
         [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view historyTable) ]

@@ -1,8 +1,5 @@
 port module Editor exposing (..)
 
-import Activity.ActivityTable exposing (initTable)
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
 import Browser
 import Dict exposing (Dict)
 import Dict.Extra
@@ -18,6 +15,9 @@ import Editor.ViewMethod exposing (accumulateErrorConstraint)
 import Editor.ViewTechnique exposing (checkTechniqueUiState, view)
 import Editor.ViewTechniqueList exposing (allMethodCalls)
 import Either exposing (Either(..))
+import EventLogs.ApiCalls exposing (getEventLogs, processActivityApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.Table exposing (initTable)
 import File
 import File.Download
 import File.Select
@@ -194,7 +194,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
+        , Cmd.map ActivityMessage (getEventLogs Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -440,10 +440,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map ActivityMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map ActivityMessage (getEventLogs search (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let
@@ -1615,7 +1615,7 @@ update msg model =
 
         ActivityMessage activityMsg ->
             case activityMsg of
-                GetActivities res ->
+                GetEventLogs res ->
                     case res of
                         -- Update table data
                         Ok ( _, activities ) ->
