@@ -1334,6 +1334,10 @@ function buildRollbackBlock(id) {
     .replace(/{{rollbackConfigurationId}}/g, 'rollbackConfiguration' + id)
     .replace(/{{restoreBtnId}}/g,            'restoreBtn' + id)
     .replace(/{{confirmConfigurationId}}/g,  'confirmConfiguration' + id)
+    .replace(/{{restoreConfigurationId}}/g,  'restoreConfiguration' + id)
+    .replace(/{{actionRadioName}}/g,         'action' + id)
+    .replace(/{{beforeRadioId}}/g,           'before' + id)
+    .replace(/{{afterRadioId}}/g,            'after' + id)
   ).attr("id","rollbackDisplay" + id);
   return block;
 }
