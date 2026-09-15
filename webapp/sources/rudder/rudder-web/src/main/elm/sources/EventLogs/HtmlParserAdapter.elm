@@ -1,4 +1,4 @@
-module Activity.HtmlParserAdapter exposing (..)
+module EventLogs.HtmlParserAdapter exposing (..)
 
 import Html exposing (Html, div)
 import Html.Parser exposing (Node)

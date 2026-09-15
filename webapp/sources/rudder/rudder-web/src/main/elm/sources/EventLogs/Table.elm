@@ -1,7 +1,7 @@
-module Activity.ActivityTable exposing (..)
+module EventLogs.Table exposing (..)
 
-import Activity.DataTypes exposing (Activity, ActivityMsg, ContextPath(..))
-import Activity.HtmlParserAdapter exposing (toHtml, toString)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg)
+import EventLogs.HtmlParserAdapter exposing (toHtml, toString)
 import Html exposing (Html, a, text)
 import Html.Attributes exposing (class, href)
 import Json.Encode exposing (Value, bool, encode, int, list, object, string)
@@ -9,15 +9,15 @@ import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions)
 import Time exposing (Zone)
-import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
+import Utils.DateUtils exposing (posixToString)
 
 
-initTable : ContextPath -> Zone -> Rudder.Table.Model Activity msg
+initTable : ContextPath -> Zone -> Rudder.Table.Model EventLog msg
 initTable (ContextPath contextPath) timezone =
     let
         {-
-           Add a link on the id to navigate to the detail of this activity log on change log page.
-           Build the json parameters to query on this activity log with the log id.
+           Add a link on the id to navigate to the detail of this event log on change log page.
+           Build the json parameters to query on this event log with the log id.
            {
              "id":{"value":1234,"regex":false,"fixed":[]},
              "draw":1,
@@ -25,12 +25,12 @@ initTable (ContextPath contextPath) timezone =
              "length":5
            }
         -}
-        idWithLink : Activity -> Html msg
-        idWithLink activity =
+        idWithLink : EventLog -> Html msg
+        idWithLink eventLog =
             let
                 id =
                     object
-                        [ ( "value", activity.id |> int )
+                        [ ( "value", eventLog.id |> int )
                         , ( "regex", bool False )
                         , ( "fixed", list bool [] )
                         ]
@@ -51,13 +51,13 @@ initTable (ContextPath contextPath) timezone =
                         ++ json
                     )
                 ]
-                [ text (String.fromInt activity.id) ]
+                [ text (String.fromInt eventLog.id) ]
 
-        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity msg)
+        columns : NonEmptyList.Nonempty (Rudder.Table.Column EventLog msg)
         columns =
             NonEmptyList.Nonempty
                 { name = ColumnName "Id"
-                , renderHtml = \activity -> idWithLink activity
+                , renderHtml = \eventLog -> idWithLink eventLog
                 , ordering = Ordering.byField .id
                 }
                 [ { name = ColumnName "User", renderHtml = .actor >> text, ordering = Ordering.byField .actor }

@@ -1,12 +1,12 @@
 port module Rules exposing (..)
 
-import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..))
 import Browser
 import Browser.Navigation as Nav
 import Date
 import Dict
 import Dict.Extra
+import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..))
 import File.Download
 import Http exposing (..)
 import Json.Encode exposing (..)
@@ -521,12 +521,12 @@ update msg model =
                             ContextPath model.contextPath
 
                         callGetActivities =
-                            getActivities (Just details.rule.id.value) contextPath (Just "rules")
+                            getEventLogs (Just details.rule.id.value) contextPath (Just "rules")
                     in
                     ( { model | mode = RuleForm details }
                     , Cmd.batch
                         [ initTooltips ""
-                        , Cmd.map ActivityMessage callGetActivities
+                        , Cmd.map HistoryMessage callGetActivities
                         ]
                     )
 
@@ -1146,20 +1146,20 @@ update msg model =
                 Err err ->
                     processApiError "Export rule compliance" err model
 
-        ActivityMessage activityMsg ->
-            case activityMsg of
-                GetActivities res ->
+        HistoryMessage eventLogsMsg ->
+            case eventLogsMsg of
+                GetEventLogs res ->
                     case res of
                         -- Update table data
-                        Ok ( _, activities ) ->
+                        Ok ( _, history ) ->
                             let
                                 updatedTable =
-                                    updateData activities model.activityTable
+                                    updateData history model.historyTable
                             in
-                            ( { model | activityTable = updatedTable }, Cmd.none )
+                            ( { model | historyTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

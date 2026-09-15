@@ -1,11 +1,11 @@
 port module Dashboard exposing (..)
 
-import Activity.ApiCalls exposing (..)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..))
-import Activity.HtmlParserAdapter
 import Browser
 import DateFormat.Relative
 import Dict
+import EventLogs.ApiCalls exposing (..)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..))
+import EventLogs.HtmlParserAdapter
 import Html exposing (Html, a, div, i, li, span, text, ul)
 import Html.Attributes exposing (attribute, class, href)
 import Html.Events exposing (onClick)
@@ -29,7 +29,7 @@ port initTooltips : String -> Cmd msg
 
 type alias Model =
     { contextPath : String
-    , activities : List Activity
+    , activities : List EventLog
     , currentTime : Posix
     , zone : Zone
     }
@@ -39,7 +39,7 @@ type Msg
     = CallApi (Model -> Cmd Msg)
     | Tick Posix
     | Copy String
-    | ActivityMessage ActivityMsg
+    | ActivityMessage EventLogsMsg
 
 
 
@@ -79,7 +79,7 @@ init flags =
 
         initActions : List (Cmd Msg)
         initActions =
-            [ Cmd.map ActivityMessage (getActivities Nothing (ContextPath initModel.contextPath) Nothing)
+            [ Cmd.map ActivityMessage (getEventLogs Nothing (ContextPath initModel.contextPath) Nothing)
             , initTooltips ""
             , Task.perform Tick Time.now
             ]
@@ -106,9 +106,9 @@ update msg model =
         Copy s ->
             ( model, copy s )
 
-        ActivityMessage activityMsg ->
-            case activityMsg of
-                GetActivities res ->
+        ActivityMessage eventLogsMsg ->
+            case eventLogsMsg of
+                GetEventLogs res ->
                     case res of
                         Ok ( metadata, activities ) ->
                             ( { model | activities = activities }
@@ -116,7 +116,7 @@ update msg model =
                             )
 
                         Err err ->
-                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+                            ( model, processEventLogsApiError "Getting event logs list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )
@@ -125,7 +125,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        activityItem : Activity -> Html Msg
+        activityItem : EventLog -> Html Msg
         activityItem a =
             let
                 ( activityDate, relativeActivityDate ) =
@@ -147,7 +147,7 @@ view model =
                     , span [ class "activity-actor text-secondary" ]
                         [ text (", by " ++ a.actor) ]
                     ]
-                , span [] [ Activity.HtmlParserAdapter.toHtml a.description ]
+                , span [] [ EventLogs.HtmlParserAdapter.toHtml a.description ]
                 ]
     in
     div []
