@@ -11,13 +11,13 @@ import com.normation.rudder.rest.CampaignApi as API
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.syntax.*
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toOffsetDateTime
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio.currentOffsetDateTimeUTC
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.ZIO
 import zio.syntax.*
 
@@ -125,7 +125,8 @@ class CampaignApi(
       val res = {
         for {
           campaign <- campaignRepository.get(CampaignId(resources)).notOptional(s"Campaign with id ${resources} not found")
-          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now(DateTimeZone.UTC))
+          now      <- currentOffsetDateTimeUTC
+          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, now)
         } yield {
           newEvent
         }
@@ -224,7 +225,17 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(
+          states,
+          campaignType,
+          campaignId,
+          limit,
+          offset,
+          afterDate.map(_.toOffsetDateTime),
+          beforeDate.map(_.toOffsetDateTime),
+          order,
+          asc
+        )
         .toLiftResponseList(params, schema)
     }
   }
@@ -265,7 +276,17 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(
+          states,
+          campaignType,
+          Some(CampaignId(resources)),
+          limit,
+          offset,
+          afterDate.map(_.toOffsetDateTime),
+          beforeDate.map(_.toOffsetDateTime),
+          order,
+          asc
+        )
         .toLiftResponseList(params, schema)
     }
   }
