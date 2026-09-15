@@ -153,6 +153,7 @@ mainInit :
     { contextPath : String
     , hasWriteRights : Bool
     , timeZone : String
+    , canReadChangeLogs : Bool
     }
     -> ( Model, Cmd Msg )
 mainInit initValues =
@@ -184,7 +185,7 @@ mainInit initValues =
             , loadingTechniques = True
             , recClone = []
             , policyMode = "default"
-            , activityTable = initTable (ContextPath initValues.contextPath) zone
+            , activityTable = initTable initValues.canReadChangeLogs (ContextPath initValues.contextPath) zone
             }
     in
     ( model

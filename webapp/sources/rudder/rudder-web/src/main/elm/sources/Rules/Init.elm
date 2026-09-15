@@ -22,7 +22,14 @@ import Ui.Datatable exposing (Category, SubCategories(..), defaultTableFilters)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
-init : { contextPath : String, hasWriteRights : Bool, canReadChanqeRequest : Bool, timeZone : String } -> ( Model, Cmd Msg )
+init :
+    { contextPath : String
+    , hasWriteRights : Bool
+    , canReadChanqeRequest : Bool
+    , canReadChangeLogs : Bool
+    , timeZone : String
+    }
+    -> ( Model, Cmd Msg )
 init flags =
     let
         initCategory =
@@ -60,7 +67,7 @@ init flags =
             , ui = initUI
             , rulesTable = initTable
             , csvExportOptions = exportCsvOptions.csvExport
-            , activityTable = Activity.ActivityTable.initTable (ContextPath flags.contextPath) zone
+            , activityTable = Activity.ActivityTable.initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             }
 
         listCRActions =

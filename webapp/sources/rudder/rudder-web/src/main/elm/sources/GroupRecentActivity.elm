@@ -72,6 +72,7 @@ init :
     { groupId : String
     , contextPath : String
     , timeZone : String
+    , canReadChangeLogs : Bool
     }
     -> ( Model, Cmd Msg )
 init flags =
@@ -86,7 +87,7 @@ init flags =
         initModel : Model
         initModel =
             { groupId = GroupId flags.groupId
-            , activityTable = initTable (ContextPath flags.contextPath) zone
+            , activityTable = initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             , contextPath = ContextPath flags.contextPath
             , zone = zone
             }
