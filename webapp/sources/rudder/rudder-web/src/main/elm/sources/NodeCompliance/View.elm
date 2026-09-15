@@ -14,7 +14,7 @@ import NodeCompliance.ViewUtils exposing (..)
 import Task
 import Tuple3
 import Ui.Datatable exposing (SortOrder(..), filterSearch, generateLoadingTable)
-import Utils.CsvExportUtils exposing (exportToCsvButton)
+import Utils.CsvExportUtils exposing (csvExportDropdownAllEntries)
 
 
 view : Model -> Html Msg
@@ -110,8 +110,8 @@ view model =
                                 ]
                             , div
                                 [ class "ms-auto my-auto" ]
-                                [ exportToCsvButton (ExportCsv (Task.perform (ExportNodeCompliance model.nodeId) Date.today))
-                                , button [ class "btn btn-default btn-sm btn-refresh", onClick Refresh ]
+                                [ csvExportDropdownAllEntries (ExportCsv (Task.perform (ExportNodeCompliance model.nodeId) Date.today)) "me-2"
+                                , button [ class "btn btn-default btn-refresh", onClick Refresh ]
                                     [ i [ class "fa fa-refresh" ] [] ]
                                 ]
                             ]
