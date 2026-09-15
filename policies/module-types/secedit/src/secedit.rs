@@ -9,7 +9,9 @@ use rudder_module_type::{
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::fmt::Display;
+use std::path::PathBuf;
 use std::{
+    fs,
     path::Path,
     process::{Command, Stdio},
 };
@@ -21,8 +23,9 @@ pub const MODULE_FEATURES: [&str; 0] = [];
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SeceditParameters {
-    #[serde(flatten)]
     data: Map<String, Value>,
+    #[serde(default)]
+    report_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -161,11 +164,26 @@ impl ModuleType0 for Secedit {
         }
         Ok(())
     }
+
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         self.validate(parameters)?;
         let p: SeceditParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let temp_dir = tempdir_in(&parameters.temporary_dir)?;
-        self.run(mode, p, &temp_dir)?.into()
+        let res = self.run(mode, p.clone(), &temp_dir);
+        if let Some(r) = p.report_file {
+            fs::write(
+                &r,
+                match &res {
+                    Ok(report) => report.to_string(),
+                    Err(e) => e.to_string(),
+                },
+            )
+            .context(format!(
+                "Could not write the module report file to '{}'",
+                r.display()
+            ))?;
+        }
+        res.and_then(|r| r.into())
     }
 }
 
