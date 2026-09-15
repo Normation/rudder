@@ -42,6 +42,7 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.PolicyMode.*
@@ -387,11 +388,13 @@ class DirectiveEditForm(
                  |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
                  |  checkMigrationButton("${currentVersion}","${versionSelectId}")
                  |} );
+                 |
                  |var main = document.getElementById("directiveComplianceApp")
                  |var initValues = {
                  |  directiveId : "${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}",
                  |  contextPath : contextPath,
                  |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC',
+                 |  canReadChangeLogs : ${checkRights(AuthorizationType.Administration.Read)}
                  |};
                  |var app = Elm.Directivecompliance.init({node: main, flags: initValues});
                  |app.ports.errorNotification.subscribe(function(str) {
