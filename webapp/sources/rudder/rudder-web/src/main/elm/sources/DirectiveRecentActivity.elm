@@ -64,7 +64,7 @@ init flags =
             string2Search flags.directiveId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "directives")) ]
+            [ Cmd.map ActivityMessage (getActivities search 100 initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 

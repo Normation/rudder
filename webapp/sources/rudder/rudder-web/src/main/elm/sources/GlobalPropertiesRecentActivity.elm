@@ -67,7 +67,7 @@ init flags =
             string2Search flags.globalPropertyId
 
         initActions =
-            [ Cmd.map ActivityMessage (getActivities search initModel.contextPath (Just "parameters")) ]
+            [ Cmd.map ActivityMessage (getActivities search 100 initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 
