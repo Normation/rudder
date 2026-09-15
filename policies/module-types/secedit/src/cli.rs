@@ -41,7 +41,7 @@ impl Cli {
         if data.is_empty() {
             bail!("The data file '{}' is empty.", cli.data.display());
         }
-        let data: SeceditParameters = serde_json::from_str(&data)?;
+        let data: SeceditParameters = serde_json::from_str(&format!("{{ \"data\": {} }}", data))?;
         let policy_mode = if cli.audit {
             PolicyMode::Audit
         } else {
