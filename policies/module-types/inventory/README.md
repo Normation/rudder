@@ -19,6 +19,8 @@ does not use.
 | `hostname --fqdn` | `OPERATINGSYSTEM/FQDN`, `RUDDER/HOSTNAME` | the short hostname is used |
 | `last` | `HARDWARE/{LASTLOGGEDUSER,DATELASTLOGGEDUSER}` | left out |
 | `dmidecode -t 4`, which needs root | `CPUS/{ID,FAMILYNAME}` | those two elements are left out |
+| `dpkg-query`, `rpm` | `SOFTWARES` | no installed software is reported |
+| `apt-get`, `zypper`, `dnf`, `yum` | `SOFTWAREUPDATES` | no pending update is reported |
 
 | Path | Feeds | Without it |
 | --- | --- | --- |
@@ -28,7 +30,7 @@ does not use.
 | `/opt/rudder/etc/agent-capabilities` | `RUDDER/AGENT_CAPABILITIES` | no capability is reported |
 | `/opt/rudder/share/versions/rudder-agent-version` | `RUDDER/AGENT_VERSION` | the version of this module is reported instead, with a warning |
 | `/var/rudder/hooks.d/`, and the hooks in it | `RUDDER/CUSTOM_PROPERTIES` | the element is left out |
-| `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}` | a generic `Linux`, with a warning |
+| `/etc/os-release`, then `/usr/lib/os-release` | `OPERATINGSYSTEM/{NAME,VERSION,FULL_NAME}`, the deb publisher | a generic `Linux`, with a warning |
 | `TZ`, then `/etc/localtime` | `OPERATINGSYSTEM/TIMEZONE`, the local time of `ACCESSLOG/LOGDATE` | left out, times fall back to UTC |
 | `/proc/cpuinfo` | `CPUS`: the socket topology, `CORE`, `THREAD`, `FAMILYNUMBER`, `MODEL`, `STEPPING` | one entry for the whole machine, with its total counts |
 | `/sys/class/dmi/id/bios_{date,vendor,version}` | `BIOS/{BDATE,BMANUFACTURER,BVERSION}` | those three elements are left out |
@@ -235,6 +237,98 @@ does, where a directory holding nothing gives an empty array.
 
 The version comes from the `rudder_version` of `/opt/rudder/share/versions/rudder-agent-version`,
 as in Fusion, but the version of this module stands in when that file is missing or names no version. 
+
+### New packages are reported as software updates (deb systems)
+
+`apt-get --simulate dist-upgrade` lists the currently installed version of each package it
+would install, except when there is none because the package is pulled in as a new
+dependency:
+
+```
+Inst base-files [12.4+deb12u5] (12.4+deb12u15 Debian:12.15/oldstable [amd64])   # upgrade
+Inst linux-image-6.1.0-28-amd64 (6.1.119-1 Debian:12.15/oldstable [amd64])      # new package
+```
+
+FusionInventory requires that bracket to be present and so skips the second form. This
+systematically hides kernel updates, as a new kernel ABI comes as a differently named
+package (`linux-image-6.1.0-28-amd64` instead of the installed
+`linux-image-6.1.0-26-amd64`). We report them, as they are a genuine part of the pending
+upgrade.
+
+Note that such an entry has no installed counterpart, and that it makes the number of
+pending updates, hence the system update score, slightly higher than what the Perl agent
+reports for the same node.
+
+### An RPM update is matched to its advisories by name, not by version
+
+`SOFTWAREUPDATES/{KIND,SEVERITY,ID}` are things an advisory says, not things a package does, and
+only the yum source has them. Getting them takes two commands: `check-update` lists the packages
+and versions, which is what the section is, and `updateinfo list` says which advisories mention
+each package. The second is a bonus, and a repository carrying no advisories costs only those
+three elements.
+
+`updateinfo info`, which would add the date and the description of each advisory, is not read.
+The severity therefore comes from the second column of `updateinfo list`, which holds a kind for
+an ordinary advisory and the severity itself for a security one, as `Moderate/Sec.`.
+
+The two lists are joined **on the package name alone**. It is tempting to join on the version as
+well, since both print one, and FusionInventory does exactly that, matching `name-version.arch`
+against the advisory list. It does not work: `check-update` offers the newest version there is,
+while an advisory names the version *it* shipped, which is older as soon as a later advisory has
+superseded it.
+
+Run over the same Rocky 9 machine, FusionInventory's own condition matched **28 of 107** updates
+and found 17 security ones; joining on the name matches **95 of 107** and finds 49. The rest it
+reports as `kind=none, severity=none`, which is not "no advisory says anything about this" but
+"we did not find the advisory that does". This is the largest deliberate divergence in the
+section, and it makes our count of security updates, and the system update score built on it,
+higher than the one the Perl agent reports for the same machine.
+
+A package accumulates advisories, so `ID` holds all of them, comma separated, which is how the
+server reads it. The other elements can only hold one answer, and take it from the worst of
+them: a security advisory outranks any other kind, severity decides between two of those, and
+the date breaks a remaining tie. That is the advisory that decides whether the update is
+urgent, which is what the elements are read for.
+
+FusionInventory writes `SEVERITY` as the literal `none` for an update it found no advisory for.
+The server has no `none` severity, only `low`, `moderate`, `high` and `critical`, so it keeps
+that as an `other` severity of its own. We leave the element out instead, the absence of a
+severity not being a severity.
+
+The vocabularies differ and are translated to the four kinds the server knows: what `yum` calls
+`bugfix` and `zypper` calls `recommended` are both `defect`, and `zypper`'s `important` is the
+server's `high`. A word neither knows is passed through rather than flattened into `none`, which
+would claim an update is routine when we only failed to recognize it.
+
+`zypper` is asked for `--xmlout` rather than for the table it prints by default, whose columns
+wrap to the width of the terminal, are padded with the spaces a package name may itself hold,
+and are interleaved with the warnings about expired repositories that any real machine produces.
+That option is not a recent one: it was checked on zypper 1.11 (openSUSE 13.2), 1.13 (Leap
+42.3), 1.14 (Leap 15) and the current one, and is what YaST has always driven zypper with.
+
+### An exit code is an answer, not always a failure
+
+`yum check-update` exits **100** when there are updates to install and 0 when there are none.
+Its output therefore has to be read whatever it exited with, which the shared command helper
+does not do: it keeps the output of a command that succeeded and falls back otherwise, so
+reading the updates through it reported every RPM machine with pending updates as having none.
+`updateinfo` likewise exits non-zero on a repository carrying no advisories, which is not a
+failure either.
+
+`zypper list-updates` is the opposite: it exits zero whether or not it found anything, so a
+non-zero exit from it is a real failure. It is not swallowed but warned about, because the
+alternative is reporting no pending update, and a machine with nothing pending is a machine the
+server believes to be fully patched.
+Its patches are left out: a patch is an advisory grouping packages, not a package to install,
+and the packages it names are listed on their own, so counting both would report each update
+twice. That is also why `zypper` updates carry no severity today, where the yum ones do.
+
+### The software publisher comes from `/etc/os-release`
+
+dpkg has no per-package vendor field, and Rudder aggregates software by name and publisher,
+so a stable distribution-wide value is needed. FusionInventory uses `lsb_release -i`; we
+capitalize the `ID` of `/etc/os-release` instead, which gives the same value
+(`debian` -> `Debian`) without depending on the LSB tooling.
 
 ## Logging
 
