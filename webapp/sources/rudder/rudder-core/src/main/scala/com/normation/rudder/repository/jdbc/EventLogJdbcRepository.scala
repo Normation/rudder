@@ -342,12 +342,37 @@ object EventLogJdbcRepository {
 
     val id = filter.flatMap(f => f.id).map(id => fr"id = ${id.value}")
 
+    /*
+      The possible id/name we want to compare depending on the event type are :
+      - /entry/globalParameter/name/text() -> <entry><globalParameter><name>my-global-param</name></globalParameter></entry>
+      - /entry/directive/id/text() -> <entry><directive><id>73a0c118-f0d3-4136-a905-a1c726055ea8</id></directive></entry>
+      - /entry/rule/id/text() -> <entry><rule><id>73a0c118-f0d3-4136-a905-a1c726055ea8</id></rule></entry>
+      - /entry/technique/id/text() -> <entry><technique><id>9b49ec98-b1fe-45ec-90b2-78371ef53155</id></technique></entry>
+      - /entry/nodeGroup/id/text() -> <entry><nodeGroup><id>9b49ec98-b1fe-45ec-90b2-78371ef53155</id></nodeGroup></entry>
+     */
+    val objectId = filter
+      .flatMap(f => f.objectId)
+      .map(objectId =>
+        fr"${objectId.value} = ANY(xpath('/entry//id/text()', data)::text[]) OR ${objectId.value} = ANY(xpath('/entry//name/text()', data)::text[])"
+      )
+
     val search = filter.flatMap(f => f.search).flatMap(toFragment)
 
     val tenant = TenantSql.readerScopeFragment(readerScope, "securitytag")
 
-    val where =
-      Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search, tenant, id)
+    val where = {
+      Fragments.whereAndOpt(
+        interval,
+        includePrincipals,
+        excludePrincipals,
+        includeTypes,
+        excludeTypes,
+        search,
+        tenant,
+        id,
+        objectId
+      )
+    }
 
     val fromWithSearchFragment = {
       fr"""

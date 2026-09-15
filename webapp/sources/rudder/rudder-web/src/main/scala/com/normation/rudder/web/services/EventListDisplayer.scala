@@ -120,6 +120,7 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
                       0,
                       None,
                       None,
+                      None,
                       startStr.map(_.toInstant),
                       endStr.map(_.toInstant),
                       None,
