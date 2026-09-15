@@ -11,6 +11,7 @@
   <script data-lift="with-nonce">
     var hasWriteRights = false;
     var canReadChanqeRequest = false;
+    var canReadChanqeLogs = false;
   </script>
   <lift:authz role="rule_write">
     <script data-lift="with-nonce">
@@ -22,6 +23,11 @@
       canReadChanqeRequest = true;
     </script>
   </lift:authz>
+  <lift:authz role="administrator_read">
+    <script data-lift="with-nonce">
+      canReadChanqeLogs = true;
+    </script>
+  </lift:authz>
   <script data-lift="with-nonce">
     $(document).ready(function(){
       var main = document.getElementById("rules-app")
@@ -29,6 +35,7 @@
         contextPath    : contextPath
       , hasWriteRights : hasWriteRights
       , canReadChanqeRequest : canReadChanqeRequest
+      , canReadChanqeLogs : canReadChanqeLogs
       , timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
       };
 

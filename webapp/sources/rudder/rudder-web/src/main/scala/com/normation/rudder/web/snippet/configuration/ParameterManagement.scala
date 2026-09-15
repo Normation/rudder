@@ -266,7 +266,8 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
                     const initValues = {
                       globalPropertyId : globalPropertyName,
                       contextPath : contextPath,
-                      timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
+                      timeZone :  localStorage.getItem('timeZone') ?? 'UTC',
+                      canReadChangeLogs : ${CurrentUser.checkRights(AuthorizationType.Administration.Read)}
                     };
   
                     const app = Elm.GlobalPropertiesRecentActivity.init({node: recentActivityMain, flags: initValues});

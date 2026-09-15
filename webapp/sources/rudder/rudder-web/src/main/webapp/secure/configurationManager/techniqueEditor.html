@@ -14,11 +14,17 @@
     </div>
     <script data-lift="with-nonce">
       var hasWriteRights = false;
+      var canReadChangeLogs = false;
     </script>
 
     <lift:authz role="technique_write">
       <script data-lift="with-nonce">
         var hasWriteRights = true;
+      </script>
+    </lift:authz>
+    <lift:authz role="administrator_read">
+      <script data-lift="with-nonce">
+        var canReadChangeLogs = true;
       </script>
     </lift:authz>
 
@@ -54,6 +60,7 @@ $(document).ready(function(){
     contextPath : contextPath
   , hasWriteRights : hasWriteRights
   , timeZone: localStorage.getItem('timeZone') ?? 'UTC'
+  , canReadChangeLogs :
   };
   var app  = Elm.Editor.init({node: main, flags: initValues});
   app.ports.copy.subscribe(function(value) {
