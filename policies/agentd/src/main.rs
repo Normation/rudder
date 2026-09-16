@@ -26,7 +26,7 @@ struct Args {
 
 impl Args {
     fn cli_arg(&self) -> bool {
-        self.get_next_run.is_none()
+        self.get_next_run.is_some()
     }
 
     fn handle_cli(&self) {
