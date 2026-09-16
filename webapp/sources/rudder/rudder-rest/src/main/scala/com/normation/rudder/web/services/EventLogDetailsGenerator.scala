@@ -66,7 +66,6 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
-import com.normation.rudder.services.modification.ItemRollbackService
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
@@ -90,7 +89,6 @@ class EventLogDetailsGenerator(
     nodeFactRepository:  NodeFactRepository,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
-    itemRollbackService: ItemRollbackService,
     linkUtil:            LinkUtil,
     diffDisplayer:       DiffDisplayer
 ) extends Loggable {
@@ -103,7 +101,6 @@ class EventLogDetailsGenerator(
 
   def displayDescription(event: EventLog)(implicit qc: QueryContext): NodeSeq = {
     import linkUtil.*
-
     def crDesc(x: EventLog, actionName: NodeSeq) = {
       val id   = RuleId.parse((x.details \ "rule" \ "id").text).getOrElse(RuleId(RuleUid("")))
       val name = (x.details \ "rule" \ "displayName").text
@@ -209,13 +206,8 @@ class EventLogDetailsGenerator(
     }
 
     def editorTechniqueDesc(x: EventLog, actionName: NodeSeq) = {
-      val id           = (x.details \ "technique" \ "id").text
-      val name         = (x.details \ "technique" \ "displayName").text
-      val previousName = (x.details \ "technique" \ "previousName").text
-      Text("Technique ") ++ {
-        if (name.length < 1) <a href={techniqueLink(id)}>{previousName}</a> ++ actionName
-        else <a href={techniqueLink(id)}>{name}</a> ++ actionName
-      }
+      val name = (x.details \ "technique" \ "name").text
+      Text(s"Technique ${name} ${actionName}")
     }
 
     event match {
@@ -244,7 +236,6 @@ class EventLogDetailsGenerator(
       case x: ReloadTechniqueLibrary        => Text("Technique library updated")
       case x: ModifyTechnique               => techniqueDesc(x, Text(" modified"))
       case x: DeleteTechnique               => techniqueDesc(x, Text(" deleted"))
-      case x: AddTechnique                  => techniqueDesc(x, Text(" added"))
       case x: SuccessfulDeployment          => Text("Successful policy update")
       case x: FailedDeployment              => Text("Failed policy update")
       case x: ExportGroupsArchive           => Text("New groups archive")
@@ -1709,20 +1700,6 @@ class EventLogDetailsGenerator(
         target:           EventLog
     )(using cc: ChangeContext): IOResult[GitCommitId] =
       modificationService.restoreBeforeEventLog(eventLog, commiter, rollbackedEvents, target)
-  }
-
-  case object RollbackItem extends RollBackAction {
-    val name = "item"
-    val op   = "="
-    def action(
-        eventLog:         EventLog,
-        commiter:         PersonIdent,
-        rollbackedEvents: Seq[EventLog],
-        target:           EventLog
-    )(using cc: ChangeContext): IOResult[GitCommitId] = {
-      // an item restore is scoped to one event log: rollbackedEvents and target are not relevant here
-      itemRollbackService.restoreItem(eventLog, commiter)
-    }
   }
 
 }

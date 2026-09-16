@@ -53,7 +53,6 @@ import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
 import com.normation.rudder.configuration.GroupAndCat
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -70,6 +69,7 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.zio.UnsafeRun
 import java.time.Instant
 import org.junit.runner.RunWith
 import scala.xml.Elem
@@ -100,7 +100,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenDirective(archivedDirective)
           before <- directiveRepo.getDirective(directiveUid)
           _      <- itemRollbackRepository(parseActiveTechniqueLibrary = directiveArchive(directiveUid))
-                      .rollbackOneItem(commitId, AddDirective(eventDetails(directiveXml(directiveUid))))
+                      .rollbackOneItem(commitId, AddDirective(eventDetails(directiveXml(directiveUid))), "before")
           after  <- directiveRepo.getDirective(directiveUid)
         } yield assertTrue(before.isDefined, after.isEmpty)
       },
@@ -109,7 +109,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenNoDirective
           before <- directiveRepo.getDirective(directiveUid)
           _      <- itemRollbackRepository(parseActiveTechniqueLibrary = directiveArchive(directiveUid))
-                      .rollbackOneItem(commitId, DeleteDirective(eventDetails(directiveXml(directiveUid))))
+                      .rollbackOneItem(commitId, DeleteDirective(eventDetails(directiveXml(directiveUid))), "before")
           after  <- directiveRepo.getDirective(directiveUid)
         } yield assertTrue(before.isEmpty, after.exists(_.name == archivedName))
       },
@@ -118,9 +118,27 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenDirective(archivedDirective.copy(name = modifiedName))
           before <- directiveRepo.getDirective(directiveUid)
           _      <- itemRollbackRepository(parseActiveTechniqueLibrary = directiveArchive(directiveUid))
-                      .rollbackOneItem(commitId, ModifyDirective(eventDetails(directiveXml(directiveUid))))
+                      .rollbackOneItem(commitId, ModifyDirective(eventDetails(directiveXml(directiveUid))), "before")
           after  <- directiveRepo.getDirective(directiveUid)
         } yield assertTrue(before.exists(_.name == modifiedName), after.exists(_.name == archivedName))
+      },
+      test("restoring the state after an addition saves the archived directive back") {
+        for {
+          _      <- givenNoDirective
+          before <- directiveRepo.getDirective(directiveUid)
+          _      <- itemRollbackRepository(parseActiveTechniqueLibrary = directiveArchive(directiveUid))
+                      .rollbackOneItem(commitId, AddDirective(eventDetails(directiveXml(directiveUid))), "after")
+          after  <- directiveRepo.getDirective(directiveUid)
+        } yield assertTrue(before.isEmpty, after.exists(_.name == archivedName))
+      },
+      test("restoring the state after a deletion deletes the directive") {
+        for {
+          _      <- givenDirective(archivedDirective)
+          before <- directiveRepo.getDirective(directiveUid)
+          _      <- itemRollbackRepository(parseActiveTechniqueLibrary = directiveArchive(directiveUid))
+                      .rollbackOneItem(commitId, DeleteDirective(eventDetails(directiveXml(directiveUid))), "after")
+          after  <- directiveRepo.getDirective(directiveUid)
+        } yield assertTrue(before.isDefined, after.isEmpty)
       }
     ),
     suite("node group")(
@@ -129,7 +147,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenGroup(archivedGroup)
           before <- groupsRepo.getNodeGroupOpt(groupId)
           _      <- itemRollbackRepository(parseGroupLibrary = groupArchive(groupId))
-                      .rollbackOneItem(commitId, AddNodeGroup(eventDetails(groupXml(groupId))))
+                      .rollbackOneItem(commitId, AddNodeGroup(eventDetails(groupXml(groupId))), "before")
           after  <- groupsRepo.getNodeGroupOpt(groupId)
         } yield assertTrue(before.isDefined, after.isEmpty)
       },
@@ -138,7 +156,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenNoGroup
           before <- groupsRepo.getNodeGroupOpt(groupId)
           _      <- itemRollbackRepository(parseGroupLibrary = groupArchive(groupId))
-                      .rollbackOneItem(commitId, DeleteNodeGroup(eventDetails(groupXml(groupId))))
+                      .rollbackOneItem(commitId, DeleteNodeGroup(eventDetails(groupXml(groupId))), "before")
           after  <- groupsRepo.getNodeGroupOpt(groupId)
         } yield assertTrue(before.isEmpty, after.exists(_._1.name == archivedName))
       },
@@ -147,9 +165,27 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenGroup(archivedGroup.copy(name = modifiedName))
           before <- groupsRepo.getNodeGroupOpt(groupId)
           _      <- itemRollbackRepository(parseGroupLibrary = groupArchive(groupId))
-                      .rollbackOneItem(commitId, ModifyNodeGroup(eventDetails(groupXml(groupId))))
+                      .rollbackOneItem(commitId, ModifyNodeGroup(eventDetails(groupXml(groupId))), "before")
           after  <- groupsRepo.getNodeGroupOpt(groupId)
         } yield assertTrue(before.exists(_._1.name == modifiedName), after.exists(_._1.name == archivedName))
+      },
+      test("restoring the state after an addition creates the archived group back") {
+        for {
+          _      <- givenNoGroup
+          before <- groupsRepo.getNodeGroupOpt(groupId)
+          _      <- itemRollbackRepository(parseGroupLibrary = groupArchive(groupId))
+                      .rollbackOneItem(commitId, AddNodeGroup(eventDetails(groupXml(groupId))), "after")
+          after  <- groupsRepo.getNodeGroupOpt(groupId)
+        } yield assertTrue(before.isEmpty, after.exists(_._1.name == archivedName))
+      },
+      test("restoring the state after a deletion deletes the group") {
+        for {
+          _      <- givenGroup(archivedGroup)
+          before <- groupsRepo.getNodeGroupOpt(groupId)
+          _      <- itemRollbackRepository(parseGroupLibrary = groupArchive(groupId))
+                      .rollbackOneItem(commitId, DeleteNodeGroup(eventDetails(groupXml(groupId))), "after")
+          after  <- groupsRepo.getNodeGroupOpt(groupId)
+        } yield assertTrue(before.isDefined, after.isEmpty)
       }
     ),
     suite("global parameter")(
@@ -158,7 +194,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenParameter(archivedParameter(parameterName))
           before <- paramsRepo.getGlobalParameter(parameterName)
           _      <- itemRollbackRepository(parseGlobalParameters = parameterArchive(parameterName))
-                      .rollbackOneItem(commitId, AddGlobalParameter(eventDetails(parameterXml(parameterName))))
+                      .rollbackOneItem(commitId, AddGlobalParameter(eventDetails(parameterXml(parameterName))), "before")
           after  <- paramsRepo.getGlobalParameter(parameterName)
         } yield assertTrue(before.isDefined, after.isEmpty)
       },
@@ -167,7 +203,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenNoParameter
           before <- paramsRepo.getGlobalParameter(parameterName)
           _      <- itemRollbackRepository(parseGlobalParameters = parameterArchive(parameterName))
-                      .rollbackOneItem(commitId, DeleteGlobalParameter(eventDetails(parameterXml(parameterName))))
+                      .rollbackOneItem(commitId, DeleteGlobalParameter(eventDetails(parameterXml(parameterName))), "before")
           after  <- paramsRepo.getGlobalParameter(parameterName)
         } yield assertTrue(before.isEmpty, after.exists(_.description == archivedName))
       },
@@ -176,9 +212,27 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenParameter(parameterWith(parameterName, modifiedName))
           before <- paramsRepo.getGlobalParameter(parameterName)
           _      <- itemRollbackRepository(parseGlobalParameters = parameterArchive(parameterName))
-                      .rollbackOneItem(commitId, ModifyGlobalParameter(eventDetails(parameterXml(parameterName))))
+                      .rollbackOneItem(commitId, ModifyGlobalParameter(eventDetails(parameterXml(parameterName))), "before")
           after  <- paramsRepo.getGlobalParameter(parameterName)
         } yield assertTrue(before.exists(_.description == modifiedName), after.exists(_.description == archivedName))
+      },
+      test("restoring the state after an addition saves the archived parameter back") {
+        for {
+          _      <- givenNoParameter
+          before <- paramsRepo.getGlobalParameter(parameterName)
+          _      <- itemRollbackRepository(parseGlobalParameters = parameterArchive(parameterName))
+                      .rollbackOneItem(commitId, AddGlobalParameter(eventDetails(parameterXml(parameterName))), "after")
+          after  <- paramsRepo.getGlobalParameter(parameterName)
+        } yield assertTrue(before.isEmpty, after.exists(_.description == archivedName))
+      },
+      test("restoring the state after a deletion deletes the parameter") {
+        for {
+          _      <- givenParameter(archivedParameter(parameterName))
+          before <- paramsRepo.getGlobalParameter(parameterName)
+          _      <- itemRollbackRepository(parseGlobalParameters = parameterArchive(parameterName))
+                      .rollbackOneItem(commitId, DeleteGlobalParameter(eventDetails(parameterXml(parameterName))), "after")
+          after  <- paramsRepo.getGlobalParameter(parameterName)
+        } yield assertTrue(before.isDefined, after.isEmpty)
       }
     ),
     suite("rule")(
@@ -187,7 +241,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenRule(archivedRule)
           before <- ruleRepo.getOpt(ruleId)
           _      <- itemRollbackRepository(parseRules = ruleArchive(ruleId))
-                      .rollbackOneItem(commitId, AddRule(eventDetails(ruleXml(ruleId))))
+                      .rollbackOneItem(commitId, AddRule(eventDetails(ruleXml(ruleId))), "before")
           after  <- ruleRepo.getOpt(ruleId)
         } yield assertTrue(before.isDefined, after.isEmpty)
       },
@@ -196,7 +250,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenNoRule
           before <- ruleRepo.getOpt(ruleId)
           _      <- itemRollbackRepository(parseRules = ruleArchive(ruleId))
-                      .rollbackOneItem(commitId, DeleteRule(eventDetails(ruleXml(ruleId))))
+                      .rollbackOneItem(commitId, DeleteRule(eventDetails(ruleXml(ruleId))), "before")
           after  <- ruleRepo.getOpt(ruleId)
         } yield assertTrue(before.isEmpty, after.exists(_.name == archivedName))
       },
@@ -205,9 +259,27 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           _      <- givenRule(archivedRule.copy(name = modifiedName))
           before <- ruleRepo.getOpt(ruleId)
           _      <- itemRollbackRepository(parseRules = ruleArchive(ruleId))
-                      .rollbackOneItem(commitId, ModifyRule(eventDetails(ruleXml(ruleId))))
+                      .rollbackOneItem(commitId, ModifyRule(eventDetails(ruleXml(ruleId))), "before")
           after  <- ruleRepo.getOpt(ruleId)
         } yield assertTrue(before.exists(_.name == modifiedName), after.exists(_.name == archivedName))
+      },
+      test("restoring the state after an addition creates the archived rule back") {
+        for {
+          _      <- givenNoRule
+          before <- ruleRepo.getOpt(ruleId)
+          _      <- itemRollbackRepository(parseRules = ruleArchive(ruleId))
+                      .rollbackOneItem(commitId, AddRule(eventDetails(ruleXml(ruleId))), "after")
+          after  <- ruleRepo.getOpt(ruleId)
+        } yield assertTrue(before.isEmpty, after.exists(_.name == archivedName))
+      },
+      test("restoring the state after a deletion deletes the rule") {
+        for {
+          _      <- givenRule(archivedRule)
+          before <- ruleRepo.getOpt(ruleId)
+          _      <- itemRollbackRepository(parseRules = ruleArchive(ruleId))
+                      .rollbackOneItem(commitId, DeleteRule(eventDetails(ruleXml(ruleId))), "after")
+          after  <- ruleRepo.getOpt(ruleId)
+        } yield assertTrue(before.isDefined, after.isEmpty)
       }
     ),
     suite("editor technique")(
@@ -217,7 +289,8 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           w       <- writeLog
           _       <- editorTechniqueManager(w).rollbackOneItem(
                        headCommitId,
-                       DeleteEditorTechnique(eventDetails(editorTechniqueXml(simpleTechnique, techniqueVersion)))
+                       DeleteEditorTechnique(eventDetails(editorTechniqueXml(simpleTechnique, techniqueVersion))),
+                       "before"
                      )
           written <- w.written.get
         } yield assertTrue(
@@ -230,7 +303,8 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           w       <- writeLog
           _       <- editorTechniqueManager(w).rollbackOneItem(
                        headCommitId,
-                       ModifyEditorTechnique(eventDetails(editorTechniqueXml(blocksTechnique, techniqueVersion)))
+                       ModifyEditorTechnique(eventDetails(editorTechniqueXml(blocksTechnique, techniqueVersion))),
+                       "before"
                      )
           written <- w.written.get
         } yield assertTrue(written.map(_.id).contains(blocksTechnique))
@@ -240,7 +314,8 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           w       <- writeLog
           _       <- editorTechniqueManager(w).rollbackOneItem(
                        headCommitId,
-                       AddEditorTechnique(eventDetails(editorTechniqueXml(anyTechnique, techniqueVersion)))
+                       AddEditorTechnique(eventDetails(editorTechniqueXml(anyTechnique, techniqueVersion))),
+                       "before"
                      )
           deleted <- w.deleted.get
           written <- w.written.get
@@ -252,10 +327,34 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
           res <- editorTechniqueManager(w)
                    .rollbackOneItem(
                      headCommitId,
-                     ModifyEditorTechnique(eventDetails(editorTechniqueXml(BundleName("no_such_technique"), techniqueVersion)))
+                     ModifyEditorTechnique(eventDetails(editorTechniqueXml(BundleName("no_such_technique"), techniqueVersion))),
+                     "before"
                    )
                    .either
         } yield assertTrue(res.left.exists(_.fullMsg.contains("was not found in the archive")))
+      },
+      test("restoring the state after an addition writes the archived technique") {
+        for {
+          w       <- writeLog
+          _       <- editorTechniqueManager(w).rollbackOneItem(
+                       headCommitId,
+                       AddEditorTechnique(eventDetails(editorTechniqueXml(simpleTechnique, techniqueVersion))),
+                       "after"
+                     )
+          written <- w.written.get
+        } yield assertTrue(written.map(_.id).contains(simpleTechnique))
+      },
+      test("restoring the state after a deletion deletes the technique, without reading any archive") {
+        for {
+          w       <- writeLog
+          _       <- editorTechniqueManager(w).rollbackOneItem(
+                       headCommitId,
+                       DeleteEditorTechnique(eventDetails(editorTechniqueXml(anyTechnique, techniqueVersion))),
+                       "after"
+                     )
+          deleted <- w.deleted.get
+          written <- w.written.get
+        } yield assertTrue(deleted.contains((anyTechnique.value, techniqueVersion.value)), written.isEmpty)
       }
     ),
     suite("unsupported events")(
@@ -266,7 +365,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
             <id>node1</id>
           </node>
         </entry>))
-        itemRollbackRepository().rollbackOneItem(commitId, event).as(assertCompletes)
+        itemRollbackRepository().rollbackOneItem(commitId, event, "before").as(assertCompletes)
       },
       test("details without an id fail with an explicit error") {
         for {
@@ -275,7 +374,8 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
                      commitId,
                      AddDirective(eventDetails(<entry>
               <directive/>
-            </entry>))
+            </entry>)),
+                     "before"
                    )
                    .either
         } yield assertTrue(res.left.exists(_.fullMsg.contains("Missing <id>")))
@@ -284,7 +384,7 @@ class ItemRollbackRepositoryImplTest extends ZIOSpecDefault {
         for {
           _   <- givenNoDirective
           res <- itemRollbackRepository(parseActiveTechniqueLibrary = emptyDirectiveArchive)
-                   .rollbackOneItem(commitId, ModifyDirective(eventDetails(directiveXml(directiveUid))))
+                   .rollbackOneItem(commitId, ModifyDirective(eventDetails(directiveXml(directiveUid))), "before")
                    .either
         } yield assertTrue(res.left.exists(_.fullMsg.contains("was not found in the archive")))
       }
@@ -328,7 +428,7 @@ private object ItemRollbackRepositoryImplTest {
   val directiveActiveTechniqueId: ActiveTechniqueId   =
     ActiveTechniqueId(mockDirectives.directives.archiveTechnique.id.name.value)
   val groupId:                    NodeGroupId         = mockGroups.g1.id
-  val groupCategoryId:            NodeGroupCategoryId = Constants.ROOT_GROUP_CATEGORY
+  val groupCategoryId:            NodeGroupCategoryId = NodeGroupCategoryId("GroupRoot")
   val parameterName:              String              = mockParams.stringParam.name
   val ruleId:                     RuleId              = mockRules.rules.defaultRule.id
 
@@ -436,7 +536,7 @@ private object ItemRollbackRepositoryImplTest {
   }
 
   private def emptyNodeGroupCategory =
-    NodeGroupCategory(Constants.ROOT_GROUP_CATEGORY, "GroupRoot", "", Nil, Nil, isSystem = false, security = None)
+    NodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "", Nil, Nil, isSystem = false, security = None)
 
   //////////////////////////// event logs ////////////////////////////
 
@@ -553,22 +653,22 @@ private object ItemRollbackRepositoryImplTest {
       gitRepo:                     GitRepositoryProvider = null,
       yamlTechniqueSerializer:     YamlTechniqueSerializer = null
   ): ItemRollbackRepositoryImpl = new ItemRollbackRepositoryImpl(
-    ruleRepo,
-    ruleRepo,
-    directiveRepo,
-    groupsRepo,
-    groupsRepo,
-    paramsRepo,
-    paramsRepo,
-    gitRepo,
-    parseRules,
-    parseActiveTechniqueLibrary,
-    parseGlobalParameters,
-    parseGroupLibrary,
-    null,
-    null,
-    techniqueWriter,
-    yamlTechniqueSerializer,
-    null
+    roRuleRepository = ruleRepo,
+    woRuleRepository = ruleRepo,
+    woDirectiveRepository = directiveRepo,
+    roGroupRepository = groupsRepo,
+    woGroupRepository = groupsRepo,
+    roParameterRepository = paramsRepo,
+    woParameterRepository = paramsRepo,
+    gitRepo = gitRepo,
+    parseRules = parseRules,
+    parseActiveTechniqueLibrary = parseActiveTechniqueLibrary,
+    parseGlobalParameters = parseGlobalParameters,
+    parseGroupLibrary = parseGroupLibrary,
+    eventLogger = null,
+    asyncDeploymentAgent = null,
+    techniqueWriter = techniqueWriter,
+    yamlTechniqueSerializer = yamlTechniqueSerializer,
+    importSemaphore = Semaphore.make(1).runNow
   )
 }

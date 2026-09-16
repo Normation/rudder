@@ -547,7 +547,7 @@ class ItemArchiveManagerImpl(
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog,
-      rollbackType:     String
+      rollbackType:     RollbackType
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     import cc.*
     useSemaphoreOrFail(

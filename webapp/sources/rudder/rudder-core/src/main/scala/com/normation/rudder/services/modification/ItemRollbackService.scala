@@ -46,7 +46,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import zio.syntax.*
 
 /**
- * Restore one configuration item to the state it had before a given change.
+ * Restore one configuration item to the state it had before or after a given change.
  *
  * Kept apart from `ModificationService`: restoring the whole configuration replaces every object at
  * once and is therefore done with a system context, while restoring a single item only touches that
@@ -55,7 +55,9 @@ import zio.syntax.*
  */
 trait ItemRollbackService {
 
-  def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using cc: ChangeContext): IOResult[GitCommitId]
+  def restoreItem(eventLog: EventLog, commiter: PersonIdent, rollbackType: RollbackType)(using
+      cc: ChangeContext
+  ): IOResult[GitCommitId]
 }
 
 class ItemRollbackServiceImpl(
@@ -82,11 +84,17 @@ class ItemRollbackServiceImpl(
   // the state just *before* a change is the parent of the commit that change led to
   private def parentOf(commit: GitCommitId): GitCommitId = GitCommitId(commit.value + "^")
 
-  override def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using cc: ChangeContext): IOResult[GitCommitId] = {
+  override def restoreItem(eventLog: EventLog, commiter: PersonIdent, rollbackType: RollbackType)(using
+      cc: ChangeContext
+  ): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
+      archiveId = rollbackType match {
+                    case "before" => parentOf(commit)
+                    case "after"  => commit
+                  }
       // an item restore is about that one event log, so it is both the only event rolled back and the target
-      rollback <- itemRollbackRepository.rollbackItem(parentOf(commit), commiter, Seq(eventLog), eventLog)
+      rollback <- itemRollbackRepository.rollbackItem(archiveId, commiter, Seq(eventLog -> rollbackType), eventLog, rollbackType)
     } yield {
       rollback
     }

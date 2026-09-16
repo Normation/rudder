@@ -356,7 +356,7 @@ final case class Rollback(
       actor:           EventActor,
       rollbackedEvent: Seq[EventLog],
       targetEvent:     EventLog,
-      rollbackType:    String,
+      rollbackType:    RollbackType,
       reason:          Option[String]
   ) = this(
     EventLogDetails(
@@ -373,7 +373,7 @@ object Rollback extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): Rollback = Rollback(x._2)
 
-  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackType: String): Elem = {
+  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackType: RollbackType): Elem = {
     EventLog.withContent(
       new Elem(
         prefix = null,
