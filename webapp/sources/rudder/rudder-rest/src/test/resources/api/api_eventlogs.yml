@@ -248,9 +248,12 @@ description: Rollback a specific event log after
 method: POST
 url: /secure/api/eventlog/1/details/rollback
 headers:
-  - "Content-Type: application/x-www-form-urlencoded"
-params:
-  action: after
+  - "Content-Type: application/json"
+body: >-
+  {
+    "position": "after",
+    "type": "allConfiguration"
+  }
 response:
   code: 200
   content: >-
@@ -258,7 +261,8 @@ response:
       "action" : "rollbackEventLog",
       "result" : "success",
       "data" : {
-        "action" : "after",
+        "position" : "after",
+        "type" : "allConfiguration",
         "id" : "1"
       }
     }
@@ -267,9 +271,12 @@ description: Rollback a specific event log for an item
 method: POST
 url: /secure/api/eventlog/1/details/rollback
 headers:
-  - "Content-Type: application/x-www-form-urlencoded"
-params:
-  action: item
+  - "Content-Type: application/json"
+body: >-
+  {
+    "position": "before",
+    "type": "item"
+  }
 response:
   code: 200
   content: >-
@@ -277,45 +284,70 @@ response:
       "action" : "rollbackEventLog",
       "result" : "success",
       "data" : {
-        "action" : "item",
+        "position" : "before",
+        "type" : "item",
         "id" : "1"
       }
     }
 
 ---
-description: Rollback a specific event log with multiple action
+description: Rollback a specific event log without a type rolls back the item only
 method: POST
 url: /secure/api/eventlog/1/details/rollback
 headers:
-  - "Content-Type: application/x-www-form-urlencoded"
-params:
-  action:
-    - some
-    - other
+  - "Content-Type: application/json"
+body: >-
+  {
+    "position": "before"
+  }
 response:
-  code: 500
+  code: 200
   content: >-
     {
       "action" : "rollbackEventLog",
-      "result" : "error",
-      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Inconsistency: Only one action is excepted, 2 found in request : some,other"
+      "result" : "success",
+      "data" : {
+        "position" : "before",
+        "type" : "item",
+        "id" : "1"
+      }
     }
-
 
 ---
-description: Rollback a specific event log with invalid action
+description: Rollback a specific event log with an unknown position
 method: POST
 url: /secure/api/eventlog/1/details/rollback
 headers:
-  - "Content-Type: application/x-www-form-urlencoded"
-params:
-  action: unknown
+  - "Content-Type: application/json"
+body: >-
+  {
+    "position": "unknown"
+  }
 response:
   code: 500
   content: >-
     {
       "action" : "rollbackEventLog",
       "result" : "error",
-      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Inconsistency: Unknown rollback's action : unknown"
+      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Unexpected: .position(Error decoding enum 'RollbackPosition': unknown is not a member of Enum (before, after) ; values: 'Before','After')"
     }
 
+---
+description: Rollback a specific event log with an unknown type
+method: POST
+url: /secure/api/eventlog/1/details/rollback
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "position": "before",
+    "type": "unknown"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "rollbackEventLog",
+      "result" : "error",
+      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Unexpected: .type(unknown is not a member of Enum (item, allConfiguration))"
+    }

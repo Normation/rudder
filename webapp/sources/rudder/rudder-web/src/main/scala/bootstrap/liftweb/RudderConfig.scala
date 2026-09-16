@@ -2360,8 +2360,33 @@ object RudderConfigInit {
         new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
       lazy val eventLogCoreService = new EventLogServiceImpl(logRepository)
       lazy val eventLogApi         = {
+        // inlined: RudderConfigInit is at the JVM limit of 254 parameters, it can't take more lazy val
+        val itemRollbackRepository = new ItemRollbackRepositoryImpl(
+          ruleRead.repository,
+          ruleWrite.repository,
+          directiveWrite.repository,
+          groupRead.repository,
+          groupWrite.repository,
+          globalPropertyRead.repository,
+          globalPropertyWrite.repository,
+          gitConfigRepo,
+          parseRules,
+          parseActiveTechniqueLibrary,
+          parseGlobalParameter,
+          parseGroupLibrary,
+          logRepository,
+          asyncDeploymentAgentImpl,
+          ncfTechniqueWriter,
+          yamlTechniqueSerializer,
+          archiveSemaphore
+        )
         new EventLogAPI(
-          new RestEventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
+          new RestEventLogService(
+            eventLogRepository,
+            eventLogDetailsGenerator,
+            personIdentService,
+            new ItemRollbackServiceImpl(gitModificationRepository, eventLogRepository, itemRollbackRepository)
+          ),
           eventLogCoreService,
           eventLogDetailsGenerator
         )
@@ -3020,29 +3045,6 @@ object RudderConfigInit {
       nodeFactRepository,
       ruleCategoryRead.repository,
       modificationService,
-      // inlined: RudderConfigInit is at the JVM limit of 254 parameters, it can't take more lazy val
-      new ItemRollbackServiceImpl(
-        gitModificationRepository,
-        new ItemRollbackRepositoryImpl(
-          ruleRead.repository,
-          ruleWrite.repository,
-          directiveWrite.repository,
-          groupRead.repository,
-          groupWrite.repository,
-          globalPropertyRead.repository,
-          globalPropertyWrite.repository,
-          gitConfigRepo,
-          parseRules,
-          parseActiveTechniqueLibrary,
-          parseGlobalParameter,
-          parseGroupLibrary,
-          logRepository,
-          asyncDeploymentAgentImpl,
-          ncfTechniqueWriter,
-          yamlTechniqueSerializer,
-          archiveSemaphore
-        )
-      ),
       linkUtil,
       diffDisplayer
     )

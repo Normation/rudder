@@ -47,11 +47,11 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.data.*
-import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
-import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
-import com.normation.rudder.rest.data.RestEventLogRollback.Action.Item
+import com.normation.rudder.rest.data.RestRollbackType.AllConfiguration
+import com.normation.rudder.rest.data.RestRollbackType.Item
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.services.modification.ItemRollbackService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
@@ -167,21 +167,12 @@ class EventLogAPI(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
       (for {
-        evId    <- id.toLongOption.notOptional("event log ID is not a long integer : " + id)
-        action  <- req.params.get("action") match {
-                     case Some(action :: Nil) =>
-                       RestEventLogRollback.Action
-                         .withNameInsensitiveOption(action)
-                         .notOptional(s"Unknown rollback's action : ${action}")
-                     case Some(actions)       =>
-                       Inconsistency(
-                         s"Only one action is excepted, ${actions.size} found in request : ${actions.mkString(",")}"
-                       ).fail
-                     case None                => Inconsistency("Empty action").fail
-                   }
-        details <- service.rollback(evId, action)
+        evId        <- id.toLongOption.notOptional("event log ID is not a long integer : " + id)
+        rollbackReq <- req.fromJson[RestRollbackRequest].toIO
+        rollbackType = rollbackReq.rollbackType.getOrElse(Item)
+        _           <- service.rollback(evId, rollbackReq.position, rollbackType)
       } yield {
-        RestEventLogRollback(action, id)
+        RestEventLogRollback(rollbackReq.position, rollbackType, id)
       }).chainError(s"Error when performing eventlog's rollback with id '${id}'")
         .toLiftResponseOne(
           params,
@@ -332,7 +323,8 @@ class EventLogAPI(
 class EventLogService(
     repo:                    EventLogRepository,
     eventLogDetailGenerator: EventLogDetailsGenerator,
-    personIdentService:      PersonIdentService
+    personIdentService:      PersonIdentService,
+    itemRollbackService:     ItemRollbackService
 ) {
   import EventLogService.*
 
@@ -356,18 +348,27 @@ class EventLogService(
     }).catchSystemErrors
   }
 
-  def rollback(id: Long, action: RestEventLogRollback.Action)(implicit qc: QueryContext): IOResult[Unit] = {
+  def rollback(id: Long, position: RollbackPosition, rollbackType: RestRollbackType)(implicit
+      qc: QueryContext
+  ): IOResult[Unit] = {
     // the rollback is a change made by the user asking for it: it must run in their context, not a system one
     given cc: ChangeContext = qc.newCC()
     (for {
-      event      <- repo.getEventLogById(id).catchSystemErrors
-      rollbackReq = action match {
-                      case After  => eventLogDetailGenerator.RollbackTo
-                      case Before => eventLogDetailGenerator.RollbackBefore
-                      case Item   => eventLogDetailGenerator.RollbackItem
-                    }
-      committer  <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
-      _          <- rollbackReq.action(event, committer, Seq(event), event)
+      _ <- rollbackType match {
+             case AllConfiguration =>
+               val rollbackReq = position match {
+                 case RollbackPosition.After  => eventLogDetailGenerator.RollbackTo
+                 case RollbackPosition.Before => eventLogDetailGenerator.RollbackBefore
+               }
+               for {
+                 event     <- repo.getEventLogById(id).catchSystemErrors
+                 committer <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
+               } yield {
+                 rollbackReq.action(event, committer, Seq(event), event)
+               }
+             case Item             =>
+               itemRollbackService.restoreItem(RollbackEventId(id), position).catchSystemErrors
+           }
     } yield ())
   }
 
