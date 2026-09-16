@@ -217,6 +217,7 @@ fn config_search_and_replace(
                     .replace("]", "")
                     .replace("\n", "")
                     .replace("\r", "")
+                    .replace("=", "")
             });
             let new_value = match new_value.as_deref() {
                 Some("") => {
