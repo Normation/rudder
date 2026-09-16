@@ -2,7 +2,7 @@ port module Editor exposing (..)
 
 import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search, string2Search)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), ObjectId, Search, string2ObjectId)
 import Browser
 import Dict exposing (Dict)
 import Dict.Extra
@@ -194,7 +194,6 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -430,9 +429,9 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-                search : Search
-                search =
-                    string2Search id.value
+                objectId : ObjectId
+                objectId =
+                    string2ObjectId id.value
             in
             case model.mode of
                 TechniqueDetails t _ _ editInfo ->
@@ -440,10 +439,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map ActivityMessage (getActivities objectId (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map ActivityMessage (getActivities objectId (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let
