@@ -41,6 +41,9 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
 import com.normation.rudder.hooks.HookReturnCode
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import enumeratum.*
 import io.scalaland.chimney.*
 import java.time.Instant
@@ -60,12 +63,24 @@ trait Campaign {
   def info:         CampaignInfo
   def details:      CampaignDetails
   def campaignType: CampaignType
-  def copyWithId(newId:                        CampaignId):       Campaign
-  def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign
+  def copyWithId(newId:                        CampaignId):          Campaign
+  def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone):    Campaign
+  def withSecurity(security:                   Option[SecurityTag]): Campaign // securityTag may need to be updated by tenant logic
   def version: Int
 }
 
 object Campaign {
+
+  given HasSecurityTag[Campaign] with {
+    extension (a: Campaign) {
+      override def security:           Option[SecurityTag] = a.info.security
+      override def isSystem:           Boolean             = false // campaign haven't any notion of "system" or "policyType" for now
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.info.id.serialize
+      override def updateSecurityContext(security: Option[SecurityTag]): Campaign = a.withSecurity(security)
+    }
+  }
+
   def filter(
       campaigns:    List[Campaign],
       typeFilter:   List[CampaignType],
@@ -85,7 +100,12 @@ case class CampaignInfo(
     name:        String,
     description: String,
     status:      CampaignStatus,
-    schedule:    CampaignSchedule
+    schedule:    CampaignSchedule,
+    // Tenant scoping of the campaign, like any other configuration object: it decides who sees and may
+    // change the campaign, and it is carried onto the rule/directive the campaign generates, so a campaign
+    // only applies to the nodes of its tenants. Absent (the value a campaign written before this field
+    // decodes to) means admin-only, as for every other untagged object.
+    security:    Option[SecurityTag] = None
 )
 
 case class CampaignId(value: String, rev: Revision = GitVersion.DEFAULT_REV) {

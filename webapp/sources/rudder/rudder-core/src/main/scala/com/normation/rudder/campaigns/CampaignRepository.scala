@@ -42,6 +42,10 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.Container
+import com.normation.rudder.tenants.IfAbsent
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantCheckLogic
 import zio.*
 import zio.stm.STM
 import zio.stm.TMap
@@ -49,10 +53,12 @@ import zio.stm.TReentrantLock
 import zio.syntax.*
 
 trait CampaignRepository {
-  def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]]
-  def get(id:            CampaignId): IOResult[Option[Campaign]]
-  def delete(id:         CampaignId): IOResult[Unit]
-  def save(c:            Campaign): IOResult[Campaign]
+  def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue])(using
+      qc: QueryContext
+  ): IOResult[List[Campaign]]
+  def get(id:    CampaignId)(using qc: QueryContext):  IOResult[Option[Campaign]]
+  def delete(id: CampaignId)(using cc: ChangeContext): IOResult[Unit]
+  def save(c:    Campaign)(using cc:   ChangeContext): IOResult[Campaign]
 }
 
 object CampaignRepositoryImpl {
@@ -60,7 +66,8 @@ object CampaignRepositoryImpl {
       path:               File,
       campaignArchiver:   CampaignArchiver,
       campaignSerializer: CampaignSerializer,
-      hooksRepository:    CampaignHooksRepository
+      hooksRepository:    CampaignHooksRepository,
+      checkTenant:        TenantCheckLogic
   ): IOResult[CampaignRepositoryImpl] = {
     IOResult.attemptZIO {
       if (path.exists) {
@@ -78,7 +85,7 @@ object CampaignRepositoryImpl {
       .empty[CampaignId, TReentrantLock]
       .commit
       .map(locks => {
-        new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository, locks)
+        new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository, checkTenant, locks)
       })
   }
 }
@@ -92,6 +99,7 @@ class CampaignRepositoryImpl(
     campaignArchiver:   CampaignArchiver,
     campaignSerializer: CampaignSerializer,
     hooksRepository:    CampaignHooksRepository,
+    checkTenant:        TenantCheckLogic,
     // per campaign (i.e. per file) read/write locks: campaign files are updated concurrently
     // (API, generation-time horizon renewal, campaign handler, on-demand runs) and a file
     // write plus its git archiving are not atomic
@@ -116,7 +124,9 @@ class CampaignRepositoryImpl(
     lockFor(id).flatMap(l => ZIO.scoped(l.writeLock *> effect))
   }
 
-  override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
+  // We use "rawXXX" for tenant-agnostic version of the XXX method
+
+  private def rawGetAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
     if (path.exists) {
       for {
         jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
@@ -137,7 +147,7 @@ class CampaignRepositoryImpl(
     }
   }
 
-  override def get(id: CampaignId): IOResult[Option[Campaign]] = {
+  private def rawGet(id: CampaignId): IOResult[Option[Campaign]] = {
     val file = path / (s"${id.value}.json")
     withReadLock(id) {
       for {
@@ -153,7 +163,7 @@ class CampaignRepositoryImpl(
   /*
    * When we save a campaign, we also init hook directories for that campaign.
    */
-  override def save(c: Campaign): IOResult[Campaign] = withWriteLock(c.info.id) {
+  private def rawSave(c: Campaign): IOResult[Campaign] = withWriteLock(c.info.id) {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
@@ -175,7 +185,7 @@ class CampaignRepositoryImpl(
     }
   }
 
-  override def delete(id: CampaignId): IOResult[Unit] = withWriteLock(id) {
+  private def rawDelete(id: CampaignId): IOResult[Unit] = withWriteLock(id) {
     for {
       campaign_deleted <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'") {
                             val file = path / (s"${id.value}.json")
@@ -185,4 +195,25 @@ class CampaignRepositoryImpl(
     } yield ()
   }
 
+  // Interface implementation, with the tenant limitation, call `rawXXX`
+
+  override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue])(using
+      qc: QueryContext
+  ): IOResult[List[Campaign]] = {
+    rawGetAll(typeFilter, statusFilter).map(checkTenant.filter(_))
+  }
+
+  override def get(id: CampaignId)(using qc: QueryContext): IOResult[Option[Campaign]] = {
+    rawGet(id).map(checkTenant.flatMap(_))
+  }
+
+  // tenant logic: a campaign has no container (no category), and saving one is an upsert (only one method for update and
+  // create), so `manageSave` check for existence before applying the correct tag
+  override def save(c: Campaign)(using cc: ChangeContext): IOResult[Campaign] = {
+    checkTenant.manageSave(c, rawGet(c.info.id), Container.none)(campaign => rawSave(campaign))
+  }
+
+  override def delete(id: CampaignId)(using cc: ChangeContext): IOResult[Unit] = {
+    checkTenant.manageDelete(rawGet(id), IfAbsent(()))(_ => rawDelete(id))
+  }
 }
