@@ -1,4 +1,4 @@
-FROM rust:1.98.0-trixie
+FROM rust:1.98.1-trixie
 LABEL ci=rudder/policies/Dockerfile
 
 ARG USER_ID=1000
