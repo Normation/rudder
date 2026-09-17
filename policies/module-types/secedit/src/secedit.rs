@@ -211,14 +211,15 @@ fn config_search_and_replace(
         let mut section_diff: Vec<String> = vec![];
         for (key, new_value) in entries {
             let new_value = validate_property(key, section, new_value)?;
-            let new_value = new_value.map(|s| {
-                s.replace("\"", "")
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\n", "")
-                    .replace("\r", "")
-                    .replace("=", "")
-            });
+            let new_value = match new_value {
+                Some(s) if s.contains(['[', ']', '\n', '\r', '=']) => {
+                    report.errors.push(format!("Invalid char detected '{s:?}'"));
+                    continue;
+                }
+                Some(s) => Some(s.replace("\"", "")),
+                None => None,
+            };
+
             let new_value = match new_value.as_deref() {
                 Some("") => {
                     // set to default value if the provided property is empty
