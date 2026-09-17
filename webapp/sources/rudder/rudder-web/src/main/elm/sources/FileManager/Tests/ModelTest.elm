@@ -82,10 +82,10 @@ suite =
                     noUpload
                         |> currentUploadsInProgress
                         |> Expect.equal []
-            , test "should have progress for current first upload only" <|
+            , test "should have progress for current upload only in last position" <|
                 \_ ->
                     queue [ "a", "b", "c" ]
                         |> currentUploadsInProgress
-                        |> Expect.equal [ Just emptyProgress, Nothing, Nothing ]
+                        |> Expect.equal [ Nothing, Nothing, Just emptyProgress ]
             ]
         ]

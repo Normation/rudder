@@ -284,7 +284,6 @@ renderUploads : UploadStatus File -> List (Html Msg)
 renderUploads status =
     currentUploadsInProgress status
         |> map renderUploading
-        |> reverse
 
 
 renderUploading : Maybe Http.Progress -> Html Msg

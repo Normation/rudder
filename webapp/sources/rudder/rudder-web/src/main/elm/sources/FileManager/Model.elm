@@ -83,7 +83,9 @@ nextUpload status =
                     newUpload remaining
 
 
-{-| Only a single upload in progress at the same time, others have no progress
+{-| Only a single upload in progress at the same time, others have no progress.
+The current progress is at last position, since only the last pending upload
+is displayed with progress in the view
 -}
 currentUploadsInProgress : UploadStatus file -> List (Maybe Http.Progress)
 currentUploadsInProgress status =
@@ -92,7 +94,8 @@ currentUploadsInProgress status =
             []
 
         PendingUpload { progress, uploadQueue } ->
-            Just progress :: List.repeat (NonEmptyList.length uploadQueue - 1) Nothing
+            List.repeat (NonEmptyList.length uploadQueue - 1) Nothing
+                ++ [ Just progress ]
 
 
 currentUpload : UploadStatus file -> Maybe file
