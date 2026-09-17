@@ -12,6 +12,15 @@ import Tags.JsonEncoder exposing (..)
 import Tags.Model exposing (Completion, Tag, emptyTag)
 import Tags.Update exposing (Action)
 
+-- legende :
+-- ℹ️ : in progress
+-- x : done
+
+-- [ℹ️] deplacer les traitements de UpdateTags dans Model
+-- [ ] faire en sorte que la fonction view fasse aussi peu de logique que possible
+-- [ ] faire des tests sur le Model
+-- [ ] faire des tests sur Update
+
 
 main =
     Browser.element
