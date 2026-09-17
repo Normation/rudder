@@ -142,7 +142,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   val accepted: Map[NodeId, CoreNodeFact] = nodes.map { case (n, _, _) => n }.toMap
 
-  val (nodeFactRepo, nodeStatusReportRepo): (CoreNodeFactRepository, NodeStatusReportRepository) = {
+  val (nodeFactRepo, nodeStatusReportRepo) = {
     val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
 
     (for {
