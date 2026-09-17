@@ -7,7 +7,7 @@ import Html.Attributes exposing (class, href)
 import Json.Encode exposing (Value, bool, encode, int, list, object, string)
 import List.Nonempty as NonEmptyList
 import Ordering
-import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions)
+import Rudder.Table exposing (ColumnName(..), SortOrder(..), buildConfig, buildCustomizations, buildOptions)
 import Time exposing (Zone)
 import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
 
@@ -88,5 +88,7 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                                 |> buildCustomizations.withTableAttrs [ class "no-footer dataTable" ]
                             )
                     )
+                |> buildConfig.withSortBy (ColumnName "Date")
+                |> buildConfig.withSortOrder Desc
     in
     Rudder.Table.init config []

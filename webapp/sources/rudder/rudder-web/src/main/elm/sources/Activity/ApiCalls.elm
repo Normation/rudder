@@ -8,8 +8,8 @@ import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : Search -> ContextPath -> Maybe String -> Cmd ActivityMsg
-getActivities search (ContextPath contextPath) resourceTypeOpt =
+getActivities : Search -> Int -> ContextPath -> Maybe String -> Cmd ActivityMsg
+getActivities search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
     let
         url =
             case resourceTypeOpt of
@@ -24,7 +24,7 @@ getActivities search (ContextPath contextPath) resourceTypeOpt =
                 { method = "POST"
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
-                , body = encodeRestEventLogFilter search |> jsonBody
+                , body = encodeRestEventLogFilter search nbEventLogs |> jsonBody
                 , expect = Detailed.expectJson GetActivities decodeGetActivities
                 , timeout = Nothing
                 , tracker = Nothing

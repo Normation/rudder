@@ -195,7 +195,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities Nothing (ContextPath initValues.contextPath) (Just "editorTechniques"))
+        , Cmd.map ActivityMessage (getActivities Nothing 100 (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -441,10 +441,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map ActivityMessage (getActivities search 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities search (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map ActivityMessage (getActivities search 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let
