@@ -283,7 +283,8 @@ class NodeGroupForm(
                  |var initValues = {
                  |  groupId : "${targetOrGroupIdStr}",
                  |  contextPath : contextPath,
-                 |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
+                 |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC',
+                 |  canReadChangeLogs : ${checkRights(AuthorizationType.Administration.Read)}
                  |};
                  |var app = Elm.GroupRecentActivity.init({node: main, flags: initValues});
                  |app.ports.errorNotification.subscribe(function(str) {
