@@ -7,6 +7,7 @@ import File exposing (File)
 import FileManager.Vec exposing (..)
 import Http exposing (Error)
 import Http.Detailed
+import List.Nonempty as NonEmptyList
 import Ui.Datatable exposing (TableFilters)
 
 
@@ -32,6 +33,84 @@ type SortBy
     | FileRights
 
 
+{-| Parametrized to avoid using "File.File", which is opaque, we can replace it for testability
+-}
+type UploadStatus file
+    = NoUpload
+    | PendingUpload (UploadState file)
+
+
+type alias UploadState file =
+    { progress : Http.Progress
+    , uploadQueue : NonEmptyList.Nonempty file
+    }
+
+
+{-| Apply a change to the upload in progress (the upload state), with transformation function
+-}
+updateUploadStatus : (UploadState file -> UploadState file) -> UploadStatus file -> UploadStatus file
+updateUploadStatus f status =
+    case status of
+        NoUpload ->
+            NoUpload
+
+        PendingUpload state ->
+            PendingUpload (f state)
+
+
+setProgress : Http.Progress -> UploadState file -> UploadState file
+setProgress progress state =
+    { state | progress = progress }
+
+
+newUpload : NonEmptyList.Nonempty file -> UploadStatus file
+newUpload queue =
+    PendingUpload { progress = Http.Sending { sent = 0, size = 0 }, uploadQueue = queue }
+
+
+nextUpload : UploadStatus file -> UploadStatus file
+nextUpload status =
+    case status of
+        NoUpload ->
+            NoUpload
+
+        PendingUpload state ->
+            case state.uploadQueue |> NonEmptyList.tail |> NonEmptyList.fromList of
+                Nothing ->
+                    NoUpload
+
+                Just remaining ->
+                    newUpload remaining
+
+
+currentUpload : UploadStatus file -> Maybe file
+currentUpload status =
+    case status of
+        NoUpload ->
+            Nothing
+
+        PendingUpload state ->
+            Just (NonEmptyList.head state.uploadQueue)
+
+
+isUploading : UploadStatus file -> Bool
+isUploading status =
+    case status of
+        NoUpload ->
+            False
+
+        PendingUpload _ ->
+            True
+
+
+{-| Maximum size, in bytes, of a file the server accepts in an upload. It is the default value of
+`LiftRules.maxMimeSize` on the server side, which is what rejects a too big upload there.
+-}
+defaultMaxUploadSize : Int
+defaultMaxUploadSize =
+    8 * 1024 * 1024
+
+
 type alias Model =
     { api : String
     , thumbnailsUrl : String
@@ -53,16 +132,15 @@ type alias Model =
     , showContextMenu : Bool
     , selectedBin : List FileMeta
     , showDrop : Bool
-    , filesAmount : Int
-    , progress : Http.Progress
+    , uploadStatus : UploadStatus File
     , dialogState : DialogAction
     , clipboardDir : String
     , clipboardFiles : List FileMeta
-    , uploadQueue : List File
     , hasWriteRights : Bool
     , viewMode : ViewMode
     , tableFilters : TableFilters SortBy
     , tree : Dict String TreeItem
+    , maxUploadSize : Int
     }
 
 

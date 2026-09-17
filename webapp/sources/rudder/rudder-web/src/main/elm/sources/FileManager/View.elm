@@ -1,16 +1,18 @@
 module FileManager.View exposing (..)
 
 import Dict exposing (Dict)
+import File exposing (File)
 import FileManager.Events exposing (..)
 import FileManager.Model exposing (..)
-import FileManager.Util exposing (button, getDirPath, isJust)
+import FileManager.Util exposing (button, getDirPath, isJust, maxUploadSizeText)
 import FileManager.Vec exposing (..)
-import Html exposing (Attribute, Html, a, br, div, i, img, input, label, li, strong, table, tbody, td, text, textarea, th, thead, tr, ul)
+import Html exposing (Attribute, Html, a, br, div, em, i, img, input, label, li, strong, table, tbody, td, text, textarea, th, thead, tr, ul)
 import Html.Attributes exposing (attribute, class, disabled, draggable, id, placeholder, src, style, title, type_, value)
 import Html.Events exposing (onClick, onDoubleClick, onInput)
 import Http exposing (Progress(..))
 import List exposing (head, indexedMap, isEmpty, length, map, member, range, reverse, tail)
 import List.Extra exposing (last)
+import List.Nonempty as NonEmptyList
 import Maybe exposing (andThen, withDefault)
 import NaturalOrdering as N exposing (compare)
 import String exposing (fromFloat, fromInt, join, split)
@@ -38,7 +40,11 @@ view model =
                             filesList model
                         ]
                     , div [ class "fm-control" ]
-                        [ button [ onClick <| EnvMsg Accept ] [ text "Close" ]
+                        [ em [ class "text-muted me-2" ]
+                            [ text ("Maximum size of uploaded file is " ++ maxUploadSizeText model.maxUploadSize) ]
+                        , button
+                            [ onClick <| EnvMsg Accept ]
+                            [ text "Close" ]
                         ]
                     , if model.showBound then
                         renderHelper model.bound
@@ -51,7 +57,7 @@ view model =
                       else
                         div [] []
                     , if model.showContextMenu && model.hasWriteRights then
-                        contextMenu model.pos1 model.caller (not <| isEmpty model.clipboardFiles) (length model.selected > 1) model.filesAmount
+                        contextMenu model.pos1 model.caller (not <| isEmpty model.clipboardFiles) (length model.selected > 1) model.uploadStatus
 
                       else
                         div [] []
@@ -195,7 +201,7 @@ filesGrid model =
         [ div [ class "fm-wrap" ]
             [ div [ class "fm-fluid" ] <|
                 currentFiles
-                    ++ reverse (map (renderUploading model.progress) (range 0 <| model.filesAmount - 1))
+                    ++ renderUploads model.uploadStatus
             ]
         , if model.showDrop && model.hasWriteRights then
             div [ class "fm-drop", onDragLeave HideDrop, onDrop GotFiles ] []
@@ -235,7 +241,7 @@ filesList model =
                     |> List.sortWith (getSortFunction model)
                     |> indexedMap (renderFileList model)
                 )
-                    ++ reverse (map (renderUploading model.progress) (range 0 <| model.filesAmount - 1))
+                    ++ renderUploads model.uploadStatus
             ]
         , if model.showDrop && model.hasWriteRights then
             div [ class "fm-drop", onDragLeave HideDrop, onDrop GotFiles ] []
@@ -272,6 +278,16 @@ back list =
 
         Nothing ->
             "/"
+
+
+renderUploads : UploadStatus File -> List (Html Msg)
+renderUploads status =
+    case status of
+        NoUpload ->
+            []
+
+        PendingUpload { progress, uploadQueue } ->
+            reverse (map (renderUploading progress) (range 0 (NonEmptyList.length uploadQueue - 1)))
 
 
 renderUploading : Http.Progress -> Int -> Html Msg
@@ -442,47 +458,48 @@ renderCount (Vec2 x y) selected =
         ]
 
 
-contextMenu : Vec2 -> Maybe FileMeta -> Bool -> Bool -> Int -> Html Msg
-contextMenu (Vec2 x y) maybe paste many filesAmount =
-    if filesAmount > 0 then
-        div [ class "fm-context-menu", style "left" (toPx x), style "top" (toPx y) ]
-            [ button [ class "div white cancel", onClick Cancel ] [ text "Cancel" ]
-            ]
+contextMenu : Vec2 -> Maybe FileMeta -> Bool -> Bool -> UploadStatus File -> Html Msg
+contextMenu (Vec2 x y) maybe paste many uploadStatus =
+    case uploadStatus of
+        PendingUpload _ ->
+            div [ class "fm-context-menu", style "left" (toPx x), style "top" (toPx y) ]
+                [ button [ class "div white cancel", onClick Cancel ] [ text "Cancel" ]
+                ]
 
-    else
-        div [ class "fm-context-menu", style "left" (toPx x), style "top" (toPx y) ] <|
-            case maybe of
-                Just file ->
-                    [ if file.type_ == "dir" then
-                        text ""
+        NoUpload ->
+            div [ class "fm-context-menu", style "left" (toPx x), style "top" (toPx y) ] <|
+                case maybe of
+                    Just file ->
+                        [ if file.type_ == "dir" then
+                            text ""
 
-                      else
-                        button [ class "div white", onClick (OpenNameDialog (Edit file.name "")) ] [ text "Edit" ]
-                    , button [ class "div white", onClick Download ] [ text "Download" ]
-                    , if many then
-                        text ""
+                          else
+                            button [ class "div white", onClick (OpenNameDialog (Edit file.name "")) ] [ text "Edit" ]
+                        , button [ class "div white", onClick Download ] [ text "Download" ]
+                        , if many then
+                            text ""
 
-                      else
-                        button [ class "div white", onClick (OpenNameDialog (Rename file file.name)) ] [ text "Rename" ]
-                    , button [ class "div white", onClick Cut ] [ text "Cut" ]
-                    , if paste && file.type_ == "dir" then
-                        button [ class "div white", onClick Paste ] [ text "Paste" ]
+                          else
+                            button [ class "div white", onClick (OpenNameDialog (Rename file file.name)) ] [ text "Rename" ]
+                        , button [ class "div white", onClick Cut ] [ text "Cut" ]
+                        , if paste && file.type_ == "dir" then
+                            button [ class "div white", onClick Paste ] [ text "Paste" ]
 
-                      else
-                        text ""
-                    , button [ class "div white text-danger", onClick Delete ] [ text "Delete" ]
-                    ]
+                          else
+                            text ""
+                        , button [ class "div white text-danger", onClick Delete ] [ text "Delete" ]
+                        ]
 
-                Nothing ->
-                    [ button [ class "div white", onClick ChooseFiles ] [ text "Upload" ]
-                    , button [ class "div white", onClick (OpenNameDialog (NewDir "")) ] [ text "New folder" ]
-                    , button [ class "div white", onClick (OpenNameDialog (NewFile "")) ] [ text "New file" ]
-                    , if paste then
-                        button [ class "div white", onClick Paste ] [ text "Paste" ]
+                    Nothing ->
+                        [ button [ class "div white", onClick ChooseFiles ] [ text "Upload" ]
+                        , button [ class "div white", onClick (OpenNameDialog (NewDir "")) ] [ text "New folder" ]
+                        , button [ class "div white", onClick (OpenNameDialog (NewFile "")) ] [ text "New file" ]
+                        , if paste then
+                            button [ class "div white", onClick Paste ] [ text "Paste" ]
 
-                      else
-                        text ""
-                    ]
+                          else
+                            text ""
+                        ]
 
 
 mainContextMenu : Html Msg
