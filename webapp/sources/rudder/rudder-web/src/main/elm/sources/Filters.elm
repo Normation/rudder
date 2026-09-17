@@ -17,7 +17,7 @@ import Tags.Update exposing (Action)
 -- legende :
 -- ℹ️ : in progress
 -- x : done
--- [ℹ️] deplacer les traitements de UpdateTags dans Model
+-- [x] deplacer les traitements de UpdateTags dans Model
 -- [ ] faire en sorte que la fonction view fasse aussi peu de logique que possible
 -- [ ] faire des tests sur le Model
 -- [ ] faire des tests sur Update
@@ -136,20 +136,16 @@ update msg model =
 
 applyActionOnModel : Action -> Model -> Model
 applyActionOnModel action model =
-    let
-        ( tags, newTag ) =
-            case action of
-                Tags.Update.Add tag ->
-                    -- model |> addTag tag |> withNoCurrentTag
-                    ( tag :: model.tags, emptyTag )
+    case action of
+        Tags.Update.Add tag ->
+            model
+                |> addTag tag
+                |> setCurrentTag emptyTag
 
-                Tags.Update.Remove tag ->
-                    ( List.Extra.remove tag model.tags, model.newTag )
+        Tags.Update.Remove tag ->
+            model
+                |> removeTag tag
 
-                -- model |> remoteTag tag |> withCurrentTag model.newTag
-                -- Update.elm : prise de decision, la regle metier
-                -- Model.elm : des operations de manipulation qui respectent les invariants
-                Tags.Update.Clear ->
-                    ( [], model.newTag )
-    in
-    { model | tags = tags, newTag = newTag }
+        Tags.Update.Clear ->
+            model
+                |> clearTags

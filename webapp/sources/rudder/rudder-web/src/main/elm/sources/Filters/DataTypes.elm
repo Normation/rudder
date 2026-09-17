@@ -58,6 +58,9 @@ removeTag : Tag -> Model -> Model
 removeTag tag model =
     { model | tags = List.Extra.remove tag model.tags }
 
+clearTags : Model -> Model
+clearTags model =
+    { model | tags = [] }
 
 setCurrentTag : Tag -> Model -> Model
 setCurrentTag tag model =

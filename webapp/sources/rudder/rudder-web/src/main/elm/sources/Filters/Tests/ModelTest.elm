@@ -1,7 +1,7 @@
 module Filters.Tests.ModelTest exposing (..)
 
 import Expect
-import Filters.DataTypes exposing (addTag, removeTag, setCurrentTag)
+import Filters.DataTypes exposing (addTag, clearTags, removeTag, setCurrentTag)
 import Filters.Init as Model exposing (initModel)
 import Test exposing (describe, test)
 
@@ -87,6 +87,22 @@ suite =
                         |> removeTag tags.ad
                         |> .tags
                         |> Expect.equal [ tags.ab ]
+            ]
+        ,describe "clearTags"
+            [ test "should not update model on empty tag list" <|
+                \_ ->
+                    emptyModel
+                        |> clearTags
+                        |> .tags
+                        |> Expect.equal []
+            , test "should update model when list of tags is not empty" <|
+                \_ ->
+                    emptyModel
+                        |> addTag tags.ab
+                        |> addTag tags.cd
+                        |> clearTags
+                        |> .tags
+                        |> Expect.equal []
             ]
         , describe "setCurrentTag"
             [ test "should update current tag on empty model" <|
