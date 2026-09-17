@@ -649,7 +649,7 @@ object RuleGrid {
 
     // Status is the state of the Rule, defined as a string
     // reasons are the reasons why a Rule is disabled
-    val (status, reasons): (String, Option[String]) = {
+    val (status, reasons) = {
       line match {
         case line: OKLine    =>
           line.applicationStatus match {
@@ -688,7 +688,7 @@ object RuleGrid {
         case _:    ErrorLine => ("N/A", None)
       }
     }
-    val t1 = System.currentTimeMillis
+    val t1                = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: line status: ${t1 - t0}ms")
 
     // Is the rule applying a Directive and callback associated to the checkbox
