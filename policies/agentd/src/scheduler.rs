@@ -7,10 +7,13 @@
 
 use crate::configuration::{Configuration, ScheduleConfiguration};
 use crate::{ExitType, ServiceMessage, configuration};
+use anyhow::Context;
 use anyhow::{Result, bail};
 use chrono::{DateTime, Local, NaiveTime, SubsecRound, TimeDelta};
 use log::{debug, error, info, warn};
+use serde::Serialize;
 use std::cmp::{max, min};
+use std::collections::BTreeMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::Path;
 use std::process::Stdio;
@@ -24,10 +27,12 @@ use tokio::time;
 use tokio::time::timeout;
 use uuid::Uuid;
 
+const SECONDS_PER_DAY: u64 = 24 * 60 * 60;
+
 /// One schedule, this decides when an item must be scheduled.
 ///
 /// Having an enum here allows creating other scheduler types.
-#[derive(Debug)]
+#[derive(PartialEq, Serialize, Clone, Debug)]
 enum Schedule {
     /// An interval schedule,  used for scheduling using periods starting at 00:00:00 every day
     /// Each period has an allowed run interval within it. For example:
@@ -51,7 +56,7 @@ impl Schedule {
     ) -> Result<Schedule> {
         // Currently assume that only Schedule::Interval exists
         let period = schedule.period.as_secs();
-        if !(60..=24 * 60 * 60).contains(&period) {
+        if !(60..=SECONDS_PER_DAY).contains(&period) {
             bail!(
                 "{} configuration: schedule period is not between 1mn and 24h",
                 name
@@ -94,9 +99,13 @@ impl Schedule {
                     - NaiveTime::from_hms_opt(0, 0, 0).expect("00:00:00 invalid"))
                 .num_seconds();
                 // subtracting 0 should have produced a positive number anyway
+                // In which period we are, relative to today midnight
                 let period_id = max(seconds_from_midnight, 0) as u64 / period;
+                // Seconds passed since midnight for the current period start time
                 let period_start = period_id * period;
+                // Seconds passed since midnight for the current period allowed run window
                 let interval_start = period_start + interval_begin;
+                // Seconds passed since midnight for the effective start in the current period
                 let current_start = interval_start + seed % interval_duration;
                 let next_start = if current_start as i64 > seconds_from_midnight {
                     current_start
@@ -104,12 +113,30 @@ impl Schedule {
                     // we already passed the start of the current interval
                     current_start + period
                 };
-                // if there is a calculation error (or if it falls tomorrow) return nothing
+
+                // If the next_start exceeds today's 23:59:59, it will start in the first period of
+                // tomorrow, which re-initialize the whole grid.
+                // Since the period must be =< 24h the next tick is always either today, or the
+                // first one of tomorrow
+                // If the period does not divive SECONDS_PER_DAY, the day ends with a truncated
+                // period whose window my end past midnight. The run can then be skipped, depending
+                // on the seed roll.
+                let (next_start, date) = if next_start >= SECONDS_PER_DAY {
+                    (
+                        interval_begin + seed % interval_duration,
+                        now.date_naive().succ_opt()?,
+                    )
+                } else {
+                    (next_start, now.date_naive())
+                };
+                // Should never fail as next_start should always be < SECONDS_PER_DAY
                 let final_time =
                     NaiveTime::from_num_seconds_from_midnight_opt(next_start as u32, 0)?;
                 // if the result is ambiguous in the timezone, take the first one,
                 // if it is impossible, return nothing
-                now.with_time(final_time).earliest()
+                date.and_time(final_time)
+                    .and_local_timezone(Local)
+                    .earliest()
             }
         }
     }
@@ -117,7 +144,7 @@ impl Schedule {
 
 /// One command to be scheduled
 /// It contains the command parameters, and the schedule itself
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 struct ScheduleItem {
     /// Name used for information (from the configuration section name)
     name: String,
@@ -488,6 +515,38 @@ impl Scheduler {
         };
         Ok(next_run)
     }
+
+    /// List every job and their details
+    pub fn get_all_jobs(&self) -> Result<String> {
+        #[derive(Debug, PartialEq, Serialize)]
+        struct JobDisplay<'a> {
+            command: &'a str,
+            schedule: &'a Schedule,
+            max_execution_duration: Duration,
+            max_concurrent_executions: usize,
+            next_run: String,
+        }
+        let now = Local::now();
+        let jobs: BTreeMap<&str, JobDisplay> = self
+            .schedules
+            .iter()
+            .map(|j| {
+                let next_run = match j.schedule.next_run(now, self.uuid_hash) {
+                    Some(t) => t.to_rfc3339(),
+                    None => "unknown".to_string(),
+                };
+                let jd = JobDisplay {
+                    command: &j.command,
+                    schedule: &j.schedule,
+                    max_execution_duration: j.max_execution_duration,
+                    max_concurrent_executions: j.max_concurrent_executions,
+                    next_run,
+                };
+                (j.name.as_str(), jd)
+            })
+            .collect();
+        serde_json::to_string_pretty(&jobs).context("Failed to get the jobs details")
+    }
 }
 
 #[cfg(test)]
@@ -559,7 +618,11 @@ mod tests {
         );
         assert_eq!(
             schedule.next_run(before_midnight, seed),
-            None,
+            Some(
+                time(0, 0, 50)
+                    .checked_add_days(chrono::Days::new(1))
+                    .unwrap()
+            ),
             "before_midnight, seed {}",
             seed
         );
@@ -591,9 +654,40 @@ mod tests {
         );
         assert_eq!(
             schedule.next_run(before_midnight, seed),
-            None,
+            Some(
+                time(0, 1, 15)
+                    .checked_add_days(chrono::Days::new(1))
+                    .unwrap()
+            ),
             "before_midnight, seed {}",
             seed
+        );
+    }
+
+    #[test]
+    fn test_next_run_is_tomorrow() {
+        let schedule = Schedule::Interval {
+            period: 3601,
+            interval_begin: 0,
+            interval_duration: 60,
+        };
+        let seed = 30;
+
+        let tomorrow_first_slot = time(0, 0, 30)
+            .checked_add_days(chrono::Days::new(1))
+            .expect("tomorrow 00:00:30 must exist");
+
+        // still inside the day: the next slot is the next hour
+        assert_eq!(
+            schedule.next_run(time(22, 30, 0), seed),
+            Some(time(23, 0, 53)),
+            "before the last slot of the day"
+        );
+        // past the last slot: the grid restarts at midnight
+        assert_eq!(
+            schedule.next_run(time(23, 30, 0), seed),
+            Some(tomorrow_first_slot),
+            "after the last slot of the day"
         );
     }
 }

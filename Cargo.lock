@@ -44,6 +44,7 @@ dependencies = [
  "rudder_module_type",
  "serde",
  "serde-inline-default",
+ "serde_json",
  "tokio",
  "toml",
  "uuid",

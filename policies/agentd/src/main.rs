@@ -19,28 +19,28 @@ use log::error;
 #[command(name = "agentd")]
 #[command(version, about = "Rudder agentd cli", long_about = None)]
 struct Args {
-    /// command to get next run time of a job
+    /// Display the current active jobs details as JSON
     #[arg(short, long)]
-    get_next_run: Option<String>,
+    list: bool,
 }
 
 impl Args {
     fn cli_arg(&self) -> bool {
-        self.get_next_run.is_some()
+        self.list
     }
 
     fn handle_cli(&self) {
-        if let Some(job) = &self.get_next_run {
-            #[cfg(target_os = "windows")]
-            let scheduler = windows::init_scheduler();
-            #[cfg(target_os = "linux")]
-            let scheduler = linux::init_scheduler();
-            match scheduler.get_next_run(job) {
-                Ok(next_run) => {
-                    println!("{}", next_run.to_rfc3339());
+        #[cfg(target_os = "windows")]
+        let scheduler = windows::init_scheduler();
+        #[cfg(target_os = "linux")]
+        let scheduler = linux::init_scheduler();
+        if self.list {
+            match scheduler.get_all_jobs() {
+                Ok(json) => {
+                    println!("{}", json);
                 }
                 Err(e) => {
-                    error!("Failed to get next run for {}: {}", job, e);
+                    error!("Failed to list the jobs: {:?}", e);
                 }
             }
         }
