@@ -41,4 +41,6 @@ type Msg
 -- setTags tag model
 -- asTagsIn model tag
 
-addTag tag model = Debug.todo ""
+addTag : Tag -> Model -> Model
+addTag tag model =
+    { model | tags = (tag :: model.tags)}

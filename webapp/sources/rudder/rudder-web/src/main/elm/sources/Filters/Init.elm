@@ -32,13 +32,11 @@ subscriptions model =
         , resetFilters (\_ -> ResetFilters)
         ]
 
+initModel : { contextPath : String, objectType : String } -> Model
+initModel flags =
+    Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True False
+
 
 init : { contextPath : String, objectType : String } -> ( Model, Cmd Msg )
 init flags =
-    let
-        initModel =
-            Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True False
-    in
-    ( initModel
-    , Cmd.none
-    )
+    ( initModel flags, Cmd.none )
