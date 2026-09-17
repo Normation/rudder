@@ -295,7 +295,7 @@ object ReportLine {
   ) derives JsonEncoder
 
   private given Transformer[ReportLine, JsonReportLine] = (src: ReportLine) => {
-    val (kind, status): (String, String) = {
+    val (kind, status) = {
       src.severity.split("_").toList match {
         case _ :: Nil     => (src.severity, src.severity)
         case head :: rest => (head, rest.mkString("_"))

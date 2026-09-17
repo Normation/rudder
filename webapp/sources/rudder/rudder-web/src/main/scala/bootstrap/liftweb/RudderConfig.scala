@@ -3198,8 +3198,6 @@ object RudderConfigInit {
       TenantScopedWrite(new WoTenantDirectiveRepo(tenantCheckLogic, storage, directiveRead.storage), storage)
     }
 
-    lazy val directiveWrite.repository: WoDirectiveRepository = directiveWrite.repository
-
     // see the note on `directiveRead`: the storage repository only exists inside the block
     lazy val ruleRead: TenantScopedRead[RoRuleRepository, RoLDAPRuleRepository] = {
       val storage = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
