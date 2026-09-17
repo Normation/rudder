@@ -40,6 +40,7 @@ init :
     { globalPropertyId : String
     , contextPath : String
     , timeZone : String
+    , canReadChangeLogs : Bool
     }
     -> ( Model, Cmd Msg )
 init flags =
@@ -57,7 +58,7 @@ init flags =
         initModel : Model
         initModel =
             { globalPropertyId = GlobalPropertyId flags.globalPropertyId
-            , activityTable = initTable contextPath zone
+            , activityTable = initTable flags.canReadChangeLogs contextPath zone
             , contextPath = contextPath
             , zone = zone
             }

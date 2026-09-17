@@ -12,8 +12,8 @@ import Time exposing (Zone)
 import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
 
 
-initTable : ContextPath -> Zone -> Rudder.Table.Model Activity msg
-initTable (ContextPath contextPath) timezone =
+initTable : Bool -> ContextPath -> Zone -> Rudder.Table.Model Activity msg
+initTable canReadChangeLogs (ContextPath contextPath) timezone =
     let
         {-
            Add a link on the id to navigate to the detail of this activity log on change log page.
@@ -25,12 +25,12 @@ initTable (ContextPath contextPath) timezone =
              "length":5
            }
         -}
-        idWithLink : Activity -> Html msg
-        idWithLink activity =
+        idWithLinkToChangeLogsPage : Int -> Html msg
+        idWithLinkToChangeLogsPage activityId =
             let
                 id =
                     object
-                        [ ( "value", activity.id |> int )
+                        [ ( "value", activityId |> int )
                         , ( "regex", bool False )
                         , ( "fixed", list bool [] )
                         ]
@@ -51,13 +51,23 @@ initTable (ContextPath contextPath) timezone =
                         ++ json
                     )
                 ]
-                [ text (String.fromInt activity.id) ]
+                [ text (String.fromInt activityId) ]
+
+        idWithoutLink : Int -> Html msg
+        idWithoutLink activityId =
+            text (String.fromInt activityId)
 
         columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity msg)
         columns =
             NonEmptyList.Nonempty
                 { name = ColumnName "Id"
-                , renderHtml = \activity -> idWithLink activity
+                , renderHtml =
+                    \activity ->
+                        if canReadChangeLogs then
+                            idWithLinkToChangeLogsPage activity.id
+
+                        else
+                            idWithoutLink activity.id
                 , ordering = Ordering.byField .id
                 }
                 [ { name = ColumnName "User", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
