@@ -372,7 +372,7 @@ limitations under the License.
     <rudder-version>10.0.0~alpha1-SNAPSHOT</rudder-version>
 
     <servlet-version>6.1.0</servlet-version>
-    <scala-version>3.8.4</scala-version>
+    <scala-version>3.9.0</scala-version>
     <scala-binary-version>3</scala-binary-version>
     <scala-xml-version>2.4.0</scala-xml-version>
     <lift-version>4.0.0</lift-version>
