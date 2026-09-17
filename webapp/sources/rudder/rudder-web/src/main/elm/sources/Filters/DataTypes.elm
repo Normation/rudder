@@ -2,6 +2,7 @@ module Filters.DataTypes exposing (..)
 
 import Http exposing (Error)
 import Json.Decode as D exposing (..)
+import List.Extra
 import Tags.Model exposing (..)
 import Tags.Update exposing (Action)
 
@@ -38,9 +39,26 @@ type Msg
     | ToggleHideUnusedTechniques Bool
     | ResetFilters
 
+
+
 -- setTags tag model
 -- asTagsIn model tag
 
+
 addTag : Tag -> Model -> Model
 addTag tag model =
-    { model | tags = (tag :: model.tags)}
+    if List.member tag model.tags then
+        model
+
+    else
+        { model | tags = tag :: model.tags }
+
+
+removeTag : Tag -> Model -> Model
+removeTag tag model =
+    { model | tags = List.Extra.remove tag model.tags }
+
+
+setCurrentTag : Tag -> Model -> Model
+setCurrentTag tag model =
+    { model | newTag = tag }
