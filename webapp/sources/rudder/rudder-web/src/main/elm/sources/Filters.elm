@@ -21,6 +21,7 @@ import Tags.Update exposing (Action)
 -- [ ] faire en sorte que la fonction view fasse aussi peu de logique que possible
 -- [ ] faire des tests sur le Model
 -- [ ] faire des tests sur Update
+-- [ ] coherence des utilisations de tags
 
 
 main =
@@ -84,7 +85,8 @@ update msg model =
 
         UpdateTags action ->
             let
-                newModel = model |> applyActionOnModel action
+                newModel =
+                    model |> applyActionOnModel action
 
                 encodedFilters =
                     encodeFilters newModel
@@ -135,18 +137,19 @@ update msg model =
 applyActionOnModel : Action -> Model -> Model
 applyActionOnModel action model =
     let
-        ( tags, newTag ) =  case action of
-            Tags.Update.Add tag ->
-                -- model |> addTag tag |> withNoCurrentTag
-                ( tag :: model.tags, emptyTag )
+        ( tags, newTag ) =
+            case action of
+                Tags.Update.Add tag ->
+                    -- model |> addTag tag |> withNoCurrentTag
+                    ( tag :: model.tags, emptyTag )
 
-            Tags.Update.Remove tag ->
-                ( List.Extra.remove tag model.tags, model.newTag )
+                Tags.Update.Remove tag ->
+                    ( List.Extra.remove tag model.tags, model.newTag )
+
                 -- model |> remoteTag tag |> withCurrentTag model.newTag
                 -- Update.elm : prise de decision, la regle metier
                 -- Model.elm : des operations de manipulation qui respectent les invariants
-
-            Tags.Update.Clear ->
-                ( [], model.newTag )
+                Tags.Update.Clear ->
+                    ( [], model.newTag )
     in
     { model | tags = tags, newTag = newTag }

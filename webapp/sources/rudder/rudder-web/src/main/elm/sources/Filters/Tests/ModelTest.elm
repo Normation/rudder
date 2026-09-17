@@ -5,19 +5,40 @@ import Filters.DataTypes exposing (addTag)
 import Filters.Init as Model exposing (initModel)
 import Test exposing (describe, test)
 
-suite = describe "Filters.Model"
-    [ test "should update model with empty tags list tag property with new tag" <|
-        \_ ->
-            let
-                model =
-                    initModel { contextPath = "", objectType = "" }
-                tag =
-                    { key = "a", value = "b" }
-            in
-            addTag tag model
-                |> .tags
-                |> Expect.equal [ tag ]
-    , test "should update model with non-empty tags list tag property with new tag" <|
-        \_ ->
-            Debug.todo ""
-    ]
+
+emptyModel =
+    initModel { contextPath = "", objectType = "" }
+
+
+tags =
+    { ab = { key = "a", value = "b" }
+    , cd = { key = "c", value = "d" }
+    }
+
+
+suite =
+    describe "Filters.Model"
+        [ describe "addTag"
+            [ test "should update model with empty tags list tag property with new tag" <|
+                \_ ->
+                    emptyModel
+                        |> addTag tags.ab
+                        |> .tags
+                        |> Expect.equal [ tags.ab ]
+            , test "should update model with non-empty tags list tag property with prepending tag" <|
+                \_ ->
+                    emptyModel
+                        |> addTag tags.ab
+                        |> addTag tags.cd
+                        |> .tags
+                        |> Expect.equal [ tags.cd, tags.ab ]
+            , test "should not update model with already existing tag" <|
+                \_ ->
+                    emptyModel
+                        |> addTag tags.ab
+                        |> addTag tags.cd
+                        |> addTag tags.cd
+                        |> .tags
+                        |> Expect.equal [ tags.cd, tags.ab ]
+            ]
+        ]
