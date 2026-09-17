@@ -37,3 +37,8 @@ type Msg
     | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
     | ToggleHideUnusedTechniques Bool
     | ResetFilters
+
+-- setTags tag model
+-- asTagsIn model tag
+
+addTag tag model = Debug.todo ""

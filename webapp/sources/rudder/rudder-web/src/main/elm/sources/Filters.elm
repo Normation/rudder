@@ -12,10 +12,11 @@ import Tags.JsonEncoder exposing (..)
 import Tags.Model exposing (Completion, Tag, emptyTag)
 import Tags.Update exposing (Action)
 
+
+
 -- legende :
 -- ℹ️ : in progress
 -- x : done
-
 -- [ℹ️] deplacer les traitements de UpdateTags dans Model
 -- [ ] faire en sorte que la fonction view fasse aussi peu de logique que possible
 -- [ ] faire des tests sur le Model
@@ -83,19 +84,7 @@ update msg model =
 
         UpdateTags action ->
             let
-                (tags, newTag) =
-                    case action of
-                        Tags.Update.Add tag ->
-                            (tag :: model.tags, emptyTag)
-
-                        Tags.Update.Remove tag ->
-                            (List.Extra.remove tag model.tags, model.newTag)
-
-                        Tags.Update.Clear ->
-                            ([], model.newTag)
-
-                newModel =
-                    { model | tags = tags, newTag = newTag }
+                newModel = model |> applyActionOnModel action
 
                 encodedFilters =
                     encodeFilters newModel
@@ -141,3 +130,23 @@ update msg model =
                     update (UpdateFilter "") prevModel
             in
             ( newModel, Cmd.batch [ updateTags, updateFilter ] )
+
+
+applyActionOnModel : Action -> Model -> Model
+applyActionOnModel action model =
+    let
+        ( tags, newTag ) =  case action of
+            Tags.Update.Add tag ->
+                -- model |> addTag tag |> withNoCurrentTag
+                ( tag :: model.tags, emptyTag )
+
+            Tags.Update.Remove tag ->
+                ( List.Extra.remove tag model.tags, model.newTag )
+                -- model |> remoteTag tag |> withCurrentTag model.newTag
+                -- Update.elm : prise de decision, la regle metier
+                -- Model.elm : des operations de manipulation qui respectent les invariants
+
+            Tags.Update.Clear ->
+                ( [], model.newTag )
+    in
+    { model | tags = tags, newTag = newTag }
