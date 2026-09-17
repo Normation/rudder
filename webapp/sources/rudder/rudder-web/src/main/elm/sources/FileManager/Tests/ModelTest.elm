@@ -1,7 +1,8 @@
 module FileManager.Tests.ModelTest exposing (..)
 
 import Expect
-import FileManager.Model exposing (UploadStatus(..), currentUpload, newUpload, nextUpload)
+import FileManager.Model exposing (UploadStatus(..), currentUpload, currentUploadsInProgress, newUpload, nextUpload)
+import Http exposing (Progress(..))
 import List.Nonempty as NonEmptyList
 import Test exposing (describe, test)
 
@@ -9,6 +10,11 @@ import Test exposing (describe, test)
 noUpload : UploadStatus String
 noUpload =
     NoUpload
+
+
+emptyProgress : Http.Progress
+emptyProgress =
+    Http.Sending { sent = 0, size = 0 }
 
 
 queue : List String -> UploadStatus String
@@ -69,5 +75,17 @@ suite =
                         |> nextUpload
                         |> currentUpload
                         |> Expect.equal (Just "b")
+            ]
+        , describe "currentUploadsInProgress"
+            [ test "should be empty when there is no upload" <|
+                \_ ->
+                    noUpload
+                        |> currentUploadsInProgress
+                        |> Expect.equal []
+            , test "should have progress for current first upload only" <|
+                \_ ->
+                    queue [ "a", "b", "c" ]
+                        |> currentUploadsInProgress
+                        |> Expect.equal [ Just emptyProgress, Nothing, Nothing ]
             ]
         ]

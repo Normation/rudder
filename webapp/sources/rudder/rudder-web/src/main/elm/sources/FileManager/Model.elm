@@ -83,6 +83,18 @@ nextUpload status =
                     newUpload remaining
 
 
+{-| Only a single upload in progress at the same time, others have no progress
+-}
+currentUploadsInProgress : UploadStatus file -> List (Maybe Http.Progress)
+currentUploadsInProgress status =
+    case status of
+        NoUpload ->
+            []
+
+        PendingUpload { progress, uploadQueue } ->
+            Just progress :: List.repeat (NonEmptyList.length uploadQueue - 1) Nothing
+
+
 currentUpload : UploadStatus file -> Maybe file
 currentUpload status =
     case status of

@@ -282,23 +282,21 @@ back list =
 
 renderUploads : UploadStatus File -> List (Html Msg)
 renderUploads status =
-    case status of
-        NoUpload ->
-            []
-
-        PendingUpload { progress, uploadQueue } ->
-            reverse (map (renderUploading progress) (range 0 (NonEmptyList.length uploadQueue - 1)))
+    currentUploadsInProgress status
+        |> map renderUploading
+        |> reverse
 
 
-renderUploading : Http.Progress -> Int -> Html Msg
-renderUploading progress i =
+renderUploading : Maybe Http.Progress -> Html Msg
+renderUploading inProgress =
     div [ class "fm-file fm-upload" ]
         [ div [ class "fm-thumb" ]
-            [ if i == 0 then
-                div [ class "fm-progress", style "width" (toPx <| toFloat <| getSent progress) ] []
+            [ case inProgress of
+                Just progress ->
+                    div [ class "fm-progress", style "width" (toPx <| toFloat <| getSent progress) ] []
 
-              else
-                div [] []
+                Nothing ->
+                    div [] []
             ]
         , div [ class "fm-name" ] []
         ]
