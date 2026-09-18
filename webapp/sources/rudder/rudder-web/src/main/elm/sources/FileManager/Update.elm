@@ -2,18 +2,21 @@ module FileManager.Update exposing (..)
 
 import Browser.Navigation exposing (reload)
 import Dict exposing (Dict)
+import File exposing (File)
 import File.Download
 import File.Select
 import FileManager.Action exposing (..)
 import FileManager.Env exposing (handleEnvMsg)
 import FileManager.Model exposing (..)
 import FileManager.Port exposing (errorNotification)
-import FileManager.Util exposing (getDirPath, processApiDetailedError, processApiError)
+import FileManager.Util exposing (getDirPath, maxUploadSizeText, processApiDetailedError, processApiError)
 import FileManager.Vec exposing (..)
 import Http exposing (Error(..))
 import Http.Detailed
 import List exposing (filter, map)
+import List.Nonempty as NonEmptyList
 import Maybe
+import String.Extra
 import Ui.Datatable exposing (defaultTableFilters)
 
 
@@ -54,16 +57,15 @@ initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
     , showContextMenu = False
     , selectedBin = []
     , showDrop = False
-    , filesAmount = 0
-    , progress = Http.Receiving { received = 0, size = Just 0 }
+    , uploadStatus = NoUpload
     , dialogState = Closed
     , clipboardDir = ""
     , clipboardFiles = []
-    , uploadQueue = []
     , hasWriteRights = hasWriteRights
     , viewMode = GridView
     , tableFilters = defaultTableFilters FileName
     , tree = Dict.empty
+    , maxUploadSize = defaultMaxUploadSize
     }
 
 
@@ -83,17 +85,43 @@ update msg model =
             ( { model | showDrop = False }, Cmd.none )
 
         GotFiles file files ->
-            ( { model
-                | showContextMenu = False
-                , uploadQueue = files
-                , filesAmount = List.length files + 1
-                , showDrop = False
-              }
-            , FileManager.Action.upload model.api (getDirPath model.dir) file
-            )
+            let
+                ( tooBig, allowed ) =
+                    List.partition (\f -> File.size f > model.maxUploadSize) (file :: files)
+
+                closedModel =
+                    { model | showContextMenu = False, showDrop = False }
+
+                notifyTooBig =
+                    case tooBig of
+                        [] ->
+                            Cmd.none
+
+                        _ ->
+                            errorNotification
+                                ("Maximum size of uploaded file is "
+                                    ++ maxUploadSizeText model.maxUploadSize
+                                    ++ " for each individual file, so the following "
+                                    ++ String.Extra.pluralize "file" "files" (List.length tooBig)
+                                    ++ " were not uploaded: "
+                                    ++ String.join ", " (List.map File.name tooBig)
+                                )
+            in
+            case NonEmptyList.fromList allowed of
+                Nothing ->
+                    ( closedModel, notifyTooBig )
+
+                Just allowedFiles ->
+                    let
+                        uploadStatus =
+                            newUpload allowedFiles
+                    in
+                    ( { closedModel | uploadStatus = uploadStatus }
+                    , Cmd.batch [ notifyTooBig, processCurrentUpload model uploadStatus ]
+                    )
 
         Progress progress ->
-            ( { model | progress = progress }, Cmd.none )
+            ( { model | uploadStatus = updateUploadStatus (setProgress progress) model.uploadStatus }, Cmd.none )
 
         Cancel ->
             ( model, reload )
@@ -101,23 +129,21 @@ update msg model =
         Uploaded result ->
             case result of
                 Ok ( _, _ ) ->
-                    case model.uploadQueue of
-                        file :: files ->
-                            ( { model
-                                | filesAmount = model.filesAmount - 1
-                                , uploadQueue = files
-                              }
-                            , Cmd.batch
-                                [ listDirectory model.api model.dir
-                                , FileManager.Action.upload model.api (getDirPath model.dir) file
-                                ]
-                            )
-
-                        _ ->
-                            ( { model | filesAmount = 0 }, listDirectory model.api model.dir )
+                    let
+                        uploadStatus =
+                            nextUpload model.uploadStatus
+                    in
+                    ( { model | uploadStatus = uploadStatus }
+                    , Cmd.batch
+                        [ listDirectory model.api model.dir
+                        , processCurrentUpload model uploadStatus
+                        ]
+                    )
 
                 Err err ->
-                    ( model, processApiDetailedError "uploading file" decoderUploadResponse err )
+                    ( { model | uploadStatus = NoUpload }
+                    , processApiDetailedError "uploading file" decoderUploadResponse err
+                    )
 
         OpenNameDialog state ->
             let
@@ -249,3 +275,13 @@ update msg model =
 
         None ->
             ( model, Cmd.none )
+
+
+processCurrentUpload : Model -> UploadStatus File -> Cmd Msg
+processCurrentUpload model uploadStatus =
+    case currentUpload uploadStatus of
+        Nothing ->
+            Cmd.none
+
+        Just file ->
+            FileManager.Action.upload model.api (getDirPath model.dir) file
