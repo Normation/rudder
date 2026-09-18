@@ -1104,6 +1104,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     new TechniqueApi(
       techniqueAPIService14,
       ncfTechniqueWriter,
+      mockTechniques.techniqueCategoryWriter,
       ncfTechniqueReader,
       mockTechniques.techniqueRepo,
       techniqueSerializer,

@@ -1693,3 +1693,23 @@ pre.command-output{
   color: rudder.$success !important;
 }
 
+
+/* CATEGORY FORM */
+
+/* A tab opens right under the navbar: its first field needs some air. */
+#technique-editor .main-details .tab > .row.form-group:first-child{
+  margin-top: 15px;
+}
+/* Folder color says what can be done with the category, in the tree and in the panel title:
+   gray for read only, teal for `User Techniques`, Rudder blue for the user ones. */
+#technique-editor .fa-folder{
+  &.category-std{
+    color: rudder.$txt-secondary;
+  }
+  &.category-user-root{
+    color: rudder.$success;
+  }
+  &.category-user{
+    color: rudder.$primary;
+  }
+}
