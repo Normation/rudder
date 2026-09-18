@@ -1,4 +1,4 @@
-module Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), EventLogFilterOrder, FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
+module EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogFilterOrder, EventLogsMsg(..), FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -39,7 +39,7 @@ listString2FilterTypes lstring =
     lstring
 
 
-type alias Activity =
+type alias EventLog =
     { id : Int
     , actor : String
     , description : List Node
@@ -54,6 +54,6 @@ type alias EventLogFilterOrder =
     }
 
 
-type ActivityMsg
-    = GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, List Activity ))
+type EventLogsMsg
+    = GetEventLogs (Result (Http.Detailed.Error String) ( Http.Metadata, List EventLog ))
     | CopyToClipboard String

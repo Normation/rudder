@@ -1,7 +1,7 @@
-module Activity.JsonDecoder exposing (..)
+module EventLogs.JsonDecoder exposing (..)
 
-import Activity.DataTypes exposing (..)
-import Activity.HtmlParserAdapter exposing (parseHtml)
+import EventLogs.DataTypes exposing (..)
+import EventLogs.HtmlParserAdapter exposing (parseHtml)
 import Html.Parser exposing (Node(..))
 import Json.Decode exposing (..)
 import Json.Decode.Extra
@@ -10,14 +10,14 @@ import List exposing (drop, head)
 import String exposing (join, split)
 
 
-decodeGetActivities : Decoder (List Activity)
-decodeGetActivities =
-    at [ "data" ] (list decodeActivity)
+decodeEventLogs : Decoder (List EventLog)
+decodeEventLogs =
+    at [ "data" ] (list decodeEventLog)
 
 
-decodeActivity : Decoder Activity
-decodeActivity =
-    succeed Activity
+decodeEventLog : Decoder EventLog
+decodeEventLog =
+    succeed EventLog
         |> required "id" int
         |> required "actor" string
         |> required "description" descriptionDecoder
