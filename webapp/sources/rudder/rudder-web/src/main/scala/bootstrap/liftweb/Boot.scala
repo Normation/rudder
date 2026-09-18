@@ -59,7 +59,6 @@ import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.AuthorizationMappingListEndpoint
 import com.normation.rudder.rest.EndpointSchema
@@ -899,7 +898,7 @@ class Boot extends Loggable {
 
     val nonScala = RudderConfig.jsonPluginDefinition.getInfo().either.runNow match {
       case Left(err)      =>
-        PluginLogger.error(
+        ApplicationLoggerPure.Plugin.error(
           s"Error when trying to read plugins index file '${RudderConfig.jsonPluginDefinition.index.pathAsString}': ${err.fullMsg}"
         )
         Nil
@@ -925,7 +924,7 @@ class Boot extends Loggable {
     val pluginDefs = scalaPlugins.values.toList ++ nonScala
 
     pluginDefs.foreach { plugin =>
-      PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version.toString}")
+      ApplicationLoggerPure.Plugin.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version.toString}")
 
       // resources in src/main/resources/toserve/${plugin short-name} must be allowed for each plugin
       ResourceServer.allow {
