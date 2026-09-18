@@ -420,7 +420,9 @@ class ReportDisplayer(
                             <button
                               id={"triggerBtn" + defaultOrInventory}
                               class="btn btn-primary"
-                              onclick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"}
+                              onclick={
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"
+                          }
                             >
                               <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
                               <i class="fa fa-play ms-2"></i>
