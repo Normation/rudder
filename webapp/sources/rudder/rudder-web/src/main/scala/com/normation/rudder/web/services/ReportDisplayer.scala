@@ -416,40 +416,41 @@ class ReportDisplayer(
                        */
                       def triggerAgent(defaultOrInventory: String, node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
-                          <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
-            <button id={"triggerBtn" + defaultOrInventory} class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"
-                          }>
+                          <div id={"triggerAgent" + defaultOrInventory}  class="btn-group me-2" role="group">
+                            <button
+                              id={"triggerBtn" + defaultOrInventory}
+                              class="btn btn-primary"
+                              onclick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"}
+                            >
                               <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
-                              &nbsp;
-                              <i class="fa fa-play"></i>
+                              <i class="fa fa-play ms-2"></i>
                             </button>
-                            &nbsp;
-            <button id={
-                            "visibilityOutput" + defaultOrInventory
-                          } class="btn btn-content btn-state" type="button" data-bs-toggle="collapse" data-bs-target={
-                            "#report" + defaultOrInventory
-                          } aria-expanded="false" aria-controls={"report" + defaultOrInventory} style="display: none;" >
+
+                            <button
+                              id={"visibilityOutput" + defaultOrInventory}
+                              class="d-none btn"
+                              type="button"
+                              data-bs-toggle="collapse"
+                              data-bs-target={"#report" + defaultOrInventory}
+                              aria-expanded="false"
+                              aria-controls={"report" + defaultOrInventory}
+                            >
                             </button>
-                            &emsp;
-            <div id={"countDown" + defaultOrInventory} style="display:inline-block;">
-                              <span style="color:#b1bbcb;"></span>
-                            </div>
-                            <div id={"report" + defaultOrInventory} style="margin-top:10px;" class="collapse">
-                              <pre class="p-2"></pre>
+                            <div id={"report" + defaultOrInventory} class="mt-1 alert collapse">
+                              <pre></pre>
                             </div>
                           </div>
                         } else {
-                          <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
-            <button id={
-                            "triggerBtn" + defaultOrInventory
-                          } class="btn btn-primary btn-trigger pe-auto"
-                            data-bs-toggle="tooltip"
-                            title="This action is not supported for Windows nodes"
-                            disabled="disabled">
+                          <div id={"triggerAgent" + defaultOrInventory}  class="btn-group" role="group">
+                            <button
+                              id={"triggerBtn" + defaultOrInventory}
+                              class="btn btn-primary pe-auto"
+                              data-bs-toggle="tooltip"
+                              title="This action is not supported for Windows nodes"
+                              disabled="disabled"
+                            >
                               <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
-                              &nbsp;
-                              <i class="fa fa-play"></i>
+                              <i class="fa fa-play ms-2"></i>
                             </button>
                           </div>
                         }

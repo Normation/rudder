@@ -1,32 +1,36 @@
 <batches-list>
   <lift:authz role="node_write">
-    <runAgentInventory></runAgentInventory>
-    <runAgent></runAgent>
+    <div class="d-flex flex-column">
+      <div class="mb-3 btn-toolbar" role="toolbar">
+        <runAgentInventory></runAgentInventory>
+        <runAgent></runAgent>
+      </div>
+      <div id="outputsContainer"></div>
+    </div>
   </lift:authz>
   <lastreportgrid-intro></lastreportgrid-intro>
 
 
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <button id="AllLogButton" class="btn btn-primary">Show logs <i class="fa fa-table"></i></button>
+      <button id="AllLogButton">Show logs</button>
     </lift:authz>
   </lift:authz>
 
-  <lastreportgrid-grid></lastreportgrid-grid>
-
-  <div class="clearfix"></div>
-
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <div id="logRun"  class="space-top" style="display:none;">
+      <div id="logRun" class="mt-3" style="display:none;">
         <h3 class="page-title space-top">All logs for current run</h3>
         <button id="AllLogHideButton" class="btn btn-primary">Hide logs</button>
-        <table id="complianceLogsGrid" cellspacing="0">
+        <table id="complianceLogsGrid">
         </table>
       </div>
       <lastreportgrid-missing></lastreportgrid-missing>
       <lastreportgrid-unexpected></lastreportgrid-unexpected>
     </lift:authz>
   </lift:authz>
+
+  <lastreportgrid-grid></lastreportgrid-grid>
+
 
 </batches-list>

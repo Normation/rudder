@@ -83,7 +83,9 @@ form select.selectField {
 /* ========= */
 
 #node-compliance-intro {
-  padding: 10px 15px;
+  p{
+    margin-bottom: 0;
+  }
 }
 
 #nodeHeaderInfo {
@@ -506,21 +508,6 @@ div.serverDetail {
   border-left-style: solid;
   border-left-color: rudder.$success;
   border-radius: 5px;
-}
-
-.btn-state {
-  width:128px;
-  height:40px;
-}
-.btn-trigger {
-  min-width:150px;
-  height:40px;
-}
-.fa-times-custom {
-  color: #c9302c;
-}
-.fa-check-custom {
-  color: rudder.$success;
 }
 
 /* TECHNICAL LOGS TAB */
