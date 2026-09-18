@@ -1,32 +1,45 @@
 <batches-list>
   <lift:authz role="node_write">
-    <runAgentInventory></runAgentInventory>
-    <runAgent></runAgent>
+    <div class="d-flex flex-column mb-3">
+      <div class="btn-toolbar trigger-agent-actions" role="toolbar">
+        <runAgentInventory></runAgentInventory>
+        <runAgent></runAgent>
+      </div>
+      <div>
+        <div id="reportInventory" class="my-2 alert collapse">
+          <pre></pre>
+        </div>
+        <div id="report" class="mt-2 mb-0 alert collapse">
+          <pre></pre>
+        </div>
+      </div>
+    </div>
   </lift:authz>
   <lastreportgrid-intro></lastreportgrid-intro>
 
 
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <button id="AllLogButton" class="btn btn-primary">Show logs <i class="fa fa-table"></i></button>
+      <div class="">
+        <button id="AllLogButton">Show logs</button>
+      </div>
     </lift:authz>
   </lift:authz>
 
-  <lastreportgrid-grid></lastreportgrid-grid>
-
-  <div class="clearfix"></div>
-
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <div id="logRun"  class="space-top" style="display:none;">
-        <h3 class="page-title space-top">All logs for current run</h3>
-        <button id="AllLogHideButton" class="btn btn-primary">Hide logs</button>
-        <table id="complianceLogsGrid" cellspacing="0">
+      <div id="logRun" class="mb-3" style="display:none;">
+        <button id="AllLogHideButton" class="btn btn-primary">Hide logs<i class="ms-2 fa fa-table"></i></button>
+        <h3 class="page-title my-2">All logs for current run</h3>
+        <table id="complianceLogsGrid">
         </table>
       </div>
       <lastreportgrid-missing></lastreportgrid-missing>
       <lastreportgrid-unexpected></lastreportgrid-unexpected>
     </lift:authz>
   </lift:authz>
+
+  <lastreportgrid-grid></lastreportgrid-grid>
+
 
 </batches-list>
