@@ -115,7 +115,7 @@ object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",
             "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
-            "buttons" : [ csvButtonConfig("pending_nodes_history") ]
+            "buttons" : [ csvDropdownButton("pending_nodes_history") ]
           });
           """) & initJsCallBack(entries) // JsRaw ok, const
     )

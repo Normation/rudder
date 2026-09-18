@@ -90,11 +90,11 @@ const csvRenameFilename = (filename) => (({
 })[filename] ?? filename)
 
 // Shared config for DataTables Button CSV
-const csvButtonConfig = (filename, additionalCls) => ({
+const csvButton = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
+  className: 'dropdown-item',
   filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
-  text: 'Export',
+  text: 'Filtered entries only',
   exportOptions: {
     orthogonal: 'exportCsv',
     customizeData: function (data) {
@@ -107,6 +107,18 @@ const csvButtonConfig = (filename, additionalCls) => ({
       }
       return data
     }
+  }
+})
+
+const csvDropdownButton = (filename, additionalCls) => ({
+  extend: 'collection',
+  className: 'btn btn-primary ' + (additionalCls ?? ''),
+  text: '<span class="me-2 fa fa-file-download"></span>Export CSV',
+  buttons : [csvButton(filename, additionalCls)],
+  action: function (e, dt, node, config, cb) {
+    DataTable.ext.buttons.collection.action.call(this, e, dt, node, config, cb);
+    $('.dt-button-collection').addClass("dropdown-menu show");
+    $('.dt-button-collection').css("margin-top", "0px")
   }
 })
 
@@ -1306,7 +1318,7 @@ function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, re
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
       '>t<"dataTables_wrapper_bottom"lip>'
     , "scrollX"     : true
-    , "buttons" : [ csvButtonConfig(`node_${nodeId}_technical_logs`) ],
+    , "buttons" : [ csvDropdownButton(`node_${nodeId}_technical_logs`) ],
 
   };
 
@@ -1617,7 +1629,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]
     , "pageLength": 25
     , "retrieve" : true
-    , "buttons": [ csvButtonConfig(gridId) ]
+    , "buttons": [ csvDropdownButton(gridId) ]
   };
   if (storageId !== undefined) {
     var storageParams = {

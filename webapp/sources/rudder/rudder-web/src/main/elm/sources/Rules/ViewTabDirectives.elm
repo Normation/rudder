@@ -19,7 +19,7 @@ import Set
 import Task
 import Tuple3
 import Ui.Datatable exposing (Category, SortOrder(..), filterSearch, generateLoadingTable, getAllElems, getSubElems)
-import Utils.CsvExportUtils exposing (exportToCsvButton)
+import Utils.CsvExportUtils exposing (csvExportDropdownAllEntries)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
@@ -177,7 +177,7 @@ directivesComplianceTab details model =
                         ]
                         []
                     ]
-                , exportToCsvButton (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByDirective rule.id) Date.today))
+                , csvExportDropdownAllEntries (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByDirective rule.id) Date.today)) "me-2"
                 , displayComplianceFilters complianceFilters UpdateComplianceFilters
                 )
 
@@ -200,7 +200,7 @@ directivesComplianceTab details model =
                         , complianceFilterBtn
                         , div [ class "ms-auto my-auto" ]
                             [ exportComplianceToCsvBtn
-                            , button [ class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id) ] [ i [ class "fa fa-refresh" ] [] ]
+                            , button [ class "btn btn-default btn-refresh", onCustomClick (RefreshComplianceTable rule.id) ] [ i [ class "fa fa-refresh" ] [] ]
                             ]
                         ]
                     , complianceFilterContainer
