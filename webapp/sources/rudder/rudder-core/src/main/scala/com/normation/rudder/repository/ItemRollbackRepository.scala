@@ -39,6 +39,7 @@ package com.normation.rudder.repository
 
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.RollbackType
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.tenants.ChangeContext
 import org.eclipse.jgit.lib.PersonIdent
@@ -59,7 +60,8 @@ trait ItemRollbackRepository {
   def rollbackItem(
       archiveId:        GitCommitId,
       commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
+      rollbackedEvents: Seq[(EventLog, RollbackType)],
+      target:           EventLog,
+      rollbackType:     RollbackType
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 }

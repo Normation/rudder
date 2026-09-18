@@ -43,6 +43,7 @@ import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
+import com.normation.eventlog.RollbackType
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -216,7 +217,7 @@ trait ItemArchiveManager {
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog,
-      rollbackType:     String
+      rollbackType:     RollbackType
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   /**

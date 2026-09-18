@@ -41,12 +41,14 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.EventLogRequest.*
 import com.normation.eventlog.EventLogType
+import com.normation.eventlog.RollbackType
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
 import enumeratum.Enum
+import enumeratum.EnumEntry.Hyphencase
 import enumeratum.EnumEntry.Lowercase
 import io.scalaland.chimney.Transformer
 import java.time.LocalDateTime
@@ -192,8 +194,9 @@ object RestEventLogDetails {
 }
 
 final case class RestEventLogRollback(
-    action: RestEventLogRollback.Action,
-    id:     String
+    action:                        RestEventLogRollback.Action,
+    @jsonField("type") actionType: RestEventLogRollback.Type,
+    id:                            String
 )
 
 object RestEventLogRollback {
@@ -201,12 +204,25 @@ object RestEventLogRollback {
   object Action       extends Enum[Action] {
     case object After  extends Action
     case object Before extends Action
-    // revert only the item the event log is about, and not everything that happened since
-    case object Item   extends Action
 
     override def values: IndexedSeq[Action] = findValues
 
     implicit val encoder: JsonEncoder[Action] = JsonEncoder[String].contramap(_.entryName)
+
+    implicit val toRollbackType: Transformer[Action, RollbackType] = {
+      case After  => "after"
+      case Before => "before"
+    }
+  }
+
+  sealed trait Type extends Hyphencase
+  object Type       extends Enum[Type] {
+    case object Item             extends Type
+    case object AllConfiguration extends Type
+
+    override def values: IndexedSeq[Type] = findValues
+
+    implicit val encoder: JsonEncoder[Type] = JsonEncoder[String].contramap(_.entryName)
   }
 
   implicit val encoder: JsonEncoder[RestEventLogRollback] = DeriveJsonEncoder.gen[RestEventLogRollback]

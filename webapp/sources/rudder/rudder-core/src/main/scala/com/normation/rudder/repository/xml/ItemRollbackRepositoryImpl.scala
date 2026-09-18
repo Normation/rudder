@@ -121,14 +121,18 @@ class ItemRollbackRepositoryImpl(
   override def rollbackItem(
       archiveId:        GitCommitId,
       commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
+      rollbackedEvents: Seq[(EventLog, RollbackType)],
+      target:           EventLog,
+      rollbackType:     RollbackType
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     import cc.*
+    val events = rollbackedEvents.map((event, _) => event)
     for {
       _ <- GitArchiveLoggerPure.info(s"Rolling back item to their state in commit '${archiveId.value}'")
-      _ <- ZIO.foreachDiscard(rollbackedEvents)(ev => useSemaphoreOrFail(rollbackOneItem(archiveId, ev)))
-      _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, "item", message))
+      _ <- ZIO.foreachDiscard(rollbackedEvents) { (event, rollbackType) =>
+             useSemaphoreOrFail(rollbackOneItem(archiveId, event, rollbackType))
+           }
+      _ <- eventLogger.saveEventLog(modId, new Rollback(actor, events, target, rollbackType, message))
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId
@@ -138,21 +142,23 @@ class ItemRollbackRepositoryImpl(
   /*
    * Rolling back always needs item ID in repos, we can find it in the event log details, at specific XML selector
    *
-   * Logic of reverting change, depends on event log type:
-   * - reverting an addition is just a deletion
-   * - reverting a deletion or modification is a restore of the item as it is
+   * Logic of reverting change, depends on event log type and on the state we roll back to:
+   * - the item does not exist in that state when it was added by the change we roll back before,
+   *   or deleted by the change we roll back after: it must be deleted
+   * - in all other cases, the item exists in `archiveId` and is restored as it is there
    *   - archive needs to be observed e.g. for category
-   *   - and
    */
-  private[xml] def rollbackOneItem(archiveId: GitCommitId, event: EventLog)(implicit cc: ChangeContext): IOResult[Unit] = {
+  private[xml] def rollbackOneItem(archiveId: GitCommitId, event: EventLog, rollbackType: RollbackType)(implicit
+      cc: ChangeContext
+  ): IOResult[Unit] = {
     event match {
       case e: DirectiveEventLog =>
         for {
           sid <- rolledBackItemId(e, XML_TAG_DIRECTIVE)
           id  <- DirectiveId.parse(sid).toIO
-          _   <- e match {
-                   case _: AddDirective => woDirectiveRepository.delete(id.uid).unit
-                   case _: DeleteDirective | _: ModifyDirective => restoreDirective(archiveId, id.uid)
+          _   <- (rollbackType, e) match {
+                   case ("before", _: AddDirective) | ("after", _: DeleteDirective) => woDirectiveRepository.delete(id.uid).unit
+                   case _                                                           => restoreDirective(archiveId, id.uid)
                  }
         } yield ()
 
@@ -160,18 +166,18 @@ class ItemRollbackRepositoryImpl(
         for {
           sid <- rolledBackItemId(e, XML_TAG_NODE_GROUP)
           id  <- NodeGroupId.parse(sid).toIO
-          _   <- e match {
-                   case _: AddNodeGroup => woGroupRepository.delete(id).unit
-                   case _: DeleteNodeGroup | _: ModifyNodeGroup => restoreNodeGroup(archiveId, id)
+          _   <- (rollbackType, e) match {
+                   case ("before", _: AddNodeGroup) | ("after", _: DeleteNodeGroup) => woGroupRepository.delete(id).unit
+                   case _                                                           => restoreNodeGroup(archiveId, id)
                  }
         } yield ()
 
       case e: ParameterEventLog =>
         for {
           name <- rolledBackItemId(e, XML_TAG_GLOBAL_PARAMETER, idTag = "name")
-          _    <- e match {
-                    case _: AddGlobalParameter => deleteParameter(name)
-                    case _: DeleteGlobalParameter | _: ModifyGlobalParameter => restoreParameter(archiveId, name)
+          _    <- (rollbackType, e) match {
+                    case ("before", _: AddGlobalParameter) | ("after", _: DeleteGlobalParameter) => deleteParameter(name)
+                    case _                                                                       => restoreParameter(archiveId, name)
                   }
         } yield ()
 
@@ -180,9 +186,9 @@ class ItemRollbackRepositoryImpl(
           sid <- rolledBackItemId(e, XML_TAG_RULE)
           // rules are archived at their default revision, drop any revision the event log may carry
           id  <- RuleId.parse(sid).map(r => RuleId(r.uid)).toIO
-          _   <- e match {
-                   case _: AddRule => woRuleRepository.delete(id).unit
-                   case _: DeleteRule | _: ModifyRule => restoreRule(archiveId, id)
+          _   <- (rollbackType, e) match {
+                   case ("before", _: AddRule) | ("after", _: DeleteRule) => woRuleRepository.delete(id).unit
+                   case _                                                 => restoreRule(archiveId, id)
                  }
         } yield ()
 
@@ -190,11 +196,12 @@ class ItemRollbackRepositoryImpl(
         for {
           id      <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "id")
           version <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "version")
-          _       <- e match {
+          _       <- (rollbackType, e) match {
                        // deleteDirective = false: a rollback must stay scoped to that one item, so we don't
                        // cascade to the directives using the technique. Deletion fails if there are any.
-                       case _: AddEditorTechnique => techniqueWriter.deleteTechnique(id, version, deleteDirective = false)
-                       case _: DeleteEditorTechnique | _: ModifyEditorTechnique =>
+                       case ("before", _: AddEditorTechnique) | ("after", _: DeleteEditorTechnique) =>
+                         techniqueWriter.deleteTechnique(id, version, deleteDirective = false)
+                       case _                                                                       =>
                          restoreEditorTechnique(archiveId, BundleName(id), Version(version))
                      }
         } yield ()

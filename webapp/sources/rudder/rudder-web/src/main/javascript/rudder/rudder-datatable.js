@@ -1341,6 +1341,9 @@ function buildRollbackBlock(id) {
   const block = $("#rollbackDisplay").clone();
   block.html((_, h) => h
     .replace(/{{rollbackItemId}}/g,          'rollbackItem' + id)
+    .replace(/{{itemActionRadioName}}/g,     'itemAction' + id)
+    .replace(/{{itemBeforeRadioId}}/g,       'itemBefore' + id)
+    .replace(/{{itemAfterRadioId}}/g,        'itemAfter' + id)
     .replace(/{{rollbackBtnId}}/g,           'rollbackBtn' + id)
     .replace(/{{confirmItemId}}/g,           'confirmItem' + id)
     .replace(/{{rollbackConfigurationId}}/g, 'rollbackConfiguration' + id)
@@ -1363,10 +1366,10 @@ function getRadioChecked(radios, validate = s => s) {
  return null;
 }
 
-function confirmRollback(id, action) {
+function confirmRollback(id, action, type) {
   $.ajax({
     type: "POST",
-    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action,
+    url: contextPath + "/secure/api/eventlog/" + id + "/details/rollback?action=" + action + "&type=" + type,
     contentType: "application/json; charset=utf-8",
     beforeSend: function() {
       $('.rollback-action').prop("disabled", true)
