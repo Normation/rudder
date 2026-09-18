@@ -10,8 +10,8 @@
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
   <script data-lift="with-nonce">
     var hasWriteRights = false;
-    var canReadChanqeRequest = false;
-    var canReadChanqeLogs = false;
+    var canReadChangeRequest = false;
+    var canReadChangeLogs = false;
   </script>
   <lift:authz role="rule_write">
     <script data-lift="with-nonce">
@@ -20,12 +20,12 @@
   </lift:authz>
   <lift:authz role="validator_read">
     <script data-lift="with-nonce">
-      canReadChanqeRequest = true;
+      canReadChangeRequest = true;
     </script>
   </lift:authz>
   <lift:authz role="administrator_read">
     <script data-lift="with-nonce">
-      canReadChanqeLogs = true;
+      canReadChangeLogs = true;
     </script>
   </lift:authz>
   <script data-lift="with-nonce">
@@ -34,8 +34,8 @@
       var initValues = {
         contextPath    : contextPath
       , hasWriteRights : hasWriteRights
-      , canReadChanqeRequest : canReadChanqeRequest
-      , canReadChanqeLogs : canReadChanqeLogs
+      , canReadChangeRequest : canReadChangeRequest
+      , canReadChangeLogs : canReadChangeLogs
       , timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
       };
 
