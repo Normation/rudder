@@ -428,7 +428,7 @@ class ReportDisplayer(
 
                             <button
                               id={"visibilityOutput" + defaultOrInventory}
-                              class="d-none btn"
+                              class="visually-hidden btn"
                               type="button"
                               data-bs-toggle="collapse"
                               data-bs-target={"#report" + defaultOrInventory}
@@ -436,9 +436,6 @@ class ReportDisplayer(
                               aria-controls={"report" + defaultOrInventory}
                             >
                             </button>
-                            <div id={"report" + defaultOrInventory} class="mt-1 alert collapse">
-                              <pre></pre>
-                            </div>
                           </div>
                         } else {
                           <div id={"triggerAgent" + defaultOrInventory}  class="btn-group" role="group">

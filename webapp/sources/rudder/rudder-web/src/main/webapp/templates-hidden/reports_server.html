@@ -1,11 +1,18 @@
 <batches-list>
   <lift:authz role="node_write">
-    <div class="d-flex flex-column">
-      <div class="mb-3 btn-toolbar" role="toolbar">
+    <div class="d-flex flex-column mb-3">
+      <div class="btn-toolbar" role="toolbar">
         <runAgentInventory></runAgentInventory>
         <runAgent></runAgent>
       </div>
-      <div id="outputsContainer"></div>
+      <div>
+        <div id="reportInventory" class="my-2 alert collapse">
+          <pre></pre>
+        </div>
+        <div id="report" class="my-2 alert collapse">
+          <pre></pre>
+        </div>
+      </div>
     </div>
   </lift:authz>
   <lastreportgrid-intro></lastreportgrid-intro>

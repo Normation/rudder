@@ -617,7 +617,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
   $iconButton.removeClass("fa-play").addClass(spinnerClass);
   $("#triggerBtn" + defaultOrInventory).attr('disabled', 'disabled')
   $("#report" + defaultOrInventory).removeClass("in");
-  $("#visibilityOutput" + defaultOrInventory).addClass("d-none");
+  $("#visibilityOutput" + defaultOrInventory).addClass("visually-hidden");
   $("#report" + defaultOrInventory).removeClass("border-success alert-success").removeClass("border-fail alert-danger");
   $("pre#response" + defaultOrInventory).remove();
   $(".alert-danger").remove();
@@ -634,7 +634,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
         $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show output").append('<i class="fa fa-check-circle text-success ms-2"></i>');
         $("#report" + defaultOrInventory).html('<pre id="response' + defaultOrInventory + '" class="mb-0 text-break-spaces">' + escapeHTML(response) + '</pre>');
         $("#report" + defaultOrInventory).addClass("border-success alert-success");
-        $("#visibilityOutput" + defaultOrInventory).removeClass("");
+        $("#visibilityOutput" + defaultOrInventory).removeClass("visually-hidden");
         showOrHideBtn();
         var counter = 5;
         var interval = setInterval(function() {
@@ -656,7 +656,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
         $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show error").append('<i class="fa fa-times-circle text-danger ms-2"></i>');
         $("#report" + defaultOrInventory).remove("pre#response" + defaultOrInventory).html('<div class="error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + escapeHTML(errorThrown) +'</b>' +'<br>' + escapeHTML(jqXHR.responseText) + '</div>');
         $("#report" + defaultOrInventory).addClass("alert-danger border-fail");
-        $("#visibilityOutput" + defaultOrInventory).removeClass("d-none");
+        $("#visibilityOutput" + defaultOrInventory).removeClass("visually-hidden");
         showOrHideBtn();
         showTriggerBtn();
     }
