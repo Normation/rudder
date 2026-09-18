@@ -1,6 +1,6 @@
-module Activity.JsonEncoder exposing (..)
+module EventLogs.JsonEncoder exposing (..)
 
-import Activity.DataTypes exposing (..)
+import EventLogs.DataTypes exposing (..)
 import Json.Encode exposing (Value, int, list, object, string)
 
 

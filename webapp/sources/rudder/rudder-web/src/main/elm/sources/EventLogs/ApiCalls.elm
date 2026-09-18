@@ -1,15 +1,15 @@
-module Activity.ApiCalls exposing (..)
+module EventLogs.ApiCalls exposing (..)
 
-import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..), Search)
-import Activity.JsonDecoder exposing (decodeErrorDetails, decodeGetActivities)
-import Activity.JsonEncoder exposing (encodeRestEventLogFilter)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..), Search)
+import EventLogs.JsonDecoder exposing (decodeErrorDetails, decodeEventLogs)
+import EventLogs.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
 import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getActivities : Search -> Int -> ContextPath -> Maybe String -> Cmd ActivityMsg
-getActivities search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
+getEventLogs : Search -> Int -> ContextPath -> Maybe String -> Cmd EventLogsMsg
+getEventLogs search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
     let
         url =
             case resourceTypeOpt of
@@ -25,7 +25,7 @@ getActivities search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
                 , body = encodeRestEventLogFilter search nbEventLogs |> jsonBody
-                , expect = Detailed.expectJson GetActivities decodeGetActivities
+                , expect = Detailed.expectJson GetEventLogs decodeEventLogs
                 , timeout = Nothing
                 , tracker = Nothing
                 }
@@ -33,8 +33,8 @@ getActivities search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
     req
 
 
-processActivityApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
-processActivityApiError apiName err errorNotification =
+processEventLogsApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
+processEventLogsApiError apiName err errorNotification =
     let
         message =
             case err of

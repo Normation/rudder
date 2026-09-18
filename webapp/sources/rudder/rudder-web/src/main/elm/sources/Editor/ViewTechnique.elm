@@ -752,8 +752,8 @@ showTechnique model technique origin ui editInfo =
                     ]
                 , li [ class "nav-item" ]
                     [ button
-                        [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeTabClass RecentActivity), onClick (SwitchTab RecentActivity) ]
-                        [ text "Recent Activity" ]
+                        [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeTabClass History), onClick (SwitchTab History) ]
+                        [ text "History" ]
                     ]
                 , if Maybe.Extra.isJust technique.output then
                     li [ class "nav-item" ]
@@ -771,7 +771,7 @@ showTechnique model technique origin ui editInfo =
         , div [ class "main-details", id "details" ]
             [ div [ class "editForm", name "ui.editForm" ]
                 [ techniqueTab model technique creation ui
-                , if ui.tab == Directives || ui.tab == RecentActivity then
+                , if ui.tab == Directives || ui.tab == History then
                     text ""
 
                   else
