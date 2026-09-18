@@ -133,4 +133,29 @@ class TechniqueCategoryIdTest extends Specification {
     }
   }
 
+  "Parsing a path" should {
+    "give the same id as buildId when the path is safe" in {
+      TechniqueCategoryId.parse("/a//b/ \t /c/") must beRight(RootTechniqueCategoryId / "a" / "b" / "c")
+    }
+
+    "refuse a path that could escape the library" in {
+      (TechniqueCategoryId.parse("a/../../etc") must beLeft) and
+      (TechniqueCategoryId.parse("./a") must beLeft) and
+      (TechniqueCategoryId.parse("..") must beLeft)
+    }
+
+    "accept a dot inside a name" in {
+      TechniqueCategoryId.parse("a/b.c") must beRight(RootTechniqueCategoryId / "a" / "b.c")
+    }
+  }
+
+  "Serializing an id" should {
+    "give back the path it was built from, without the leading slash" in {
+      TechniqueCategoryId.serialize(TechniqueCategoryId.buildId("/a/b/c")) === "a/b/c"
+    }
+
+    "give an empty path for root" in {
+      TechniqueCategoryId.serialize(RootTechniqueCategoryId) === ""
+    }
+  }
 }
