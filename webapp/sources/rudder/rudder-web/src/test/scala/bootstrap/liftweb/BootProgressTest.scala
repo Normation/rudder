@@ -135,6 +135,18 @@ class BootProgressTest extends ZIOSpecDefault {
         assertTrue(recorded(outer).toMillis >= recorded(inner).toMillis + 60L)
       }
 
+      test("the slowest steps are ordered on the whole duration, not on its sub-second part") {
+        val phase = BootPhase.BootChecks("test-ordering")
+        BootProgress.record((phase, "quick").asStep, Duration.ofMillis(999))
+        BootProgress.record((phase, "slow").asStep, Duration.ofSeconds(65))
+
+        val recorded = BootProgress.slowestSteps(1000)._1.collect {
+          case TimedStep(BootStep(BootPhase.BootChecks("test-ordering"), detail), _) => detail
+        }
+
+        assertTrue(recorded == List("slow", "quick"))
+      }
+
       // last of the suite on purpose: it ends the boot, and there is no way back from that
       test("a step that runs once boot is over is not kept for the report") {
         val phase        = BootPhase.BootChecks("test-after-boot")

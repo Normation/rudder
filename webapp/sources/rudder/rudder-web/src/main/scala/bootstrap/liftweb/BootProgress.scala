@@ -241,7 +241,7 @@ object BootProgress {
    * The `max` slowest recorded steps, longest first, and the `2 x max` next slowest.
    */
   private[liftweb] def slowestSteps(max: Int): (List[TimedStep], List[TimedStep]) = {
-    val sorted = done.asScala.toList.sortBy(-_.duration.getNano)
+    val sorted = done.asScala.toList.sortBy(-_.duration.toNanos)
     (sorted.take(max), sorted.slice(max, max + 2 * max))
   }
 

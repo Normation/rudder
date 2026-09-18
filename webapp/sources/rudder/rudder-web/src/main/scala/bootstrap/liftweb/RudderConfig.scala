@@ -3322,8 +3322,14 @@ object RudderConfigInit {
     // those two are the expensive ones among the deferred effects, and they do not cost the same:
     // measured apart, because whether it is worth loading the score details of every node at boot
     // depends on which of the two we are actually paying for
-    deferredEffects.append(scoreService.init())
-    deferredEffects.append(scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository)))
+    deferredEffects.append(
+      BootProgress.stepZIO(BootPhase.Services, "load score caches")(scoreService.init())
+    )
+    deferredEffects.append(
+      BootProgress.stepZIO(BootPhase.Services, "init system update score handler")(
+        scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository))
+      )
+    )
 
     /////// reporting ///////
 
