@@ -80,13 +80,6 @@ form select.selectField {
 .content-wrapper input.queryInputValue, .content-wrapper select.queryInputValue {
   width:280px;
 }
-/* ========= */
-
-#node-compliance-intro {
-  p{
-    margin-bottom: 0;
-  }
-}
 
 #nodeHeaderInfo {
   display: flex;
@@ -360,6 +353,19 @@ pre.display-keys > label{
 }
 .list-tabs-inventory + .tab-content {
   flex: 1;
+}
+
+/* COMPLIANCE TAB */
+#node-compliance-intro {
+  p{
+    margin-bottom: 0;
+  }
+}
+.btn-toolbar.trigger-agent-actions{
+  .btn:has(+ .btn.visually-hidden:last-child) {
+    border-top-right-radius: var(--bs-border-radius);
+    border-bottom-right-radius: var(--bs-border-radius);
+  }
 }
 
 /* NODE ERROR */
