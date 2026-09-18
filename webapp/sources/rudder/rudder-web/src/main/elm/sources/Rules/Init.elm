@@ -25,7 +25,7 @@ import Utils.TooltipUtils exposing (buildTooltipContent)
 init :
     { contextPath : String
     , hasWriteRights : Bool
-    , canReadChanqeRequest : Bool
+    , canReadChangeRequest : Bool
     , canReadChangeLogs : Bool
     , timeZone : String
     }
@@ -39,7 +39,7 @@ init flags =
             Filters (defaultTableFilters Name) (TreeFilters "" [] (Tag "" "") [])
 
         initUI =
-            UI initFilters initFilters initFilters defaultComplianceFilter NoModal flags.hasWriteRights flags.canReadChanqeRequest True False False Nothing
+            UI initFilters initFilters initFilters defaultComplianceFilter NoModal flags.hasWriteRights flags.canReadChangeRequest True False False Nothing
 
         exportCsvOptions =
             buildOptions.newOptions
@@ -71,7 +71,7 @@ init flags =
             }
 
         listCRActions =
-            if flags.canReadChanqeRequest then
+            if flags.canReadChangeRequest then
                 [ getCrSettingsEnableCr initModel
                 , getCrSettingsEnabledMsg initModel
                 , getCrSettingsMandatoryMsg initModel

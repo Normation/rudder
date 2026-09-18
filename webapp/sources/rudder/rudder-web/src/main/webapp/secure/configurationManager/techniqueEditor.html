@@ -60,7 +60,7 @@ $(document).ready(function(){
     contextPath : contextPath
   , hasWriteRights : hasWriteRights
   , timeZone: localStorage.getItem('timeZone') ?? 'UTC'
-  , canReadChangeLogs :
+  , canReadChangeLogs : canReadChangeLogs
   };
   var app  = Elm.Editor.init({node: main, flags: initValues});
   app.ports.copy.subscribe(function(value) {
