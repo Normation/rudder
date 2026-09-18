@@ -9,7 +9,7 @@
         <div id="reportInventory" class="my-2 alert collapse">
           <pre></pre>
         </div>
-        <div id="report" class="my-2 alert collapse">
+        <div id="report" class="mt-2 mb-0 alert collapse">
           <pre></pre>
         </div>
       </div>
@@ -20,15 +20,17 @@
 
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <button id="AllLogButton">Show logs</button>
+      <div class="">
+        <button id="AllLogButton">Show logs</button>
+      </div>
     </lift:authz>
   </lift:authz>
 
   <lift:authz role="node_read">
     <lift:authz role="compliance_read">
-      <div id="logRun" class="mt-3" style="display:none;">
-        <h3 class="page-title space-top">All logs for current run</h3>
-        <button id="AllLogHideButton" class="btn btn-primary">Hide logs</button>
+      <div id="logRun" class="mb-3" style="display:none;">
+        <button id="AllLogHideButton" class="btn btn-primary">Hide logs<i class="ms-2 fa fa-table"></i></button>
+        <h3 class="page-title my-2">All logs for current run</h3>
         <table id="complianceLogsGrid">
         </table>
       </div>

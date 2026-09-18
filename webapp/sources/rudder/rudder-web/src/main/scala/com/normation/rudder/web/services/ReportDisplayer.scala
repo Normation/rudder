@@ -564,10 +564,10 @@ class ReportDisplayer(
       val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
       s"""showHideRunLogs("#${logRunId}", "${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
     } else ""
-    val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs <i class="fa fa-table"></i></button>
+    val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs<i class="ms-2 fa fa-table"></i></button>
     val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary hide" onclick={
       s"showHideRunLogs('#node-compliance-intro', '${tabId}')"
-    }>Hide logs</button>
+    }>Hide logs<i class="ms-2 fa fa-table"></i></button>
     val complianceLogGridHtml =
       <table id={complianceLogGridId} cellspacing="0"></table>
 
