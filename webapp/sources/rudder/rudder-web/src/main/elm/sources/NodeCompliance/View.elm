@@ -110,7 +110,7 @@ view model =
                             ]
                         , displayComplianceFilters complianceFilters UpdateComplianceFilters
                         ]
-                    , div [ class "table-container" ]
+                    , div [ class "table-container mb-0" ]
                         [ table [ class "dataTable compliance-table" ]
                             [ thead []
                                 [ tr [ class "head" ]
