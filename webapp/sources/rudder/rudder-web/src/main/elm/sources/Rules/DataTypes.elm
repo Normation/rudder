@@ -300,7 +300,7 @@ type alias UI =
     , complianceFilters : ComplianceFilters
     , modal : ModalState
     , hasWriteRights : Bool
-    , canReadChanqeRequest : Bool
+    , canReadChangeRequest : Bool
     , loadingRules : Bool
     , isAllCatFold : Bool
     , saving : Bool
