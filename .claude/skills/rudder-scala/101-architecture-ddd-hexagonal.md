@@ -16,7 +16,7 @@ isolation**, with **invariants we can identify and enforce**.
   mocking framework to test — you call it with values and assert on values. If a piece
   of logic can't be tested without standing up infrastructure, that's the design
   telling you it's too coupled or too big — split it (this is the testability-as-design
-  signal from [`000`](000-coding-philosophy.md#unit-testing-is-mandatory--and-a-design-tool)).
+  signal from [principle 11](../rudder-principles/SKILL.md#11-tests-are-mandatory-and-they-are-a-design-tool)).
 - **Invariants you can enforce.** Make illegal states unrepresentable: encode rules in
   types (parsed wrappers, ADTs — see [`001`](001-scala3-idioms.md),
   [`201`](201-parse-dont-validate.md)) so the compiler upholds them, and check the rest

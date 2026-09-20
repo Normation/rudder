@@ -80,6 +80,21 @@ puts two requirements on every migration:
   it forks the effect and returns. The forked migration is "convergent and asynchronous:
   it does not block boot, and can be interrupted and restarted afterward."
 
+## Schema files vs migrations — change **both**
+
+A DDL change has two audiences, and forgetting either breaks one of them:
+
+- **fresh installs** read the canonical schema, `rudder-core/src/main/resources/reportsSchema.sql` (Postgres)
+  — add the column/table/constraint there;
+- **existing installs** never re-run that file — they only get the change from an **idempotent bootstrap
+  migration** (`ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, …).
+
+So a column added to a table means: edit `reportsSchema.sql` **and** add a migration, and keep the two
+consistent (same name, type, nullability). A migration without the schema edit leaves fresh installs missing
+the column on the next release; a schema edit without the migration leaves every upgraded instance missing it.
+If new code reads the column immediately (e.g. every insert now writes it), the migration must be
+**synchronous** so the column exists before that code runs.
+
 ## The hard balance
 
 Async is the default, but **when correctness depends on the migration finishing before
@@ -88,11 +103,61 @@ needs the moment it starts. Split the work: do the *minimal* integrity-critical 
 synchronously (and early), and fork the bulk (back-filling rows, rewriting large tables)
 to run in the background. Document, per migration, what is sync and why.
 
+## Instrumenting boot
+
+Boot takes minutes on a large installation, and until it is over the application answers
+nothing at all — no log, no HTTP, no way to tell a slow boot from a dead one. So every new
+boot step must be visible. `BootProgress`
+(`rudder-web/.../bootstrap/liftweb/BootProgress.scala`) reports progress to the
+`boot.progress` logger and to `/var/rudder/run/rudder-boot-progress`, stops a boot that has
+ceased to progress, and produces the end-of-boot "slowest steps" report — the only
+measurement we have of where boot time actually goes on a real server.
+
+Wrap anything that can take more than a second:
+
+```scala
+// a block of plain code
+BootProgress.step(BootPhase.Git, "read technique library") {
+  new TechniqueRepositoryImpl(techniqueReader, Seq(), stringUuidGenerator)
+}
+
+// a ZIO effect: it must be timed when it runs, not when it is built
+BootProgress.stepZIO(BootPhase.Services, "load score caches")(scoreService.init())
+```
+
+Individual `BootstrapChecks` need nothing: `SequentialImmediateBootStrapChecks` already
+reports and times each check of a sequence. Don't instrument them a second time.
+
+Three rules, and they are the whole reason the report can be trusted:
+
+- **Progress is evidence of work done, never a timer.** `advance`/`step` are called by boot
+  code when it actually moved on, and nothing else may report progress. A "still booting"
+  line that a deadlocked boot keeps emitting forever is worse than no line at all — that is
+  the failure this exists to catch, and it has happened (init cycles, connection-pool
+  exhaustion).
+- **A step is timed from its own start to its own end.** Never "until the next step": on a
+  boot made of `lazy val`s forcing each other, that charges a trivial check with everything
+  instantiated after it — it once reported an LDAP existence check as taking 1m10s.
+  `advance` therefore reports progress and times *nothing*; only `step`, `stepZIO` and
+  `record` produce a duration.
+- **Code that also runs after boot is logged, not accumulated.** Some instrumented code
+  (score cleaning) runs again at every policy generation; `record` logs those instead of
+  queueing them, because a queue nothing ever drains is a leak.
+
+Nested steps are expected and each is timed for itself, so durations in the report overlap
+and must not be summed. Steps running concurrently (under `collectAllParDiscard`) each get
+their own honest duration, but the phase displayed while they run is whichever started
+last — say so in a comment when you instrument a parallel block.
+
+A plugin instruments itself the same way, under its own `BootPhase.Plugin("<plugin>")`,
+declared in exactly one place (see [`001`](001-scala3-idioms.md#adt-shapes)).
+
 ## Adding a migration/check
 
 1. Write a class extending `BootstrapChecks` in the right package
    (`earlyconfig.db`/`.ldap` if services depend on it; `endconfig.*` otherwise), with a
-   clear `description` and an idempotent body.
+   clear `description` and an idempotent body. For a schema change, also update the canonical
+   schema file (`reportsSchema.sql`) so fresh installs get it — see "Schema files vs migrations" above.
 2. Decide sync vs async (default async via `.forkDaemon`); keep the synchronous portion
    minimal.
 3. Wire it into the matching sequence in `RudderConfig` (`earlyDbChecks`,
