@@ -76,8 +76,10 @@ on string codecs for custom scalars (see the `AcceptationDateTime` codec in
 
 ## Enums {#enums}
 
-We use **enumeratum** for enumerations (name/value, lookup-by-name, `values`) — we do
-**not** use the native Scala 3 `enum` keyword. The pattern is a `sealed` base extending
+Anything that ends up in JSON is by definition serialized, so here the answer to the
+[shape oracle](001-scala3-idioms.md#adt-shapes) is always the same: **enumeratum is
+mandatory** — never a native Scala 3 `enum`, whose case identifiers *are* the wire
+format and would change under a rename. The pattern is a `sealed` base extending
 `EnumEntry` + a companion extending `Enum[...]`, with each case giving its
 **`entryName`** explicitly (`rudder-core/.../campaigns/DataTypes.scala`):
 

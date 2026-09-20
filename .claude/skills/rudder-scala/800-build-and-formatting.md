@@ -34,6 +34,50 @@ captures the gotchas that bite when building/formatting here.
   fatal** — keep imports tight (which also aligns with our "minimize imports" style,
   see [`001`](001-scala3-idioms.md)).
 
+## Style: what the formatter decides, and what you must write
+
+`webapp/sources/.scalafmt.conf` is the source of truth and `spotless:apply` is how you
+comply — never hand-format, never argue with the output. But the formatter only fixes
+*half* of the style. Knowing which half is which is what stops a build cycle being spent
+on syntax.
+
+### Braces, always — significant indentation does not build here
+
+scalafmt parses with `runner.dialect = scala213Source3`: Scala 3 *features* are enabled
+one by one (`given`/`using`, `extension`, `opaque type`, `derives`, trait parameters…),
+but the optional-brace **syntax** is not. A braceless block fails the build at the
+*formatting* step, with an error that doesn't look like a syntax policy:
+
+```
+[ERROR] Step 'scalafmt' found problem in '.../Foo.scala':
+<input>:3: error: [dialect scala213source3 [with overrides]] ; expected but : found
+```
+
+So `object Foo { … }` and `def f(x: Int): Int = { … }` — never `object Foo:`,
+`if x then`, or `end Foo`. Same cause if some newer Scala 3 syntax is rejected while the
+compiler accepts it: scalafmt's dialect lags, and the dialect wins.
+
+### What spotless fixes — don't spend a turn on it
+
+Alignment (of `:`, `=`, `<-`), `import x._` → `import x.*`, import expansion and
+sorting, modifier order (`private final` → `final private`), `for (a; b)` → `for { … }`,
+unicode arrows (`⇒` → `=>`), braces around a one-line lambda → parens.
+
+Write it plainly and run `mvn -o -pl <module> spotless:apply`. Don't hand-align columns,
+don't sort imports by hand, don't reorder modifiers, and don't "fix" what it produced.
+
+### What it does *not* fix — write it right the first time
+
+- **Always `${value}` in interpolation**, not `$value`. scalafmt leaves both alone, so
+  this one is on you; the codebase is ~97% braced. It reads consistently and it doesn't
+  break the moment the expression grows a `.field`.
+- **Multi-line lambda: `foo.map { x =>`**, not `foo.map(x => {`. Both survive the
+  formatter; the codebase prefers the first ~7:1.
+- **`maxColumn = 130`** — it will not break a long string literal or a comment for you.
+- **Comments are yours** (`docstrings.style = keep`): scalafmt never reflows them. House
+  style is in
+  [principle 10](../rudder-principles/SKILL.md#10-comments-explain-why-not-how).
+
 ## License header on every file
 
 Every new `.scala` file starts with a copyright header. **The header must match the
