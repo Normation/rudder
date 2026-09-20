@@ -18,6 +18,28 @@ GitHub or CI directly, and never act "in the name of" the human. Produce changes
 the human reviews the diff and performs all commits, pushes, PRs, and merges. Remind the
 contributor to disclose AI assistance in the PR.
 
+## Engineering principles — read first, always
+
+Whatever the language, whatever the task, start with:
+
+> **[`.claude/skills/rudder-principles/SKILL.md`](.claude/skills/rudder-principles/SKILL.md)**
+
+It holds the principles that **always apply**, and that the language skills below do *not*
+repeat: the data model is the design; parse at the edge so business logic sees pure,
+already-valid structure; **fix the root cause rather than the visible symptom**; don't
+repeat yourself past twice (and never for business logic); signatures that tell the whole
+truth; name domain concepts as types, **proposing the zero-cost form** (e.g. Scala 3
+`opaque type`) with its clarity-versus-performance trade-off so the developer can decide;
+**assess hot-path cost while planning**, not after; less code; the nominal/error/defect
+classification; comments that explain *why*; tests as a design tool; security as a design
+constraint; and how we work across concurrently maintained release branches.
+
+Two of these change what a *plan* and a *report* must contain, not only what a file
+contains — a plan says whether the change lands on a hot path, and a fix names its root
+cause even when the developer then chooses to patch only the symptom.
+
+Keep them applied for the whole task, then read the language skill for the mechanics.
+
 ## Rust - read the skill first
 
 Before reading, writing, rewiewing or refactoring Rust code in this repository,
@@ -60,6 +82,21 @@ The conventions apply to the Scala code in **`rudder`** and in the sibling plugi
 `RudderError`, zio-json, chimney, quicklens, enumeratum, the plugin API framework). The
 skill physically lives in this repo; when working in a plugin repo, follow it too and
 look up referenced code/ADRs in this `rudder` checkout.
+
+## Frontend (Elm / JS) — read the skill first
+
+Rudder's UI is a set of Elm 0.19 single-page apps (one per screen, under
+`webapp/sources/rudder/rudder-web/src/main/elm`) mounted into Lift HTML templates, plus the
+thin JS glue that wires Elm **ports** to browser APIs. Before working on any of that, or on
+the elm/gulp build, read:
+
+> **[`.claude/skills/rudder-frontend/SKILL.md`](.claude/skills/rudder-frontend/SKILL.md)**
+
+Same router shape (`NNN-topic.md`; 0 app architecture, 1 Elm conventions, 2 HTTP/JSON/ports,
+3 JS in templates, 4 build/format/review, 9 the front-end PR checklist) and the same scope:
+it covers the `rudder` webapp **and** the plugin UIs. Key always-apply rules: run
+`npm run elm-format-all`, keep `elm-review` clean, reuse the shared modules, never surface a
+raw API body, and keep template JS to `const`-and-ternaries glue.
 
 ## Other sources of truth
 
