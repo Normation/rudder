@@ -302,7 +302,7 @@ impl Report {
                             id,
                             old_version: None,
                             new_version: None,
-                            action: PackageAction::Pending,
+                            action: PackageAction::PendingInstall,
                             details: Some(log_details),
                         }),
                 );
