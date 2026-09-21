@@ -10,12 +10,15 @@ import com.normation.rudder.score.ScoreValue.E
 import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
+import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 import zio.Chunk
 import zio.UIO
 import zio.json.ast.Json.Str
 import zio.syntax.*
 
+@RunWith(classOf[JUnitRunner])
 class ScoreServiceTest extends Specification {
 
   val mock    = new MockNodes()

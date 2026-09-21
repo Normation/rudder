@@ -50,6 +50,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
+import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import doobie.*
@@ -71,6 +72,7 @@ import zio.*
 import zio.interop.catz.*
 import zio.json.*
 import zio.json.ast.Json
+import zio.syntax.*
 
 /**
  *
@@ -387,4 +389,52 @@ trait JsonInstances {
       .temap[A](a => a.getValue.fromJson)
   }
 
+  /*
+   * Read a jsonb column without parsing it.
+   * This is needed when we query a lot of jsonb and when we don't want to block the transaction
+   * with sequential json decoding and prefer to handle it in plain scala side.
+   * See https://issues.rudder.io/issues/29781
+   */
+  implicit val jsonRawGet: Get[JsonRaw] = {
+    Get.Advanced
+      .other[PGobject](
+        NonEmptyList.of("jsonb")
+      )
+      .map(o => JsonRaw(o.getValue))
+  }
+
+}
+
+/*
+ * The text of a json document read from the database but not parsed yet
+ */
+final case class JsonRaw(value: String)
+
+object JsonRaw {
+
+  // how many documents one fiber parses at a time: enough that the cost of the fiber is nothing against the parsing it does
+  private val defaultChunkSize = 200
+
+  /*
+   * Parse all json in parallel.
+   *
+   * A parsing error fails the whole thing, like it does when doobie parses the rows itself.
+   */
+  def parseAllPar[K, A, B](
+      raws:      Seq[(K, JsonRaw)],
+      chunkSize: Int = defaultChunkSize
+  )(convert: A => B)(implicit decoder: JsonDecoder[A]): IOResult[Seq[(K, B)]] = {
+    ZIO
+      .foreachPar(raws.grouped(chunkSize).toSeq) { chunk =>
+        ZIO.foreach(chunk) {
+          case (key, raw) =>
+            raw.value.fromJson[A] match {
+              case Right(a)  => (key, convert(a)).succeed
+              case Left(err) => Inconsistency(s"Error when parsing json document from database: ${err}").fail
+            }
+        }
+      }
+      .withParallelism(ParseMaxParallelism.default)
+      .map(_.flatten)
+  }
 }
