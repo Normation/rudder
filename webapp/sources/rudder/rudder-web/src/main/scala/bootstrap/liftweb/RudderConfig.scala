@@ -3322,18 +3322,19 @@ object RudderConfigInit {
 
     /// score ///
 
-    lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie)
-    lazy val scoreRepository       = new ScoreRepositoryImpl(doobie)
+    lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val scoreRepository       = new ScoreRepositoryImpl(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
     lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository, nodeFactRepository)
     lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 
-    // those two are the expensive ones among the deferred effects, and they do not cost the same:
-    // measured apart, because whether it is worth loading the score details of every node at boot
-    // depends on which of the two we are actually paying for
+    // these three are one deferred effect and not three, because they depend on each other:
+    // registering a handler asks whether the nodes already have its score, and it reads that from
+    // the cache the two first ones fill. As separate effects they run in parallel, the check sees
+    // an empty cache, and every handler replays its init events at every boot - which is exactly
+    // what the check is there to avoid.
     deferredEffects.append(
-      BootProgress.stepZIO(BootPhase.Services, "load score caches")(scoreService.init())
-    )
-    deferredEffects.append(
+      BootProgress.stepZIO(BootPhase.Services, "load global score cache")(scoreService.initGlobalScores()) *>
+      BootProgress.stepZIO(BootPhase.Services, "load score details cache")(scoreService.initScoreDetails()) *>
       BootProgress.stepZIO(BootPhase.Services, "init system update score handler")(
         scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository))
       )

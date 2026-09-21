@@ -55,6 +55,17 @@ object Utils {
  * This method is effectful.
  */
 object ParseMaxParallelism {
+
+  // compute parallelism given a multiplicator factor for the number of cores, with min = 1
+  private def threadForProc(mult: Double): Int = {
+    Math.max(1, (java.lang.Runtime.getRuntime.availableProcessors * mult).ceil.toInt)
+  }
+
+  /*
+   * Parallelism for pure computation based on the number of available processors
+   */
+  def default: Int = threadForProc(1)
+
   /*
    * value: the string to transform in to a number, either a positive Int ("1", etc)
    *        or a mutiplicator like "x0.5", "x2", etc (where what is after the 'x' is a double.
@@ -62,10 +73,6 @@ object ParseMaxParallelism {
    * propertyName, loggerWarn: used to log message if there is an error with the parsing.
    */
   def apply(value: String, defaultValue: Int, propertyName: String, loggerWarn: String => Unit): Int = {
-    def threadForProc(mult: Double): Int = {
-      Math.max(1, (java.lang.Runtime.getRuntime.availableProcessors * mult).ceil.toInt)
-    }
-
     val t = {
       try {
         value match {
@@ -78,6 +85,7 @@ object ParseMaxParallelism {
           defaultValue
       }
     }
+
     if (t < 1) {
       loggerWarn(s"You can't set '${propertyName}' to ${t} (parsed from '${value}'. Defaulting to '${defaultValue}''")
       defaultValue
