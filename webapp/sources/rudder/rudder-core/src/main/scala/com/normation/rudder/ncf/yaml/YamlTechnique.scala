@@ -44,6 +44,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.*
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import zio.json.*
 import zio.json.ast.Json
@@ -66,7 +67,8 @@ case class Technique(
     category:      Option[String],
     params:        Option[List[TechniqueParameter]],
     items:         List[MethodItem],
-    policy_types:  Option[List[String]]
+    policy_types:  Option[List[String]],
+    security:      Option[SecurityTag]
 )
 
 case class MethodItem(
@@ -155,7 +157,8 @@ object YamlTechniqueSerializer {
         Seq(),
         technique.tags.getOrElse(Map()),
         technique.policy_types,
-        None
+        None,
+        technique.security
       )
     }).left.map(acc => acc.fullMsg)
   }
@@ -225,7 +228,8 @@ object YamlTechniqueSerializer {
         Some(technique.parameters.map(fromJsonParam).toList)
       },
       technique.calls.map(fromJsonMethodElem).toList,
-      technique.policyTypes
+      technique.policyTypes,
+      technique.security
     )
   }
 

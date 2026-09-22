@@ -209,6 +209,7 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
             name: src.name.clone(),
             description: src.description.unwrap_or(src.name),
             policy_types: src.policy_types,
+            security: src.security.map(Security::from),
             long_description: src.documentation,
             // false is for legacy techniques, we only use the modern reporting
             use_method_reporting: true,
@@ -228,6 +229,10 @@ struct Technique {
     description: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     policy_types: Vec<String>,
+    // lowercase on purpose, see `Security`
+    #[serde(rename = "security")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security: Option<Security>,
     #[serde(skip_serializing_if = "Option::is_none")]
     long_description: Option<String>,
     #[serde(rename = "USEMETHODREPORTING")]
@@ -238,6 +243,55 @@ struct Technique {
     policy_generation: String,
     agent: Vec<Agent>,
     sections: Sections,
+}
+
+/// The tenant tag serialization compatible with webapp: either `open-ro`, `open-rw` or a list of `tenant` elements.
+#[derive(Debug, PartialEq, Serialize)]
+struct Security {
+    #[serde(rename = "open-ro", skip_serializing_if = "Option::is_none")]
+    open_ro: Option<Empty>,
+    #[serde(rename = "open-rw", skip_serializing_if = "Option::is_none")]
+    open_rw: Option<Empty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tenants: Option<Tenants>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+struct Empty {}
+
+#[derive(Debug, PartialEq, Serialize)]
+struct Tenants {
+    tenant: Vec<Tenant>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+struct Tenant {
+    #[serde(rename = "@id")]
+    id: String,
+}
+
+impl From<ir::technique::SecurityTag> for Security {
+    fn from(tag: ir::technique::SecurityTag) -> Self {
+        match tag {
+            ir::technique::SecurityTag::Open(ir::technique::OpenTag::OpenRo) => Security {
+                open_ro: Some(Empty {}),
+                open_rw: None,
+                tenants: None,
+            },
+            ir::technique::SecurityTag::Open(ir::technique::OpenTag::OpenRw) => Security {
+                open_ro: None,
+                open_rw: Some(Empty {}),
+                tenants: None,
+            },
+            ir::technique::SecurityTag::ByTenants { tenants } => Security {
+                open_ro: None,
+                open_rw: None,
+                tenants: Some(Tenants {
+                    tenant: tenants.into_iter().map(|id| Tenant { id }).collect(),
+                }),
+            },
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -584,6 +638,7 @@ mod tests {
             multi_instance: true,
             policy_generation: "separated-with-parameters".to_string(),
             policy_types: vec!["custom_policy_type".to_string(), "another_type".to_string()],
+            security: None,
             agent,
             sections,
         };
@@ -592,6 +647,49 @@ mod tests {
                 .unwrap()
                 .trim(),
             Metadata::xml(t).unwrap()
+        );
+    }
+
+    #[test]
+    fn it_maps_the_security_tag_of_a_technique() {
+        assert_eq!(
+            Security::from(ir::technique::SecurityTag::Open(
+                ir::technique::OpenTag::OpenRo
+            )),
+            Security {
+                open_ro: Some(Empty {}),
+                open_rw: None,
+                tenants: None,
+            }
+        );
+        assert_eq!(
+            Security::from(ir::technique::SecurityTag::Open(
+                ir::technique::OpenTag::OpenRw
+            )),
+            Security {
+                open_ro: None,
+                open_rw: Some(Empty {}),
+                tenants: None,
+            }
+        );
+        assert_eq!(
+            Security::from(ir::technique::SecurityTag::ByTenants {
+                tenants: vec!["zoneA".to_string(), "zoneB".to_string()],
+            }),
+            Security {
+                open_ro: None,
+                open_rw: None,
+                tenants: Some(Tenants {
+                    tenant: vec![
+                        Tenant {
+                            id: "zoneA".to_string()
+                        },
+                        Tenant {
+                            id: "zoneB".to_string()
+                        },
+                    ],
+                }),
+            }
         );
     }
 }

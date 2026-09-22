@@ -45,6 +45,7 @@ import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.tenants.SecurityTag
 import scala.util.matching.Regex
 import scala.xml.*
 
@@ -144,6 +145,9 @@ class TechniqueParser(
                                     .flatMap(name => TechniqueGenerationMode.parse(name).toOption)
                                     .getOrElse(TechniqueGenerationMode.MergeDirectives)
 
+            // 9.2: add the security tag parsing for tenants
+            security            = SecurityTag.fromXml(xml)
+
             technique = Technique(
                           id,
                           name,
@@ -157,7 +161,8 @@ class TechniqueParser(
                           longDescription,
                           policyTypes,
                           generationMode,
-                          useMethodReporting
+                          useMethodReporting,
+                          security
                         )
 
             /*

@@ -516,6 +516,31 @@
       "description": "Technique policy types, used in compliance computation",
       "markdownDescription": "```Optional```\n\nTechnique policy type, used in compliance computation"
     },
+    "security": {
+      "title": "security",
+      "description": "Tenant scoping of the technique: open-ro to let every tenant use it while only an administrator changes it, open-rw to let anyone who may write change it too, or an explicit tenant list. Absent means admin-only.",
+      "markdownDescription": "```Optional```\n\nTenant scoping of the technique: `open-ro` to let every tenant use it while only an administrator changes it, `open-rw` to let anyone who may write change it too, or an explicit tenant list. Absent means admin-only.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["open-ro", "open-rw"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tenants"],
+          "properties": {
+            "tenants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "examples": ["open-ro", { "tenants": ["zoneA"] }]
+    },
     "tags": {
       "$ref": "#/$defs/tags",
       "description": "Optional key-value metadata",

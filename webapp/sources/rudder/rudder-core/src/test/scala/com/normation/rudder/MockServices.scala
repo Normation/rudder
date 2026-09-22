@@ -66,6 +66,7 @@ import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.Constants.ROOT_ACTIVE_TECHNIQUES
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
@@ -962,7 +963,7 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
   val rootActiveTechniqueCategory: Ref.Synchronized[FullActiveTechniqueCategory] = Ref.Synchronized
     .make(
       FullActiveTechniqueCategory(
-        id = ActiveTechniqueCategoryId("Active Techniques"),
+        id = ROOT_ACTIVE_TECHNIQUES,
         name = "Active Techniques",
         description =
           "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
@@ -1261,6 +1262,12 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
     override def changeStatus(
         id:     ActiveTechniqueId,
         status: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
+
+    // like `changeStatus` above, that mock does not store the change
+    override def changeSecurity(
+        id:       ActiveTechniqueId,
+        security: Option[SecurityTag]
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
 
     override def setAcceptationDatetimes(
