@@ -361,14 +361,16 @@ pre.display-keys > label{
     margin-bottom: 0;
   }
 }
+
 .btn-toolbar.trigger-agent-actions{
   .btn:has(+ .btn.visually-hidden:last-child) {
     border-top-right-radius: var(--bs-border-radius);
     border-bottom-right-radius: var(--bs-border-radius);
   }
 }
-.outputContainers:not(:has(*)) {
-  margin-bottom: 0 !important;
+
+#reportsDetails .trigger-container + .alert {
+  margin-top: 1rem;
 }
 /* NODE ERROR */
 .info-card{

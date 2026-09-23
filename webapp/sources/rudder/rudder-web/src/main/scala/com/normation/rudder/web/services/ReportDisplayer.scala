@@ -142,7 +142,7 @@ class ReportDisplayer(
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
-        val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
+        val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval, tableId).toString)
         JsRaw(
           s"""refreshTable("${tableId}",${data.toJson}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
@@ -159,7 +159,7 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int): NodeSeq = {
+  private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int, tableId: String): NodeSeq = {
 
     def displayDate(d:    DateTime) = DateFormaterService.getDisplayDate(d)
     def displayDateOpt(d: Option[DateTime]): String = d.fold("an unknown date")(displayDate)
@@ -324,7 +324,7 @@ class ReportDisplayer(
             report.compliance.noAnswer + report.compliance.missing + report.compliance.unexpected + report.compliance.badPolicyMode +
               report.compliance.error + report.compliance.nonCompliant + report.compliance.auditError
           )
-          if (nbAttention > 0) {
+          if ((nbAttention > 0) && (tableId == "reportsGrid" )) {
             (
               "alert alert-warning",
               <p>{nbAttention} reports below (out of {
@@ -403,7 +403,7 @@ class ReportDisplayer(
 
                       val intro = {
                         if ((tableId == "reportsGrid") || (tableId == "systemStatusGrid"))
-                          displayIntro(report, node.rudderSettings, defaultRunInterval)
+                          displayIntro(report, node.rudderSettings, defaultRunInterval, tableId)
                         else NodeSeq.Empty
                       }
 
