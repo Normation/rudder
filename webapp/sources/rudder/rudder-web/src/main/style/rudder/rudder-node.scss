@@ -362,15 +362,14 @@ pre.display-keys > label{
   }
 }
 .btn-toolbar.trigger-agent-actions{
-  &:not(:has(*)) {
-    margin-bottom: 0 !important;
-  }
   .btn:has(+ .btn.visually-hidden:last-child) {
     border-top-right-radius: var(--bs-border-radius);
     border-bottom-right-radius: var(--bs-border-radius);
   }
 }
-
+.outputContainers:not(:has(*)) {
+  margin-bottom: 0 !important;
+}
 /* NODE ERROR */
 .info-card{
   border-radius: 4px;
