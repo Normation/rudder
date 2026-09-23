@@ -3,7 +3,7 @@ port module GlobalPropertiesHistory exposing (..)
 import Browser
 import Dict
 import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
-import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), string2Search)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), string2ObjectId)
 import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div, i, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class, colspan, rowspan)
@@ -63,12 +63,12 @@ init flags =
             , zone = zone
             }
 
-        -- full text search on directive id to get history related to this global property
-        search =
-            string2Search flags.globalPropertyId
+        -- id filter on global property id to get history related to this global property
+        globalPropertyId =
+            string2ObjectId flags.globalPropertyId
 
         initActions =
-            [ Cmd.map HistoryMessage (getEventLogs search 100 initModel.contextPath (Just "parameters")) ]
+            [ Cmd.map HistoryMessage (getEventLogs globalPropertyId 100 initModel.contextPath (Just "parameters")) ]
     in
     ( initModel, Cmd.batch initActions )
 

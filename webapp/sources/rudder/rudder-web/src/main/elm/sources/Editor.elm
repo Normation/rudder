@@ -16,7 +16,7 @@ import Editor.ViewTechnique exposing (checkTechniqueUiState, view)
 import Editor.ViewTechniqueList exposing (allMethodCalls)
 import Either exposing (Either(..))
 import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
-import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), ObjectId, Search, string2ObjectId)
 import EventLogs.Table exposing (initTable)
 import File
 import File.Download
@@ -195,7 +195,6 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map HistoryMessage (getEventLogs Nothing 100 (ContextPath initValues.contextPath) (Just "editorTechniques"))
         ]
     )
 
@@ -561,9 +560,9 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-                search : Search
-                search =
-                    string2Search id.value
+                objectId : ObjectId
+                objectId =
+                    string2ObjectId id.value
             in
             case model.mode of
                 TechniqueDetails t _ _ editInfo ->
@@ -571,10 +570,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map HistoryMessage (getEventLogs search 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
+                        ( newModel, Cmd.map HistoryMessage (getEventLogs objectId 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
 
                 _ ->
-                    ( newModel, Cmd.map HistoryMessage (getEventLogs search 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
+                    ( newModel, Cmd.map HistoryMessage (getEventLogs objectId 100 (ContextPath model.contextPath) (Just "editorTechniques")) )
 
         SelectDraft id ->
             let
