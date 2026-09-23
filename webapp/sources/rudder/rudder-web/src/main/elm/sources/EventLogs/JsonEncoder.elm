@@ -4,11 +4,11 @@ import EventLogs.DataTypes exposing (..)
 import Json.Encode exposing (Value, int, list, object, string)
 
 
-encodeRestEventLogFilter : Search -> Int -> Value
-encodeRestEventLogFilter search nbEventLogs =
+encodeRestEventLogFilter : ObjectId -> Int -> Value
+encodeRestEventLogFilter objectId nbEventLogs =
     let
-        isSearchEmpty =
-            search2String search == ""
+        isObjectIdEmpty =
+            objectId2String objectId == ""
 
         byDate =
             1
@@ -19,11 +19,11 @@ encodeRestEventLogFilter search nbEventLogs =
             , Just ( "start", int 0 )
             , Just ( "length", int nbEventLogs )
             , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder byDate "desc" "" ] )
-            , if isSearchEmpty then
+            , if isObjectIdEmpty then
                 Nothing
 
               else
-                Just ( "search", object [ ( "value", string (search2String search) ) ] )
+                Just ( "objectId", object [ ( "value", string (objectId2String objectId) ) ] )
             ]
         )
 

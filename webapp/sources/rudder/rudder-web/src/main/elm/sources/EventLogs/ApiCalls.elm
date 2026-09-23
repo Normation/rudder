@@ -1,6 +1,6 @@
 module EventLogs.ApiCalls exposing (..)
 
-import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..), Search)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLogsMsg(..), ObjectId, Search)
 import EventLogs.JsonDecoder exposing (decodeErrorDetails, decodeEventLogs)
 import EventLogs.JsonEncoder exposing (encodeRestEventLogFilter)
 import Http exposing (header, jsonBody, request)
@@ -8,8 +8,8 @@ import Http.Detailed as Detailed
 import Url.Builder exposing (QueryParameter)
 
 
-getEventLogs : Search -> Int -> ContextPath -> Maybe String -> Cmd EventLogsMsg
-getEventLogs search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
+getEventLogs : ObjectId -> Int -> ContextPath -> Maybe String -> Cmd EventLogsMsg
+getEventLogs id nbEventLogs (ContextPath contextPath) resourceTypeOpt =
     let
         url =
             case resourceTypeOpt of
@@ -24,7 +24,7 @@ getEventLogs search nbEventLogs (ContextPath contextPath) resourceTypeOpt =
                 { method = "POST"
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = Url.Builder.relative url []
-                , body = encodeRestEventLogFilter search nbEventLogs |> jsonBody
+                , body = encodeRestEventLogFilter id nbEventLogs |> jsonBody
                 , expect = Detailed.expectJson GetEventLogs decodeEventLogs
                 , timeout = Nothing
                 , tracker = Nothing

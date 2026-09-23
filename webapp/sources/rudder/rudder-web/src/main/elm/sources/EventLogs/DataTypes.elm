@@ -1,4 +1,4 @@
-module EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogFilterOrder, EventLogsMsg(..), FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
+module EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogFilterOrder, EventLogsMsg(..), FilterTypes, ObjectId, Search, listString2FilterTypes, objectId2String, string2ObjectId)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -20,13 +20,17 @@ type alias Search =
     Maybe String
 
 
-search2String : Search -> String
-search2String s =
+type alias ObjectId =
+    Maybe String
+
+
+objectId2String : ObjectId -> String
+objectId2String s =
     Maybe.withDefault "" s
 
 
-string2Search : String -> Search
-string2Search s =
+string2ObjectId : String -> ObjectId
+string2ObjectId s =
     Just s
 
 
