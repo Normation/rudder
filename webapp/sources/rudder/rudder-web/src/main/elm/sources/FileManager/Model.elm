@@ -18,6 +18,7 @@ type alias Flags =
     , dir : String
     , hasWriteRights : Bool
     , initRun : Bool
+    , maxUploadSize : Int
     }
 
 
@@ -116,14 +117,6 @@ isUploading status =
 
         PendingUpload _ ->
             True
-
-
-{-| Maximum size, in bytes, of a file the server accepts in an upload. It is the default value of
-`LiftRules.maxMimeSize` on the server side, which is what rejects a too big upload there.
--}
-defaultMaxUploadSize : Int
-defaultMaxUploadSize =
-    8 * 1024 * 1024
 
 
 type alias Model =

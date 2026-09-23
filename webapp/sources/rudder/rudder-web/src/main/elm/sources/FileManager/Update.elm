@@ -36,7 +36,7 @@ init flags =
 
 
 initModel : Flags -> Model
-initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
+initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights, maxUploadSize } =
     { api = api
     , thumbnailsUrl = thumbnailsUrl
     , downloadsUrl = downloadsUrl
@@ -65,7 +65,7 @@ initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
     , viewMode = GridView
     , tableFilters = defaultTableFilters FileName
     , tree = Dict.empty
-    , maxUploadSize = defaultMaxUploadSize
+    , maxUploadSize = maxUploadSize
     }
 
 

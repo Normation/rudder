@@ -59,7 +59,9 @@ class BaseUrl {
    */
   def display: NodeSeq = WithNonce.scriptWithNonce(
     Script(
-      JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${staticResourceRewrite.resourceRoot}'""")
+      JsRaw(
+        s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${staticResourceRewrite.resourceRoot}'; var maxUploadSize = ${RudderConfig.RUDDER_SERVER_UPLOAD_MAX_SIZE}"""
+      )
     ) // JsRaw ok, no user inputs
   )
 

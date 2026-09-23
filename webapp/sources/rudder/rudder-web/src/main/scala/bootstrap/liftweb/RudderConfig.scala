@@ -517,6 +517,17 @@ object RudderParsedProperties {
   val RUDDER_DIR_DEPENDENCIES:           String         = config.getString("rudder.dir.dependencies")
   val RUDDER_DIR_LOCK:                   String         = config.getString("rudder.dir.lock") // TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER:    String         = config.getString("rudder.dir.shared.files.folder")
+  val RUDDER_SERVER_UPLOAD_MAX_SIZE:     Long           = {
+    try {
+      config.getBytes("rudder.server.upload.maxSize").longValue()
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          "Property 'rudder.server.upload.maxSize' is absent or malformed in rudder.configFile. Default to 8MiB."
+        )
+        8 * 1024 * 1024L
+    }
+  }
   val RUDDER_WEBDAV_USER:                String         = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD:            String         = config.getString("rudder.webdav.password");
   filteredPasswords += "rudder.webdav.password"
@@ -1331,6 +1342,7 @@ object RudderConfig extends Loggable {
   def rudderFullVersion                            = RudderParsedProperties.rudderFullVersion
   def RUDDER_SERVER_HSTS                           = RudderParsedProperties.RUDDER_SERVER_HSTS
   def RUDDER_SERVER_HSTS_SUBDOMAINS                = RudderParsedProperties.RUDDER_SERVER_HSTS_SUBDOMAINS
+  def RUDDER_SERVER_UPLOAD_MAX_SIZE                = RudderParsedProperties.RUDDER_SERVER_UPLOAD_MAX_SIZE
   def AUTH_IDLE_TIMEOUT                            = RudderParsedProperties.AUTH_IDLE_TIMEOUT
   def WATCHER_ENABLE                               = RudderParsedProperties.WATCHER_ENABLE
   def RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = RudderParsedProperties.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
