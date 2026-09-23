@@ -374,12 +374,9 @@ class ReportDisplayer(
         )
     }
 
-    <div class="mt-3">
-      <div id="node-compliance-intro" class={updatedBackground}>
-        <p>{explainCompliance(report.runInfo)}</p>{
-      specialPolicyModeError ++
-      lookReportsMessage
-    }</div>
+    <div id="node-compliance-intro" class={updatedBackground}>
+      <p>{explainCompliance(report.runInfo)}</p>
+      {specialPolicyModeError ++ lookReportsMessage}
     </div>
   }
 
@@ -405,7 +402,8 @@ class ReportDisplayer(
                       val runDate: Option[DateTime] = getRunDate(report.runInfo)
 
                       val intro = {
-                        if (tableId == "reportsGrid") displayIntro(report, node.rudderSettings, defaultRunInterval)
+                        if ((tableId == "reportsGrid") || (tableId == "systemStatusGrid"))
+                          displayIntro(report, node.rudderSettings, defaultRunInterval)
                         else NodeSeq.Empty
                       }
 
@@ -562,7 +560,8 @@ class ReportDisplayer(
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"
 
-    val classes               = "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid" || tableId != "systemStatusGrid") " hide" else "")
+    val classes               =
+      "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid" || tableId != "systemStatusGrid") " hide" else "")
     val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid" || tableId == "systemStatusGrid") {
       val init    = AnonFunc(logDisplayer.asyncDisplay(nodeId, runDate, complianceLogGridId))
       val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
