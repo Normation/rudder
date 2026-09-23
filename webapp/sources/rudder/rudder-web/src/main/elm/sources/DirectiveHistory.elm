@@ -3,7 +3,7 @@ port module DirectiveHistory exposing (..)
 import Browser
 import Dict
 import EventLogs.ApiCalls exposing (getEventLogs, processEventLogsApiError)
-import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2Search)
+import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg(..), Search, string2ObjectId)
 import EventLogs.Table exposing (initTable)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
@@ -60,12 +60,12 @@ init flags =
             , zone = zone
             }
 
-        -- full text search on directive id to get history related to this directive
-        search =
-            string2Search flags.directiveId
+        -- directive id to keep history related to this directive
+        id =
+            string2ObjectId flags.directiveId
 
         initActions =
-            [ Cmd.map HistoryMessage (getEventLogs search 100 initModel.contextPath (Just "directives")) ]
+            [ Cmd.map HistoryMessage (getEventLogs id 100 initModel.contextPath (Just "directives")) ]
     in
     ( initModel, Cmd.batch initActions )
 
