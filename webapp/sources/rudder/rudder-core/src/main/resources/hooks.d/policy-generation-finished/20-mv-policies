@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
+#######################################
+# Synchronizes the policy directory written by the webapp into the
+# local agent's "inputs" repository. This needs to be done by a hook
+# as the agent on the root server does not update its policies
+# normally, and the webapp cannot write files as root.
+#######################################
 /usr/bin/rsync -a --delete --chown=root:root /var/rudder/share/root/rules/cfengine-community/ /var/rudder/cfengine-community/inputs/
