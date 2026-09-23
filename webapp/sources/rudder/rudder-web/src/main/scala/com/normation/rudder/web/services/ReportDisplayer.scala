@@ -374,7 +374,7 @@ class ReportDisplayer(
         )
     }
 
-    <div>
+    <div class="mt-3">
       <div id="node-compliance-intro" class={updatedBackground}>
         <p>{explainCompliance(report.runInfo)}</p>{
       specialPolicyModeError ++
@@ -562,15 +562,15 @@ class ReportDisplayer(
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"
 
-    val classes               = "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid") " hide" else "")
-    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid") {
+    val classes               = "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid" || tableId != "systemStatusGrid") " hide" else "")
+    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid" || tableId == "systemStatusGrid") {
       val init    = AnonFunc(logDisplayer.asyncDisplay(nodeId, runDate, complianceLogGridId))
       val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
-      s"""showHideRunLogs("#${logRunId}", "${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
-    } else ""
+      s"""showHideRunLogs("${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
+    } else s"""console.log("${tableId}")"""
     val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs<i class="ms-2 fa fa-table"></i></button>
     val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary hide" onclick={
-      s"showHideRunLogs('#node-compliance-intro', '${tabId}')"
+      s"showHideRunLogs('${tabId}')"
     }>Hide logs<i class="ms-2 fa fa-table"></i></button>
     val complianceLogGridHtml =
       <table id={complianceLogGridId} cellspacing="0"></table>
