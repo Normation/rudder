@@ -175,12 +175,16 @@ class FsCampaignHooksService(
   ): IOResult[HookResults] = {
 
     val loggerName = FsCampaignHooksRepository.CampaignDirName + "." + c.info.id.serialize + "." + hookType.entryName
-    val dir        = rootDir + "/" + FsCampaignHooksRepository.CampaignDirName + "/" + c.info.id.serialize + "/" + hookType.entryName
+    val hookDir    = FileUtils.sanitizePath(
+      File(rootDir) / FsCampaignHooksRepository.CampaignDirName,
+      List(c.info.id.serialize, hookType.entryName)
+    )
 
     (
       for {
         -         <- PureHooksLogger.For(loggerName).debug(s"Running ${hookType.entryName} for campaign '${c.info.id.serialize}'")
         systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
+        dir       <- hookDir.map(_.pathAsString)
         hooks     <- RunHooks.getHooksPure(dir, HOOKS_IGNORE_SUFFIXES)
         res       <- for {
                        timeHooks0 <- currentTimeMillis
