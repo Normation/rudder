@@ -39,6 +39,10 @@ package com.normation.rudder.campaigns
 
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.IfAbsent
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.utils.StringUuidGenerator
 import org.joda.time.{Duration as JTDuration, *}
 import zio.*
@@ -53,22 +57,22 @@ trait CampaignApiService {
   /*
    * Save a campaign
    */
-  def saveCampaign(c: Campaign): IOResult[Unit]
+  def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Unit]
 
   /*
    * Delete a campaign
    */
-  def deleteCampaign(id: CampaignId): IOResult[Unit]
+  def deleteCampaign(id: CampaignId)(using cc: ChangeContext): IOResult[Unit]
 
   /*
    * Delete a campaign event
    */
-  def deleteCampaignEvent(id: CampaignEventId): IOResult[Unit]
+  def deleteCampaignEvent(id: CampaignEventId)(using cc: ChangeContext): IOResult[Unit]
 
   /*
    * Schedule next event for given campaign
    */
-  def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]]
+  def scheduleCampaignEvent(campaign: Campaign, date: DateTime)(using cc: ChangeContext): IOResult[Option[CampaignEvent]]
 
 }
 
@@ -81,6 +85,7 @@ object MainCampaignService {
       repo:         CampaignEventRepository,
       campaignRepo: CampaignRepository,
       hooksService: CampaignHooksService,
+      checkTenant:  TenantCheckLogic,
       uuidGen:      StringUuidGenerator,
       startDelay:   Int, // in hour
       endDelay:     Int  // in hour
@@ -102,7 +107,7 @@ object MainCampaignService {
       val ed           = JTDuration.standardHours(endDelay)
       val scheduler    = CampaignScheduler(queue, orchestrator, sd, ed)
 
-      MainCampaignService(repo, campaignRepo, effects, scheduler, handlersRef)
+      MainCampaignService(repo, campaignRepo, checkTenant, effects, scheduler, handlersRef)
     }
   }
 
@@ -129,6 +134,7 @@ object MainCampaignService {
 class MainCampaignService(
     repo:         CampaignEventRepository,
     campaignRepo: CampaignRepository,
+    checkTenant:  TenantCheckLogic,
     effects:      CampaignOrchestrationEffects,
     scheduler:    CampaignScheduler,
     handlersRef:  Ref[List[CampaignHandler]]
@@ -148,10 +154,10 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def deleteCampaign(id: CampaignId): IOResult[Unit] = {
+  override def deleteCampaign(id: CampaignId)(using cc: ChangeContext): IOResult[Unit] = {
     for {
-      campaign <- campaignRepo.get(id).notOptional(s"Campaign with id ${id.value} not found")
-      events   <- repo.getWithCriteria(campaignId = Some(id))
+      campaign <- campaignRepo.get(id)(using cc.toQC).notOptional(s"Campaign with id ${id.value} not found")
+      events   <- repo.getWithCriteria(campaignId = Some(id))(using cc.toQC)
       _        <- ZIO.foreachDiscard(events) { event =>
                     handlersRef.get.flatMap(services => {
                       ZIO
@@ -169,7 +175,7 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def saveCampaign(c: Campaign): IOResult[Unit] = {
+  override def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       _  <- campaignRepo.save(c)
       ev <- effects.createNextScheduledCampaignEvent(c, DateTime.now(DateTimeZone.UTC))
@@ -178,12 +184,14 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def deleteCampaignEvent(id: CampaignEventId): IOResult[Unit] = {
+  override def deleteCampaignEvent(id: CampaignEventId)(using cc: ChangeContext): IOResult[Unit] = {
     for {
-      eventOpt <- repo.get(id)
+      eventOpt <- repo.get(id)(using cc.toQC)
       _        <- ZIO.foreachDiscard(eventOpt) { event =>
                     for {
-                      campaign <- campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${id.value} not found")
+                      campaign <- campaignRepo
+                                    .get(event.campaignId)(using cc.toQC)
+                                    .notOptional(s"Campaign with id ${id.value} not found")
                       _        <-
                         handlersRef.get.flatMap { services =>
                           ZIO
@@ -201,15 +209,23 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]] = {
-    effects.createNextScheduledCampaignEvent(campaign, date).flatMap { event =>
-      effects.saveAndQueueEvent(event).map { _ =>
-        event match {
-          case EventOrchestration.SaveAndQueue(e)              => Some(e)
-          case EventOrchestration.SaveThenUpdateAndQueue(e, s) => Some(e.copy(state = s)) // return the final event state
-          case EventOrchestration.Queue(_)                     => None
-          case EventOrchestration.SaveAndStop(e)               => Some(e)
-          case EventOrchestration.IgnoreAndStop                => None
+  override def scheduleCampaignEvent(campaign: Campaign, date: DateTime)(using
+      cc: ChangeContext
+  ): IOResult[Option[CampaignEvent]] = {
+    // scheduling an event is acting on its campaign: it needs the same right as changing the campaign
+    checkTenant.manageModify(
+      campaignRepo.get(campaign.info.id),
+      IfAbsent.fail(s"Campaign with id '${campaign.info.id.value}' was not found: no event can be scheduled for it")
+    ) { _ =>
+      effects.createNextScheduledCampaignEvent(campaign, date).flatMap { event =>
+        effects.saveAndQueueEvent(event).map { _ =>
+          event match {
+            case EventOrchestration.SaveAndQueue(e)              => Some(e)
+            case EventOrchestration.SaveThenUpdateAndQueue(e, s) => Some(e.copy(state = s)) // return the final event state
+            case EventOrchestration.Queue(_)                     => None
+            case EventOrchestration.SaveAndStop(e)               => Some(e)
+            case EventOrchestration.IgnoreAndStop                => None
+          }
         }
       }
     }
@@ -218,6 +234,7 @@ class MainCampaignService(
   def init(): IOResult[Unit] = {
     for {
       alreadyScheduled <-
+        // startup requeue: a system task, it must see every pending event
         repo.getWithCriteria(
           RunningType :: ScheduledType :: Nil,
           Nil,
@@ -228,12 +245,12 @@ class MainCampaignService(
           None,
           None,
           None
-        )
+        )(using QueryContext.systemQC)
       _                <- CampaignLogger.debug("Got events, queue them")
       _                <- scheduler.queue.takeAll // empty queue, we will enqueue all existing events again
       _                <- ZIO.foreach(alreadyScheduled)(ev => scheduler.queueCampaign(ev.id))
       _                <- CampaignLogger.debug("queued events, check campaigns")
-      campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
+      campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)(using QueryContext.systemQC)
       _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
       toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
       optNewEvents     <- ZIO.foreach(toStart)(c => effects.createNextScheduledCampaignEvent(c, DateTime.now(DateTimeZone.UTC)))

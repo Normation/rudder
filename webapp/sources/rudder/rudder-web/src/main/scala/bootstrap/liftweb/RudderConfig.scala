@@ -3788,13 +3788,13 @@ object RudderConfigInit {
       s.addJsonTranslater(com.normation.rudder.schedule.DirectiveScheduleSerializer)
       s
     }
-    lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer)
+    lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer, tenantCheckLogic, campaignRepo)
     lazy val campaignHooksRepository        = new FsCampaignHooksRepository(HOOKS_D)
     lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES, RUN_WITH_SUDO_HOOKS)
     lazy val campaignArchiver               = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
 
     lazy val campaignRepo = CampaignRepositoryImpl
-      .make(campaignArchiver.campaignPath, campaignArchiver, campaignSerializer, campaignHooksRepository)
+      .make(campaignArchiver.campaignPath, campaignArchiver, campaignSerializer, campaignHooksRepository, tenantCheckLogic)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
     lazy val directiveScheduleManagement = new com.normation.rudder.schedule.ScheduleManagementImpl(
@@ -3807,7 +3807,9 @@ object RudderConfigInit {
     )
 
     lazy val mainCampaignService = {
-      val m = MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
+      val m = MainCampaignService
+        .make(campaignEventRepo, campaignRepo, campaignHooksService, tenantCheckLogic, stringUuidGenerator, 1, 1)
+        .runNow
       m.registerService(
         new com.normation.rudder.schedule.DirectiveScheduleCampaignHandler(
           directiveScheduleManagement,
@@ -3848,6 +3850,14 @@ object RudderConfigInit {
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       "post-service instantiation checks",
       BootstrapLogger,
+      new CheckNcfTechniqueUpdate(
+        ncfTechniqueWriter,
+        roLDAPApiAccountRepository.systemAPIAccount,
+        stringUuidGenerator,
+        updateTechniqueLibrary,
+        ncfTechniqueReader,
+        resourceFileService
+      ),
       new MigrateProcessCommandNameQuery(rwLdap, rudderDit),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
@@ -3873,14 +3883,6 @@ object RudderConfigInit {
         directiveRead.repository,
         directiveWrite.repository,
         stringUuidGenerator
-      ),
-      new CheckNcfTechniqueUpdate(
-        ncfTechniqueWriter,
-        roLDAPApiAccountRepository.systemAPIAccount,
-        stringUuidGenerator,
-        updateTechniqueLibrary,
-        ncfTechniqueReader,
-        resourceFileService
       ),
       new FixedPathLoggerMigration(),
       new DropNodeComplianceTables(doobie),

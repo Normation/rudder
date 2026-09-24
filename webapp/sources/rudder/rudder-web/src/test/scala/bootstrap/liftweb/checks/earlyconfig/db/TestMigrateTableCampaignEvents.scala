@@ -39,9 +39,15 @@ package bootstrap.liftweb.checks.earlyconfig.db
 
 import cats.*
 import cats.implicits.*
+import com.normation.errors.IOResult
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.json.implicits.*
+import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.DefaultTenantCheckLogic
+import com.normation.rudder.tenants.InMemoryTenantService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import doobie.*
@@ -219,7 +225,32 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       .map(throw _)
   }
 
-  private lazy val repo = new CampaignEventRepositoryImpl(doobie, new CampaignSerializer())
+  private lazy val everyCampaignExists = new CampaignRepository {
+    private def campaign(id: CampaignId) = DirectiveSchedule(
+      CampaignInfo(
+        id,
+        id.value,
+        "",
+        Enabled,
+        WeeklySchedule(DayTime(Monday, 0, 0), DayTime(Monday, 1, 0), None)
+      )
+    )
+    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue])(using
+        qc: QueryContext
+    ): IOResult[List[Campaign]] = ZIO.succeed(Nil)
+    override def get(id: CampaignId)(using qc: QueryContext): IOResult[Option[Campaign]] = ZIO.succeed(Some(campaign(id)))
+    override def save(c:    Campaign)(using cc:   ChangeContext): IOResult[Campaign] = ZIO.succeed(c)
+    override def delete(id: CampaignId)(using cc: ChangeContext): IOResult[Unit]     = ZIO.unit
+  }
+
+  private lazy val repo = {
+    new CampaignEventRepositoryImpl(
+      doobie,
+      new CampaignSerializer(),
+      new DefaultTenantCheckLogic(InMemoryTenantService.make(Nil).runNow),
+      everyCampaignExists
+    )
+  }
 
   sequential
 
@@ -305,7 +336,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
   "Repository on new table" should {
 
     "be able to do simple get" in {
-      repo.get(CampaignEventId("7aab5d52")).either.runNow must beRight(
+      repo.get(CampaignEventId("7aab5d52"))(using QueryContext.systemQC).either.runNow must beRight(
         beSome(
           CampaignEvent(
             CampaignEventId("7aab5d52"),
@@ -332,7 +363,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
           beforeDate = Some("2024-05-01 10:00:00+00".dateJT),
           Some(CampaignSortOrder.StartDate),
           Some(CampaignSortDirection.Desc)
-        )
+        )(using QueryContext.systemQC)
         .either
         .runNow
         .map(_.map(_.id)) must beRight(
@@ -363,10 +394,10 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       )
 
       val res = (for {
-        _  <- repo.saveCampaignEvent(e)
-        e1 <- repo.get(e.id)
-        _  <- repo.saveCampaignEvent(s)
-        e2 <- repo.get(e.id)
+        _  <- repo.saveCampaignEvent(e)(using ChangeContext.newForRudder())
+        e1 <- repo.get(e.id)(using QueryContext.systemQC)
+        _  <- repo.saveCampaignEvent(s)(using ChangeContext.newForRudder())
+        e2 <- repo.get(e.id)(using QueryContext.systemQC)
       } yield (e1, e2)).either.runNow
 
       res must beRight(beEqualTo((Some(e), Some(s))))
@@ -400,10 +431,10 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       val expectedUpdate = s.copy(state = e.state) // keep state
 
       val res = (for {
-        _  <- repo.saveCampaignEvent(e)
-        e1 <- repo.get(e.id)
-        _  <- repo.saveCampaignEvent(s)
-        e2 <- repo.get(e.id)
+        _  <- repo.saveCampaignEvent(e)(using ChangeContext.newForRudder())
+        e1 <- repo.get(e.id)(using QueryContext.systemQC)
+        _  <- repo.saveCampaignEvent(s)(using ChangeContext.newForRudder())
+        e2 <- repo.get(e.id)(using QueryContext.systemQC)
       } yield (e1, e2)).either.runNow
 
       res must beRight(beEqualTo((Some(e), Some(expectedUpdate))))
@@ -413,8 +444,8 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       val id = CampaignEventId("a97ccca1")
 
       val res = (for {
-        _ <- repo.deleteEvent(Some(id))
-        e <- repo.get(id)
+        _ <- repo.deleteEvent(Some(id))(using ChangeContext.newForRudder())
+        e <- repo.get(id)(using QueryContext.systemQC)
       } yield e).either.runNow
 
       res must beRight(beNone)

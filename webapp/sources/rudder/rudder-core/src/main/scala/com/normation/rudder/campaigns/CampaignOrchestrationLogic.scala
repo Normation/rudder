@@ -41,6 +41,8 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.rudder.hooks.HookReturnCode
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
@@ -443,13 +445,14 @@ class DefaultCampaignOrchestrationEffects(
    */
   override def saveAndQueueEvents(events: Seq[EventOrchestration]): IOResult[Unit] = {
     events.accumulate {
-      case EventOrchestration.SaveAndQueue(e)              => eventRepository.saveCampaignEvent(e) *> queue.offer(e.id).unit
+      case EventOrchestration.SaveAndQueue(e)              =>
+        eventRepository.saveCampaignEvent(e)(using ChangeContext.newForRudder()) *> queue.offer(e.id).unit
       case EventOrchestration.SaveThenUpdateAndQueue(e, s) =>
-        eventRepository.saveCampaignEvent(e) *>
-        eventRepository.saveCampaignEvent(e.copy(state = s)) *>
+        eventRepository.saveCampaignEvent(e)(using ChangeContext.newForRudder()) *>
+        eventRepository.saveCampaignEvent(e.copy(state = s))(using ChangeContext.newForRudder()) *>
         queue.offer(e.id).unit
       case EventOrchestration.Queue(id)                    => queue.offer(id).unit
-      case EventOrchestration.SaveAndStop(e)               => eventRepository.saveCampaignEvent(e)
+      case EventOrchestration.SaveAndStop(e)               => eventRepository.saveCampaignEvent(e)(using ChangeContext.newForRudder())
       case EventOrchestration.IgnoreAndStop                => ZIO.unit
     }.unit
   }
@@ -465,7 +468,7 @@ class DefaultCampaignOrchestrationEffects(
     campaign.info.status match {
       case Enabled =>
         for {
-          nbOfEvents   <- eventRepository.numberOfEventsByCampaign(campaign.info.id)
+          nbOfEvents   <- eventRepository.numberOfEventsByCampaign(campaign.info.id)(using QueryContext.systemQC)
           // check if an event is running which would end after specified date
           events       <- eventRepository.getWithCriteria(
                             RunningType :: Nil,
@@ -477,7 +480,7 @@ class DefaultCampaignOrchestrationEffects(
                             None,
                             None,
                             None
-                          )
+                          )(using QueryContext.systemQC) // this is a system query
           lastEventDate = events match {
                             case Nil => date
                             case _   =>
@@ -501,13 +504,14 @@ class DefaultCampaignOrchestrationEffects(
 
   override def getEventInfo(eventId: CampaignEventId): IOResult[(Campaign, CampaignEvent)] = {
     eventRepository
-      .get(eventId)
+      .get(eventId)(using QueryContext.systemQC)
       .notOptional(
         s"An error occurred while treating campaign event ${eventId.value}, error details : Could not find campaign event details "
       )
       .flatMap { event =>
+        // campaign event orchestration is a system task: it must see every campaign, whatever its tenants
         campaignRepository
-          .get(event.campaignId)
+          .get(event.campaignId)(using QueryContext.systemQC)
           .notOptional(s"Campaign with id ${event.campaignId.value} not found")
           .tap(_ => CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}"))
           .map(campaign => (campaign, event))
