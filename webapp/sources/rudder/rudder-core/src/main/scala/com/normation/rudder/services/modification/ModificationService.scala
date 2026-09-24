@@ -77,7 +77,7 @@ class ModificationService(
   ): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, "after")(using
+      rollback <- itemArchiveManager.rollback(commit, commiter, rollbackedEvents, target, RollbackPosition.After)(using
                     QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
                   )
     } yield {
@@ -93,7 +93,7 @@ class ModificationService(
   ): IOResult[GitCommitId] = {
     for {
       commit   <- commitOf(eventLog)
-      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, "before")(using
+      rollback <- itemArchiveManager.rollback(parentOf(commit), commiter, rollbackedEvents, target, RollbackPosition.Before)(using
                     QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal)
                   )
     } yield {

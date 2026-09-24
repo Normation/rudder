@@ -41,13 +41,14 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.EventLogRequest.*
 import com.normation.eventlog.EventLogType
+import com.normation.eventlog.RollbackPosition
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
 import enumeratum.Enum
-import enumeratum.EnumEntry.Lowercase
+import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -194,23 +195,29 @@ object RestEventLogDetails {
   implicit val encoder:               JsonEncoder[RestEventLogDetails] = DeriveJsonEncoder.gen[RestEventLogDetails]
 }
 
-final case class RestEventLogRollback(
-    action: RestEventLogRollback.Action,
-    id:     String
-)
-
-object RestEventLogRollback {
-  sealed trait Action extends Lowercase
-  object Action       extends Enum[Action] {
-    case object After  extends Action
-    case object Before extends Action
-    // revert only the item the event log is about, and not everything that happened since
-    case object Item   extends Action
-
-    override def values: IndexedSeq[Action] = findValues
-
-    implicit val encoder: JsonEncoder[Action] = JsonEncoder[String].contramap(_.entryName)
-  }
-
-  implicit val encoder: JsonEncoder[RestEventLogRollback] = DeriveJsonEncoder.gen[RestEventLogRollback]
+// what the rollback is about: only the item the event log is about, or the whole configuration
+sealed trait RestRollbackType(val value: String) extends EnumEntry              {
+  override def entryName: String = value
+  def serialize:          String = value
 }
+object RestRollbackType                          extends Enum[RestRollbackType] {
+  case object Item             extends RestRollbackType("item")
+  case object AllConfiguration extends RestRollbackType("allConfiguration")
+
+  override def values: IndexedSeq[RestRollbackType] = findValues
+
+  implicit val encoder: JsonEncoder[RestRollbackType] = JsonEncoder[String].contramap(_.serialize)
+  implicit val decoder: JsonDecoder[RestRollbackType] =
+    JsonDecoder[String].mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage))
+}
+
+final case class RestRollbackRequest(
+    position:                        RollbackPosition,
+    @jsonField("type") rollbackType: Option[RestRollbackType]
+) derives JsonDecoder
+
+final case class RestEventLogRollback(
+    position:                        RollbackPosition,
+    @jsonField("type") rollbackType: RestRollbackType,
+    id:                              String
+) derives JsonEncoder

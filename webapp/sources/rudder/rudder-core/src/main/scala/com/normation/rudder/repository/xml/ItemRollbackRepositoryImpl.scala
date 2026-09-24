@@ -59,7 +59,6 @@ import com.normation.rudder.tenants.ChangeContext.toQC
 import com.softwaremill.quicklens.*
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
-import org.eclipse.jgit.lib.PersonIdent
 import zio.*
 import zio.syntax.*
 
@@ -113,46 +112,49 @@ class ItemRollbackRepositoryImpl(
   }
 
   /**
-   * Rollback the items (directives, groups, global parameters, rules, techniques) corresponding to given event logs
-   * to their version at given commit: `archiveId` is already the commit to which we want to restore the item.
+   * Rollback the item (directive, group, global parameter, rule, technique) corresponding to the given event log
+   * to their version at given commit.
+   * There is only a single event that is rolled back (in contrary to API of [[ItemArchiveManager]]).
    *
    * Rollback must ensure that the git repo is consistent even for a single item, so use semaphore
    */
   override def rollbackItem(
-      archiveId:        GitCommitId,
-      commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
+      target:   RollbackTarget,
+      eventLog: EventLog
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     import cc.*
     for {
-      _ <- GitArchiveLoggerPure.info(s"Rolling back item to their state in commit '${archiveId.value}'")
-      _ <- ZIO.foreachDiscard(rollbackedEvents)(ev => useSemaphoreOrFail(rollbackOneItem(archiveId, ev)))
-      _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, "item", message))
+      _ <- GitArchiveLoggerPure.info(s"Rolling back item to their state in commit '${target.archiveCommit.value}'")
+      _ <- useSemaphoreOrFail(rollbackOneItem(target, eventLog))
+      _ <- eventLogger.saveEventLog(modId, new Rollback(actor, List(eventLog), eventLog, target.rollbackPosition, message))
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      archiveId
+      target.archiveCommit
     }
   }
 
   /*
    * Rolling back always needs item ID in repos, we can find it in the event log details, at specific XML selector
    *
-   * Logic of reverting change, depends on event log type:
-   * - reverting an addition is just a deletion
-   * - reverting a deletion or modification is a restore of the item as it is
+   * Logic of reverting change, depends on event log type and on the state we roll back to:
+   * - the item does not exist in that state when it was added by the change we roll back before,
+   *   or deleted by the change we roll back after: it must be deleted
+   * - in all other cases, the item exists in `archiveId` and is restored as it is there
    *   - archive needs to be observed e.g. for category
-   *   - and
    */
-  private[xml] def rollbackOneItem(archiveId: GitCommitId, event: EventLog)(implicit cc: ChangeContext): IOResult[Unit] = {
+  private[xml] def rollbackOneItem(target: RollbackTarget, event: EventLog)(implicit
+      cc: ChangeContext
+  ): IOResult[Unit] = {
     event match {
       case e: DirectiveEventLog =>
         for {
           sid <- rolledBackItemId(e, XML_TAG_DIRECTIVE)
           id  <- DirectiveId.parse(sid).toIO
-          _   <- e match {
-                   case _: AddDirective => woDirectiveRepository.delete(id.uid).unit
-                   case _: DeleteDirective | _: ModifyDirective => restoreDirective(archiveId, id.uid)
+          _   <- (target, e) match {
+                   case (_: RollbackTarget.Before, _: AddDirective) | (_: RollbackTarget.After, _: DeleteDirective) =>
+                     woDirectiveRepository.delete(id.uid).unit
+                   case _                                                                                           =>
+                     restoreDirective(target.archiveCommit, id.uid)
                  }
         } yield ()
 
@@ -160,18 +162,22 @@ class ItemRollbackRepositoryImpl(
         for {
           sid <- rolledBackItemId(e, XML_TAG_NODE_GROUP)
           id  <- NodeGroupId.parse(sid).toIO
-          _   <- e match {
-                   case _: AddNodeGroup => woGroupRepository.delete(id).unit
-                   case _: DeleteNodeGroup | _: ModifyNodeGroup => restoreNodeGroup(archiveId, id)
+          _   <- (target, e) match {
+                   case (_: RollbackTarget.Before, _: AddNodeGroup) | (_: RollbackTarget.After, _: DeleteNodeGroup) =>
+                     woGroupRepository.delete(id).unit
+                   case _                                                                                           =>
+                     restoreNodeGroup(target.archiveCommit, id)
                  }
         } yield ()
 
       case e: ParameterEventLog =>
         for {
           name <- rolledBackItemId(e, XML_TAG_GLOBAL_PARAMETER, idTag = "name")
-          _    <- e match {
-                    case _: AddGlobalParameter => deleteParameter(name)
-                    case _: DeleteGlobalParameter | _: ModifyGlobalParameter => restoreParameter(archiveId, name)
+          _    <- (target, e) match {
+                    case (_: RollbackTarget.Before, _: AddGlobalParameter) | (_: RollbackTarget.After, _: DeleteGlobalParameter) =>
+                      deleteParameter(name)
+                    case _                                                                                                       =>
+                      restoreParameter(target.archiveCommit, name)
                   }
         } yield ()
 
@@ -180,9 +186,11 @@ class ItemRollbackRepositoryImpl(
           sid <- rolledBackItemId(e, XML_TAG_RULE)
           // rules are archived at their default revision, drop any revision the event log may carry
           id  <- RuleId.parse(sid).map(r => RuleId(r.uid)).toIO
-          _   <- e match {
-                   case _: AddRule => woRuleRepository.delete(id).unit
-                   case _: DeleteRule | _: ModifyRule => restoreRule(archiveId, id)
+          _   <- (target, e) match {
+                   case (_: RollbackTarget.Before, _: AddRule) | (_: RollbackTarget.After, _: DeleteRule) =>
+                     woRuleRepository.delete(id).unit
+                   case _                                                                                 =>
+                     restoreRule(target.archiveCommit, id)
                  }
         } yield ()
 
@@ -190,12 +198,13 @@ class ItemRollbackRepositoryImpl(
         for {
           id      <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "id")
           version <- rolledBackItemId(e, XML_TAG_EDITOR_TECHNIQUE, idTag = "version")
-          _       <- e match {
+          _       <- (target, e) match {
                        // deleteDirective = false: a rollback must stay scoped to that one item, so we don't
                        // cascade to the directives using the technique. Deletion fails if there are any.
-                       case _: AddEditorTechnique => techniqueWriter.deleteTechnique(id, version, deleteDirective = false)
-                       case _: DeleteEditorTechnique | _: ModifyEditorTechnique =>
-                         restoreEditorTechnique(archiveId, BundleName(id), Version(version))
+                       case (_: RollbackTarget.Before, _: AddEditorTechnique) | (_: RollbackTarget.After, _: DeleteEditorTechnique) =>
+                         techniqueWriter.deleteTechnique(id, version, deleteDirective = false)
+                       case _                                                                                                       =>
+                         restoreEditorTechnique(target.archiveCommit, BundleName(id), Version(version))
                      }
         } yield ()
 
