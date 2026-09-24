@@ -18,7 +18,9 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
   val templatePath: List[String] = List("templates-hidden", "components", "ComponentTags")
   def tagsTemplate: NodeSeq      = ChooseTemplate(templatePath, "tag-form")
 
-  val jsTags: String = tags.toJson
+  // escape `<` to its JS unicode escape so a tag key/value can not close the enclosing inline <script>:
+  // zio-json does not escape `<`, and it only ever appears inside JSON string values here.
+  val jsTags: String = tags.toJson.replace("<", "\\u003c")
 
   def parseResult(s: String): Box[Tags] = s.fromJson[Tags].toBox
 
