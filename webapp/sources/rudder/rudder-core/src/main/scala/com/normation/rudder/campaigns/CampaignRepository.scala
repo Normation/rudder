@@ -46,6 +46,7 @@ import com.normation.rudder.tenants.Container
 import com.normation.rudder.tenants.IfAbsent
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.TenantCheckLogic
+import com.normation.utils.FileUtils
 import zio.*
 import zio.stm.STM
 import zio.stm.TMap
@@ -106,6 +107,9 @@ class CampaignRepositoryImpl(
     locks:              TMap[CampaignId, TReentrantLock]
 ) extends CampaignRepository {
 
+  // the lock map must not grow indefinitely
+  private[campaigns] def lockCount: UIO[Int] = locks.size.commit
+
   private def lockFor(id: CampaignId): UIO[TReentrantLock] = {
     locks
       .get(id)
@@ -147,52 +151,59 @@ class CampaignRepositoryImpl(
     }
   }
 
+  private def campaignFile(id: CampaignId): IOResult[File] = {
+    FileUtils.sanitizePath(path, s"${id.value}.json")
+  }
+
   private def rawGet(id: CampaignId): IOResult[Option[Campaign]] = {
-    val file = path / (s"${id.value}.json")
-    withReadLock(id) {
-      for {
-        campaign <- ZIO.when(file.exists) {
-                      campaignSerializer.parse(file.contentAsString)
-                    }
-      } yield {
-        campaign
-      }
+    campaignFile(id).flatMap { file =>
+      // no lock for a campaign that does not exist: it has nothing to read, and locking would add an
+      // entry to the lock map for every id ever asked for
+      ZIO.ifZIO(IOResult.attempt(file.exists))(
+        withReadLock(id)(campaignSerializer.parse(file.contentAsString).asSome),
+        None.succeed
+      )
     }
   }
 
   /*
    * When we save a campaign, we also init hook directories for that campaign.
    */
-  private def rawSave(c: Campaign): IOResult[Campaign] = withWriteLock(c.info.id) {
+  private def rawSave(c: Campaign)(implicit cc: ChangeContext): IOResult[Campaign] = withWriteLock(c.info.id) {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
+      // a schedule that can not be computed makes every later policy generation fail, so it is refused here
+      _       <- CampaignSchedule
+                   .validate(c.info.schedule)
+                   .toIO
+                   .chainError(s"Campaign '${c.info.id.value}' does not have a valid schedule")
       _       <- hooksRepository
                    .initHooks(c.info.id)
                    .chainError(
                      s"Error with hook directory initialization for campaign '${c.info.id}'"
                    )
+      path    <- campaignFile(c.info.id)
       file    <- IOResult.attempt(s"error when creating campaign file for campaign with id '${c.info.id.value}'") {
-                   val file = path / (s"${c.info.id.value}.json")
-                   file.createFileIfNotExists(true)
-                   file
+                   path.createFileIfNotExists(true)
+                   path
                  }
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.attempt(file.write(content))
-      _       <- campaignArchiver.saveCampaign(c.info.id)(using ChangeContext.newForRudder())
+      _       <- campaignArchiver.saveCampaign(c.info.id)
     } yield {
       c
     }
   }
 
-  private def rawDelete(id: CampaignId): IOResult[Unit] = withWriteLock(id) {
-    for {
-      campaign_deleted <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'") {
-                            val file = path / (s"${id.value}.json")
-                            file.delete()
-                          }
-      _                <- campaignArchiver.deleteCampaign(id)(using ChangeContext.newForRudder())
-    } yield ()
+  private def rawDelete(id: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = {
+    withWriteLock(id) {
+      for {
+        file <- campaignFile(id)
+        _    <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'")(file.delete())
+        _    <- campaignArchiver.deleteCampaign(id)
+      } yield ()
+    } *> locks.delete(id).commit
   }
 
   // Interface implementation, with the tenant limitation, call `rawXXX`
