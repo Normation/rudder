@@ -353,17 +353,17 @@ final case class Rollback(
   override val eventType: EventLogType = RollbackEventType
 
   def this(
-      actor:           EventActor,
-      rollbackedEvent: Seq[EventLog],
-      targetEvent:     EventLog,
-      rollbackType:    String,
-      reason:          Option[String]
+      actor:            EventActor,
+      rollbackedEvent:  Seq[EventLog],
+      targetEvent:      EventLog,
+      rollbackPosition: RollbackPosition,
+      reason:           Option[String]
   ) = this(
     EventLogDetails(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = Rollback.buildDetails(rollbackedEvent, targetEvent, rollbackType)
+      details = Rollback.buildDetails(rollbackedEvent, targetEvent, rollbackPosition)
     )
   )
 }
@@ -373,7 +373,7 @@ object Rollback extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): Rollback = Rollback(x._2)
 
-  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackType: String): Elem = {
+  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackPosition: RollbackPosition): Elem = {
     EventLog.withContent(
       new Elem(
         prefix = null,
@@ -396,7 +396,7 @@ object Rollback extends EventLogFilter {
           }
           val main   = {
             <main>
-                <rollbackType>{rollbackType}</rollbackType>
+                <rollbackType>{rollbackPosition.serialize}</rollbackType>
                 <id>{targetEvent.id.get}</id>
                 <type>{targetEvent.eventType.serialize}</type>
                 <author>{targetEvent.principal.name}</author>

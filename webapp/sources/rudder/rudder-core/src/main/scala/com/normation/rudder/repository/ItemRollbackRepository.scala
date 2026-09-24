@@ -38,10 +38,9 @@
 package com.normation.rudder.repository
 
 import com.normation.errors.IOResult
-import com.normation.eventlog.EventLog
+import com.normation.eventlog.*
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.tenants.ChangeContext
-import org.eclipse.jgit.lib.PersonIdent
 
 /**
  * Rollback of a single configuration item (directive, group, global parameter, rule, technique).
@@ -53,13 +52,10 @@ import org.eclipse.jgit.lib.PersonIdent
 trait ItemRollbackRepository {
 
   /**
-   * Rollback the items the given event logs are about to their state in `archiveId`, which is
-   * already the commit we want to restore them to.
+   * Rollback the items the given event logs are about to the known state
    */
   def rollbackItem(
-      archiveId:        GitCommitId,
-      commiter:         PersonIdent,
-      rollbackedEvents: Seq[EventLog],
-      target:           EventLog
+      target:   RollbackTarget,
+      eventLog: EventLog
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 }

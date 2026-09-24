@@ -55,8 +55,18 @@
         </div>
         <h4>Restore previous state of item</h4>
         <div id='{{rollbackItemId}}' class="d-flex flex-wrap align-items-center justify-content-between column-gap-3 row-gap-2">
-          <em>Restore this item to its state before this change:</em>
-          <button class="btn btn-default" id='{{rollbackBtnId}}'>Restore</button>
+          <div>
+            <span>Restore this item to the state it had:</span>
+
+            <div class="btn-group" role="group" aria-label="Rollback actions">
+              <input type="radio" class="btn-check radio-btn" name='{{itemPositionRadioName}}' id='{{itemBeforeRadioId}}' value="before" autocomplete="off" checked>
+              <label class="btn btn-outline-secondary" for='{{itemBeforeRadioId}}'>Before</label>
+
+              <input type="radio" class="btn-check radio-btn" name='{{itemPositionRadioName}}' id='{{itemAfterRadioId}}' value="after" autocomplete="off">
+              <label class="btn btn-outline-secondary" for='{{itemAfterRadioId}}'>After</label>
+            </div>
+          </div>
+          <button class="btn btn-default ms-2" id='{{rollbackBtnId}}'>Restore</button>
         </div>
         <div id='{{confirmItemId}}'></div>
 
@@ -72,10 +82,10 @@
                 <span>Restore all configuration policy to the state it had:</span>
 
                 <div class="btn-group" role="group" aria-label="Rollback actions">
-                  <input type="radio" class="btn-check radio-btn" name='{{actionRadioName}}' id='{{beforeRadioId}}' value="before" autocomplete="off">
+                  <input type="radio" class="btn-check radio-btn" name='{{positionRadioName}}' id='{{beforeRadioId}}' value="before" autocomplete="off">
                   <label class="btn btn-outline-secondary" for='{{beforeRadioId}}'>Before</label>
 
-                  <input type="radio" class="btn-check radio-btn" name='{{actionRadioName}}' id='{{afterRadioId}}' value="after" autocomplete="off" checked>
+                  <input type="radio" class="btn-check radio-btn" name='{{positionRadioName}}' id='{{afterRadioId}}' value="after" autocomplete="off" checked>
                   <label class="btn btn-outline-secondary" for='{{afterRadioId}}'>After</label>
                 </div>
               </div>
