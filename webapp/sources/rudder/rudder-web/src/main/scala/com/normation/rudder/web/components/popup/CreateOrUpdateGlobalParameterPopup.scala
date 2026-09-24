@@ -189,11 +189,8 @@ class CreateOrUpdateGlobalParameterPopup(
                                )
 
         } yield {
-          if (workflowEnabled) {
-            closePopup() & onSuccessCallback(Right(id), workflowService, contextPath)
-          } else {
-            closePopup() & onSuccessCallback(Left(param), workflowService, contextPath)
-          }
+          val result = if (workflowEnabled) Right(id) else Left(param)
+          (result, workflowService)
         }
       }
 
@@ -201,8 +198,9 @@ class CreateOrUpdateGlobalParameterPopup(
         .chainError(s"An error occurred while attempting to ${change.action.name} the parameter")
         .either
         .runNow match {
-        case Right(jsCmd) => jsCmd
-        case Left(err)    =>
+        case Right((result, workflowService)) =>
+          closePopup() & onSuccessCallback(result, workflowService, contextPath)
+        case Left(err)                        =>
           logger.error(err.fullMsg)
           formTracker.addFormError(error(err.fullMsg))
           onFailure
