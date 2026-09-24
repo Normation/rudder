@@ -10,6 +10,7 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.CampaignApi as API
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.EmptyBox
@@ -56,7 +57,7 @@ class CampaignApi(
       errors.foreach(e => LiftApiProcessingLogger.error(s"Error while extracting campaign status from request, details:  ${e}"))
       val res              = (for {
 
-        campaigns <- campaignRepository.getAll(campaignType, status)
+        campaigns <- campaignRepository.getAll(campaignType, status)(using authzToken.qc)
 
         serialized <- ZIO.foreach(campaigns)(campaignSerializer.getJson)
       } yield {
@@ -81,7 +82,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign   <- campaignRepository.get(CampaignId(resources))
+          campaign   <- campaignRepository.get(CampaignId(resources))(using authzToken.qc)
           serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson)
         } yield {
           serialized
@@ -105,7 +106,7 @@ class CampaignApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       mainCampaignService
-        .deleteCampaign(CampaignId(resources))
+        .deleteCampaign(CampaignId(resources))(using authzToken.qc.newCC(Some("Delete campaign from API")))
         .as(resources)
         .toLiftResponseOne(params, schema, _ => Some(resources))
     }
@@ -122,9 +123,13 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      given cc: ChangeContext = authzToken.qc.newCC(Some("Schedule campaign event from API"))
+
       val res = {
         for {
-          campaign <- campaignRepository.get(CampaignId(resources)).notOptional(s"Campaign with id ${resources} not found")
+          campaign <- campaignRepository
+                        .get(CampaignId(resources))(using authzToken.qc)
+                        .notOptional(s"Campaign with id ${resources} not found")
           newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now(DateTimeZone.UTC))
         } yield {
           newEvent
@@ -149,7 +154,9 @@ class CampaignApi(
 
       (for {
         campaignEvent <- ZioJsonExtractor.parseJson[CampaignEvent](req).toIO
-        saved         <- campaignEventRepository.saveCampaignEvent(campaignEvent)
+        saved         <- campaignEventRepository.saveCampaignEvent(campaignEvent)(using
+                           authzToken.qc.newCC(Some("Save campaign event from API"))
+                         )
       } yield {
         campaignEvent
       }).toLiftResponseOne(params, schema, _ => None)
@@ -168,16 +175,10 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val res = {
-        for {
-          campaign <- mainCampaignService.deleteCampaignEvent(CampaignEventId(resources))
-        } yield {
-          resources
-        }
-      }
-
-      res.toLiftResponseOne(params, schema, _ => Some(resources))
-
+      mainCampaignService
+        .deleteCampaignEvent(CampaignEventId(resources))(using authzToken.qc.newCC(Some("Delete campaign event from API")))
+        .as(resources)
+        .toLiftResponseOne(params, schema, _ => Some(resources))
     }
   }
 
@@ -200,7 +201,7 @@ class CampaignApi(
         // campaign needs to be configured with a timezone (with the current one as fallback)
         c           = if (campaign.info.schedule.tz.isDefined) campaign else campaign.setScheduleTimeZone(ScheduleTimeZone.now())
         withId      = if (campaign.info.id.value.isEmpty) c.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else c
-        saved      <- mainCampaignService.saveCampaign(withId)
+        saved      <- mainCampaignService.saveCampaign(withId)(using authzToken.qc.newCC(Some("Save campaign from API")))
         serialized <- campaignSerializer.getJson(withId)
       } yield {
         serialized
@@ -224,7 +225,7 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)(using authzToken.qc)
         .toLiftResponseList(params, schema)
     }
   }
@@ -241,7 +242,9 @@ class CampaignApi(
         authzToken: AuthzToken
     ): LiftResponse = {
 
-      campaignEventRepository.get(CampaignEventId(resources)).toLiftResponseOne(params, schema, _ => Some(resources))
+      campaignEventRepository
+        .get(CampaignEventId(resources))(using authzToken.qc)
+        .toLiftResponseOne(params, schema, _ => Some(resources))
 
     }
   }
@@ -265,7 +268,9 @@ class CampaignApi(
       val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
       val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
-        .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)
+        .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)(
+          using authzToken.qc
+        )
         .toLiftResponseList(params, schema)
     }
   }

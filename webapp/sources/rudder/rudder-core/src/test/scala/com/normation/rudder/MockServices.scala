@@ -3497,7 +3497,8 @@ sealed trait TestCampaignTrait extends Campaign
 final case class TestCampaign(info: CampaignInfo, details: TestCampaignDetails) extends TestCampaignTrait {
   val campaignType: CampaignType = TestCampaignType
   val version = 1
-  def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
+  def copyWithId(newId:      CampaignId):          Campaign = this.copy(info = info.copy(id = newId))
+  def withSecurity(security: Option[SecurityTag]): Campaign = this.modify(_.info.security).setTo(security)
   def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
 }
@@ -3532,7 +3533,9 @@ class MockCampaign() {
   object repo extends CampaignRepository {
     val items: Ref[Map[CampaignId, TestCampaignTrait]] = Ref.make(Map[CampaignId, TestCampaignTrait]((c0.info.id -> c0))).runNow
 
-    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
+    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue])(using
+        qc: QueryContext
+    ): IOResult[List[Campaign]] = {
       for {
         campaigns <- items.get.map(_.valuesIterator.toList)
       } yield {
@@ -3540,16 +3543,16 @@ class MockCampaign() {
       }
     }
 
-    override def get(id: CampaignId): IOResult[Option[Campaign]] = items.get.map(_.get(id))
+    override def get(id: CampaignId)(using qc: QueryContext): IOResult[Option[Campaign]] = items.get.map(_.get(id))
 
-    override def save(c: Campaign): IOResult[Campaign] = {
+    override def save(c: Campaign)(using cc: ChangeContext): IOResult[Campaign] = {
       c match {
         case x: TestCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
 
-    override def delete(id: CampaignId): IOResult[Unit] = {
+    override def delete(id: CampaignId)(using cc: ChangeContext): IOResult[Unit] = {
       items.update(_ - id)
     }
   }
@@ -3596,11 +3599,11 @@ class MockCampaign() {
       e.state == CampaignEventStateType.ScheduledType || e.state == CampaignEventStateType.RunningType
     }
 
-    override def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
+    override def get(id: CampaignEventId)(using qc: QueryContext): IOResult[Option[CampaignEvent]] = {
       items.get.map(_.get(id).map(_._1))
     }
 
-    override def saveCampaignEvent(event: CampaignEvent): IOResult[Unit] = {
+    override def saveCampaignEvent(event: CampaignEvent)(using cc: ChangeContext): IOResult[Unit] = {
       items.update { map =>
         val history = map.get(event.id).map(_._2).getOrElse(Nil)
         val h       = CampaignEventHistory(
@@ -3623,7 +3626,7 @@ class MockCampaign() {
         beforeDate:   Option[DateTime],
         order:        Option[CampaignSortOrder],
         asc:          Option[CampaignSortDirection]
-    ): IOResult[List[CampaignEvent]] = {
+    )(using qc: QueryContext): IOResult[List[CampaignEvent]] = {
 
       val allEvents = items.get.map(_.values.toList)
 
@@ -3685,7 +3688,8 @@ class MockCampaign() {
       }).map(_.map(_._1))
     }
 
-    override def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
+    override def numberOfEventsByCampaign(campaignId: CampaignId)(using qc: QueryContext): IOResult[Int] =
+      items.get.map(_.size)
 
     override def deleteEvent(
         id:           Option[CampaignEventId],
@@ -3694,7 +3698,7 @@ class MockCampaign() {
         campaignId:   Option[CampaignId],
         afterDate:    Option[DateTime],
         beforeDate:   Option[DateTime]
-    ): IOResult[Unit] = {
+    )(using cc: ChangeContext): IOResult[Unit] = {
 
       val eventIdFiltered: CampaignEvent => Boolean = id match {
         case None     => (_ => true)
@@ -3736,12 +3740,15 @@ class MockCampaign() {
     }
   }
 
+  val checkTenant: TenantCheckLogic = new MockTenants().checkTenant
+
   val mainCampaignService: MainCampaignService = {
     MainCampaignService
       .make(
         dumbCampaignEventRepository,
         repo,
         NoopCampaignHooksService,
+        checkTenant,
         new StringUuidGeneratorImpl(),
         0,
         0

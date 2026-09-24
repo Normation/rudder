@@ -45,6 +45,8 @@ import com.normation.rudder.services.policies.ComputeSchedule
 import com.normation.rudder.services.policies.ScheduleData
 import com.normation.rudder.services.policies.ScheduleManagement
 import com.normation.rudder.services.policies.ScheduleRepository
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.softwaremill.quicklens.*
@@ -96,8 +98,9 @@ object DirectiveScheduleSerializer extends JSONTranslateCampaign {
  */
 class CampaignScheduleRepository(campaignRepo: CampaignRepository) extends ScheduleRepository {
   override def getAll(): IOResult[Seq[DirectiveSchedule]] = {
+    // schedules are read for policy generation, a system task: it must see every schedule
     campaignRepo
-      .getAll(DirectiveScheduleType :: Nil, Nil)
+      .getAll(DirectiveScheduleType :: Nil, Nil)(using QueryContext.systemQC)
       .map(_.collect { case c: DirectiveSchedule => c })
       .chainError("Error when getting directive schedules from campaign repository")
   }
@@ -262,7 +265,7 @@ class ScheduleManagementImpl(campaignRepo: CampaignRepository, bounds: ScheduleE
   override def addOneShotEvent(id: CampaignId, start: Instant, duration: Duration): IOResult[DirectiveScheduleOneShot] = {
     for {
       campaign       <- campaignRepo
-                          .get(id)
+                          .get(id)(using QueryContext.systemQC)
                           .notOptional(s"Cannot add an on-demand run: directive schedule '${id.serialize}' was not found")
       schedule       <- campaign match {
                           case c: DirectiveSchedule => c.succeed
@@ -307,7 +310,7 @@ class ScheduleManagementImpl(campaignRepo: CampaignRepository, bounds: ScheduleE
                               s"${o.start} to ${o.end}"
                             ) *>
                             campaignRepo
-                              .save(updated)
+                              .save(updated)(using ChangeContext.newForRudder())
                               .chainError(s"Error when saving on-demand run for directive schedule '${id.serialize}'")
                               .as(o)
                         }
@@ -364,7 +367,7 @@ class ScheduleManagementImpl(campaignRepo: CampaignRepository, bounds: ScheduleE
                              s"(${target.size} events)"
                            )
                       _ <- campaignRepo
-                             .save(updated)
+                             .save(updated)(using ChangeContext.newForRudder())
                              .chainError(s"Error when saving extended horizon for directive schedule '${id.serialize}'")
                     } yield {
                       (updated.transformInto[JsonDirectiveSchedule], DirectiveScheduleEvents.toEvents(updated, target), true)

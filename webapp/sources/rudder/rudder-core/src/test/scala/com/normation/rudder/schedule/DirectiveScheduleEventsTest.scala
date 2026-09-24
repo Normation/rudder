@@ -39,6 +39,8 @@ package com.normation.rudder.schedule
 
 import com.normation.errors.*
 import com.normation.rudder.campaigns.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.UnsafeRun
 import com.softwaremill.quicklens.*
 import java.time.Instant
@@ -155,12 +157,14 @@ class DirectiveScheduleEventsTest extends Specification {
     val campaigns: Ref[Map[CampaignId, Campaign]] = Ref.make(initial.map(c => (c.info.id, c)).toMap).runNow
     val saveCount: Ref[Int]                       = Ref.make(0).runNow
 
-    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
+    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue])(using
+        qc: QueryContext
+    ): IOResult[List[Campaign]] = {
       campaigns.get.map(_.values.toList.filter(c => typeFilter.isEmpty || typeFilter.contains(c.campaignType)))
     }
-    override def get(id:    CampaignId): IOResult[Option[Campaign]] = campaigns.get.map(_.get(id))
-    override def delete(id: CampaignId): IOResult[Unit]             = campaigns.update(_ - id)
-    override def save(c: Campaign): IOResult[Campaign] = {
+    override def get(id:    CampaignId)(using qc: QueryContext):  IOResult[Option[Campaign]] = campaigns.get.map(_.get(id))
+    override def delete(id: CampaignId)(using cc: ChangeContext): IOResult[Unit]             = campaigns.update(_ - id)
+    override def save(c: Campaign)(using cc: ChangeContext): IOResult[Campaign] = {
       saveCount.update(_ + 1) *> campaigns.update(_ + (c.info.id -> c)) *> c.succeed
     }
   }
@@ -177,7 +181,7 @@ class DirectiveScheduleEventsTest extends Specification {
       val (repo, mgmt) = newManagement(campaign)
       val data         = mgmt.updateSchedules(now, campaign :: Nil).runNow
 
-      val saved = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }
+      val saved = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }
       (data.updated.keySet === Set(campaign.info.id)) and
       (data.events(campaign.info.id).size === 31) and
       (saved.flatMap(_.details.maxDate) === Some(date(10, 6).plus(java.time.Duration.ofDays(30))))
@@ -186,7 +190,7 @@ class DirectiveScheduleEventsTest extends Specification {
     "be stable on a second generation" in {
       val (repo, mgmt) = newManagement(campaign)
       val first        = mgmt.updateSchedules(now, campaign :: Nil).runNow
-      val updated      = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }.get
+      val updated      = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }.get
       val second       = mgmt.updateSchedules(now.plus(java.time.Duration.ofHours(5)), updated :: Nil).runNow
 
       (second.upToDate.keySet === Set(campaign.info.id)) and
@@ -224,7 +228,7 @@ class DirectiveScheduleEventsTest extends Specification {
 
       val (repo, mgmt) = newManagement(withEvents)
       val data         = mgmt.updateSchedules(now, withEvents :: Nil).runNow
-      val saved        = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }
+      val saved        = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }
 
       (data.events(campaign.info.id).map(_.eventId) must not contain "expired-event") and
       (saved.map(_.details.oneShots) === Some(Nil))
@@ -235,7 +239,7 @@ class DirectiveScheduleEventsTest extends Specification {
       val at           = date(10, 7)
       val (repo, mgmt) = newManagement(campaign)
       val oneShot      = mgmt.addOneShotEvent(campaign.info.id, at, java.time.Duration.ofMinutes(30)).runNow
-      val saved        = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }.get
+      val saved        = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }.get
       val data         = mgmt.updateSchedules(at, saved :: Nil).runNow
 
       (oneShot.end === at.plus(java.time.Duration.ofMinutes(30))) and
@@ -247,7 +251,7 @@ class DirectiveScheduleEventsTest extends Specification {
       // now = day 10, 5:00, inside the daily 4:00-6:00 window
       val (repo, mgmt) = newManagement(campaign)
       val oneShot      = mgmt.addOneShotEvent(campaign.info.id, now, java.time.Duration.ofMinutes(30)).runNow
-      val saved        = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }.get
+      val saved        = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }.get
 
       // the returned window is the active recurrent one, and nothing was persisted
       (oneShot.start === date(10, 4)) and
@@ -262,7 +266,7 @@ class DirectiveScheduleEventsTest extends Specification {
 
       val (repo, mgmt) = newManagement(withOs)
       val oneShot      = mgmt.addOneShotEvent(campaign.info.id, at, java.time.Duration.ofMinutes(30)).runNow
-      val saved        = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }.get
+      val saved        = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }.get
 
       (oneShot === existing) and
       (saved.details.oneShots === List(existing))
@@ -274,7 +278,7 @@ class DirectiveScheduleEventsTest extends Specification {
 
       val (repo, mgmt) = newManagement(disabled)
       val oneShot      = mgmt.addOneShotEvent(campaign.info.id, now, java.time.Duration.ofMinutes(30)).runNow
-      val saved        = repo.get(campaign.info.id).runNow.collect { case c: DirectiveSchedule => c }.get
+      val saved        = repo.get(campaign.info.id)(using QueryContext.systemQC).runNow.collect { case c: DirectiveSchedule => c }.get
 
       (oneShot.end === now.plus(java.time.Duration.ofMinutes(30))) and
       (saved.details.oneShots.map(_.eventId) === List(oneShot.eventId))

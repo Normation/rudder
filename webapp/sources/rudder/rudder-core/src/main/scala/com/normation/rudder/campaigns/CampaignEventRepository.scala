@@ -42,6 +42,10 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.IfAbsent
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.utils.DateFormaterService.toJavaInstant
 import doobie.*
 import doobie.implicits.*
@@ -56,17 +60,21 @@ import zio.json.*
 import zio.json.internal.Write
 import zio.syntax.*
 
+/*
+ * For tenants: campaign events are scoped by the campaign they belong to. An event carries no tenant tag of its own, so
+ * seeing an event means being able to see its campaign, and writing one means being able to act on it.
+ */
 trait CampaignEventRepository {
 
-  def get(campaignEventId: CampaignEventId): IOResult[Option[CampaignEvent]]
+  def get(campaignEventId: CampaignEventId)(using qc: QueryContext): IOResult[Option[CampaignEvent]]
 
   /*
    * Save an event for a campaign. Given the event type, additional details
    * can be needed.
    */
-  def saveCampaignEvent(event: CampaignEvent): IOResult[Unit]
+  def saveCampaignEvent(event: CampaignEvent)(using cc: ChangeContext): IOResult[Unit]
 
-  def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int]
+  def numberOfEventsByCampaign(campaignId: CampaignId)(using qc: QueryContext): IOResult[Int]
 
   /*
    * A function that delete events based on the query parameters. I
@@ -80,7 +88,7 @@ trait CampaignEventRepository {
       campaignId:   Option[CampaignId] = None,
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None
-  ): IOResult[Unit]
+  )(using cc: ChangeContext): IOResult[Unit]
 
   /*
    * Semantic is:
@@ -97,12 +105,29 @@ trait CampaignEventRepository {
       beforeDate:   Option[DateTime] = None,
       order:        Option[CampaignSortOrder] = None,
       asc:          Option[CampaignSortDirection] = None
-  ): IOResult[List[CampaignEvent]]
+  )(using qc: QueryContext): IOResult[List[CampaignEvent]]
 }
 
-class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
+class CampaignEventRepositoryImpl(
+    doobie:             Doobie,
+    campaignSerializer: CampaignSerializer,
+    checkTenant:        TenantCheckLogic,
+    // an event has no tag: what it may be seen through is the campaign it belongs to
+    campaignRepo:       CampaignRepository
+) extends CampaignEventRepository {
 
   import com.normation.rudder.db.Doobie.DateTimeMeta
+  /*
+   * The campaigns the acting subject may see, as a restriction to put in the query.
+   * Be careful: `None` means "no restriction at all" (an all-tenants actor), while an empty list means "nothing visible"
+   */
+  private def visibleCampaigns(using qc: QueryContext): IOResult[Option[List[CampaignId]]] = {
+    checkTenant.readerScope.readableTenantIds match {
+      case None    => None.succeed // admin level
+      case Some(_) => campaignRepo.getAll(Nil, Nil).map(cs => Some(cs.map(_.info.id)))
+    }
+  }
+
   import doobie.*
 
   implicit val campaignEventStateMeta: Meta[CampaignEventStateType] =
@@ -256,7 +281,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     def from(e: CampaignEvent): CampaignEventHistoryInsert = e.transformInto
   }
 
-  override def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
+  override def get(id: CampaignEventId)(using qc: QueryContext): IOResult[Option[CampaignEvent]] = {
     val q = {
       sql"""SELECT e.eventId, e.campaignId, e.name, e.state, e.startDate, e.endDate, e.campaignType, h.data
             FROM CampaignEvents AS e LEFT JOIN CampaignEventsStateHistory AS h
@@ -270,7 +295,12 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
                )
       event <- opt match {
                  case None    => None.succeed
-                 case Some(x) => x.toCampaignEvent.map(Some.apply).toIO
+                 case Some(x) =>
+                   campaignRepo.get(x.campaignId).flatMap {
+                     // an event of a campaign the actor can not see reads as an absent one
+                     case None    => None.succeed
+                     case Some(_) => x.toCampaignEvent.toIO.map(Some.apply)
+                   }
                }
     } yield event
   }
@@ -285,7 +315,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       beforeDate:   Option[DateTime] = None,
       order:        Option[CampaignSortOrder],
       asc:          Option[CampaignSortDirection]
-  ): IOResult[List[CampaignEvent]] = {
+  )(using qc: QueryContext): IOResult[List[CampaignEvent]] = {
 
     import com.normation.rudder.campaigns.CampaignSortDirection.*
     import com.normation.rudder.campaigns.CampaignSortOrder.*
@@ -297,7 +327,6 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"e.state", s))
     val afterQuery        = afterDate.map(d => fr"e.endDate >= ${new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery       = beforeDate.map(d => fr"e.startDate <= ${new java.sql.Timestamp(d.getMillis)}")
-    val where             = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
 
     val limitQuery  = limit.map(i => fr" limit $i").getOrElse(fr"")
     val offsetQuery = offset.map(i => fr" offset $i").getOrElse(fr"")
@@ -311,24 +340,44 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       case _                       => fr" order by startDate desc"
     }
 
-    val q = {
+    def select(tenantScope: Option[Fragment]) = {
+      val allWhere = Fragments.whereAndOpt(
+        campaignIdQuery,
+        campaignTypeQuery,
+        stateQuery,
+        afterQuery,
+        beforeQuery,
+        tenantScope
+      )
       sql"""SELECT e.eventId, e.campaignId, e.name, e.state, e.startDate, e.endDate, e.campaignType, h.data
           FROM CampaignEvents AS e LEFT JOIN CampaignEventsStateHistory AS h
           ON e.eventId = h.eventId AND e.state = h.state
-         """ ++ where ++ orderBy ++ limitQuery ++ offsetQuery
+         """ ++ allWhere ++ orderBy ++ limitQuery ++ offsetQuery
     }
 
-    for {
-      list <- transactIOResult(s"error when getting campaign events")(xa => q.query[CampaignEventSelect].to[List].transact(xa))
-      // perhaps it's not a foreach but more a collect ignore errors
-      res  <- ZIO.foreach(list)(_.toCampaignEvent.toIO)
-    } yield res
+    // the tenant restriction is part of the query, so that limit/offset still page over what the actor sees
+    visibleCampaigns.flatMap {
+      case Some(Nil) => Nil.succeed
+      case visible   =>
+        val tenantScope = visible.flatMap(_.toNel).map(ids => Fragments.in(fr"e.campaignId", ids.map(_.value)))
+        for {
+          list <- transactIOResult(s"error when getting campaign events")(xa =>
+                    select(tenantScope).query[CampaignEventSelect].to[List].transact(xa)
+                  )
+          // perhaps it is not a foreach but more a collect ignore errors
+          res  <- ZIO.foreach(list)(_.toCampaignEvent.toIO)
+        } yield res
+    }
   }
 
-  override def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = {
+  // a campaign the actor can not see has no event for them
+  override def numberOfEventsByCampaign(campaignId: CampaignId)(using qc: QueryContext): IOResult[Int] = {
     val q = sql"select count(*) from  CampaignEvents where campaignId = ${campaignId.value}"
 
-    transactIOResult(s"error when getting campaign events")(xa => q.query[Int].unique.transact(xa))
+    campaignRepo.get(campaignId).flatMap {
+      case None    => 0.succeed
+      case Some(_) => transactIOResult(s"error when getting campaign events")(xa => q.query[Int].unique.transact(xa))
+    }
   }
 
   /*
@@ -336,7 +385,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
    * In particular, if the event is "scheduled", we delete other scheduled even for that campaign, since we want to
    * have only one event at a time for a given campaign.
    */
-  override def saveCampaignEvent(c: CampaignEvent): IOResult[Unit] = {
+  override def saveCampaignEvent(c: CampaignEvent)(using cc: ChangeContext): IOResult[Unit] = {
     import doobie.*
     // on insert, we want to update current state (CampaignEvents table) and history table.
 
@@ -356,15 +405,21 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
            |SET endDate = ${sqlData.end}, data = ${sqlData.data};""".stripMargin
     }
 
-    transactIOResult(s"error when inserting event with id ${c.id.value}") { xa =>
-      (for {
-        _ <- if (c.state.value == ScheduledType) {
-               internalDelete(None, ScheduledType :: Nil, None, Some(c.campaignId), None, None)
-             } else ().pure[ConnectionIO]
-        _ <- query1.update.run
-        _ <- query2.update.run
-      } yield ()).transact(xa)
-    }.unit
+    // writing an event is acting on its campaign: same right as changing the campaign itself
+    checkTenant.manageModify(
+      campaignRepo.get(c.campaignId),
+      IfAbsent.fail(s"Campaign with id ${c.campaignId.value} not found: no event can be saved for it")
+    ) { _ =>
+      transactIOResult(s"error when inserting event with id ${c.id.value}") { xa =>
+        (for {
+          _ <- if (c.state.value == ScheduledType) {
+                 internalDelete(None, ScheduledType :: Nil, None, Some(c.campaignId), None, None)
+               } else ().pure[ConnectionIO]
+          _ <- query1.update.run
+          _ <- query2.update.run
+        } yield ()).transact(xa)
+      }.unit
+    }
   }
 
   private def internalDelete(
@@ -373,7 +428,9 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignType: Option[CampaignType],
       campaignId:   Option[CampaignId],
       afterDate:    Option[DateTime],
-      beforeDate:   Option[DateTime]
+      beforeDate:   Option[DateTime],
+      // restriction to the campaigns the actor may act on; `None` means no restriction
+      visible:      Option[List[CampaignId]] = None
   ): ConnectionIO[RuntimeFlags] = {
 
     import _root_.cats.syntax.list.*
@@ -383,7 +440,9 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"state", s))
     val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
-    val where             = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+    val visibleQuery      = visible.flatMap(_.toNel).map(ids => Fragments.in(fr"campaignId", ids.map(_.value)))
+    val where             =
+      Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery, visibleQuery)
     val query             = sql"""delete from campaignEvents """ ++ where
 
     query.update.run
@@ -396,11 +455,16 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   Option[CampaignId] = None,
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None
-  ): IOResult[Unit] = {
+  )(using cc: ChangeContext): IOResult[Unit] = {
     if (List[Iterable[Any]](id, states, campaignType, campaignId, afterDate, beforeDate).exists(_.nonEmpty)) {
-      transactIOResult(s"error when deleting campaign event")(xa =>
-        internalDelete(id, states, campaignType, campaignId, afterDate, beforeDate).transact(xa).unit
-      )
+      // deleting events of a campaign the actor can not act on is a no-op, not an error
+      visibleCampaigns(using QueryContext(cc.actor, cc.accessGrant.restrictToWrite)).flatMap {
+        case Some(Nil) => ZIO.unit
+        case visible   =>
+          transactIOResult(s"error when deleting campaign event")(xa =>
+            internalDelete(id, states, campaignType, campaignId, afterDate, beforeDate, visible).transact(xa).unit
+          )
+      }
     } else ZIO.unit
   }
 }

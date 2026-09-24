@@ -39,6 +39,7 @@ package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignSerializer.*
+import com.normation.rudder.tenants.SecurityTag
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.*
 import java.time.Instant
@@ -98,6 +99,7 @@ case class DirectiveSchedule(info: CampaignInfo, details: DirectiveScheduleDetai
   override def copyWithId(newId: CampaignId): Campaign = this.modify(_.info.id).setTo(newId)
   override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
+  override def withSecurity(security: Option[SecurityTag]): Campaign = this.modify(_.info.security).setTo(security)
 }
 
 object DirectiveSchedule {
