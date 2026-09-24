@@ -76,6 +76,9 @@
 # This package provider uses *apt*/*dpkg* to manage packages on the system.
 # *dpkg* will be used for all local actions, and *apt* is only needed to manage update and
 # installation from a repository.
+#
+# Note: When upgrading an already installed package, new dependencies are not installed.
+#       You can use `package_state_options` with the `--with-new-pkgs` option as a workaround.
 # 
 # ##### rpm
 # 
