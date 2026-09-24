@@ -250,11 +250,11 @@ object PluginsInfo {
 
     // log license info
     plugin.status.current match {
-      case RudderPluginLicenseStatus.EnabledNoLicense      =>
+      case RudderPluginLicenseStatus.EnabledNoLicense          =>
         ApplicationLoggerPure.Plugin.logEffect.info(s"Plugin '${plugin.name.value}' is enabled")
-      case RudderPluginLicenseStatus.EnabledWithLicense(i) =>
+      case RudderPluginLicenseStatus.EnabledWithLicense(i)     =>
         ApplicationLoggerPure.Plugin.logEffect.info(logInfo(plugin.name.value, i))
-      case RudderPluginLicenseStatus.Disabled(reason, _)   =>
+      case RudderPluginLicenseStatus.Disabled(reason, license) =>
         ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin '${plugin.name.value}' is disabled: ${reason}")
     }
   }

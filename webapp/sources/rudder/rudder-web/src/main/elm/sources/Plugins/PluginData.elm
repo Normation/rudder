@@ -135,8 +135,17 @@ toPlugin { id, name, abiVersion, pluginType, description, status, statusMessage,
         statusDisabledReason =
             statusMessage |> Maybe.Extra.filter (\_ -> installStatus == Installed Disabled)
 
+        ( noLicenseError, licenseErrorStatus ) =
+            findLicenseStatus (Maybe.map toPluginLicense license) errors
+
+        -- a plugin disabled in the webapp cannot be used, whatever its license errors say
         ( noLicense, licenseStatus ) =
-            findLicenseStatus statusDisabledReason (Maybe.map toPluginLicense license) errors
+            case statusDisabledReason of
+                Just reason ->
+                    ( False, InvalidLicense reason )
+
+                Nothing ->
+                    ( noLicenseError, licenseErrorStatus )
     in
     { id = id
     , name = name
@@ -148,11 +157,14 @@ toPlugin { id, name, abiVersion, pluginType, description, status, statusMessage,
     , licenseStatus = licenseStatus
     , noLicense = noLicense
     , errors =
-        [ toLicenseStatusCallout licenseStatus
-        , findAbiVersionError errors
-        ]
+        ([ toLicenseStatusCallout licenseErrorStatus
+         , findAbiVersionError errors
+         ]
             |> List.filterMap identity
             |> List.sortWith pluginCalloutErrorOrdering
+        )
+            -- the reason for disabling the plugin does not replace the license errors, it is displayed after them
+            ++ (statusDisabledReason |> Maybe.map CalloutError |> Maybe.Extra.toList)
     }
 
 
@@ -168,34 +180,31 @@ findAbiVersionError =
         )
 
 
-{-| If there is a status of disabled license, it is an invalid one, superseding other checks.
-Returns the
+{-| The license status the plugin errors tell about, and whether the license is a missing one.
+The webapp can disable a plugin for a reason of its own (see `toPlugin`), which is not a license error.
 -}
-findLicenseStatus : Maybe String -> Maybe PluginLicense -> List PluginInfoError -> ( Bool, LicenseStatus )
-findLicenseStatus statusMessage license errors =
+findLicenseStatus : Maybe PluginLicense -> List PluginInfoError -> ( Bool, LicenseStatus )
+findLicenseStatus license errors =
     let
         findErr err =
             errors |> List.Extra.find (\{ error } -> error == err)
     in
-    case ( statusMessage, license, ( findErr "license.needed.error", findErr "license.expired.error", findErr "license.near.expiration.error" ) ) of
-        ( Just message, _, _ ) ->
-            ( False, InvalidLicense message )
-
+    case ( license, ( findErr "license.needed.error", findErr "license.expired.error", findErr "license.near.expiration.error" ) ) of
         -- missing license : invalid
-        ( Nothing, _, ( Just { message }, _, _ ) ) ->
+        ( _, ( Just { message }, _, _ ) ) ->
             ( True, InvalidLicense message )
 
         -- expired license : invalid
-        ( Nothing, _, ( _, Just { message }, _ ) ) ->
+        ( _, ( _, Just { message }, _ ) ) ->
             ( False, InvalidLicense message )
 
-        ( Nothing, _, ( Nothing, _, Just { message } ) ) ->
+        ( _, ( Nothing, _, Just { message } ) ) ->
             ( False, NearExpirationLicense message )
 
-        ( Nothing, Just l, ( Nothing, Nothing, Nothing ) ) ->
+        ( Just l, ( Nothing, Nothing, Nothing ) ) ->
             ( False, ValidLicense l )
 
-        ( Nothing, Nothing, ( Nothing, Nothing, Nothing ) ) ->
+        ( Nothing, ( Nothing, Nothing, Nothing ) ) ->
             ( False, WithoutLicense )
 
 

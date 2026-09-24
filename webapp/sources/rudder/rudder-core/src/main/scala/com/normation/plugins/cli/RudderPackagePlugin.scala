@@ -98,9 +98,10 @@ object RudderPackagePlugin {
   implicit val decoder: JsonDecoder[RudderPackagePlugin] = DeriveJsonDecoder.gen[RudderPackagePlugin]
 
   /**
-    * When joining plugin information from rudder package and global information from registered plugins,
-    * we can return needed plugin details
-    */
+   * When joining plugin information from rudder package and global information from registered plugins,
+   * we can return needed plugin details.
+   * We need pre-computed license information other than from rudder package (only providing dates, see [[LicenseInfo]])
+   */
   implicit def transformer(implicit
       rudderFullVersion:    String,
       abiVersion:           AbiVersion,
@@ -108,7 +109,6 @@ object RudderPackagePlugin {
       statusDisabledReason: StatusDisabledReason,
       transformLicense:     Transformer[LicenseInfo, PluginLicense]
   ): Transformer[RudderPackagePlugin, Plugin] = {
-    val _ = transformLicense // variable is used below
     Transformer
       .define[RudderPackagePlugin, Plugin]
       .withFieldComputed(_.id, p => PluginId(p.name))
