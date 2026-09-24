@@ -51,6 +51,8 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.ModificationId
+import com.normation.eventlog.RollbackEventId
+import com.normation.eventlog.RollbackPosition
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.LinuxType.RockyLinux
@@ -422,18 +424,12 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         target:           EventLog
     ): IOResult[GitCommitId] = fakeGitCommitId.succeed
   }
-  val itemRollbackService: ItemRollbackService = new ItemRollbackService {
-    override def restoreItem(eventLog: EventLog, commiter: PersonIdent)(using
-        cc: ChangeContext
-    ): IOResult[GitCommitId] = fakeGitCommitId.succeed
-  }
   val eventLogDetailGenerator: EventLogDetailsGenerator = new EventLogDetailsGenerator(
     eventLogDetailsService,
     mockNodeGroups.groupsRepo,
     mockNodes.nodeFactRepo,
     mockRules.ruleCategoryRepo,
     modificationService,
-    itemRollbackService,
     linkUtil,
     null
   )
@@ -578,7 +574,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         commiter:         PersonIdent,
         rollbackedEvents: Seq[EventLog],
         target:           EventLog,
-        rollbackType:     String
+        rollbackPosition: RollbackPosition
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**
@@ -644,7 +640,13 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   )
 
   val eventLogCoreService = new EventLogServiceImpl(eventLogRepo)
-  val eventLogRestService = new EventLogService(eventLogRepo, eventLogDetailGenerator, fakePersonIndentService)
+  val itemRollbackService = new ItemRollbackService {
+    override def restoreItem(rollbackEventId: RollbackEventId, rollbackPosition: RollbackPosition)(using
+        cc: ChangeContext
+    ): IOResult[GitCommitId] = fakeGitCommitId.succeed
+  }
+  val eventLogRestService =
+    new EventLogService(eventLogRepo, eventLogDetailGenerator, fakePersonIndentService, itemRollbackService)
   val eventLogApi         = new EventLogAPI(
     eventLogRestService,
     eventLogCoreService,

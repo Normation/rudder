@@ -1341,13 +1341,16 @@ function buildRollbackBlock(id) {
   const block = $("#rollbackDisplay").clone();
   block.html((_, h) => h
     .replace(/{{rollbackItemId}}/g,          'rollbackItem' + id)
+    .replace(/{{itemPositionRadioName}}/g,   'itemPosition' + id)
+    .replace(/{{itemBeforeRadioId}}/g,       'itemBefore' + id)
+    .replace(/{{itemAfterRadioId}}/g,        'itemAfter' + id)
     .replace(/{{rollbackBtnId}}/g,           'rollbackBtn' + id)
     .replace(/{{confirmItemId}}/g,           'confirmItem' + id)
     .replace(/{{rollbackConfigurationId}}/g, 'rollbackConfiguration' + id)
     .replace(/{{restoreBtnId}}/g,            'restoreBtn' + id)
     .replace(/{{confirmConfigurationId}}/g,  'confirmConfiguration' + id)
     .replace(/{{restoreConfigurationId}}/g,  'restoreConfiguration' + id)
-    .replace(/{{actionRadioName}}/g,         'action' + id)
+    .replace(/{{positionRadioName}}/g,       'position' + id)
     .replace(/{{beforeRadioId}}/g,           'before' + id)
     .replace(/{{afterRadioId}}/g,            'after' + id)
   ).attr("id","rollbackDisplay" + id);
@@ -1363,17 +1366,18 @@ function getRadioChecked(radios, validate = s => s) {
  return null;
 }
 
-function confirmRollback(id, action) {
+function confirmRollback(id, position, type) {
   $.ajax({
     type: "POST",
-    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action,
+    url: contextPath + "/secure/api/eventlog/" + id + "/details/rollback",
     contentType: "application/json; charset=utf-8",
+    data: JSON.stringify({ position: position, type: type }),
     beforeSend: function() {
       $('.rollback-action').prop("disabled", true)
-      createInfoNotification("Rollback " + action + " eventlog " + id + " is starting, please wait until the process complete");
+      createInfoNotification("Rollback " + position + " eventlog " + id + " is starting, please wait until the process complete");
     },
     success: function (response, status, jqXHR) {
-      createSuccessNotification("Rollback " + action + " eventlog " + id);
+      createSuccessNotification("Rollback " + position + " eventlog " + id);
     },
     error: function (jqXHR, textStatus, errorThrown) {
       createErrorNotification("Rollback failed : " + jqXHR.responseJSON.errorDetails)

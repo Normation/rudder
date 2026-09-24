@@ -547,7 +547,7 @@ class ItemArchiveManagerImpl(
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog,
-      rollbackType:     String
+      rollbackPosition: RollbackPosition
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     import cc.*
     useSemaphoreOrFail(
@@ -558,7 +558,7 @@ class ItemArchiveManagerImpl(
         _ <- importTechniqueLibraryAndDeploy(archiveId, deploy = false)
         _ <- importGroupLibraryAndDeploy(archiveId, deploy = false)
         _ <- importParametersAndDeploy(archiveId)
-        _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, message))
+        _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackPosition, message))
         _ <- restoreCommitAtHead(
                commiter,
                "User %s requested a rollback to a previous configuration : %s".format(actor.name, archiveId.value),
