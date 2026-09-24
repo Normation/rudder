@@ -40,6 +40,8 @@ package com.normation.rudder.campaigns
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.rudder.hooks.HookReturnCode
 import enumeratum.*
 import io.scalaland.chimney.*
@@ -99,10 +101,17 @@ case class CampaignId(value: String, rev: Revision = GitVersion.DEFAULT_REV) {
 object CampaignId {
 
   // parse an id which was serialized by "id.serialize"
+  // Take care of path traversal segment here since that's also persisted in fs
   def parse(s: String): Either[String, CampaignId] = {
-    GitVersion.parseUidRev(s).map {
+    GitVersion.parseUidRev(s).flatMap {
       case (id, rev) =>
-        CampaignId(id, rev)
+        if (id.isEmpty) {
+          Left("A campaign id can not be empty")
+        } else if (id == "." || id == ".." || id.exists(c => c == '/' || c == '\\' || c.isControl)) {
+          Left(s"'${id}' is not a valid campaign id: an id is a file name, it can not contain a path")
+        } else {
+          Right(CampaignId(id, rev))
+        }
     }
   }
 
@@ -166,6 +175,40 @@ sealed trait CampaignSchedule {
   def tz: Option[ScheduleTimeZone]
 
   def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule
+}
+
+object CampaignSchedule {
+
+  /*
+   * Check that schedule is consistent - used before save
+   */
+  def validate(schedule: CampaignSchedule): PureResult[Unit] = {
+    def checkTime(what: String, hour: Int, minute: Int): PureResult[Unit] = {
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        Left(Inconsistency(s"Schedule ${what} '${hour}:${minute}' is not a valid time of day"))
+      } else Right(())
+    }
+
+    def checkDayTimes(start: DayTime, end: DayTime): PureResult[Unit] = {
+      checkTime("start", start.hour, start.minute).flatMap(_ => checkTime("end", end.hour, end.minute))
+    }
+
+    schedule match {
+      case OneShot(start, end)               =>
+        if (end.isAfter(start)) Right(())
+        else {
+          Left(
+            Inconsistency(
+              s"A one shot schedule must end after it starts, but that one starts at '${start}' and ends at '${end}'"
+            )
+          )
+        }
+      case Daily(start, end, _)              =>
+        checkTime("start", start.hour, start.minute).flatMap(_ => checkTime("end", end.hour, end.minute))
+      case WeeklySchedule(start, end, _)     => checkDayTimes(start, end)
+      case MonthlySchedule(_, start, end, _) => checkDayTimes(start, end)
+    }
+  }
 }
 
 sealed trait MonthlySchedulePosition

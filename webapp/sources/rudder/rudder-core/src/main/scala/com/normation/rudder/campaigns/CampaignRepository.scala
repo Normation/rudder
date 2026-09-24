@@ -42,6 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.utils.FileUtils
 import zio.*
 import zio.syntax.*
 
@@ -70,7 +71,6 @@ object CampaignRepositoryImpl {
     } *>
     // init archiver
     campaignArchiver.init(using ChangeContext.newForRudder()) *>
-    // return campaign repo
     new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository).succeed
   }
 }
@@ -91,14 +91,10 @@ class CampaignRepositoryImpl(
       for {
         jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
         campaigns          <- ZIO.foreach(jsonFiles.toList) { json =>
-                                (for {
-                                  c <-
-                                    campaignSerializer
-                                      .parse(json.contentAsString)
-                                      .chainError(s"Error when parsing campaign file at '${json.pathAsString}'")
-                                } yield {
-                                  c
-                                }).either
+                                campaignSerializer
+                                  .parse(json.contentAsString)
+                                  .chainError(s"Error when parsing campaign file at '${json.pathAsString}'")
+                                  .either
                               }
         (errs, campaignRes) = campaigns.partitionMap(identity)
         _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
@@ -110,9 +106,13 @@ class CampaignRepositoryImpl(
     }
   }
 
+  private def campaignFile(id: CampaignId): IOResult[File] = {
+    FileUtils.sanitizePath(path, s"${id.value}.json")
+  }
+
   override def get(id: CampaignId): IOResult[Option[Campaign]] = {
-    val file = path / (s"${id.value}.json")
     for {
+      file     <- campaignFile(id)
       campaign <- ZIO.when(file.exists) {
                     campaignSerializer.parse(file.contentAsString)
                   }
@@ -128,15 +128,20 @@ class CampaignRepositoryImpl(
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
+      // a schedule that can not be computed makes every later policy generation fail, so it is refused here
+      _       <- CampaignSchedule
+                   .validate(c.info.schedule)
+                   .toIO
+                   .chainError(s"Campaign '${c.info.id.value}' does not have a valid schedule")
       _       <- hooksRepository
                    .initHooks(c.info.id)
                    .chainError(
                      s"Error with hook directory initialization for campaign '${c.info.id}'"
                    )
+      path    <- campaignFile(c.info.id)
       file    <- IOResult.attempt(s"error when creating campaign file for campaign with id '${c.info.id.value}'") {
-                   val file = path / (s"${c.info.id.value}.json")
-                   file.createFileIfNotExists(true)
-                   file
+                   path.createFileIfNotExists(true)
+                   path
                  }
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.attempt(file.write(content))
@@ -148,11 +153,9 @@ class CampaignRepositoryImpl(
 
   override def delete(id: CampaignId): IOResult[Unit] = {
     for {
-      campaign_deleted <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'") {
-                            val file = path / (s"${id.value}.json")
-                            file.delete()
-                          }
-      _                <- campaignArchiver.deleteCampaign(id)(using ChangeContext.newForRudder())
+      file <- campaignFile(id)
+      _    <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'")(file.delete())
+      _    <- campaignArchiver.deleteCampaign(id)(using ChangeContext.newForRudder())
     } yield ()
   }
 
