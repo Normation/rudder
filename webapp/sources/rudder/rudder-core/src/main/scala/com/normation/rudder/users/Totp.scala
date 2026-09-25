@@ -38,7 +38,6 @@ package com.normation.rudder.users
 import com.normation.errors.*
 import com.normation.utils.DateFormaterService
 import enumeratum.*
-import enumeratum.EnumEntry.LowerCamelcase
 import java.time.Instant
 import zio.*
 import zio.json.enumeratum.EnumCodec
@@ -87,29 +86,68 @@ object TotpEnforcementLevel {
 
 /**
  * Per-user enrollment state.
- * This is the one exposed where we need to know if user OTP is defined or not yet
+ * This is the one exposed where we need to know if user OTP is defined or not yet.
+ * Serialized value in OTP API to get OTP status of user
  */
-sealed trait TotpUserStatus extends EnumEntry with LowerCamelcase
-object TotpUserStatus       extends Enum[TotpUserStatus] with EnumCodec[TotpUserStatus] {
-  case object EnrollmentNeeded    extends TotpUserStatus
+sealed trait TotpEnrollmentStatus(override val entryName: String) extends EnumEntry
+object TotpEnrollmentStatus                                       extends Enum[TotpEnrollmentStatus] with EnumCodec[TotpEnrollmentStatus] {
+  private case object EnrollmentNeeded    extends TotpEnrollmentStatus("enrollmentNeeded")
   // derived from global enforcement level
-  case object EnrollmentNotNeeded extends TotpUserStatus
-  case object Enrolled            extends TotpUserStatus
+  private case object EnrollmentNotNeeded extends TotpEnrollmentStatus("enrollmentNotNeeded")
+  private case object Enrolled            extends TotpEnrollmentStatus("enrolled")
 
-  extension (self: TotpUserStatus) {
-    def isEnabled: Boolean = self match {
+  extension (self: TotpEnrollmentStatus) {
+    def isEnrolled: Boolean = self match {
       case Enrolled                               => true
       case EnrollmentNeeded | EnrollmentNotNeeded => false
     }
   }
 
   // In case of not known enrollment, we can have "not enrolled" if enrollment is optional
-  def default(enforcement: TotpEnforcementLevel): TotpUserStatus = enforcement match {
+  def default(enforcement: TotpEnforcementLevel): TotpEnrollmentStatus = enforcement match {
     case TotpEnforcementLevel.Enforced => EnrollmentNeeded
     case TotpEnforcementLevel.Disabled => EnrollmentNotNeeded
   }
 
+  def enrolled: TotpEnrollmentStatus = Enrolled
+
+  override def values: IndexedSeq[TotpEnrollmentStatus] = findValues
+}
+
+/**
+ * Per-user OTP display status in user management.
+ * It's not strictly the same semantic as [[TotpEnrollmentStatus]] since
+ * it represents user management semantics with provider options.
+ */
+sealed trait TotpUserStatus(override val entryName: String) extends EnumEntry
+object TotpUserStatus                                       extends Enum[TotpUserStatus] with EnumCodec[TotpUserStatus] {
+  case object Enrolled      extends TotpUserStatus("enrolled")
+  case object NotEnrolled   extends TotpUserStatus("notEnrolled")
+  case object NotApplicable extends TotpUserStatus("notApplicable")
   override def values: IndexedSeq[TotpUserStatus] = findValues
+
+}
+
+/**
+ * All of a user's TOTP info.
+ * Note that there is an inconsistency if status is not enrolled but enrollment says so
+ */
+final class TotpUser private (id: UserId, val status: TotpUserStatus)
+object TotpUser {
+  private val delegatedAuthProviders = Set("oidc", "oauth2")
+
+  def apply(userInfo: UserInfo, enrollment: TotpEnrollmentStatus): TotpUser = {
+    val status = {
+      if (enrollment.isEnrolled) TotpUserStatus.Enrolled
+      else if (delegatedAuthProviders.contains(userInfo.managedBy)) TotpUserStatus.NotApplicable
+      else TotpUserStatus.NotEnrolled
+    }
+    new TotpUser(UserId(userInfo.id), status)
+  }
+
+  def default(userInfo: UserInfo, enforcement: TotpEnforcementLevel): TotpUser = {
+    apply(userInfo, TotpEnrollmentStatus.default(enforcement))
+  }
 }
 
 /**

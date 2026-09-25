@@ -7,7 +7,7 @@ response:
     {
       "action":"getOtpStatus",
       "result":"success",
-      "data":"enrollmentNotNeeded"
+      "data":"enrolled"
     }
 ---
 description: Generate a new OTP secret for current user

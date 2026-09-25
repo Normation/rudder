@@ -3,7 +3,7 @@ module UserManagement.JsonDecoder exposing (..)
 import Dict
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
-import UserManagement.DataTypes exposing (ProviderInfo, ProviderProperties, ProvidersInfo, Role, RoleConf, RoleListOverride(..), User, UserInfoForm, UserStatus(..), UsersConf)
+import UserManagement.DataTypes exposing (ProviderInfo, ProviderProperties, ProvidersInfo, Role, RoleConf, RoleListOverride(..), User, UserInfoForm, UserOtpStatus(..), UserStatus(..), UsersConf)
 
 
 decodeApiReloadResult : Decoder String
@@ -95,7 +95,7 @@ decodeUser =
         |> required "tenants" D.string
         |> optional "lastLogin" (D.maybe D.string) Nothing
         |> optional "previousLogin" (D.maybe D.string) Nothing
-        |> required "otpEnabled" D.bool
+        |> required "otpStatus" decodeUserOtpStatus
 
 
 decodeUserStatus : Decoder UserStatus
@@ -112,6 +112,28 @@ decodeUserStatus =
 
                     _ ->
                         D.succeed Deleted
+            )
+
+
+decodeUserOtpStatus : Decoder UserOtpStatus
+decodeUserOtpStatus =
+    D.string
+        |> D.andThen
+            (\str ->
+                case str of
+                    "enrolled" ->
+                        D.succeed OtpEnrolled
+
+                    "notEnrolled" ->
+                        D.succeed OtpNotEnrolled
+
+                    "notApplicable" ->
+                        D.succeed OtpNotApplicable
+
+                    s ->
+                        D.fail <|
+                            "Unknown value for otp status: expected one of enrolled,notEnrolled,notApplicable; got "
+                                ++ s
             )
 
 

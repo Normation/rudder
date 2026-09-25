@@ -1090,9 +1090,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     }
   }
   val otpService = new TotpService {
-    override def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]] = Map.empty.succeed
-    override def getUserStatus(userId: UserId): IOResult[TotpUserStatus] = TotpUserStatus.EnrollmentNotNeeded.succeed
-    override def getGlobalStatus(): IOResult[Boolean] = false.succeed
+    override def getAllTotpUser(users: List[UserInfo]): IOResult[Map[UserId, TotpUser]] = Map.empty.succeed
+    override def getUserStatus(userId: UserId):         IOResult[TotpEnrollmentStatus]  = TotpEnrollmentStatus.enrolled.succeed
+    override def getGlobalStatus(): IOResult[TotpEnforcementLevel] = TotpEnforcementLevel.Enforced.succeed
     override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = TotpSecretData.make(userId, TotpSecret("secret"))
 
     override def verifyGenerated(userId: UserId, code: String): IOResult[Totp] = ???
