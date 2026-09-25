@@ -362,6 +362,15 @@ rudder.dir.backup=/var/rudder/share/backup/
 rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 
 #
+# Maximum size of an uploaded file
+#
+# Maximum size of each file uploaded to the Rudder server (shared files, technique resources,
+# inventories, archives...). It is a number of bytes, with an optional unit suffix: KiB/MiB/GiB
+# for powers of 1024, kB/MB/GB for powers of 1000.
+#
+rudder.server.upload.maxSize=8MiB
+
+#
 # Debug Node Configuration parameters
 #
 # Node Configurations are all the parameters (global parameters,

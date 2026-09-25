@@ -112,7 +112,8 @@
         downloadsUrl: apiPath,
         dir: "/",
         hasWriteRights : hasWriteRights,
-        initRun : true
+        initRun : true,
+        maxUploadSize : maxUploadSize
       }
     });
   fm.ports.errorNotification.subscribe(function(errorMessage) {

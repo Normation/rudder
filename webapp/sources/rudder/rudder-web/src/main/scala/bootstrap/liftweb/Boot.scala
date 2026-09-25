@@ -109,6 +109,15 @@ import zio.syntax.*
  */
 object Boot {
 
+  val MULTIPART_ENVELOPE_SIZE: Int = 4 * 1024
+
+  def setUploadLimits(liftRules: LiftRules, maxUploadSize: Long): Unit = {
+    // for one file
+    liftRules.maxMimeFileSize = maxUploadSize
+    // for the whole POST
+    liftRules.maxMimeSize = maxUploadSize + MULTIPART_ENVELOPE_SIZE
+  }
+
   /**
     * A vendor for our custom headers.
     * We use it as default vendor for headers with our custom routing logic of CSP headers for instance.
@@ -447,8 +456,7 @@ class Boot extends Loggable {
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
     LiftRules.ajaxPostTimeout = 30000
 
-    // Same as default LiftRules.maxMimeSize
-    LiftRules.maxMimeFileSize = 8 * 1024 * 1024
+    setUploadLimits(LiftRules.realInstance, RudderConfig.RUDDER_SERVER_UPLOAD_MAX_SIZE)
 
     // We don't want to reload the page
     LiftRules.redirectAsyncOnSessionLoss = false;
