@@ -94,39 +94,48 @@ hashPasswordMenu isHashedPasswd =
 
 
 displayOtpBlock : Model -> User -> Html Msg
-displayOtpBlock ({ otpEnabled } as model) user =
+displayOtpBlock ({ otpEnabled } as model) { otpStatus, providers, login } =
     let
         title =
             h3 [] [ text "TOTP" ]
 
         content =
-            if user.otpEnabled then
-                div []
-                    [ p []
-                        [ if otpEnabled then
-                            em [] [ text "Reset user TOTP to enable them register on next login:" ]
+            case otpStatus of
+                OtpEnrolled ->
+                    div []
+                        [ p []
+                            [ if otpEnabled then
+                                em [] [ text "Reset user TOTP to enable them register on next login:" ]
+
+                              else
+                                em [] [ text "Login with TOTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
+                            ]
+                        , button
+                            [ class "btn btn-danger"
+                            , type_ "button"
+                            , onClick (CallApi (\_ -> resetUserOtp model login))
+                            ]
+                            [ text "Reset", i [ class "ms-2 fa fa-repeat fa-flip-horizontal" ] [] ]
+                        ]
+
+                OtpNotEnrolled ->
+                    div [ class "alert alert-warning" ]
+                        [ i [ class "fa fa-exclamation-triangle" ] []
+                        , text "User has no TOTP registered."
+                        , if otpEnabled then
+                            p [] [ text "User will be asked to register TOTP on their next login." ]
 
                           else
-                            em [] [ text "Login with TOTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
+                            text ""
                         ]
-                    , button
-                        [ class "btn btn-danger"
-                        , type_ "button"
-                        , onClick (CallApi (\_ -> resetUserOtp model user.login))
+
+                OtpNotApplicable ->
+                    div [ class "msg-providers" ]
+                        [ text <|
+                            "User with provider "
+                                ++ String.join "," providers
+                                ++ " cannot have TOTP enabled upon login"
                         ]
-                        [ text "Reset", i [ class "ms-2 fa fa-repeat fa-flip-horizontal" ] [] ]
-                    ]
-
-            else
-                div [ class "alert alert-warning" ]
-                    [ i [ class "fa fa-exclamation-triangle" ] []
-                    , text "User has no TOTP registered."
-                    , if otpEnabled then
-                        p [] [ text "User will be asked to register TOTP on their next login." ]
-
-                      else
-                        text ""
-                    ]
     in
     div []
         [ title
@@ -935,13 +944,15 @@ displayUsersTable model users =
                     [ displayUserPreviousLogin user
                     ]
                 , td []
-                    [ text
-                        (if user.otpEnabled then
-                            "✓"
+                    [ case user.otpStatus of
+                        OtpEnrolled ->
+                            text "✓"
 
-                         else
-                            "-"
-                        )
+                        OtpNotEnrolled ->
+                            span [ class "empty" ] [ text "-" ]
+
+                        OtpNotApplicable ->
+                            span [ class "empty" ] [ text "n/a" ]
                     ]
                 , td []
                     [ button
@@ -1107,6 +1118,17 @@ getSortFunction model u1 u2 =
                 _ ->
                     checkOrder (N.compare i1 i2)
 
+        otpRank otp =
+            case otp of
+                OtpNotApplicable ->
+                    0
+
+                OtpNotEnrolled ->
+                    1
+
+                OtpEnrolled ->
+                    2
+
         checkOrder : Order -> Order
         checkOrder o =
             if model.ui.tableFilters.sortOrder == Asc then
@@ -1152,7 +1174,7 @@ getSortFunction model u1 u2 =
             checkOrder (N.compare u1.name u2.name)
 
         OtpEnabled ->
-            checkOrder (compareBool u1.otpEnabled u2.otpEnabled)
+            checkOrder (compare (otpRank u1.otpStatus) (otpRank u2.otpStatus))
 
         PreviousLogin ->
             case ( u1.previousLogin, u2.previousLogin ) of

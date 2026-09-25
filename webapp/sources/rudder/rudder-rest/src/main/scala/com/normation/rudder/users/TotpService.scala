@@ -71,17 +71,17 @@ trait TotpService {
   /**
    * Check OTP is globally enforced for all users.
    */
-  def getGlobalStatus(): IOResult[Boolean]
+  def getGlobalStatus(): IOResult[TotpEnforcementLevel]
 
   /**
-   * Get per-user enrollment status
+   * Get per-user enrollment status for provided users
    */
-  def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]]
+  def getAllTotpUser(users: List[UserInfo]): IOResult[Map[UserId, TotpUser]]
 
   /**
    * Get user enrollment status, if user does not exist, they need to enroll
    */
-  def getUserStatus(userId: UserId): IOResult[TotpUserStatus]
+  def getUserStatus(userId: UserId): IOResult[TotpEnrollmentStatus]
 
   def verify(userId: UserId, code: String): IOResult[Unit]
 }
@@ -186,20 +186,29 @@ class InMemoryVerificationTotpService(
     } yield ()
   }
 
-  override def getGlobalStatus(): IOResult[Boolean] = {
-    enabledOtp.succeed
+  override def getGlobalStatus(): IOResult[TotpEnforcementLevel] = {
+    if (enabledOtp) TotpEnforcementLevel.Enforced.succeed
+    else TotpEnforcementLevel.Disabled.succeed
   }
 
-  override def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]] = {
+  override def getAllTotpUser(users: List[UserInfo]): IOResult[Map[UserId, TotpUser]] = {
     totpRepository
       .getEnabledUsers()
-      .map(_.map(u => u -> TotpUserStatus.Enrolled).toMap)
+      .map(enabledUsers => {
+        users
+          .flatMap(u => {
+            val userId = UserId(u.id)
+            if (enabledUsers.contains(userId)) Some((userId, TotpUser(u, TotpEnrollmentStatus.enrolled)))
+            else None
+          })
+          .toMap
+      })
   }
 
-  override def getUserStatus(userId: UserId): IOResult[TotpUserStatus] = {
+  override def getUserStatus(userId: UserId): IOResult[TotpEnrollmentStatus] = {
     totpRepository
       .getByUserId(userId)
-      .map(_.as(TotpUserStatus.Enrolled).getOrElse(TotpUserStatus.default(globalLevel)))
+      .map(_.as(TotpEnrollmentStatus.enrolled).getOrElse(TotpEnrollmentStatus.default(globalLevel)))
   }
 }
 

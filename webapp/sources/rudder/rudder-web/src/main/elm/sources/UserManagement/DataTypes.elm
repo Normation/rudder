@@ -81,7 +81,7 @@ type alias User =
     , tenants : String
     , lastLogin : Maybe String
     , previousLogin : Maybe String
-    , otpEnabled : Bool
+    , otpStatus : UserOtpStatus
     }
 
 
@@ -89,6 +89,12 @@ type UserStatus
     = Active
     | Disabled
     | Deleted
+
+
+type UserOtpStatus
+    = OtpEnrolled
+    | OtpNotEnrolled
+    | OtpNotApplicable
 
 
 
@@ -206,6 +212,16 @@ providerCanEditRoles model provider =
                 |> Maybe.map (\p -> p.roleListOverride /= Override)
                 |> Maybe.withDefault False
            )
+
+
+supportsOtp : Provider -> Bool
+supportsOtp p =
+    p /= "oidc" && p /= "oauth2"
+
+
+canRegisterOtp : User -> Bool
+canRegisterOtp user =
+    List.any supportsOtp (userProviders user.providers)
 
 
 type alias UsersConf =

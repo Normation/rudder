@@ -54,35 +54,8 @@ import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
-import com.normation.rudder.users.EventTrace
-import com.normation.rudder.users.FileUserDetailListProvider
-import com.normation.rudder.users.JsonAddedUser
-import com.normation.rudder.users.JsonAuthConfig
-import com.normation.rudder.users.JsonCoverage
-import com.normation.rudder.users.JsonDeletedUser
-import com.normation.rudder.users.JsonProviderInfo
-import com.normation.rudder.users.JsonProviderProperty
-import com.normation.rudder.users.JsonReloadResult
-import com.normation.rudder.users.JsonRights
-import com.normation.rudder.users.JsonRole
-import com.normation.rudder.users.JsonRoleAuthorizations
-import com.normation.rudder.users.JsonRoles
-import com.normation.rudder.users.JsonStatus
-import com.normation.rudder.users.JsonUpdatedUser
-import com.normation.rudder.users.JsonUpdatedUserInfo
-import com.normation.rudder.users.JsonUser
-import com.normation.rudder.users.JsonUserFormData
+import com.normation.rudder.users.*
 import com.normation.rudder.users.Serialisation.*
-import com.normation.rudder.users.TotpService
-import com.normation.rudder.users.TotpUserStatus
-import com.normation.rudder.users.UpdateUserInfo
-import com.normation.rudder.users.UserId
-import com.normation.rudder.users.UserInfo
-import com.normation.rudder.users.UserManagementIO
-import com.normation.rudder.users.UserManagementService
-import com.normation.rudder.users.UserRepository
-import com.normation.rudder.users.UserSession
-import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.zio.currentOffsetDateTimeUTC
 import enumeratum.*
@@ -261,7 +234,7 @@ class UserManagementApiImpl(
         allRoles     <- RudderRoles.getAllRoles
         file          = userService.authConfig
         roles         = allRoles.values.toSet
-        otpStatusMap <- totpService.getAllUserStatus()
+        otpStatusMap <- totpService.getAllTotpUser(users)
         otpEnforced  <- totpService.getGlobalStatus()
         jsonUsers    <-
           ZIO.foreach(users)(u => {
@@ -290,7 +263,8 @@ class UserManagementApiImpl(
 
               // depending on provider property configuration, we should merge or override roles
               val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
-              val otpEnabled                = otpStatusMap.get(UserId(u.id)).exists(_ == TotpUserStatus.Enrolled)
+              val otpStatus                 =
+                otpStatusMap.getOrElse(UserId(u.id), TotpUser.default(u, otpEnforced)).status
 
               val userWithoutPermissions = transformUser(
                 u.id,
@@ -300,20 +274,20 @@ class UserManagementApiImpl(
                 u,
                 Map(u.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), u.managedBy)),
                 lastSession.map(_.creationDate),
-                otpEnabled
+                otpStatus
               )
 
               file.users.get(u.id) match {
                 case None    => {
                   // we still need to consider one role extension case : if provider cannot define roles, user cannot have any role
                   mainProviderRoleExtension match {
-                    case Some(ProviderRoleExtension.None) => userWithoutPermissions.copy(otpEnabled = otpEnabled)
+                    case Some(ProviderRoleExtension.None) => userWithoutPermissions.copy(otpStatus = otpStatus)
                     case _                                =>
                       transformProvidedUser(
                         u,
                         TenantAccessGrant.All,
                         lastSession,
-                        otpEnabled
+                        otpStatus
                       ) // default value for tenants is "all" if not in file
                   }
                 }
@@ -333,18 +307,18 @@ class UserManagementApiImpl(
                       u,
                       Map(fileProviderInfo.provider -> fileProviderInfo),
                       lastSession.map(_.creationDate),
-                      otpEnabled
+                      otpStatus
                     ).withRoleCoverage(currentUserDetails)
                   } else {
                     // we need to merge the two users, the one from the file and the one from the session
                     mainProviderRoleExtension match {
                       case Some(ProviderRoleExtension.WithOverride) =>
                         // Do not recompute roles nor roles coverage, because file roles are overridden by provider roles
-                        transformProvidedUser(u, currentUserDetails.accessGrant, lastSession, otpEnabled)
+                        transformProvidedUser(u, currentUserDetails.accessGrant, lastSession, otpStatus)
                           .addProviderInfo(fileProviderInfo)
                       case Some(ProviderRoleExtension.NoOverride)   =>
                         // Merge the previous session roles with the file roles and recompute role coverage over the merge result
-                        transformProvidedUser(u, currentUserDetails.accessGrant, lastSession, otpEnabled)
+                        transformProvidedUser(u, currentUserDetails.accessGrant, lastSession, otpStatus)
                           .merge(fileProviderInfo)
                           .withRoleCoverage(currentUserDetails)
                       case Some(ProviderRoleExtension.None)         =>
@@ -362,7 +336,7 @@ class UserManagementApiImpl(
                           u,
                           Map(fileProviderInfo.provider -> fileProviderInfo),
                           lastSession.map(_.creationDate),
-                          otpEnabled
+                          otpStatus
                         ).withRoleCoverage(currentUserDetails)
                     }
                   }
@@ -371,7 +345,7 @@ class UserManagementApiImpl(
             }
           })
       } yield {
-        serialize(jsonUsers.sortBy(_.id), otpEnforced)
+        serialize(jsonUsers.sortBy(_.id), otpEnforced == TotpEnforcementLevel.Enforced)
       }).chainError("Error when retrieving user list").toLiftResponseOne(params, schema, _ => None)
     }
   }
@@ -661,7 +635,7 @@ class UserManagementApiImpl(
       info:          UserInfo,
       providersInfo: Map[String, JsonProviderInfo],
       lastLogin:     Option[OffsetDateTime],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   )(implicit previousLogin: Option[OffsetDateTime]): JsonUser = {
     // NoRights and AnyRights directly map to known user permissions. AnyRights takes precedence over NoRights.
     if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) {
@@ -675,7 +649,7 @@ class UserManagementApiImpl(
         getDisplayTenants(nodePerms),
         lastLogin = lastLogin.map(_.toJodaDateTime),
         previousLogin = previousLogin.map(_.toJodaDateTime),
-        otpEnabled = otpEnabled
+        otpStatus = otpStatus
       )
     } else if (authz.authorizationTypes.isEmpty || authz.authorizationTypes.contains(AuthorizationType.NoRights)) {
       JsonUser.noRights(
@@ -688,7 +662,7 @@ class UserManagementApiImpl(
         getDisplayTenants(nodePerms),
         lastLogin = lastLogin.map(_.toJodaDateTime),
         previousLogin = previousLogin.map(_.toJodaDateTime),
-        otpEnabled = otpEnabled
+        otpStatus = otpStatus
       )
     } else {
       JsonUser(
@@ -701,7 +675,7 @@ class UserManagementApiImpl(
         getDisplayTenants(nodePerms),
         lastLogin = lastLogin.map(_.toJodaDateTime),
         previousLogin = previousLogin.map(_.toJodaDateTime),
-        otpEnabled = otpEnabled
+        otpStatus = otpStatus
       )
     }
   }
@@ -710,7 +684,7 @@ class UserManagementApiImpl(
       userInfo:      UserInfo,
       nodePerms:     TenantAccessGrant,
       previousLogin: Option[OffsetDateTime],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   ): Transformer[UserSession, JsonUser] = {
     def getDisplayPermissions(userSession: UserSession): JsonRoles = {
       JsonRoles(userSession.permissions.flatMap {
@@ -748,7 +722,7 @@ class UserManagementApiImpl(
       .withFieldConst(_.tenants, getDisplayTenants(nodePerms))
       .withFieldConst(_.previousLogin, previousLogin.map(_.toJodaDateTime))
       .withFieldConst(_.customRights, JsonRights.empty)
-      .withFieldConst(_.otpEnabled, otpEnabled)
+      .withFieldConst(_.otpStatus, otpStatus)
       .buildTransformer
   }
 
@@ -763,7 +737,7 @@ class UserManagementApiImpl(
       userInfo:      UserInfo,
       nodePerms:     TenantAccessGrant,
       lastSession:   Option[UserSession],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   )(implicit
       allRoles:      Set[Role],
       previousLogin: Option[OffsetDateTime]
@@ -778,13 +752,13 @@ class UserManagementApiImpl(
           userInfo,
           Map(userInfo.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), userInfo.managedBy)),
           lastSession.map(_.creationDate),
-          otpEnabled
+          otpStatus
         )
       }
       case Some(userSession) => {
-        implicit val user:          UserInfo          = userInfo
-        implicit val tenants:       TenantAccessGrant = nodePerms
-        implicit val otpEnabledVal: Boolean           = otpEnabled
+        implicit val user:         UserInfo          = userInfo
+        implicit val tenants:      TenantAccessGrant = nodePerms
+        implicit val otpStatusVal: TotpUserStatus    = otpStatus
         userSession.transformInto[JsonUser]
       }
     }
