@@ -91,13 +91,6 @@ object ApiLoggerPure extends NamedZioLogger {
 }
 
 /**
- * A logger dedicated to "plugin" information, especially boot info.
- */
-object PluginLogger extends Logger {
-  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("application.plugin")
-}
-
-/**
  * A logger dedicated to scheduled jobs and batches
  */
 object ScheduledJobLogger extends Logger {
