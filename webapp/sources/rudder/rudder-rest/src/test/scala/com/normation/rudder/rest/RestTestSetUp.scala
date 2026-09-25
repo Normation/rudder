@@ -458,6 +458,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   }
   val dependencyService = new DependencyAndDeletionServiceImpl(
     findDependencies,
+    mockTenants.checkTenant,
     mockDirectives.directiveRepo,
     mockDirectives.directiveRepo,
     mockRules.ruleRepo,

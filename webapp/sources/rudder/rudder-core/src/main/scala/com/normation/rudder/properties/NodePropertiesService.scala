@@ -72,11 +72,7 @@ class NodePropertiesServiceImpl(
     nodeFactRepository:    NodeFactRepository,
     propertiesRepository:  PropertiesRepository
 ) extends NodePropertiesService {
-  override def updateAll(): IOResult[Unit] = {
-
-    // this is a rudder operation
-    given qc: QueryContext = QueryContext.systemQC
-
+  override def updateAll(): IOResult[Unit] = QueryContext.asSystem("node properties are computed for the whole fleet") {
     for {
       allParams       <- globalPropsRepo.getAllGlobalParameters()
       groups          <- roNodeGroupRepository.getFullGroupLibrary()
