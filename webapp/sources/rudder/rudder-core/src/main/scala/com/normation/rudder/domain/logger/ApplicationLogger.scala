@@ -53,6 +53,13 @@ object ApplicationLogger extends Logger {
   }
 }
 
+/*
+ * Boot logger (timing and progress notification)
+ */
+object BootProgressLogger extends NamedZioLogger {
+  final override def loggerName: String = "boot.progress"
+}
+
 object ApplicationLoggerPure extends NamedZioLogger {
   parent =>
   def loggerName = "application"

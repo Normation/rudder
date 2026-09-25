@@ -42,6 +42,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
+import com.normation.rudder.db.JsonRaw
 import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
@@ -247,10 +248,12 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
   override def getAll(): IOResult[Map[NodeId, NodeStatusReport]] = {
     val query = sql"""select nodeid, details from NodeLastCompliance"""
 
+    // getAll need to split the DB query from parsing JSON so that we can have a smaller transaction
+    // and parse json in parallel - see https://issues.rudder.io/issues/29781
     ComplianceLoggerPure.debug(s"Get all compliance from base") *>
-    transactIOResult(s"error when getting save compliance for nodes")(xa =>
-      query.query[(NodeId, JNodeStatusReport)].to[Chunk].transact(xa)
-    ).map(_.map { case (id, d) => (id, d.to) }.toMap)
+    transactIOResult(s"error when getting save compliance for nodes")(xa => query.query[(NodeId, JsonRaw)].to[List].transact(xa))
+      .flatMap(rows => JsonRaw.parseAllPar[NodeId, JNodeStatusReport, NodeStatusReport](rows)(_.to))
+      .map(_.toMap)
   }
 
   override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
@@ -266,9 +269,11 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
         |  SET computationDateTime = excluded.computationDateTime, details = excluded.details ;""".stripMargin
     )
 
-    // batch update, don't fail on first error
+    // batch update, don't fail on first error.
+    // `grouped` and not `sliding`: `sliding` moves a window of that size one element at a time,
+    // so it yields overlapping batches. See https://issues.rudder.io/issues/29781
     ZIO
-      .validate(reports.sliding(jdbcBatchSize).to(Iterable)) { rs =>
+      .validate(reports.grouped(jdbcBatchSize).to(Iterable)) { rs =>
         val rows = toRows(rs)
         ComplianceLoggerPure.debug(s"Saving compliance state for ${rs.size} nodes in base") *>
         transactIOResult(s"error when saving compliance for nodes")(xa => query.updateMany(rows).transact(xa))

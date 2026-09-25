@@ -1684,6 +1684,8 @@ object RudderConfigInit {
 
   def init(): RudderServiceApi = {
 
+    BootProgress.advance(BootStep(BootPhase.Services, "instantiate Rudder services"))
+
     // a buffer to store (init) effects that need to be run before end of init, and we want to
     // have only one "runNow" for them
     val deferredEffects: scala.collection.mutable.Buffer[IOResult[?]] = scala.collection.mutable.Buffer()
@@ -1986,16 +1988,21 @@ object RudderConfigInit {
       // executed before everything.
       earlyChecks.initialize()
 
-      GitRepositoryProviderImpl
-        .make(RUDDER_GIT_ROOT_FACT_REPO)
-        .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
+      BootProgress.step(BootPhase.Git, "open node fact git repository") {
+        GitRepositoryProviderImpl
+          .make(RUDDER_GIT_ROOT_FACT_REPO)
+          .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
+      }
     }
     lazy val gitFactRepoGC       = GitGC.make(gitFactRepoProvider, RUDDER_GIT_GC)
     gitFactRepoGC.start()
     lazy val gitFactStorage      = if (RUDDER_GIT_FACT_WRITE_NODES) {
-      val r = new GitNodeFactStorageImpl(gitFactRepoProvider, Some(RUDDER_GROUP_OWNER_CONFIG_REPO), RUDDER_GIT_FACT_COMMIT_NODES)
-      r.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
-      r
+      BootProgress.step(BootPhase.Git, "check node fact git repository") {
+        val r =
+          new GitNodeFactStorageImpl(gitFactRepoProvider, Some(RUDDER_GROUP_OWNER_CONFIG_REPO), RUDDER_GIT_FACT_COMMIT_NODES)
+        r.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
+        r
+      }
     } else NoopFactStorage
 
     lazy val ldapNodeFactStorage = new LdapNodeFactStorage(
@@ -2030,8 +2037,9 @@ object RudderConfigInit {
         )
       )
 
-      val repo =
+      val repo = BootProgress.step(BootPhase.NodeFacts, "load pending and accepted node facts from LDAP") {
         CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, tenantService, tenantCheckLogic, callbacks).runNow
+      }
       repo
     }
 
@@ -2690,9 +2698,11 @@ object RudderConfigInit {
     }
     lazy val eventLogRepository           = logRepository
     lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-    lazy val gitConfigRepo                = GitRepositoryProviderImpl
-      .make(RUDDER_GIT_ROOT_CONFIG_REPO)
-      .runOrDie(err => new RuntimeException(s"Error when creating git configuration repository: " + err.fullMsg))
+    lazy val gitConfigRepo                = BootProgress.step(BootPhase.Git, "open configuration git repository") {
+      GitRepositoryProviderImpl
+        .make(RUDDER_GIT_ROOT_CONFIG_REPO)
+        .runOrDie(err => new RuntimeException(s"Error when creating git configuration repository: " + err.fullMsg))
+    }
     lazy val gitConfigRepoGC              = GitGC.make(gitConfigRepo, RUDDER_GIT_GC)
     lazy val gitRevisionProviderImpl      = {
       new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
@@ -3185,12 +3195,15 @@ object RudderConfigInit {
     )
 
     lazy val techniqueRepositoryImpl = {
-      val service = new TechniqueRepositoryImpl(
-        techniqueReader,
-        Seq(),
-        stringUuidGenerator
-      )
-      service
+      // that constructor reads the whole technique library from git
+      BootProgress.step(BootPhase.Git, "read technique library") {
+        val service = new TechniqueRepositoryImpl(
+          techniqueReader,
+          Seq(),
+          stringUuidGenerator
+        )
+        service
+      }
     }
     lazy val techniqueRepository: TechniqueRepository = techniqueRepositoryImpl
     lazy val updateTechniqueLibrary: UpdateTechniqueLibrary = techniqueRepositoryImpl
@@ -3309,13 +3322,23 @@ object RudderConfigInit {
 
     /// score ///
 
-    lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie)
-    lazy val scoreRepository       = new ScoreRepositoryImpl(doobie)
+    lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val scoreRepository       = new ScoreRepositoryImpl(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
     lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository, nodeFactRepository)
     lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 
-    deferredEffects.append(scoreService.init())
-    deferredEffects.append(scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository)))
+    // these three are one deferred effect and not three, because they depend on each other:
+    // registering a handler asks whether the nodes already have its score, and it reads that from
+    // the cache the two first ones fill. As separate effects they run in parallel, the check sees
+    // an empty cache, and every handler replays its init events at every boot - which is exactly
+    // what the check is there to avoid.
+    deferredEffects.append(
+      BootProgress.stepZIO(BootPhase.Services, "load global score cache")(scoreService.initGlobalScores()) *>
+      BootProgress.stepZIO(BootPhase.Services, "load score details cache")(scoreService.initScoreDetails()) *>
+      BootProgress.stepZIO(BootPhase.Services, "init system update score handler")(
+        scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository))
+      )
+    )
 
     /////// reporting ///////
 
@@ -3767,9 +3790,11 @@ object RudderConfigInit {
     snippetExtensionRegister.register(new PolicyBackup())
 
     lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
-      val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactRepository)
-      cached.init().runOrDie(err => new RuntimeException(s"Error when initializing node configuration cache: " + err))
-      cached
+      BootProgress.step(BootPhase.Services, "load node configuration cache") {
+        val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactRepository)
+        cached.init().runOrDie(err => new RuntimeException(s"Error when initializing node configuration cache: " + err))
+        cached
+      }
     }
 
     /*
@@ -4057,7 +4082,9 @@ object RudderConfigInit {
     )
 
     // start init effects
-    ZIO.collectAllParDiscard(deferredEffects).runNow
+    BootProgress.step(BootPhase.Services, "run deferred init effects") {
+      ZIO.collectAllParDiscard(deferredEffects).runNow
+    }
 
     // This needs to be done at the end, to be sure that all is initialized
     policyGenerationDynGroupUpdate.setDynamicsGroupsService(dyngroupUpdaterBatch)
@@ -4071,7 +4098,9 @@ object RudderConfigInit {
     userCleanupBatch.start()
 
     // init node properties - don't fail on error, just log
-    propertiesService.updateAll().catchAll(err => ApplicationLoggerPure.warn(err.fullMsg)).runNow
+    BootProgress.step(BootPhase.Services, "resolve node properties") {
+      propertiesService.updateAll().catchAll(err => ApplicationLoggerPure.warn(err.fullMsg)).runNow
+    }
 
     // UpdateDynamicGroups is part of rci
     // reportingService part of rci

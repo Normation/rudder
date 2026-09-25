@@ -50,6 +50,18 @@ trait ScoreService {
   def getAll()(implicit qc:   QueryContext): IOResult[Map[NodeId, GlobalScore]]
   def getGlobalScore(nodeId:  NodeId)(implicit qc: QueryContext): IOResult[GlobalScore]
   def getScoreDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[List[Score]]
+
+  /*
+   * Score details of all the nodes visible in that query context.
+   */
+  def getAllScoreDetails()(implicit qc: QueryContext): IOResult[Map[NodeId, List[Score]]]
+
+  /*
+   * Whether at least one node has no score yet for that handler, ie whether the handler needs to
+   * replay its init events.
+   * This is necessary to avoid replaying init several times, see: https://issues.rudder.io/issues/29781
+   */
+  def needsScoreInit(handler: ScoreEventHandler): IOResult[Boolean]
   def clean(): IOResult[Unit]
   def cleanScore(name:          String)(implicit qc:                   QueryContext): IOResult[Unit]
   def update(newScores:         Map[NodeId, List[Score]])(implicit qc: QueryContext): IOResult[Unit]
@@ -71,13 +83,29 @@ class ScoreServiceImpl(
   private val availableScore: Ref[List[(String, String)]] =
     Ref.make((ComplianceScore.scoreId, "Compliance") :: (SystemUpdateScore.scoreId, "System updates") :: Nil).runNow
 
-  def init(): IOResult[Unit] = {
+  def init(): IOResult[Unit] = initGlobalScores() *> initScoreDetails()
+
+  /*
+   * The two halves of `init` are exposed apart to allow startup timing.
+   * See https://issues.rudder.io/issues/29781 and RudderConfig deferredEffects
+   */
+  def initGlobalScores(): IOResult[Unit] = {
     for {
       nodeIds      <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
       globalScores <- globalScoreRepository.getAll()
       _            <- cache.set(globalScores.filter(n => nodeIds.contains(n._1)))
-      scores       <- scoreRepository.getAll()
-      _            <- scoreCache.set(scores.filter(n => nodeIds.contains(n._1)))
+      _            <- ScoreLoggerPure.info(s"Loaded ${globalScores.size} global scores")
+    } yield ()
+  }
+
+  def initScoreDetails(): IOResult[Unit] = {
+    for {
+      nodeIds <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
+      scores  <- scoreRepository.getAll()
+      _       <- scoreCache.set(scores.filter(n => nodeIds.contains(n._1)))
+      _       <- ScoreLoggerPure.info(
+                   s"Loaded score details of ${scores.size} nodes (${scores.values.map(_.size).sum} scores)"
+                 )
     } yield ()
   }
 
@@ -139,6 +167,24 @@ class ScoreServiceImpl(
     }
   }
 
+  def getAllScoreDetails()(implicit qc: QueryContext): IOResult[Map[NodeId, List[Score]]] = {
+    for {
+      nodeIds <- nodeFactRepo.getAll().map(_.keySet)
+      scores  <- scoreCache.get
+    } yield {
+      scores.filter { case (id, _) => nodeIds.contains(id) }
+    }
+  }
+
+  def needsScoreInit(handler: ScoreEventHandler): IOResult[Boolean] = {
+    for {
+      nodeIds      <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
+      globalScores <- cache.get
+    } yield {
+      nodeIds.exists(id => globalScores.get(id).forall(handler.initForScore))
+    }
+  }
+
   def getScoreDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[List[Score]] = {
     for {
       n   <- nodeFactRepo.get(nodeId).notOptional(s"Cannot access score details for node '${nodeId.value}'")
@@ -194,19 +240,17 @@ class ScoreServiceImpl(
                         (nodeId, GlobalScoreService.computeGlobalScore(oldScores, newScores))
                       })
 
-      updateScoreCache <- ZIO.foreach(filteredScore.toList) {
-                            case (nodeId, scores) =>
-                              ZIO.foreach(scores)(score => {
-                                scoreRepository.saveScore(nodeId, score).catchAll(err => ScoreLoggerPure.info(err.fullMsg)) *>
-                                scoreCache.update(sc =>
-                                  sc + ((nodeId, score :: sc.get(nodeId).getOrElse(Nil).filter(_.scoreId != score.scoreId)))
-                                )
-                              })
-
-                          }
-      updatedCache     <- ZIO.foreach(updatedValue.toList) {
-                            case (nodeId, score) => globalScoreRepository.save(nodeId, score) *> cache.update(_.+((nodeId, score)))
-                          }
+      // one statement per batch instead of one per (node, score): see https://issues.rudder.io/issues/29781
+      newRows       = filteredScore.toList.flatMap { case (nodeId, scores) => scores.map((nodeId, _)) }
+      _            <- scoreRepository.saveScores(newRows).catchAll(err => ScoreLoggerPure.error(err.fullMsg))
+      _            <- scoreCache.update(sc => {
+                        newRows.foldLeft(sc) {
+                          case (acc, (nodeId, score)) =>
+                            acc + ((nodeId, score :: acc.get(nodeId).getOrElse(Nil).filter(_.scoreId != score.scoreId)))
+                        }
+                      })
+      _            <- globalScoreRepository.saveAll(updatedValue)
+      _            <- cache.update(_ ++ updatedValue)
     } yield {}
 
   }
@@ -239,12 +283,26 @@ class ScoreServiceManager(readScore: ScoreService) {
 
   def registerHandler(handler: ScoreEventHandler): UIO[Unit] = {
     handlers.update(handler :: _) *>
+    /*
+     * We want to avoid that registering a handler replays its init events cost in the worst case
+     * one event per node with corresponding I/O. We still need to initialize once each handler so we guard
+     * with `needsScoreInit` and the corresponding `initForScore` in the handler.
+     * See https://issues.rudder.io/issues/29781
+     */
     (for {
-      s <- readScore
-             .getAll()(using QueryContext.systemQC)
-             .map(_.exists(g => handler.initForScore(g._2)))
-             .catchAll(err => ScoreLoggerPure.error(s"Error when getting available scores for initialization") *> false.succeed)
-      _ <- handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
+      needsInit <- readScore
+                     .needsScoreInit(handler)
+                     .catchAll(err => {
+                       // on error, do the init: replaying is only costly, skipping it would leave
+                       // nodes without a score
+                       ScoreLoggerPure.error(
+                         s"Error when checking if scores need to be initialized, initializing them: ${err.fullMsg}"
+                       ) *> true.succeed
+                     })
+      _         <- ZIO.when(needsInit) {
+                     ScoreLoggerPure.info(s"Initializing scores from handler '${handler.getClass.getSimpleName}'") *>
+                     handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
+                   }
     } yield ())
   }
 
