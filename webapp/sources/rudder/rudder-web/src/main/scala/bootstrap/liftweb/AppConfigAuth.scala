@@ -52,7 +52,6 @@ import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
-import com.normation.rudder.users.RudderAuthType
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
 import com.softwaremill.quicklens.*

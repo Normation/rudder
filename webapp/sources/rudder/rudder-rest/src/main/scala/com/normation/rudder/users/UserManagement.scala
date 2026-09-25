@@ -220,7 +220,7 @@ final case class JsonUser(
     tenants:                         String,
     lastLogin:                       Option[DateTime],
     previousLogin:                   Option[DateTime],
-    otpEnabled:                      Boolean
+    otpStatus:                       TotpUserStatus
 ) {
   def merge(providerInfo: JsonProviderInfo): JsonUser = {
     JsonUser(
@@ -233,7 +233,7 @@ final case class JsonUser(
       tenants,
       lastLogin,
       previousLogin,
-      otpEnabled
+      otpStatus
     )
   }
 
@@ -280,7 +280,7 @@ object JsonUser {
       tenants:       String,
       lastLogin:     Option[DateTime],
       previousLogin: Option[DateTime],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   ): JsonUser = {
     JsonUser(
       username,
@@ -297,7 +297,7 @@ object JsonUser {
       tenants,
       lastLogin,
       previousLogin,
-      otpEnabled
+      otpStatus
     )
   }
   def anyRights(
@@ -310,7 +310,7 @@ object JsonUser {
       tenants:       String,
       lastLogin:     Option[DateTime],
       previousLogin: Option[DateTime],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   ): JsonUser = {
     JsonUser(
       username,
@@ -327,7 +327,7 @@ object JsonUser {
       tenants,
       lastLogin,
       previousLogin,
-      otpEnabled
+      otpStatus
     )
   }
 
@@ -342,7 +342,7 @@ object JsonUser {
       tenants:       String,
       lastLogin:     Option[DateTime],
       previousLogin: Option[DateTime],
-      otpEnabled:    Boolean
+      otpStatus:     TotpUserStatus
   ): JsonUser = {
     val authz        = providersInfo.values.map(_.authz).foldLeft(JsonRights.empty)(_ ++ _)
     val roles        = providersInfo.values.map(_.roles).foldLeft(JsonRoles.empty)(_ ++ _)
@@ -363,7 +363,7 @@ object JsonUser {
       tenants,
       lastLogin,
       previousLogin,
-      otpEnabled
+      otpStatus
     )
   }
 }

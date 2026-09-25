@@ -42,7 +42,7 @@ class UserSerializationTest extends Specification {
         "",
         None,
         None,
-        false
+        TotpUserStatus.Enrolled
       )
 
       JsonUser(
@@ -55,7 +55,7 @@ class UserSerializationTest extends Specification {
         "",
         None,
         None,
-        false
+        TotpUserStatus.Enrolled
       ) must beEqualTo(expected)
     }
   }
