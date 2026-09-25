@@ -159,7 +159,12 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int, tableId: String): NodeSeq = {
+  private def displayIntro(
+      report:          NodeStatusReport,
+      nodeSettings:    RudderSettings,
+      defaultInterval: Int,
+      tableId:         String
+  ): NodeSeq = {
 
     def displayDate(d:    DateTime) = DateFormaterService.getDisplayDate(d)
     def displayDateOpt(d: Option[DateTime]): String = d.fold("an unknown date")(displayDate)
@@ -324,7 +329,7 @@ class ReportDisplayer(
             report.compliance.noAnswer + report.compliance.missing + report.compliance.unexpected + report.compliance.badPolicyMode +
               report.compliance.error + report.compliance.nonCompliant + report.compliance.auditError
           )
-          if ((nbAttention > 0) && (tableId == "reportsGrid" )) {
+          if ((nbAttention > 0) && (tableId == "reportsGrid")) {
             (
               "alert alert-warning",
               <p>{nbAttention} reports below (out of {
