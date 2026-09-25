@@ -139,6 +139,7 @@ pub enum PackageAction {
     Removed,
     Added,
     Updated,
+    PendingInstall,
 }
 
 /// The description of a package to manage
