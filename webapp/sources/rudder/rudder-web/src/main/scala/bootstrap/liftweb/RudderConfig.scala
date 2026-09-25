@@ -2986,6 +2986,7 @@ object RudderConfigInit {
         BootstrapLogger.Early.LDAP,
         new CheckLdapConnection(rwLdap),
         new CheckAddSpecialNodeGroupsDescription(rwLdap),
+        new CheckLibraryObjectsTag(new LibraryObjectsTagMigration(rwLdap, rudderDit)),
         new CheckRemoveRuddercSetting(rwLdap),
         new RemoveDeletedInventoryBranch(rwLdap)
       )

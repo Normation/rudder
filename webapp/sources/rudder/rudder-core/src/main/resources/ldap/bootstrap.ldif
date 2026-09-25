@@ -82,6 +82,7 @@ description: This is the root category for the groups (both dynamic and stat
  ic) and group categories
 groupCategoryId: GroupRoot
 isSystem: TRUE
+securityTag: open-ro
 
 dn: groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: groupCategory
@@ -90,6 +91,7 @@ cn: System groups
 description: That category holds all the system and special target
 groupCategoryId: SystemGroups
 isSystem: TRUE
+securityTag: open-ro
 
 dn: ruleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget
@@ -99,6 +101,7 @@ cn: All nodes
 description: All nodes known by Rudder (including Rudder policy servers)
 isEnabled: TRUE
 isSystem: TRUE
+securityTag: open-ro
 
 dn: ruleTarget=special:all_exceptPolicyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget
@@ -108,6 +111,7 @@ cn: All managed nodes
 description: All nodes known by Rudder (excluding Rudder policy servers)
 isEnabled: TRUE
 isSystem: TRUE
+securityTag: open-ro
 
 dn: ruleTarget=special:all_policyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget
@@ -117,6 +121,7 @@ cn: All policy servers
 description: All policy servers (root policy server and relays)
 isEnabled: TRUE
 isSystem: TRUE
+securityTag: open-ro
 
 dn: nodeGroupId=all-nodes-with-cfengine-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
@@ -140,6 +145,7 @@ cn: Active Techniques
 description: This is the root category for active techniques. It contains subcategories, actives techniques and directives
 techniqueCategoryId: Active Techniques
 isSystem: TRUE
+securityTag: open-ro
 
 # System active technique library
 dn: techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration

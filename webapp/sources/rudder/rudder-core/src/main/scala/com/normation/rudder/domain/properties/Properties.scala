@@ -243,7 +243,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
   final def visibility: Visibility = GenericProperty.getVisibility(config)
 
   final def security: Option[SecurityTag] = {
-    if (config.hasPath(SECURITY)) config.getString(SECURITY).fromJson[SecurityTag].toOption
+    if (config.hasPath(SECURITY)) SecurityTag.parseJsonValue(Some(config.getString(SECURITY)), s"property '${name}'")
     else None
   }
 

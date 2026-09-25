@@ -104,9 +104,10 @@ class ReportsTest extends DBCommon {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._2, nodeId, t._3, t._4, t._5, t._6, t._7, t._8))))
   }
 
-  val run1: DateTime = DateTime.now.minusMinutes(5 * 5).withMillisOfSecond(123) // check that millis are actually used
-  val run2: DateTime = DateTime.now.minusMinutes(5 * 4)
-  val run3: DateTime = DateTime.now.minusMinutes(5 * 3)
+  val run1: DateTime =
+    DateTime.now(DateTimeZone.UTC).minusMinutes(5 * 5).withMillisOfSecond(123) // check that millis are actually used
+  val run2: DateTime = DateTime.now(DateTimeZone.UTC).minusMinutes(5 * 4)
+  val run3: DateTime = DateTime.now(DateTimeZone.UTC).minusMinutes(5 * 3)
 
   private def insertReports(reports: List[Reports]) = {
 

@@ -161,7 +161,7 @@ object TenantAccessGrant {
    */
   def fromSecurityScope(tag: Option[SecurityTag]): TenantAccessGrant = tag match {
     case scala.None                      => TenantAccessGrant.All
-    case Some(SecurityTag.Open)          => TenantAccessGrant.All
+    case Some(_: SecurityTag.Open)       => TenantAccessGrant.All
     case Some(SecurityTag.ByTenants(ts)) =>
       if (ts.isEmpty) TenantAccessGrant.None
       else TenantAccessGrant.ByTenants(ts.map(id => TenantAccess(id, TenantPermission.Read)))
@@ -252,9 +252,19 @@ object TenantAccessGrant {
       }
     }
 
-    // write semantics of `canSee`: only tenants with `rw` permission are considered.
-    def canModify[A: HasSecurityTag](n: A): Boolean = {
-      nsc.restrictToWrite.canSee(n)
+    // who may change an object. Only `rw` tenants count, and an `open-ro` object stays administrator-only.
+    def canModify[A: HasSecurityTag](n: A): Boolean = canWrite(n.security)
+
+    def canWrite(tag: Option[SecurityTag]): Boolean = {
+      nsc.restrictToWrite match {
+        case All  => true
+        case None => false
+        case g: ByTenants =>
+          tag match {
+            case Some(SecurityTag.OpenRo) => false
+            case _                        => g.canSee(tag)
+          }
+      }
     }
 
     // execute given action if the object can be modified in that context (write permission), or fail.
@@ -269,7 +279,7 @@ object TenantAccessGrant {
       case (All, t)                                         => t
       case (None, _)                                        => scala.None
       case (ByTenants(_), scala.None)                       => scala.None
-      case (ByTenants(_), Some(SecurityTag.Open))           => Some(SecurityTag.Open)
+      case (ByTenants(_), Some(o: SecurityTag.Open))        => Some(o)
       case (ByTenants(us), Some(SecurityTag.ByTenants(os))) =>
         val userIds = us.map(_.id).toSet
         Some(SecurityTag.ByTenants(os.filter(t => userIds.contains(t))))
@@ -365,12 +375,12 @@ object ReaderScope {
       case TenantAccessGrant.All           => true
       case TenantAccessGrant.None          =>
         tag match {
-          case Some(SecurityTag.Open) => true
-          case _                      => false
+          case Some(_: SecurityTag.Open) => true
+          case _                         => false
         }
       case TenantAccessGrant.ByTenants(ts) =>
         tag match {
-          case Some(SecurityTag.Open)              => true
+          case Some(_: SecurityTag.Open)           => true
           case Some(SecurityTag.ByTenants(tagIds)) => sharesReadableTenant(ts, tagIds)
           case scala.None                          => false
         }

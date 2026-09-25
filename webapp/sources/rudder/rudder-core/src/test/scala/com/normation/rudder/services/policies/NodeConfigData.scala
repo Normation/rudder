@@ -875,7 +875,7 @@ class TestNodeConfiguration(
     subCategories = List(),
     targetInfos = List(),
     isSystem = true,
-    security = Some(SecurityTag.Open) // root must be open
+    security = SecurityTag.LIBRARY_SECURITY_TAG // root must be open
   )
 
   val groupLib: FullNodeGroupCategory = emptyGroupLib.copy(

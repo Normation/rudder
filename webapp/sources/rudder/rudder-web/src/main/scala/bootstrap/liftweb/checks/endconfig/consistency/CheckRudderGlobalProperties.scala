@@ -50,6 +50,7 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
 import zio.json.*
@@ -140,7 +141,7 @@ final private[checks] case class GlobalPropertiesJson(
       description,
       provider.map(PropertyProvider.apply),
       visibility.flatMap(Visibility.withNameInsensitiveOption).getOrElse(Visibility.default),
-      security = None // for backward compat
+      security = SecurityTag.LIBRARY_SECURITY_TAG
     )
   }
 }

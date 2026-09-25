@@ -49,11 +49,18 @@ import doobie.*
 object TenantSql {
 
   /*
+   * The open tags as stored in a jsonb column. A SQL literal, so it is spelled out here rather than derived
+   * from `SecurityTag`, and it must keep matching rows already written, including the 9.1 `"open"`. All
+   * three are equally visible.
+   */
+  private val OPEN_TAGS_SQL = List("open-ro", "open-rw", "open").map(t => s"""'"${t}"'::jsonb""").mkString(",")
+
+  /*
    * Keep only rows the reader may see: rows whose `column` (a jsonb SecurityTag, stored with the standard
-   * serialization: `"open"` or `{"tenants":[...]}`) is within the reader's scope:
+   * serialization: `"open-ro"`, `"open-rw"` or `{"tenants":[...]}`) is within the reader's scope:
    *   - `All`: no restriction (None);
-   *   - `AnyOf(ids)`: the tag is `open`, or its tenants share one of the readable ids (an empty id set thus
-   *     keeps only `open` rows).
+   *   - `AnyOf(ids)`: the tag is open, or its tenants share one of the readable ids (an empty id set thus
+   *     keeps only the open rows).
    * A NULL column yields NULL in the comparisons and is therefore excluded (admin-only, fail closed).
    *
    * Emitted as a `Fragment.const` (a literal, not a bound parameter) because it embeds an `ARRAY[...]` of
@@ -70,7 +77,7 @@ object TenantSql {
         val idsArray = safeIds.map(id => s"'${id}'").mkString("ARRAY[", ",", "]::text[]")
         Some(
           Fragment.const(
-            s"(${column} = '\"open\"'::jsonb or jsonb_exists_any(${column} -> 'tenants', ${idsArray}))"
+            s"(${column} in (${OPEN_TAGS_SQL}) or jsonb_exists_any(${column} -> 'tenants', ${idsArray}))"
           )
         )
     }

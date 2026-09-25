@@ -132,7 +132,7 @@ class TenantCheckLogicTest extends Specification {
       val seen = new AtomicReference[Option[QueryContext]](None)
       val into: Container[Obj] = (qc: QueryContext) ?=> {
         seen.set(Some(qc))
-        obj("parent", Some(SecurityTag.Open)).succeed
+        obj("parent", Some(SecurityTag.OpenRo)).succeed
       }
       written(logic().manageCreate(obj("o", None), into)(using zoneA)(keep))
       seen.get().map(_.actor) must beSome(zoneA.actor)
@@ -160,7 +160,7 @@ class TenantCheckLogicTest extends Specification {
       written(logic().manageCreate(obj("o", None), Container.none)(using zoneAr)(keep)) must beLeft
     }
 
-    "be refused when the container is not writable by the actor" in {
+    "be refused when the actor can not see the container" in {
       val res = written(logic().manageCreate(obj("o", None), container(obj("parent", tenantTag("zoneB"))))(using zoneA)(keep))
       res must beLeft(contain("can't be created or moved under 'parent'"))
     }
@@ -309,7 +309,9 @@ class TenantCheckLogicTest extends Specification {
     "be refused to a non-admin when the tenant feature is disabled" in {
       val res = written(
         logic(enabled = false)
-          .manageDelete(existing(obj("o", Some(SecurityTag.Open))), IfAbsent.fail("absent"))(using zoneA)(_ => "deleted".succeed)
+          .manageDelete(existing(obj("o", Some(SecurityTag.OpenRw))), IfAbsent.fail("absent"))(using zoneA)(_ =>
+            "deleted".succeed
+          )
       )
       res must beLeft(contain("can't be deleted"))
     }
@@ -372,8 +374,36 @@ class TenantCheckLogicTest extends Specification {
     }
     // creating a tenant object UNDER a system container stays allowed: a container check is not system-gated
     "not prevent creating a non-system object under a system container" in {
-      val systemContainer = Obj("root", Some(SecurityTag.Open), system = true)
+      val systemContainer = Obj("root", Some(SecurityTag.OpenRo), system = true)
       written(logic().manageCreate(obj("o", None), container(systemContainer))(using zoneA)(keep)) must beRight
+    }
+  }
+
+  // the two open tags say the same thing about who sees the object and the opposite about who modifies it
+  "[open tags] a tenant actor" should {
+    val lib    = obj("lib", Some(SecurityTag.OpenRo))
+    val shared = obj("shared", Some(SecurityTag.OpenRw))
+
+    "not be able to update a library (`open-ro`) object it can see" in {
+      written(logic().manageUpdate(lib, existing(lib), IfAbsent.fail("absent"))(using zoneA)(keep)) must beLeft(
+        contain("can't be modified")
+      )
+    }
+    "not be able to delete a library (`open-ro`) object it can see" in {
+      written(logic().manageDelete(existing(lib), IfAbsent.fail("absent"))(using zoneA)(_ => "deleted".succeed)) must beLeft(
+        contain("can't be deleted")
+      )
+    }
+    "still be able to update a shared (`open-rw`) object" in {
+      written(logic().manageUpdate(shared, existing(shared), IfAbsent.fail("absent"))(using zoneA)(keep)) must beRight
+    }
+    // seeing a container is what allows putting one's own object in it
+    "be able to create its own object under a library container" in {
+      val res = written(logic().manageCreate(obj("o", None), container(lib))(using zoneA)(keep))
+      res.map(_.security) must beRight(tenantTag("zoneA"))
+    }
+    "while an administrator keeps the right to change a library object" in {
+      written(logic().manageUpdate(lib, existing(lib), IfAbsent.fail("absent"))(using admin)(keep)) must beRight
     }
   }
 
