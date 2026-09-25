@@ -142,7 +142,7 @@ class ReportDisplayer(
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
-        val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
+        val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval, tableId).toString)
         JsRaw(
           s"""refreshTable("${tableId}",${data.toJson}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
@@ -159,7 +159,12 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int): NodeSeq = {
+  private def displayIntro(
+      report:          NodeStatusReport,
+      nodeSettings:    RudderSettings,
+      defaultInterval: Int,
+      tableId:         String
+  ): NodeSeq = {
 
     def displayDate(d:    DateTime) = DateFormaterService.getDisplayDate(d)
     def displayDateOpt(d: Option[DateTime]): String = d.fold("an unknown date")(displayDate)
@@ -324,7 +329,7 @@ class ReportDisplayer(
             report.compliance.noAnswer + report.compliance.missing + report.compliance.unexpected + report.compliance.badPolicyMode +
               report.compliance.error + report.compliance.nonCompliant + report.compliance.auditError
           )
-          if (nbAttention > 0) {
+          if ((nbAttention > 0) && (tableId == "reportsGrid")) {
             (
               "alert alert-warning",
               <p>{nbAttention} reports below (out of {
@@ -374,12 +379,9 @@ class ReportDisplayer(
         )
     }
 
-    <div>
-      <div id="node-compliance-intro" class={updatedBackground}>
-        <p>{explainCompliance(report.runInfo)}</p>{
-      specialPolicyModeError ++
-      lookReportsMessage
-    }</div>
+    <div id="node-compliance-intro" class={updatedBackground}>
+      <p>{explainCompliance(report.runInfo)}</p>
+      {specialPolicyModeError ++ lookReportsMessage}
     </div>
   }
 
@@ -405,7 +407,8 @@ class ReportDisplayer(
                       val runDate: Option[DateTime] = getRunDate(report.runInfo)
 
                       val intro = {
-                        if (tableId == "reportsGrid") displayIntro(report, node.rudderSettings, defaultRunInterval)
+                        if ((tableId == "reportsGrid") || (tableId == "systemStatusGrid"))
+                          displayIntro(report, node.rudderSettings, defaultRunInterval, tableId)
                         else NodeSeq.Empty
                       }
 
@@ -562,15 +565,16 @@ class ReportDisplayer(
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"
 
-    val classes               = "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid") " hide" else "")
-    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid") {
+    val classes               =
+      "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid" || tableId != "systemStatusGrid") " hide" else "")
+    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid" || tableId == "systemStatusGrid") {
       val init    = AnonFunc(logDisplayer.asyncDisplay(nodeId, runDate, complianceLogGridId))
       val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
-      s"""showHideRunLogs("#${logRunId}", "${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
-    } else ""
+      s"""showHideRunLogs("${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
+    } else s"""console.log("${tableId}")"""
     val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs<i class="ms-2 fa fa-table"></i></button>
     val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary hide" onclick={
-      s"showHideRunLogs('#node-compliance-intro', '${tabId}')"
+      s"showHideRunLogs('${tabId}')"
     }>Hide logs<i class="ms-2 fa fa-table"></i></button>
     val complianceLogGridHtml =
       <table id={complianceLogGridId} cellspacing="0"></table>

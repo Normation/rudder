@@ -668,18 +668,12 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
 
 }
 
-function showHideRunLogs(scrollTarget, tabId, init, refresh) {
+function showHideRunLogs(tabId, init, refresh) {
   $("#allLogButton-" + tabId).toggle()
   $("#logRun-" + tabId).toggle()
-  if ( ! $.fn.DataTable.isDataTable( '#complianceLogsGrid-' + tabId ) && init !== undefined) {
-    init()
-  }
-  if (refresh !== undefined) {
-    refresh()
-  }
-  $([document.documentElement, document.body]).animate({
-          scrollTop: $(scrollTarget).offset().top
-      }, 400);
+
+  if ( ! $.fn.DataTable.isDataTable( '#complianceLogsGrid-' + tabId ) && init !== undefined) init();
+  if (refresh !== undefined) refresh();
 }
 
 /**
