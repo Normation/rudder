@@ -42,6 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
+import io.scalaland.chimney.Transformer
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
@@ -486,6 +487,26 @@ final case class ApiAccount(
   }
 }
 
+object ApiAccount {
+  given transformer: Transformer[ApiAccount, ApiAccountNoToken] = {
+    Transformer
+      .define[ApiAccount, ApiAccountNoToken]
+      .buildTransformer
+  }
+}
+
+case class ApiAccountNoToken(
+    id:                  ApiAccountId,
+    kind:                ApiAccountKind, // Authentication token. It is a mandatory value, and can't be ""
+    // If a token should be revoked, use isEnabled = false.
+    name:                ApiAccountName, // used in event log to know who did actions.
+    description:         String,
+    isEnabled:           Boolean,
+    creationDate:        DateTime,
+    tokenGenerationDate: DateTime,
+    tenants:             NodeSecurityContext
+) {}
+
 /**
  * An API principal, containing the secret, to be used just after creation, and never stored.
  */
@@ -500,18 +521,4 @@ final case class NewApiAccount(
     creationDate:        DateTime,
     tokenGenerationDate: DateTime,
     tenants:             NodeSecurityContext
-) {
-  def toApiAccount(): ApiAccount = {
-    ApiAccount(
-      id,
-      kind,
-      name,
-      token.map(_.toHash()),
-      description,
-      isEnabled,
-      creationDate,
-      tokenGenerationDate,
-      tenants
-    )
-  }
-}
+) {}

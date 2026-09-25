@@ -944,7 +944,14 @@ class EventLogDetailsGenerator(
                     </ul>{
                     (
                       "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
-                      "#token" #> mapSimpleDiff(apiAccountDiff.modToken) &
+                      "#token" #> {
+                        apiAccountDiff.modToken match {
+                          case Some(_) =>
+                            <ul class="evlogviewpad"><li><b>Token regenerated</b></li></ul>
+                          case None    =>
+                            <ul class="evlogviewpad"><li><b>Token value unchanged</b></li></ul>
+                        }
+                      } &
                       "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
                       "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
                       "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
@@ -1324,7 +1331,7 @@ class EventLogDetailsGenerator(
       "#description" #> globalParameter.description
   )(xml)
 
-  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = {
+  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccountNoToken) = {
     val (expiration, kind, authz) = apiAccount.kind match {
       case ApiAccountKind.System                                    => ("N/A", "system", Text("N/A"))
       case ApiAccountKind.User                                      => ("N/A", "user", Text("N/A"))
@@ -1343,7 +1350,6 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
@@ -1500,7 +1506,6 @@ class EventLogDetailsGenerator(
       <ul class="evlogviewpad">
         <li><b>Rudder ID: </b><value id="id"/></li>
         <li><b>Name:&nbsp;</b><value id="name"/></li>
-        <li><b>Token:&nbsp;</b><value id="token"/></li>
         <li><b>Description:&nbsp;</b><value id="description"/></li>
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>

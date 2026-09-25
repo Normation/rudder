@@ -45,9 +45,9 @@ import org.joda.time.DateTime
 
 sealed trait ApiAccountDiff
 
-final case class AddApiAccountDiff(apiAccount: ApiAccount) extends ApiAccountDiff
+final case class AddApiAccountDiff(apiAccount: ApiAccountNoToken) extends ApiAccountDiff
 
-final case class DeleteApiAccountDiff(apiAccount: ApiAccount) extends ApiAccountDiff
+final case class DeleteApiAccountDiff(apiAccount: ApiAccountNoToken) extends ApiAccountDiff
 
 final case class ModifyApiAccountDiff(
     id:                     ApiAccountId,
