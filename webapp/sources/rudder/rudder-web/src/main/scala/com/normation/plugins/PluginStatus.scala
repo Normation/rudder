@@ -72,8 +72,8 @@ trait PluginStatus {
       case RudderPluginLicenseStatus.EnabledNoLicense | _: RudderPluginLicenseStatus.EnabledWithLicense => true
       case RudderPluginLicenseStatus.Disabled(reason, optInfo)                                          =>
         val name = optInfo match {
-          case Some(i) => s"'${i.softwareId}' "
-          case None    => ""
+          case Some(i) => s"'${i.softwareId.value}'"
+          case None    => "with no webapp license information"
         }
         ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin ${name} is disabled: ${reason}")
         false

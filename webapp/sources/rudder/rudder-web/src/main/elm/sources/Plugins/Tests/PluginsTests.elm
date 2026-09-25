@@ -116,9 +116,55 @@ fuzzSelectValidPlugin msg toAction status action =
     fuzzSelectValidLicensePlugin msg toAction status WithoutLicense action
 
 
+{-| A webapp plugin without license, the status message and the errors are the ones under test
+-}
+pluginInfo : PluginStatus -> Maybe String -> List PluginInfoError -> PluginInfo
+pluginInfo status statusMessage errors =
+    { id = "rudder-plugin-test"
+    , name = "rudder-plugin-test"
+    , description = "Test plugin"
+    , abiVersion = "9.1.5"
+    , pluginVersion = "1.2.0"
+    , version = "9.1.5-1.2.0"
+    , pluginType = Webapp
+    , errors = errors
+    , status = status
+    , statusMessage = statusMessage
+    , license = Nothing
+    }
+
+
 suite =
     describe "Plugins.module"
-        [ describe "select valid plugins"
+        [ describe "plugin errors"
+            [ test "display the reason for disabling the plugin after all other errors" <|
+                \_ ->
+                    pluginInfo StatusDisabled
+                        (Just "version is out of the license range")
+                        [ PluginInfoError "abi.version.error" "plugin was not built for this Rudder version"
+                        , PluginInfoError "license.expired.error" "license has expired on 2025-03-08"
+                        ]
+                        |> toPlugin
+                        |> .errors
+                        |> Expect.equal
+                            [ CalloutError "license has expired on 2025-03-08"
+                            , CalloutWarning "plugin was not built for this Rudder version"
+                            , CalloutError "version is out of the license range"
+                            ]
+            , test "keep the plugin unusable when the webapp disabled it without license error" <|
+                \_ ->
+                    pluginInfo StatusDisabled (Just "version is out of the license range") []
+                        |> toPlugin
+                        |> .licenseStatus
+                        |> Expect.equal (InvalidLicense "version is out of the license range")
+            , test "ignore the status message of a plugin that is not disabled" <|
+                \_ ->
+                    pluginInfo StatusEnabled (Just "some information") []
+                        |> toPlugin
+                        |> .errors
+                        |> Expect.equal []
+            ]
+        , describe "select valid plugins"
             [ -- install
               fuzz (list pluginFuzz) "initialize install action" <|
                 \plugins -> initPluginsViewModel |> setViewModelPlugins (pluginsFromList plugins) |> .installAction |> Expect.equal initPluginsAction
