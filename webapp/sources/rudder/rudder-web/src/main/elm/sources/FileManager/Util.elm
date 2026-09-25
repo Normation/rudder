@@ -90,6 +90,11 @@ getDirPath dir =
     String.replace "//" "/" (String.join "/" dir ++ "/")
 
 
+maxUploadSizeText : Int -> String
+maxUploadSizeText maxSize =
+    String.fromInt (maxSize // 1024 // 1024) ++ "MB"
+
+
 processApiError : String -> Http.Error -> Cmd msg
 processApiError apiName err =
     let
@@ -106,7 +111,7 @@ processApiError apiName err =
                     "You are trying to upload a file that exceeds the maximum upload size, or we are unable to reach the server, so please check your network connection."
 
                 Http.BadStatus 500 ->
-                    "The server had a problem, try again later"
+                    "The server had a problem, try again later, and check your file size so that it does not exceed the maximum upload size limit on the server"
 
                 Http.BadStatus 400 ->
                     "Verify your information and try again"
