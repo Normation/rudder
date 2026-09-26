@@ -110,13 +110,14 @@ object Container {
 
 /*
  * The "no container" marker used in `Container.none`.
- * It is `Open`, ie writable by anyone who may write at all, so it never adds nor removes any right.
+ * It is open: seeing a container is what allows putting an object in it, and everyone sees this one, so
+ * it never adds nor removes any right.
  */
 sealed trait NoContainer
 object NoContainer extends NoContainer {
   implicit val hasSecurityTag: HasSecurityTag[NoContainer] = new HasSecurityTag[NoContainer] {
     extension (a: NoContainer) {
-      def security:           Option[SecurityTag] = Some(SecurityTag.Open)
+      def security:           Option[SecurityTag] = Some(SecurityTag.OpenRo)
       def isSystem:           Boolean             = false
       def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
       def updateSecurityContext(security: Option[SecurityTag]): NoContainer = a
@@ -488,7 +489,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   private def showTag(security: Option[SecurityTag]): String = {
     security match {
       case None                            => "*"
-      case Some(SecurityTag.Open)          => "open"
+      case Some(o: SecurityTag.Open)       => o.kind
       case Some(SecurityTag.ByTenants(ts)) => ts.map(_.value).mkString(",")
     }
   }
@@ -534,13 +535,14 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
 
   /*
    * The actor may add or keep children under that container.
-   * Tenant write-visibility only, but unlike the check on the object itself, this is NOT system-gated,
-   * because tenant objects legitimately live under the shared/system root categories.
+   *
+   * To put something into a container, we only need visibility of the container.
+   * The created object comes with its own security tag.
    */
   private def checkContainer[C: HasSecurityTag](into: Container[C])(using cc: ChangeContext): IOResult[Unit] = {
     into(using cc.toQC).flatMap { c =>
       ZIO
-        .unless(cc.accessGrant.canModify(c))(
+        .unless(cc.accessGrant.canSee(c))(
           Inconsistency(s"Objects can't be created or moved under '${c.debugId}' in the current security context").fail
         )
         .unit
@@ -651,7 +653,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
         action(using cc)(updated.updateSecurityContext(existing.security))
       // when feature is enabled, we check consistency
       case TenantStatus.Enabled(tenants) =>
-        (if (!writeGrant.canSee(existing)) {
+        (if (!cc.accessGrant.canModify(existing)) {
            // the user can't even write the existing object
            cantWrite(existing).fail
          } else if (writeGrant == TenantAccessGrant.All) {
@@ -660,7 +662,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
            def monotonicityError = {
              Inconsistency(
                s"Security tag of object '${updated.debugId}' can not change from '[${showTag(existing.security)}]' to " +
-               s"'[${showTag(updated.security)}]': visibility can only grow (add tenants, or set 'open'), never " +
+               s"'[${showTag(updated.security)}]': visibility can only grow (add tenants, or open the object), never " +
                s"shrink. To narrow the scope, create a new object with the wanted tenant list"
              ).fail
            }
@@ -671,23 +673,20 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
              case TenantTagLifecycle.Monotonic =>
                (existing.security, updated.security) match {
                  // identical tags: nothing changes
-                 case (a, b) if (a == b)                        => updated.succeed
+                 case (a, b) if (a == b)                                            => updated.succeed
                  // no tag submitted: keep the existing one
-                 case (before, None)                            => updated.updateSecurityContext(before).succeed
-                 // growing to open (top of the lattice) is always allowed
-                 case (_, Some(SecurityTag.Open))               => updated.succeed
-                 // an open object can not be narrowed
-                 case (Some(SecurityTag.Open), _)               => monotonicityError
-                 // from none or a tenant list to a tenant list: tenants can only be added, and added ones must exist
-                 case (before, Some(SecurityTag.ByTenants(ts))) =>
+                 case (before, None)                                                => updated.updateSecurityContext(before).succeed
+                 // only visibility is constrained (`SecurityTag.isWiderOrEqual`), so an admin may move an
+                 // object between the two open tags
+                 case (before, after) if !SecurityTag.isWiderOrEqual(after, before) => monotonicityError
+                 // growing to a tenant list: the tenants added must exist
+                 case (before, Some(SecurityTag.ByTenants(ts)))                     =>
                    val previous = before match {
                      case Some(SecurityTag.ByTenants(prev)) => prev.toSet
                      case _                                 => Set.empty[TenantId]
                    }
                    val unknown  = ts.filter(t => !previous.contains(t) && !tenants.contains(t))
-                   if (!previous.subsetOf(ts.toSet)) {
-                     monotonicityError
-                   } else if (unknown.nonEmpty) {
+                   if (unknown.nonEmpty) {
                      Inconsistency(
                        s"Object '${updated.debugId}' security tag can not be updated to '[${ts.map(_.value).mkString(",")}]' " +
                        s"because tenant(s) '${unknown.map(_.value).mkString(",")}' don't exist"
@@ -695,6 +694,8 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
                    } else {
                      updated.succeed
                    }
+                 // growing to one of the open tags
+                 case _                                                             => updated.succeed
                }
 
              case TenantTagLifecycle.Reassignable =>
@@ -703,7 +704,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
                (existing.security, updated.security) match {
                  // clearing the tag or opening it are always allowed for a reassignable object
                  case (_, None)                            => updated.succeed
-                 case (_, Some(SecurityTag.Open))          => updated.succeed
+                 case (_, Some(_: SecurityTag.Open))       => updated.succeed
                  // identical tags: nothing changes
                  case (Some(a), Some(b)) if (a == b)       => updated.succeed
                  // any other tenant list is accepted as long as the referenced tenants exist
@@ -863,9 +864,8 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   }
 
   override def checkChangeRequestModify(cr: ChangeRequest, cc: ChangeContext): IOResult[Unit] = {
-    val writeGrant = cc.accessGrant.restrictToWrite
     ZIO
-      .unless(ChangeRequest.securityTags(cr).forall(tag => writeGrant.canSee(tag)))(
+      .unless(ChangeRequest.securityTags(cr).forall(tag => cc.accessGrant.canWrite(tag)))(
         Inconsistency(
           s"Change request #${cr.id.value} '${cr.info.name}' can not be acted upon in the current security context: " +
           s"it changes objects your tenants do not all allow to modify"

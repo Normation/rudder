@@ -73,7 +73,6 @@ import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common.*
 import scala.util.control.NonFatal
-import zio.json.*
 
 class LDAPDiffMapper(
     mapper:          LDAPEntityMapper,
@@ -91,7 +90,13 @@ class LDAPDiffMapper(
   private def updateSecurityTag[A](a: PureResult[A], b: String)(f: (A, Option[SecurityTag]) => A): PureResult[A] = {
     b match {
       case null  => a.map(x => f(x, None))
-      case value => value.fromJson[SecurityTag].left.map(Inconsistency(_)).flatMap(tag => a.map(x => f(x, Some(tag))))
+      case value =>
+        // LDAP form: a bare `open-ro` or a `{"tenants":[...]}` object. A diff describes a change that was
+        // made, so an unreadable value fails rather than degrading to "no tag" and writing a wrong event log.
+        SecurityTag.parseLdapValue(Some(value), "the modified object") match {
+          case Some(tag) => a.map(x => f(x, Some(tag)))
+          case None      => Left(Inconsistency(s"Error when parsing security tag '${value}' of a modified object"))
+        }
     }
   }
 

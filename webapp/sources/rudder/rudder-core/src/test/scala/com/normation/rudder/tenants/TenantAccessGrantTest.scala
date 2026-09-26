@@ -128,22 +128,28 @@ class TenantAccessGrantTest extends Specification {
     "pass through None for admin" in {
       TenantAccessGrant.All.visibleSecurityTag(scala.None: Option[SecurityTag]) must beNone
     }
-    "pass through Some(Open) for admin" in {
-      TenantAccessGrant.All.visibleSecurityTag(Some(SecurityTag.Open)) must beSome(SecurityTag.Open: SecurityTag)
+    "pass through both open tags for admin" in {
+      (TenantAccessGrant.All.visibleSecurityTag(Some(SecurityTag.OpenRo)) must beSome(SecurityTag.OpenRo: SecurityTag)) and
+      (TenantAccessGrant.All.visibleSecurityTag(Some(SecurityTag.OpenRw)) must beSome(SecurityTag.OpenRw: SecurityTag))
     }
     "pass through ByTenants unchanged for admin" in {
       TenantAccessGrant.All.visibleSecurityTag(Some(twoZones)) must beSome(twoZones: SecurityTag)
     }
     "return None for TenantAccessGrant.None regardless of tag" in {
       (TenantAccessGrant.None.visibleSecurityTag(scala.None: Option[SecurityTag]) must beNone) and
-      (TenantAccessGrant.None.visibleSecurityTag(Some(SecurityTag.Open)) must beNone) and
+      (TenantAccessGrant.None.visibleSecurityTag(Some(SecurityTag.OpenRo)) must beNone) and
       (TenantAccessGrant.None.visibleSecurityTag(Some(twoZones)) must beNone)
     }
     "return None for ByTenants user on untagged object" in {
       byTenants(access("zoneA", ReadWrite)).visibleSecurityTag(scala.None: Option[SecurityTag]) must beNone
     }
-    "pass through Open for any ByTenants user" in {
-      byTenants(access("zoneA", ReadWrite)).visibleSecurityTag(Some(SecurityTag.Open)) must beSome(SecurityTag.Open: SecurityTag)
+    "pass through both open tags for any ByTenants user" in {
+      (byTenants(access("zoneA", ReadWrite)).visibleSecurityTag(Some(SecurityTag.OpenRo)) must beSome(
+        SecurityTag.OpenRo: SecurityTag
+      )) and
+      (byTenants(access("zoneA", ReadWrite)).visibleSecurityTag(Some(SecurityTag.OpenRw)) must beSome(
+        SecurityTag.OpenRw: SecurityTag
+      ))
     }
     "return intersection of user tenants and object tenants" in {
       byTenants(access("zoneA", ReadWrite)).visibleSecurityTag(Some(twoZones)) must beSome(zoneATag: SecurityTag)
@@ -159,12 +165,14 @@ class TenantAccessGrantTest extends Specification {
     val zoneATag = SecurityTag.ByTenants(Chunk(TenantId("zoneA")))
 
     "allow admin to see any tag" in {
-      (TenantAccessGrant.All.canSee(SecurityTag.Open) must beTrue) and
+      (TenantAccessGrant.All.canSee(SecurityTag.OpenRo) must beTrue) and
+      (TenantAccessGrant.All.canSee(SecurityTag.OpenRw) must beTrue) and
       (TenantAccessGrant.All.canSee(zoneATag) must beTrue)
     }
-    "deny TenantAccessGrant.None for ByTenants but allow Open" in {
+    "deny TenantAccessGrant.None for ByTenants but allow the open tags" in {
       (TenantAccessGrant.None.canSee(zoneATag) must beFalse) and
-      (TenantAccessGrant.None.canSee(SecurityTag.Open) must beTrue)
+      (TenantAccessGrant.None.canSee(SecurityTag.OpenRo) must beTrue) and
+      (TenantAccessGrant.None.canSee(SecurityTag.OpenRw) must beTrue)
     }
     "allow ByTenants user to see a matching tenant tag" in {
       byTenants(access("zoneA", ReadWrite)).canSee(zoneATag) must beTrue
@@ -182,20 +190,38 @@ class TenantAccessGrantTest extends Specification {
     }
   }
 
-  "canModify" should {
+  "canWrite" should {
     val zoneATag = SecurityTag.ByTenants(Chunk(TenantId("zoneA")))
 
-    "allow admin to modify anything" in {
-      TenantAccessGrant.All.restrictToWrite.canSee(zoneATag) must beTrue
+    "allow admin to modify anything, including a library object" in {
+      (TenantAccessGrant.All.canWrite(Some(zoneATag)) must beTrue) and
+      (TenantAccessGrant.All.canWrite(Some(SecurityTag.OpenRo)) must beTrue) and
+      (TenantAccessGrant.All.canWrite(scala.None) must beTrue)
     }
     "deny TenantAccessGrant.None" in {
-      TenantAccessGrant.None.restrictToWrite.canSee(zoneATag) must beFalse
+      (TenantAccessGrant.None.canWrite(Some(zoneATag)) must beFalse) and
+      (TenantAccessGrant.None.canWrite(Some(SecurityTag.OpenRw)) must beFalse)
     }
     "allow ReadWrite user to modify a matching tenant object" in {
-      byTenants(access("zoneA", ReadWrite)).restrictToWrite.canSee(zoneATag) must beTrue
+      byTenants(access("zoneA", ReadWrite)).canWrite(Some(zoneATag)) must beTrue
     }
     "deny Read-only user from modifying even a matching tenant object" in {
-      byTenants(access("zoneA", Read)).restrictToWrite.canSee(zoneATag) must beFalse
+      byTenants(access("zoneA", Read)).canWrite(Some(zoneATag)) must beFalse
+    }
+    // this is the whole point of splitting `open` in two: a library object is seen and used by everyone,
+    // and maintained by administrators only
+    "deny a tenant user from modifying an `open-ro` object it can see" in {
+      (byTenants(access("zoneA", ReadWrite)).canSee(SecurityTag.OpenRo) must beTrue) and
+      (byTenants(access("zoneA", ReadWrite)).canWrite(Some(SecurityTag.OpenRo)) must beFalse)
+    }
+    "allow a tenant user with write access to modify an `open-rw` object" in {
+      byTenants(access("zoneA", ReadWrite)).canWrite(Some(SecurityTag.OpenRw)) must beTrue
+    }
+    "deny a read-only tenant user from modifying an `open-rw` object" in {
+      byTenants(access("zoneA", Read)).canWrite(Some(SecurityTag.OpenRw)) must beFalse
+    }
+    "deny a tenant user from modifying an untagged (admin-only) object" in {
+      byTenants(access("zoneA", ReadWrite)).canWrite(scala.None) must beFalse
     }
   }
 
