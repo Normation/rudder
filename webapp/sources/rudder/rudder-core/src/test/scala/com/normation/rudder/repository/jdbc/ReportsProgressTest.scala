@@ -43,6 +43,7 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.execution.LastProcessedReportRepositoryImpl
 import doobie.implicits.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import zio.interop.catz.*
@@ -68,14 +69,14 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
   "Last processed id" should {
 
     "correctly insert at start" in {
-      val now = DateTime.now
+      val now = DateTime.now(DateTimeZone.UTC)
       (lastprocessed.getExecutionStatus mustFullEq (None)) and
       (lastprocessed.setExecutionStatus(43, now) mustFullEq (StatusUpdate(lastprocessed.PROP_EXECUTION_STATUS, 43, now))) and
       (lastprocessed.getExecutionStatus mustFullEq (Some((43, now))))
     }
 
     "correctly update after" in {
-      val now = DateTime.now
+      val now = DateTime.now(DateTimeZone.UTC)
       (lastprocessed.setExecutionStatus(88, now) mustFullEq (StatusUpdate(lastprocessed.PROP_EXECUTION_STATUS, 88, now))) and
       (lastprocessed.getExecutionStatus mustFullEq (Some((88, now))))
     }

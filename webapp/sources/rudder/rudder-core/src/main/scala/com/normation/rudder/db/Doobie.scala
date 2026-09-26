@@ -312,15 +312,16 @@ object Doobie {
 
   /*
    * Serialisation of security tag in json using the standard SecurityTag JSON serialization:
-   * `"open"` or `{"tenants":[...]}`), combined with doobie's automatic Option handling: a SQL NULL
-   *  maps to `None` ("no tag / admin-only" / before 9.2).
+   * `"open-ro"`, `"open-rw"` or `{"tenants":[...]}`), combined with doobie's automatic Option handling:
+   * a SQL NULL maps to `None` ("no tag / admin-only" / before 9.2).
    *
-   * A stored value that fails to parse falls back to the admin-only empty-tenants tag (fail closed).
+   * An unreadable value falls back to the empty-tenants tag, ie administrators only. `parseJsonValue` logs
+   * it, a row vanishing from a tenant view is otherwise untraceable.
    */
   implicit val securityTagMeta: Meta[SecurityTag] = {
     Meta.Advanced
       .other[PGobject]("jsonb")
-      .timap(o => o.getValue.fromJson[SecurityTag].getOrElse(SecurityTag.empty)) { tag =>
+      .timap(o => SecurityTag.parseJsonValue(Some(o.getValue), "an event log").getOrElse(SecurityTag.empty)) { tag =>
         val o = new PGobject
         o.setType("jsonb")
         o.setValue(tag.toJson)

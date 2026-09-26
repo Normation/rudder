@@ -362,7 +362,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.tenant,
           levelField(_)("tenant")(securityTag.flatMap {
-            case SecurityTag.Open          => None
+            case _: SecurityTag.Open => None
             case SecurityTag.ByTenants(ts) => ts.headOption
           })
         )

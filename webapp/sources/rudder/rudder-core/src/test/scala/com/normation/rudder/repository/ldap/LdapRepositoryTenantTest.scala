@@ -121,6 +121,15 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
         targetWithNoTenants.toList ++ targetWithTenantsA
       )
     }
+
+    // a rule whose target does not resolve in the actor's library displays as broken, so every tenant
+    // needs the special targets
+    "have a zoneA user see the `open-ro` special targets, and only its own group beside them" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getFullGroupLibrary().runNow.allTargets.values.map(_.debugId) must containTheSameElementsAs(
+        List("special:all", "special:all_exceptPolicyServers", "special:all_policyServers") ++ targetWithTenantsA
+      )
+    }
   }
 
   // read-time filtering on the other read APIs (filtering depends only on the access grant,
@@ -366,7 +375,7 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       res.either.runNow.left.map(_.msg) must beLeft(
         beEqualTo(
           "Security tag of object 'test-group-node1' can not change from '[zoneA,zoneB]' to '[zoneA]': " +
-          "visibility can only grow (add tenants, or set 'open'), never shrink. " +
+          "visibility can only grow (add tenants, or open the object), never shrink. " +
           "To narrow the scope, create a new object with the wanted tenant list"
         )
       )

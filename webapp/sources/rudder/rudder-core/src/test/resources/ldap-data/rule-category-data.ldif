@@ -1,6 +1,7 @@
-# The root rule category. In production it is created at runtime; the in-memory test LDAP needs it
-# explicitly so that rule creation (which now checks the parent category) can resolve it.
-# Its security tag is forced to "open" by the LDAP mapper, like the group and active technique roots.
+# The root rule category. In production it is created at runtime from `RudderDit.RULECATEGORY.model`; the
+# in-memory test LDAP needs it explicitly so that rule creation (which now checks the parent category) can
+# resolve it. Like the group and active technique roots, it is a library object: everybody sees it and
+# creates objects under it, only an administrator changes it.
 dn: ruleCategoryId=rootRuleCategory,ou=Rudder,cn=rudder-configuration
 objectClass: ruleCategory
 objectClass: top
@@ -8,3 +9,4 @@ ruleCategoryId: rootRuleCategory
 cn: Rules
 description: This is the main category of Rules
 isSystem: TRUE
+securityTag: open-ro

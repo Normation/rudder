@@ -67,7 +67,8 @@ class CATEGORY(
     val description:     String = "",
     val isSystem:        Boolean = false,
     val objectClass:     String,
-    val objectClassUuid: String
+    val objectClassUuid: String,
+    val security:        Option[SecurityTag] = None
 ) extends ENTRY1(objectClassUuid, uuid) {
 
   lazy val rdn: RDN = this.rdn(this.rdnValue._1)
@@ -78,6 +79,7 @@ class CATEGORY(
     mod.resetValuesTo(A_NAME, name)
     mod.resetValuesTo(A_DESCRIPTION, description)
     mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+    security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
     mod
   }
 }
@@ -196,7 +198,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
           "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
         isSystem = true,
         objectClass = OC_TECHNIQUE_CATEGORY,
-        objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
+        objectClassUuid = A_TECHNIQUE_CATEGORY_UUID,
+        security = SecurityTag.LIBRARY_SECURITY_TAG
       ) {
     private def activeTechniques = this
 
@@ -243,7 +246,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
       mod.resetValuesTo(A_POLICY_TYPES, policyTypes.toJson)
       mod.resetValuesTo(A_ACCEPTATION_DATETIME, acceptationDateTimes)
-      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
       mod
     }
 
@@ -285,7 +288,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         description = "This is the main category of Rules",
         isSystem = true,
         objectClass = OC_RULE_CATEGORY,
-        objectClassUuid = A_RULE_CATEGORY_UUID
+        objectClassUuid = A_RULE_CATEGORY_UUID,
+        security = SecurityTag.LIBRARY_SECURITY_TAG
       ) {
     ruleCategory =>
 
@@ -320,7 +324,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_NAME, name)
       mod.resetValuesTo(A_DESCRIPTION, description)
       mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
-      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
 
       mod
     }
@@ -358,7 +362,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         description = "This is the root category for the groups (both dynamic and static) and group categories",
         isSystem = true,
         objectClass = OC_GROUP_CATEGORY,
-        objectClassUuid = A_GROUP_CATEGORY_UUID
+        objectClassUuid = A_GROUP_CATEGORY_UUID,
+        security = SecurityTag.LIBRARY_SECURITY_TAG
       ) {
     private def group = this
 
@@ -408,7 +413,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
       mod.resetValuesTo(A_IS_DYNAMIC, isDynamic.toLDAPString)
       mod.resetValuesTo(A_NODE_UUID, srvList.map(x => x.value).toSeq*)
-      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
 
       query match {
         case None    => // No query to add. Maybe we'd like to enforce that it is not activated
@@ -428,7 +433,9 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
           description = "This category is the container of all system targets, both groups and other special ones",
           isSystem = true,
           objectClass = OC_GROUP_CATEGORY,
-          objectClassUuid = A_GROUP_CATEGORY_UUID
+          objectClassUuid = A_GROUP_CATEGORY_UUID,
+          // it holds the special targets every rule may use, so every tenant must see it
+          security = SecurityTag.LIBRARY_SECURITY_TAG
         ) {
       system =>
 
