@@ -99,6 +99,12 @@ class LiftInitContextListener extends ContextLoaderListener {
     ApplicationLogger.info(s"Rudder starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")
     org.slf4j.LoggerFactory.getLogger("-").info(s"- - - - - - - - - - - - - - - - - - - - - - - - - - -")
 
+    /*
+     * Start reporting progress before anything else so that /var/rudder/run/rudder-boot-progress
+     * is created and log can be accurate
+     */
+    BootProgress.startWatchdog(BootProgressProperties.logInterval, BootProgressProperties.stallTimeout)
+
     /// init all our non-spring services ///
 
     val RUDDER_FATAL_EXCEPTIONS = {
