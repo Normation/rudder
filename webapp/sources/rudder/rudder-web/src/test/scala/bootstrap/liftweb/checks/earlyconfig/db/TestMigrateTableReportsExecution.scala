@@ -107,8 +107,10 @@ CREATE INDEX reportsexecution_test_uncomputedrun_idx on reportsexecutiontest (co
         fr"""SELECT DISTINCT column_name, data_type FROM INFORMATION_SCHEMA.COLUMNS
           """ ++ whereAnd(
           fr"table_name = " ++ Fragment.const("'" + testTable + "'"),
-          fr"column_name in (" ++ Fragment.const("'" + insertionDateColumn + "'")
-        ) ++ fr", " ++ Fragment.const("'" + complianceComputationDateColumn + "'") ++ fr")"
+          fr"column_name in (" ++ Fragment.const("'" + insertionDateColumn + "'") ++ fr", " ++ Fragment.const(
+            "'" + complianceComputationDateColumn + "'"
+          ) ++ fr")"
+        )
       }
 
       // check that all migrations are eventually applied even in async mode

@@ -160,7 +160,8 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
   check(EventLogJdbcRepository.getEventLogByCriteriaSQL(Some(defaultFilter)))
 
   // Tenant-restricted visibility: the generated queries then include the tenant-visibility WHERE clause
-  // (a jsonb match on the `securitytag` column: `= '"open"'::jsonb` or `jsonb_exists_any` array overlap).
+  // (a jsonb match on the `securitytag` column: `in ('"open-ro"'::jsonb, ...)` or `jsonb_exists_any`
+  // array overlap; which tags that fragment lets through is checked in `TenantSqlTest`).
   // These checks validate that this SQL is syntactically and type correct against a real PostgreSQL - the
   // admin checks above never emit that clause.
   {

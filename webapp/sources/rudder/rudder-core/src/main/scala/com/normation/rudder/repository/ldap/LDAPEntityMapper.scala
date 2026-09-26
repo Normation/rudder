@@ -148,7 +148,7 @@ class LDAPEntityMapper(
 
     entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
 
-    node.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    node.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
 
     entry
   }
@@ -169,7 +169,7 @@ class LDAPEntityMapper(
                                     case Some(value) => PolicyMode.parseDefault(value)
                                   }
         properties             <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(NodeProperty.unserializeLdapNodeProperty)
-        security                = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security                = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         val hostname = e(A_NAME).getOrElse("")
         Node(
@@ -485,9 +485,7 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        // we have a special case for the root active technique category, that needs to be open
-        security    = if (e.dn == rudderDit.ACTIVE_TECHNIQUES_LIB.dn) Some(SecurityTag.Open)
-                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security    = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem, security)
       }
@@ -508,7 +506,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
     entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
-    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
     entry
   }
 
@@ -537,7 +535,7 @@ class LDAPEntityMapper(
                                       .leftMap(e => InventoryMappingRudderError.UnexpectedObject(e))
                                   case None    => Right(AcceptationDateTime.empty)
                                 }
-        security              = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security              = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes, security)
       }
@@ -576,9 +574,7 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        // we have a special case for root group category, that needs to be open
-        security    = if (e.dn == rudderDit.GROUP.dn) Some(SecurityTag.Open)
-                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security    = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem, security)
       }
@@ -599,7 +595,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
     entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
-    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
     entry
   }
 
@@ -642,7 +638,7 @@ class LDAPEntityMapper(
         isEnabled   = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
-        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security    = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         NodeGroup(id, name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem, security)
       }
@@ -745,8 +741,14 @@ class LDAPEntityMapper(
                             )
                         }
       } yield {
-        // For compat with plugin tenant disabled: special targets have the "None" security tag
-        FullRuleTargetInfo(ruleTarget, name, description, isEnabled, isSystem, security = None)
+        FullRuleTargetInfo(
+          ruleTarget,
+          name,
+          description,
+          isEnabled,
+          isSystem,
+          SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
+        )
       }
     } else {
       Left(
@@ -779,7 +781,7 @@ class LDAPEntityMapper(
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags            <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
-        security         = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security         = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
         scheduleId      <- e(A_SCHEDULE_ID) match {
                              case None     => Right(None)
                              case Some(id) =>
@@ -830,7 +832,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach(mode => entry.resetValuesTo(A_POLICY_MODE, mode.name))
     entry.resetValuesTo(A_SERIALIZED_TAGS, directive.tags.toJson)
-    directive.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    directive.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
     directive.scheduleId.foreach(id => entry.resetValuesTo(A_SCHEDULE_ID, id.serialize))
     entry
   }
@@ -848,10 +850,7 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        // the root rule category must be open, like the group and active technique library roots,
-        // so that any user can create objects below it
-        security    = if (e.dn == rudderDit.RULECATEGORY.dn) Some(SecurityTag.Open)
-                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security    = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
       } yield {
         RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem, security)
       }
@@ -915,7 +914,7 @@ class LDAPEntityMapper(
         val isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         val category         = e(A_RULE_CATEGORY).map(RuleCategoryId(_)).getOrElse(rudderDit.RULECATEGORY.rootCategoryId)
-        val security         = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        val security         = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
 
         Rule(
           RuleId(RuleUid(id), rev),
@@ -954,7 +953,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry.resetValuesTo(A_SERIALIZED_TAGS, rule.tags.toJson)
-    rule.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    rule.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
 
     entry
   }
@@ -1157,7 +1156,7 @@ class LDAPEntityMapper(
                             case Right(x)  => Right(x)
                           }
                       }
-        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security    = SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)
         // an unparsable scope is an error, never "no scope": that would silently distribute the
         // parameter to the whole fleet (ADR 29409)
         scope      <- e(A_PARAMETER_SCOPE) match {
@@ -1193,7 +1192,7 @@ class LDAPEntityMapper(
     parameter.provider.foreach(p => entry.resetValuesTo(A_PROPERTY_PROVIDER, p.value))
     parameter.inheritMode.foreach(m => entry.resetValuesTo(A_INHERIT_MODE, m.value))
     entry.resetValuesTo(A_VISIBILITY, parameter.visibility.entryName)
-    parameter.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    parameter.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(t)))
     parameter.scope.foreach(t => entry.resetValuesTo(A_PARAMETER_SCOPE, t.target))
 
     entry

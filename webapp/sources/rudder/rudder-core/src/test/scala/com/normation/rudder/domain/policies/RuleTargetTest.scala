@@ -200,7 +200,7 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     Nil,
     fullRuleTargetInfos,
     isSystem = false,
-    security = Some(SecurityTag.Open) // root category must be open
+    security = SecurityTag.LIBRARY_SECURITY_TAG // root category must be open
   )
 
   val allTargets: Set[RuleTarget] = (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
