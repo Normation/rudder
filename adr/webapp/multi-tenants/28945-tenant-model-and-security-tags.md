@@ -28,6 +28,8 @@ A *tenant* is an arbitrary segmentation identifier (ascii-alnum + `-`/`_`). Two 
 * `ByTenants(tenants)`: visible to an actor sharing at least one of the listed tenants. An empty list means
   admin-only.
 * `Open`: visible to everyone whatever their grant - used for library/shared roots that all tenants must see.
+  (Superseded: `Open` was split in `open-ro` and `open-rw`, see
+  [library objects and the two open tags](29807-library-objects-and-the-two-open-tags.md).)
 
 **Actor side - `TenantAccessGrant`**:
 

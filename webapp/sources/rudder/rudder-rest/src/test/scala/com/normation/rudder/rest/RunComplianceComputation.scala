@@ -166,7 +166,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
         isSystem = true,
-        security = Some(SecurityTag.Open) // root must be open
+        security = SecurityTag.LIBRARY_SECURITY_TAG // root must be open
       ).succeed
     }
 

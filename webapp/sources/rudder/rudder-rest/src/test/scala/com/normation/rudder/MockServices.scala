@@ -204,7 +204,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
         isSystem = true,
-        security = Some(SecurityTag.Open) // root must be opn
+        security = SecurityTag.LIBRARY_SECURITY_TAG // root must be opn
       ).succeed
     }
 

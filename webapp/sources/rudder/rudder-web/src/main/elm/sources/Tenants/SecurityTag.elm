@@ -4,8 +4,12 @@ module Tenants.SecurityTag exposing (SecurityTag(..), badgeSecurityTags, decodeS
 model, its JSON decoder and its badge are defined only once.
 
   - `Nothing` (no tag) means the object has no tenant and is only visible to an administrator.
-  - `Just Open` means it is visible to everyone.
+  - `Just OpenRo` means everybody sees and uses it, and only an administrator changes it: that is what the
+    root categories, the groups Rudder provides and the shipped techniques are.
+  - `Just OpenRw` means everybody sees it and anybody who may write at all may change it.
   - `Just (ByTenants tenants)` means it is visible to the listed tenants.
+
+Rudder 9.2 first had a single `open` tag, which meant read-write; it is still decoded.
 
 -}
 
@@ -15,7 +19,8 @@ import Json.Decode exposing (Decoder, andThen, fail, field, list, map, oneOf, st
 
 
 type SecurityTag
-    = Open
+    = OpenRo
+    | OpenRw
     | ByTenants (List String)
 
 
@@ -25,18 +30,26 @@ decodeSecurityTag =
         [ string
             |> andThen
                 (\s ->
-                    if s == "open" then
-                        succeed Open
+                    case s of
+                        "open-ro" ->
+                            succeed OpenRo
 
-                    else
-                        fail ("Unknown security tag value: " ++ s)
+                        "open-rw" ->
+                            succeed OpenRw
+
+                        -- what 9.2 wrote before the two open tags were told apart: it was read-write
+                        "open" ->
+                            succeed OpenRo
+
+                        _ ->
+                            fail ("Unknown security tag value: " ++ s)
                 )
         , map ByTenants (field "tenants" (list string))
         ]
 
 
 {-| A small badge showing the number of tenants an object belongs to, with the tenant list as tooltip.
-`Nothing` and `Open` render nothing (the object is not tenant-scoped for display purposes).
+`Nothing` and the open tags render nothing (the object is not tenant-scoped for display purposes).
 It is polymorphic in `msg` since it emits no message, so it can be used from any app.
 -}
 badgeSecurityTags : Maybe SecurityTag -> Html msg
@@ -45,7 +58,10 @@ badgeSecurityTags mTag =
         Nothing ->
             text ""
 
-        Just Open ->
+        Just OpenRo ->
+            text ""
+
+        Just OpenRw ->
             text ""
 
         Just (ByTenants tenants) ->

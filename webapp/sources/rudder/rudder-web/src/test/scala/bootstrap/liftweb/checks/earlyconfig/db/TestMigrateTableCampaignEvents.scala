@@ -195,12 +195,12 @@ class TestMigrateTableCampaignEvents extends DBCommon {
   private val oldData = Vector(
     // this one is special and need to become a failure
     OldCampaignEvent("77d4cb38","7cca021a", "testing time #2" , """{"value": "skipped", "reason": "An error occurred when processing event: inconsistency in migration"}""".json, "2024-03-05 10:59:00+00".date, "2024-03-05 11:59:00+00".date, "system-update"),
-    OldCampaignEvent("77d4cb38","a97ccca1", "testing time #7" , """{"value": "skipped", "reason": "User skipped campaign event"}""".json, "2024-03-26 10:59:00+00".date, "2024-03-26 11:59:00+00".date, "system-update"),
-    OldCampaignEvent("1c2fceec","7aab5d52", "test1 #2"        , """{"value": "finished"}                                        """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "software-update"),
-    OldCampaignEvent("840494c4","eab80401", "rearezarezr #3"  , """{"value": "running"}                                         """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "system-update"),
-    OldCampaignEvent("77d4cb38","c34cf085", "testing time #8" , """{"value": "finished"}                                        """.json, "2024-04-02 09:59:00+00".date, "2024-04-02 10:59:00+00".date, "system-update"),
-    OldCampaignEvent("77d4cb38","af039286", "testing time #9" , """{"value": "skipped", "reason": null}                         """.json, "2024-04-09 09:59:00+00".date, "2024-04-09 10:59:00+00".date, "system-update"),
-    OldCampaignEvent("f2f68d18","4e615889", "test badge #2"   , """{"value": "scheduled"}                                       """.json, "2024-07-10 13:20:00+00".date, "2024-07-10 19:20:00+00".date, "software-update"),
+    OldCampaignEvent("77d4cb38","a97ccca1", "testing time #7" , """{"value": "skipped", "reason": "user asked to skip event"}""".json, "2024-03-26 10:59:00+00".date, "2024-03-26 11:59:00+00".date, "system-update"),
+    OldCampaignEvent("1c2fceec","7aab5d52", "test1 #2"        , """{"value": "finished"}                                     """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "software-update"),
+    OldCampaignEvent("840494c4","eab80401", "rearezarezr #3"  , """{"value": "running"}                                      """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "system-update"),
+    OldCampaignEvent("77d4cb38","c34cf085", "testing time #8" , """{"value": "finished"}                                     """.json, "2024-04-02 09:59:00+00".date, "2024-04-02 10:59:00+00".date, "system-update"),
+    OldCampaignEvent("77d4cb38","af039286", "testing time #9" , """{"value": "skipped", "reason": null}                      """.json, "2024-04-09 09:59:00+00".date, "2024-04-09 10:59:00+00".date, "system-update"),
+    OldCampaignEvent("f2f68d18","4e615889", "test badge #2"   , """{"value": "scheduled"}                                    """.json, "2024-07-10 13:20:00+00".date, "2024-07-10 19:20:00+00".date, "software-update"),
  )
   // format: on
 
@@ -416,7 +416,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
         CampaignEventId("a97ccca1"),
         CampaignId("77d4cb38"),
         "testing time #7",
-        CampaignEventState.Skipped("User skipped campaign event"),
+        CampaignEventState.Skipped("user asked to skip event"),
         "2024-03-26 10:59:00+00".dateJT,
         "2024-03-26 11:59:00+00".dateJT,
         CampaignType("system-update")

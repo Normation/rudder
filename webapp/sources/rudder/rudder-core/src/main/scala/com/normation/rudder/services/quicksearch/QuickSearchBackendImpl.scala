@@ -447,7 +447,7 @@ object QSLdapBackend {
         // Then transform LDAPEntries to quicksearch results, keeping only the attribute that matches the
         // query, and no system entries but nodes.
         entries
-          .filter(e => qc.accessGrant.canSee(e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)))
+          .filter(e => qc.accessGrant.canSee(SecurityTag.parseLdapValue(e(A_SECURITY_TAG), e.dn.toString)))
           .flatMap(_.toResult(query))
       }
     }

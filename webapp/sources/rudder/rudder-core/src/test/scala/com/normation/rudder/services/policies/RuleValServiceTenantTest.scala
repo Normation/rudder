@@ -139,9 +139,9 @@ class RuleValServiceTenantTest extends Specification {
     )
   }
 
-  // a group holding all three nodes, `Open` so the target-level filter never drops it: the point of these
+  // a group holding all three nodes, open so the target-level filter never drops it: the point of these
   // cases is the node-level filter.
-  val openGroup: NodeGroup             = mkGroup("all", Some(SecurityTag.Open), Set(nA, nB, nAdmin))
+  val openGroup: NodeGroup             = mkGroup("all", Some(SecurityTag.OpenRo), Set(nA, nB, nAdmin))
   val libOpen:   FullNodeGroupCategory = mkGroupLib(List(openGroup))
   val openTgt:   Set[RuleTarget]       = Set(GroupTarget(openGroup.id))
 
@@ -152,9 +152,12 @@ class RuleValServiceTenantTest extends Specification {
       Set(nA, nB, nAdmin)
     }
 
-    "let an `Open` rule reach every node" in {
-      ruleValService.getTargetedNodes(mkRule(Some(SecurityTag.Open), openTgt), libOpen, nodeInfos) ===
-      Set(nA, nB, nAdmin)
+    // both open tags say the same thing about visibility, they differ only on who may change the object
+    "let an open rule reach every node, whichever open tag it carries" in {
+      (ruleValService.getTargetedNodes(mkRule(Some(SecurityTag.OpenRo), openTgt), libOpen, nodeInfos) ===
+      Set(nA, nB, nAdmin)) and
+      (ruleValService.getTargetedNodes(mkRule(Some(SecurityTag.OpenRw), openTgt), libOpen, nodeInfos) ===
+      Set(nA, nB, nAdmin))
     }
 
     "restrict a single-tenant rule to its own tenant's nodes" in {

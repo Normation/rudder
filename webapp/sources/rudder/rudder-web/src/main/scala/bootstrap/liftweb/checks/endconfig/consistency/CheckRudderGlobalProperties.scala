@@ -50,6 +50,7 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
 import zio.json.*
@@ -75,31 +76,31 @@ class CheckRudderGlobalProperties(
     .flatMap(list => ZIO.foreach(list)(_.as[GlobalPropertiesJson].toIO.map(_.toGlobalParam)))
 
   private def updateOne(modId: ModificationId, p: GlobalParameter): IOResult[Unit] = {
-    // system bootstrap check: no user context, act as Rudder with full access grant
-    given qc: QueryContext = QueryContext.systemQC
-    for {
-      saved <- roParamRepo.getGlobalParameter(p.name)
-      _     <- saved match {
-                 case None                                                      =>
-                   BootstrapLogger.info(s"Creating missing global properties '${p.name}' with value: '${p.valueAsString}''") *>
-                   woParamRepo.saveParameter(p)(using
-                     ChangeContext
-                       .newForRudder(Some(s"Creating global system parameter '${p.name}' to its default value"))
-                       .withModId(modId)
-                   )
-                 case Some(s) if p.value != s.value || p.provider != s.provider =>
-                   val provider = p.provider.getOrElse(PropertyProvider.systemPropertyProvider).value
-                   BootstrapLogger.info(
-                     s"Resetting global properties '${p.name}' from $provider provider to value: ${p.valueAsString}"
-                   ) *>
-                   woParamRepo.updateParameter(p)(using
-                     ChangeContext
-                       .newForRudder(Some(s"Resetting global system properties '${p.name}' to its default value"))
-                       .withModId(modId)
-                   )
-                 case _                                                         => ZIO.unit
-               }
-    } yield ()
+    QueryContext.asSystem("a boot check runs as Rudder, before any user") {
+      for {
+        saved <- roParamRepo.getGlobalParameter(p.name)
+        _     <- saved match {
+                   case None                                                      =>
+                     BootstrapLogger.info(s"Creating missing global properties '${p.name}' with value: '${p.valueAsString}''") *>
+                     woParamRepo.saveParameter(p)(using
+                       ChangeContext
+                         .newForRudder(Some(s"Creating global system parameter '${p.name}' to its default value"))
+                         .withModId(modId)
+                     )
+                   case Some(s) if p.value != s.value || p.provider != s.provider =>
+                     val provider = p.provider.getOrElse(PropertyProvider.systemPropertyProvider).value
+                     BootstrapLogger.info(
+                       s"Resetting global properties '${p.name}' from $provider provider to value: ${p.valueAsString}"
+                     ) *>
+                     woParamRepo.updateParameter(p)(using
+                       ChangeContext
+                         .newForRudder(Some(s"Resetting global system properties '${p.name}' to its default value"))
+                         .withModId(modId)
+                     )
+                   case _                                                         => ZIO.unit
+                 }
+      } yield ()
+    }
   }
 
   override def checks(): Unit = {
@@ -140,7 +141,7 @@ final private[checks] case class GlobalPropertiesJson(
       description,
       provider.map(PropertyProvider.apply),
       visibility.flatMap(Visibility.withNameInsensitiveOption).getOrElse(Visibility.default),
-      security = None // for backward compat
+      security = SecurityTag.LIBRARY_SECURITY_TAG
     )
   }
 }

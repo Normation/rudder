@@ -454,7 +454,7 @@ response:
     {
       "action": "updateRule",
       "result": "error",
-      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[zoneA,zoneB]' to '[zoneA]': visibility can only grow (add tenants, or set 'open'), never shrink. To narrow the scope, create a new object with the wanted tenant list"
+      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[zoneA,zoneB]' to '[zoneA]': visibility can only grow (add tenants, or open the object), never shrink. To narrow the scope, create a new object with the wanted tenant list"
     }
 ---
 description: LAW9 admin confirms the narrowing attempt left the tenant list untouched
@@ -526,7 +526,7 @@ response:
       "errorDetails": "Inconsistency: Object 'law-rule-shared' security tag can not be updated to '[zoneA,zoneB,zoneZ]' because tenant(s) 'zoneZ' don't exist"
     }
 ---
-description: LAW9 admin can grow the tenant list to open
+description: LAW9 admin can grow the tenant list to open (the 9.2 `open` value is still accepted, as `open-ro`)
 user: admin
 method: POST
 url: /api/latest/rules/law-rule-shared
@@ -565,7 +565,7 @@ response:
             "status": {
               "value": "In application"
             },
-            "security": "open"
+            "security": "open-ro"
           }
         ]
       }
@@ -593,7 +593,7 @@ response:
     {
       "action": "updateRule",
       "result": "error",
-      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[open]' to '[zoneA,zoneB]': visibility can only grow (add tenants, or set 'open'), never shrink. To narrow the scope, create a new object with the wanted tenant list"
+      "errorDetails": "Inconsistency: Security tag of object 'law-rule-shared' can not change from '[open-ro]' to '[zoneA,zoneB]': visibility can only grow (add tenants, or open the object), never shrink. To narrow the scope, create a new object with the wanted tenant list"
     }
 ---
 description: cleanup lawParamAdmin

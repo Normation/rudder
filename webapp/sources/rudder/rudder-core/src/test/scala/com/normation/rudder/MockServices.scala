@@ -969,7 +969,7 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
         subCategories = Nil,
         activeTechniques = Nil,
         isSystem = true,
-        security = Some(SecurityTag.Open)
+        security = SecurityTag.LIBRARY_SECURITY_TAG
       )
     )
     .runNow
@@ -1351,7 +1351,7 @@ class MockRules(mockTenants: MockTenants) {
     "This is the main category of Rules",
     RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil, security = None) :: Nil,
     isSystem = true,
-    security = Some(SecurityTag.Open) // root cat must be open
+    security = SecurityTag.LIBRARY_SECURITY_TAG // root cat must be open
   )
 
   object ruleCategoryRepoImpl extends RoRuleCategoryRepository with WoRuleCategoryRepository {
@@ -2795,7 +2795,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
           subCategories = Nil,
           targetInfos = Nil,
           isSystem = true,
-          security = Some(SecurityTag.Open) // root must be open
+          security = SecurityTag.LIBRARY_SECURITY_TAG // root must be open
         )
       )
       .runNow
@@ -3296,7 +3296,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
         subCategories = Nil,
         targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
         isSystem = false,
-        security = Some(SecurityTag.Open)           // root must be open
+        security = SecurityTag.LIBRARY_SECURITY_TAG // root must be open
       ),
       FullNodeGroupCategory(
         NodeGroupCategoryId("system-category1"),
@@ -3388,7 +3388,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
       )
     ) ++ groupsTargetInfos.drop(1),
     isSystem = true,
-    security = Some(SecurityTag.Open)
+    security = SecurityTag.LIBRARY_SECURITY_TAG
   )
 
   // init with full lib

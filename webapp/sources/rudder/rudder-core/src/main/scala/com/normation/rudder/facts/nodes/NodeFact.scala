@@ -1747,7 +1747,25 @@ object NodeFactSerialisation {
       _.name
     )
 
-    implicit val codecSecurityTag:    JsonCodec[SecurityTag]    = DeriveJsonCodec.gen
+    // Since 8.1 node facts store the tag in zio-json derived, discriminated shape
+    // (`{"ByTenants":{"tenants":[...]}}`, `{"Open":"open"}`) where every other serialization uses the
+    // canonical one. They now write the canonical form too, and still read the old one: a fact is only
+    // rewritten when its node changes.
+    private val decoderLegacySecurityTag: JsonDecoder[SecurityTag] = JsonDecoder[Json].mapOrFail {
+      case Json.Obj(fields) =>
+        fields.toList match {
+          case ("Open", _) :: Nil      => Right(SecurityTag.OpenRo)
+          case ("ByTenants", v) :: Nil => v.as[SecurityTag.ByTenants]
+          case _                       => Left(s"Error decoding security tag: unknown shape '${Json.Obj(fields).toJson}'")
+        }
+      case x                => Left(s"Error decoding security tag: unknown shape '${x.toJson}'")
+    }
+
+    implicit val codecSecurityTag: JsonCodec[SecurityTag] = JsonCodec(
+      SecurityTag.codecSecurityTag.encoder,
+      SecurityTag.codecSecurityTag.decoder <> decoderLegacySecurityTag
+    )
+
     implicit val codecNodeState:      JsonCodec[NodeState]      = JsonCodec.string.transformOrFail[NodeState](NodeState.parse, _.name)
     implicit val codecRudderSettings: JsonCodec[RudderSettings] = DeriveJsonCodec.gen
     implicit val codecAgentVersion:   JsonCodec[AgentVersion]   = JsonCodec.string.transform[AgentVersion](AgentVersion(_), _.value)
