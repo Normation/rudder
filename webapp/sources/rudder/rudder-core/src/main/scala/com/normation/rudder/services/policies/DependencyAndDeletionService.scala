@@ -59,9 +59,16 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantCheckLogic
 import net.liftweb.common.*
 import zio.*
 import zio.syntax.*
+
+/*
+ * Dependency detection is becoming harder with multi-tenants:
+ * - when we compute what to display to someone, we must filter by tenant,
+ * - when we compute the dependency impacted by something (like a delete), we need to have all of them
+ */
 
 /**
  * A container for items which depend on directives
@@ -119,7 +126,7 @@ trait DependencyAndDeletionService {
       id:           DirectiveUid,
       groupLib:     IOResult[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): IOResult[DirectiveDependencies]
+  )(using qc: QueryContext): IOResult[DirectiveDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -146,7 +153,7 @@ trait DependencyAndDeletionService {
       id:           ActiveTechniqueId,
       groupLib:     Box[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): Box[TechniqueDependencies]
+  )(using qc: QueryContext): Box[TechniqueDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -166,7 +173,7 @@ trait DependencyAndDeletionService {
    * if that target was switching from disabled to enabled
    * (independently from the actual status of that target).
    */
-  def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = true): IOResult[TargetDependencies]
+  def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = true)(using qc: QueryContext): IOResult[TargetDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -214,6 +221,7 @@ class FindDependenciesImpl(
 
 class DependencyAndDeletionServiceImpl(
     findDependencies:      FindDependencies,
+    checkTenant:           TenantCheckLogic,
     roDirectiveRepository: RoDirectiveRepository,
     woDirectiveRepository: WoDirectiveRepository,
     woRuleRepository:      WoRuleRepository,
@@ -271,7 +279,7 @@ class DependencyAndDeletionServiceImpl(
       id:           DirectiveUid,
       boxGroupLib:  IOResult[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): IOResult[DirectiveDependencies] = {
+  )(using qc: QueryContext): IOResult[DirectiveDependencies] = {
     for {
       configRules <- findDependencies.findRulesForDirective(id)
       groupLib    <- boxGroupLib
@@ -281,7 +289,7 @@ class DependencyAndDeletionServiceImpl(
                        case OnlyDisableable => filterRules(configRules, groupLib)
                      }
     } yield {
-      DirectiveDependencies(id, filtered.toSet)
+      DirectiveDependencies(id, checkTenant.filter(filtered).toSet)
     }
   }
 
@@ -341,45 +349,58 @@ class DependencyAndDeletionServiceImpl(
       id:           ActiveTechniqueId,
       boxGroupLib:  Box[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): Box[TechniqueDependencies] = {
-    // dependency look-up is a system-level query, not tenant-restricted
-    given qc: QueryContext = QueryContext.systemQC
-    for {
-      directives <- roDirectiveRepository.getDirectives(id)
-      // if we are asked only for enable directives, remove disabled ones
-      filteredPis = onlyForState match {
-                      case DontCare        => directives
-                      case OnlyEnableable  => directives.filter(directive => !directive.isEnabled)
-                      case OnlyDisableable => directives.filter(directive => directive.isEnabled)
-                    }
-      groupLib   <- boxGroupLib.toIO
-      piAndCrs   <- ZIO.foreach(filteredPis) { directive =>
-                      for {
-                        configRules <- findDependencies.findRulesForDirective(directive.id.uid)
-                        filtered    <- onlyForState match {
-                                         case DontCare        => configRules.succeed
-                                         case OnlyEnableable  => filterRules(configRules, groupLib)
-                                         case OnlyDisableable => filterRules(configRules, groupLib)
-                                       }
-                      } yield {
-                        (directive.id, (directive, filtered))
-                      }
-                    }
-    } yield {
-      val allCrs = (for {
-        (directiveId, (directive, seqCrs)) <- piAndCrs
-        rule                               <- seqCrs
-      } yield {
-        (rule.id, rule)
-      }).toMap
+  )(using viewer: QueryContext): Box[TechniqueDependencies] = {
+    // the dependencies themselves are looked up without restriction - the answer must be complete before
+    // it can be split into what the viewer sees or not.
+    def allDeps: IOResult[(Seq[(DirectiveId, (Directive, Seq[Rule]))], Map[RuleId, Rule])] = {
+      QueryContext.asSystem("the dependency set must be complete before it is split") {
+        for {
+          directives <- roDirectiveRepository.getDirectives(id)
+          // if we are asked only for enable directives, remove disabled ones
+          filteredPis = onlyForState match {
+                          case DontCare        => directives
+                          case OnlyEnableable  => directives.filter(directive => !directive.isEnabled)
+                          case OnlyDisableable => directives.filter(directive => directive.isEnabled)
+                        }
+          groupLib   <- boxGroupLib.toIO
+          piAndCrs   <- ZIO.foreach(filteredPis) { directive =>
+                          for {
+                            configRules <- findDependencies.findRulesForDirective(directive.id.uid)
+                            filtered    <- onlyForState match {
+                                             case DontCare        => configRules.succeed
+                                             case OnlyEnableable  => filterRules(configRules, groupLib)
+                                             case OnlyDisableable => filterRules(configRules, groupLib)
+                                           }
+                          } yield {
+                            (directive.id, (directive, filtered))
+                          }
+                        }
+        } yield {
+          val allCrs = (for {
+            (_, (_, seqCrs)) <- piAndCrs
+            rule             <- seqCrs
+          } yield {
+            (rule.id, rule)
+          }).toMap
+          (piAndCrs, allCrs)
+        }
+      }
+    }
 
-      TechniqueDependencies(
-        id,
-        piAndCrs.map {
-          case ((directiveId, (directive, seqCrs))) => (directiveId.uid, (directive, seqCrs.map(_.id).toSet))
-        }.toMap,
-        allCrs
-      )
+    allDeps.map {
+      case (piAndCrs, allCrs) =>
+        // only what the viewer may see is listed
+        val visibleDirectives = checkTenant.filter(piAndCrs.map { case (_, (directive, _)) => directive })
+        val visibleRules      = checkTenant.filter(allCrs.values.toSeq).map(r => (r.id, r)).toMap
+
+        TechniqueDependencies(
+          id,
+          piAndCrs.collect {
+            case (directiveId, (directive, seqCrs)) if visibleDirectives.exists(_.id == directive.id) =>
+              (directiveId.uid, (directive, seqCrs.collect { case r if visibleRules.contains(r.id) => r.id }.toSet))
+          }.toMap,
+          visibleRules
+        )
     }
   }.toBox
 
@@ -418,7 +439,9 @@ class DependencyAndDeletionServiceImpl(
    * For now, we don't care about dependencies yielded by parameterized values,
    * and so we just look for rules with targetname=target
    */
-  override def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = false): IOResult[TargetDependencies] = {
+  override def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = false)(using
+      qc: QueryContext
+  ): IOResult[TargetDependencies] = {
     /* utility method to call if only enableable is set to true, and which filter rule that:
      * - the rule own status is enable ;
      * - have a directive ;
@@ -462,7 +485,7 @@ class DependencyAndDeletionServiceImpl(
       configRules <- findDependencies.findRulesForTarget(target)
       filtered    <- if (onlyEnableable) filterRules(configRules) else configRules.succeed
     } yield {
-      TargetDependencies(target, filtered.toSet)
+      TargetDependencies(target, checkTenant.filter(filtered).toSet)
     }
   }
 
