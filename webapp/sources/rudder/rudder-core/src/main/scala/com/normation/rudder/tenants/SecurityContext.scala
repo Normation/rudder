@@ -426,6 +426,12 @@ object QueryContext {
   // for no right queries
   val noneQC: QueryContext = QueryContext(EventActor("none"), TenantAccessGrant.None)
 
+  /*
+   * Run a block as Rudder, with an all-tenants grant.
+   * `reason` states why the answer has to be complete. One call per invocation, no loop.
+   */
+  def asSystem[A](reason: String)(block: QueryContext ?=> A): A = block(using systemQC)
+
   // For places where a query context may be required (UI snippets), provide a way to recover from unknown
   extension (opt: Option[QueryContext]) {
     def withQCOr[A](fallback: => A)(withQC: QueryContext ?=> A): A = opt match {

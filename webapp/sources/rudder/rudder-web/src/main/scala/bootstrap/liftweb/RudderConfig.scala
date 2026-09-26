@@ -3692,6 +3692,7 @@ object RudderConfigInit {
 
     lazy val dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
       new FindDependenciesImpl(roLdap, rudderDitImpl, ldapEntityMapper),
+      tenantCheckLogic,
       directiveRead.repository,
       directiveWrite.repository,
       ruleWrite.repository,

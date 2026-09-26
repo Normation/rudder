@@ -613,10 +613,7 @@ class FindNewNodeStatusReportsImpl(
   override def buildNodeStatusReports(
       runInfos:           Map[NodeId, RunAndConfigInfo],
       complianceModeName: ComplianceModeName
-  ): IOResult[Map[NodeId, NodeStatusReport]] = {
-
-    given qc: QueryContext = QueryContext.systemQC
-
+  ): IOResult[Map[NodeId, NodeStatusReport]] = QueryContext.asSystem("compliance is computed for every node") {
     val batchedRunsInfos = runInfos.grouped(jdbcMaxBatchSize).toSeq
     val result           = ZIO.foreach(batchedRunsInfos) { runBatch =>
       /*
