@@ -222,9 +222,7 @@ class FetchAllInfoServiceImpl(
     } yield rawRuleVals
   }
 
-  def fetchAll(): IOResult[FetchAllInfo] = {
-    implicit val qc: QueryContext = QueryContext.systemQC
-
+  def fetchAll(): IOResult[FetchAllInfo] = QueryContext.asSystem("a policy generation covers every node and every rule") {
     def currentTimeMillis = ZIO.clock.flatMap(_.currentTime(TimeUnit.MILLISECONDS))
 
     for {
