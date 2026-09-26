@@ -809,6 +809,26 @@ rudder.relayd.reload=/opt/rudder/bin/rudder relay reload -p
 #
 rudder.jvm.fatal.exceptions=
 
+#################
+# Boot progress ################################################################
+#################
+
+#
+# Period for the boot probe message displaying current stage and time in it.
+# It's useful as a live-monitoring check, when a boot is slow (for example
+# because of a migration).
+# In addition a log line in `/var/log/rudder/webapp/webapp.log`, the probe
+# write metric logs in var/rudder/run/rudder-boot-progress
+#
+rudder.boot.progress.logInterval=10 seconds
+
+#
+# Time after which a boot without progress (ie same step) is considered stalled
+# and a thread dump is produced.
+# Set it to 0 to disable the check entirely and let Rudder wait indefinitely.
+#
+rudder.boot.progress.stallTimeout=10 minutes
+
 
 ########################
 # DEPRECATED properties #############################################################
