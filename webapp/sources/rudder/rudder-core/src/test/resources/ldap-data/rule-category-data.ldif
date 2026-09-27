@@ -10,3 +10,20 @@ cn: Rules
 description: This is the main category of Rules
 isSystem: TRUE
 securityTag: open-ro
+
+# A shared sub-category and an administrator-only one, so that a tenant user reading the tree is checked
+# against both: the sub-categories are where a restricted attribute list used to lose the tag.
+dn: ruleCategoryId=sharedCat,ruleCategoryId=rootRuleCategory,ou=Rudder,cn=rudder-configuration
+objectClass: ruleCategory
+objectClass: top
+ruleCategoryId: sharedCat
+cn: Shared category
+isSystem: FALSE
+securityTag: open-ro
+
+dn: ruleCategoryId=adminOnlyCat,ruleCategoryId=rootRuleCategory,ou=Rudder,cn=rudder-configuration
+objectClass: ruleCategory
+objectClass: top
+ruleCategoryId: adminOnlyCat
+cn: Administrators only category
+isSystem: FALSE

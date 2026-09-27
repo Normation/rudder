@@ -257,8 +257,10 @@ trait SetupLdapRepositories {
       new ZioTReentrantLock("rule-cat-lock")
     )
   }
-  lazy val roRuleRepo: RoRuleRepository = new RoTenantRuleRepo(tenantService, ldapRoRuleRepo)
-  lazy val woRuleRepo: WoRuleRepository = {
+  lazy val roRuleCategoryRepo: com.normation.rudder.rule.category.RoRuleCategoryRepository =
+    new com.normation.rudder.repository.RoTenantRuleCategoryRepo(tenantService, ldapRoRuleCategoryRepo)
+  lazy val roRuleRepo:         RoRuleRepository                                            = new RoTenantRuleRepo(tenantService, ldapRoRuleRepo)
+  lazy val woRuleRepo:         WoRuleRepository                                            = {
     val ldapWo = new WoLDAPRuleRepository(
       ldapRoRuleRepo,
       rwLdap,
