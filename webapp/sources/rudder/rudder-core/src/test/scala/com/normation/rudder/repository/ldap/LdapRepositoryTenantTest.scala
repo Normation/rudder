@@ -132,6 +132,20 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     }
   }
 
+  // the tree is read on a specific ldap request, check it
+  "[Rule categories] reading the tree" should {
+    "give an admin every category" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roRuleCategoryRepo.getRootCategory().runNow.childs.map(_.id.value) must containTheSameElementsAs(
+        List("sharedCat", "adminOnlyCat")
+      )
+    }
+    "give a zoneA user the `open-ro` ones, and only those" in {
+      given qc: QueryContext = zoneA
+      roRuleCategoryRepo.getRootCategory().runNow.childs.map(_.id.value) must beEqualTo(List("sharedCat"))
+    }
+  }
+
   // read-time filtering on the other read APIs (filtering depends only on the access grant,
   // not on the plugin status, so these are independent of the tenant feature being enabled)
   "[Groups] Reading groups" should {

@@ -127,11 +127,9 @@ class RoLDAPRuleCategoryRepository(
    * get Root category
    */
   override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] = {
-    val catAttributes = Seq(A_OC, A_RULE_CATEGORY_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)
-
     categoryMutex.readLock(for {
       con          <- ldap
-      entries      <- con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes*)
+      entries      <- con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY))
       // look for sub categories
       categories   <- ZIO.foreach(entries) { entry =>
                         mapper
