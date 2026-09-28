@@ -105,8 +105,9 @@ object JsonGlobalPluginLimits {
 }
 
 /**
-  * Representation of a RudderPluginDef, which is defined in rudder-web
-  */
+ * Representation of a RudderPluginDef, which is defined in rudder-web
+ * JSON format for public plugins API
+ */
 final case class JsonPluginDetails(
     id:            String,
     name:          String,

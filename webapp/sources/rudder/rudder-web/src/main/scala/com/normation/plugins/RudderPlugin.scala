@@ -142,6 +142,33 @@ final case class PluginName(value: String) {
 }
 
 object RudderPluginDef {
+  extension (self: RudderPluginDef) {
+    def currentLicense: Option[PluginLicense] = {
+      self.status.current match {
+        case RudderPluginLicenseStatus.EnabledNoLicense            => None
+        case RudderPluginLicenseStatus.EnabledWithLicense(license) => Some(license)
+        case RudderPluginLicenseStatus.Disabled(_, license)        => license
+      }
+    }
+
+    def disabledReason: Option[String] = {
+      self.status.current match {
+        case RudderPluginLicenseStatus.EnabledNoLicense      => None
+        case RudderPluginLicenseStatus.EnabledWithLicense(_) => None
+        case RudderPluginLicenseStatus.Disabled(reason, _)   => Some(reason)
+      }
+    }
+
+    private def installStatus: PluginInstallStatus = {
+      self.status.current match {
+        case RudderPluginLicenseStatus.EnabledNoLicense      => PluginInstallStatus.Enabled
+        case RudderPluginLicenseStatus.EnabledWithLicense(_) => PluginInstallStatus.Enabled
+        case RudderPluginLicenseStatus.Disabled(_, _)        => PluginInstallStatus.Disabled
+      }
+    }
+  }
+
+  // transformer needs to be defined here (not in JsonPluginDetails) because RudderPluginDef is in web
   implicit val transformerJsonPluginDetails: Transformer[RudderPluginDef, JsonPluginDetails] = {
     Transformer
       .define[RudderPluginDef, JsonPluginDetails]
@@ -149,30 +176,12 @@ object RudderPluginDef {
       .withFieldComputed(_.shortName, _.shortName)
       .withFieldComputed(_.description, _.description.toString())
       .withFieldComputed(_.version, _.version.pluginVersion.toVersionStringNoEpoch)
-      .withFieldComputedFrom(_.status.current)(
-        _.status,
-        {
-          case RudderPluginLicenseStatus.EnabledNoLicense => JsonPluginInstallStatus.Enabled
-          case _: RudderPluginLicenseStatus.EnabledWithLicense => JsonPluginInstallStatus.Enabled
-          case _: RudderPluginLicenseStatus.Disabled           => JsonPluginInstallStatus.Disabled
-        }
-      )
-      .withFieldComputedFrom(_.status.current)(
-        _.statusMessage,
-        {
-          case RudderPluginLicenseStatus.Disabled(msg, _) => Some(msg)
-          case _                                          => None
-        }
-      )
-      .withFieldComputedFrom(_.status.current)(
-        _.license,
-        {
-          case RudderPluginLicenseStatus.EnabledWithLicense(license) => Some(license.transformInto[JsonPluginLicense])
-          case _                                                     => None
-        }
-      )
+      .withFieldComputed(_.status, _.installStatus.transformInto[JsonPluginInstallStatus])
+      .withFieldComputed(_.statusMessage, _.disabledReason)
+      .withFieldComputed(_.license, _.currentLicense.map(_.transformInto[JsonPluginLicense]))
       .buildTransformer
   }
+  // transformer needs to be defined here (not in Plugin) because RudderPluginDef is in web
   implicit val transformerPlugin:            Transformer[RudderPluginDef, Plugin]            = {
     Transformer
       .define[RudderPluginDef, Plugin]
@@ -182,28 +191,9 @@ object RudderPluginDef {
       .withFieldComputed(_.version, p => Some(p.version.pluginVersion.toVersionStringNoEpoch))
       .withFieldComputed(_.pluginVersion, _.version.pluginVersion)
       .withFieldComputed(_.abiVersion, _.version.rudderAbi)
-      .withFieldComputedFrom(_.status.current)(
-        _.status,
-        {
-          case RudderPluginLicenseStatus.EnabledNoLicense => PluginInstallStatus.Enabled
-          case _: RudderPluginLicenseStatus.EnabledWithLicense => PluginInstallStatus.Enabled
-          case _: RudderPluginLicenseStatus.Disabled           => PluginInstallStatus.Disabled
-        }
-      )
-      .withFieldComputedFrom(_.status.current)(
-        _.statusMessage,
-        {
-          case RudderPluginLicenseStatus.Disabled(msg, _) => Some(msg)
-          case _                                          => None
-        }
-      )
-      .withFieldComputedFrom(_.status.current)(
-        _.license,
-        {
-          case RudderPluginLicenseStatus.EnabledWithLicense(license) => Some(license)
-          case _                                                     => None
-        }
-      )
+      .withFieldComputed(_.status, _.installStatus)
+      .withFieldComputed(_.statusMessage, _.disabledReason)
+      .withFieldComputed(_.license, _.currentLicense)
       .withFieldComputed(
         _.errors,
         plugin => {
@@ -393,12 +383,15 @@ class PluginsServiceImpl(
   // When there are no licenced plugin, for display purpose we fallback to "unknown"
   implicit def licensee: Licensee = {
     pluginDefs.values
-      .flatMap(_.transformInto[JsonPluginDetails].license)
+      .flatMap(_.currentLicense)
       .headOption
-      .map(l => Licensee(l.licensee))
+      .map(_.licensee)
       .getOrElse(unknownLicensee)
   }
 
+  /**
+   * Used to complete rudder package [[LicenseInfo]] dates
+   */
   private object defaultValues {
     implicit val softwareId: SoftwareId = SoftwareId("")
     implicit val minVersion: MinVersion = MinVersion("0.0.0-0.0.0")
@@ -414,28 +407,24 @@ class PluginsServiceImpl(
     implicit val rudderVersion: String = rudderFullVersion
     pluginDefs
       .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
-      .flatMap { pluginDef =>
-        val details = pluginDef.transformInto[JsonPluginDetails]
-        implicit val statusDisabledReason: StatusDisabledReason = StatusDisabledReason(pluginDef.status.current match {
-          case RudderPluginLicenseStatus.Disabled(reason, _) => Some(reason)
-          case _                                             => None
-        })
+      .map { pluginDef =>
+        implicit val statusDisabledReason: StatusDisabledReason = StatusDisabledReason(pluginDef.disabledReason)
         implicit val abiVersion:           AbiVersion           = AbiVersion(pluginDef.version.rudderAbi)
         implicit val pluginVersion:        PluginVersion        =
           PluginVersion(pluginDef.version.pluginVersion)
 
-        // plugin listed from rudder package but with no license information :
-        // - we can parse version, or else return one that is different
-        details.license.map { license =>
-          implicit val softwareId: SoftwareId = SoftwareId(license.softwareId)
-          implicit val minVersion: MinVersion = MinVersion(license.minVersion)
-          implicit val maxVersion: MaxVersion = MaxVersion(license.maxVersion)
+        // rudder package only provides license dates, the other fields come from the plugin license when there is one
+        val license = pluginDef.currentLicense
+        implicit val softwareId: SoftwareId = license.map(_.softwareId).getOrElse(defaultValues.softwareId)
+        implicit val minVersion: MinVersion = license.map(_.minVersion).getOrElse(defaultValues.minVersion)
+        implicit val maxVersion: MaxVersion = license.map(_.maxVersion).getOrElse(defaultValues.maxVersion)
 
-          p.transformInto[Plugin]
-        }
+        p.transformInto[Plugin]
       }
       .getOrElse {
-        // default implicits
+        // plugin only known from rudder package, ie not registered in the webapp:
+        // - we need some defaults implicits for license fields
+        // - we can parse version, or else return one that is different
         import defaultValues.*
 
         // we need to attempt to parse versions from latest available version
