@@ -72,13 +72,13 @@ class TestTechniqueCategoryWriter extends Specification {
   private def categoryId(path: String) = TechniqueCategoryId.parse(path).getOrElse(throw new RuntimeException(path))
 
   private def categoryWriterCreate(name: String, description: String) = {
-    writer.createCategory(UserTechniqueCategory.id, name, description).runNow.id
+    writer.createCategory(UserTechniqueCategory.id, name, description, None).runNow.id
   }
 
   "Managing the categories of the technique editor" should {
 
     "create a sub-category, with a directory name derived from its name" in {
-      val created = writer.createCategory(categoryId("ncf_techniques"), "My câtegory", "For my own use").runNow
+      val created = writer.createCategory(categoryId("ncf_techniques"), "My câtegory", "For my own use", None).runNow
 
       (TechniqueCategoryId.serialize(created.id) === "ncf_techniques/my_c_tegory") and
       ((techniquesDir / "ncf_techniques" / "my_c_tegory" / "category.xml").contentAsString ===
@@ -90,23 +90,23 @@ class TestTechniqueCategoryWriter extends Specification {
     }
 
     "refuse to create a category whose directory already exists" in {
-      writer.createCategory(categoryId("ncf_techniques"), "My câtegory", "Again").either.runNow must beLeft
+      writer.createCategory(categoryId("ncf_techniques"), "My câtegory", "Again", None).either.runNow must beLeft
     }
 
     "refuse to create a category with a name that has no usable character" in {
-      writer.createCategory(categoryId("ncf_techniques"), "é", "").either.runNow must beLeft
+      writer.createCategory(categoryId("ncf_techniques"), "é", "", None).either.runNow must beLeft
     }
 
     "refuse to create a category outside of the technique editor categories" in {
-      writer.createCategory(categoryId("systemSettings"), "My câtegory", "").either.runNow must beLeft
+      writer.createCategory(categoryId("systemSettings"), "My câtegory", "", None).either.runNow must beLeft
     }
 
     "refuse a directory name already used elsewhere in the library, whatever its case" in {
       // the library tells a move from a delete+add by directory name, and LDAP uses it as a category id
-      val sub = writer.createCategory(categoryId("ncf_techniques"), "unique name", "").runNow.id
-      (writer.createCategory(sub, "unique name", "").either.runNow must beLeft) and
-      (writer.createCategory(categoryId("ncf_techniques"), "misc", "").either.runNow must beLeft) and
-      (writer.createCategory(categoryId("ncf_techniques"), "MISC", "").either.runNow must beLeft)
+      val sub = writer.createCategory(categoryId("ncf_techniques"), "unique name", "", None).runNow.id
+      (writer.createCategory(sub, "unique name", "", None).either.runNow must beLeft) and
+      (writer.createCategory(categoryId("ncf_techniques"), "misc", "", None).either.runNow must beLeft) and
+      (writer.createCategory(categoryId("ncf_techniques"), "MISC", "", None).either.runNow must beLeft)
     }
 
     "rename a category without moving its directory" in {
@@ -146,13 +146,13 @@ class TestTechniqueCategoryWriter extends Specification {
 
       (writer.updateCategory(id, Some(""), None).either.runNow must beLeft) and
       (writer.updateCategory(id, Some("   "), None).either.runNow must beLeft) and
-      (writer.createCategory(UserTechniqueCategory.id, "  ", "").either.runNow must beLeft) and
+      (writer.createCategory(UserTechniqueCategory.id, "  ", "", None).either.runNow must beLeft) and
       (mockTechniques.techniqueRepo.getTechniqueCategory(id).runNow.name === "never nameless")
     }
 
     "delete an empty category, and the empty sub-categories it holds" in {
       val parent = categoryId("ncf_techniques/my_c_tegory")
-      val child  = writer.createCategory(parent, "child", "").runNow.id
+      val child  = writer.createCategory(parent, "child", "", None).runNow.id
 
       writer.deleteCategory(parent).runNow
 
@@ -167,7 +167,7 @@ class TestTechniqueCategoryWriter extends Specification {
     }
 
     "refuse to delete a category whose directory holds something we do not know about" in {
-      val id = writer.createCategory(categoryId("ncf_techniques"), "with_leftover", "").runNow.id
+      val id = writer.createCategory(categoryId("ncf_techniques"), "with_leftover", "", None).runNow.id
       (techniquesDir / "ncf_techniques" / "with_leftover" / "broken_technique").createDirectories()
 
       writer.deleteCategory(id).either.runNow must beLeft

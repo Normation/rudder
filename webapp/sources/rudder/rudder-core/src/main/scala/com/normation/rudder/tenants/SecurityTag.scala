@@ -267,4 +267,11 @@ object SecurityTag {
     }
   }
 
+  /*
+   * A join on several tags, like in technique where one technique join all version tag (union)
+   */
+  def joinAll[A: HasSecurityTag](it: Iterable[A]): Option[SecurityTag] = {
+    it.foldLeft(Option.empty[SecurityTag])((tag, t) => SecurityTag.join(tag, t.security))
+  }
+
 }

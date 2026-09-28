@@ -55,7 +55,9 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Property
 import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
 import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.softwaremill.quicklens.*
 import java.nio.file.Paths
 import java.util.regex.Pattern
@@ -155,6 +157,18 @@ object EditorTechniquePath                                                      
 }
 
 object EditorTechnique {
+
+  given HasSecurityTag[EditorTechnique] with {
+    extension (a: EditorTechnique) {
+      override def security:                                             Option[SecurityTag] = a.security
+      // an editor technique has no "isSystem" notion for now
+      override def isSystem:                                             Boolean             = false
+      override def tenantTagLifecycle:                                   TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:                                              String              = s"${a.id.value}/${a.version.value}"
+      override def updateSecurityContext(security: Option[SecurityTag]): EditorTechnique     =
+        a.modify(_.security).setTo(security)
+    }
+  }
 
   /*
    * Check for agreement between technique id from path and technique id from descriptor since the technique may

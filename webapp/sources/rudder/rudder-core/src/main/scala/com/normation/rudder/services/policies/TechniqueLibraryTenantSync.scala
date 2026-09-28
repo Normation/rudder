@@ -139,7 +139,7 @@ object TechniqueLibraryTenantSync {
   // an active technique covers every version of its technique, so it shows what any of them shows
   def declaredFor(techniques: Iterable[Technique]): ReferenceTag = {
     if (techniques.isEmpty) ReferenceTag.Absent
-    else ReferenceTag.Declares(techniques.foldLeft(Option.empty[SecurityTag])((tag, t) => SecurityTag.join(tag, t.security)))
+    else ReferenceTag.Declares(SecurityTag.joinAll(techniques))
   }
 
   def declaredFor(declared: Map[ActiveTechniqueCategoryId, Option[SecurityTag]], id: ActiveTechniqueCategoryId): ReferenceTag = {

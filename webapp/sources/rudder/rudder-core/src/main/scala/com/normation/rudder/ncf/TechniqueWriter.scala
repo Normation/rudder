@@ -200,7 +200,8 @@ class TechniqueWriterImpl(
                                 cc.modId,
                                 principal = cc.actor,
                                 modifyDiff = diff,
-                                reason = cc.message
+                                reason = cc.message,
+                                securityTag = previous.security
                               )
                             case None           =>
                               val diff = AddEditorTechniqueDiff(technique)
