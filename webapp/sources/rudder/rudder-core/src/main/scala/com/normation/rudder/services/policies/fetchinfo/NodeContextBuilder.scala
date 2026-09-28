@@ -40,6 +40,7 @@ import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -47,6 +48,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.policies.*
+import com.normation.rudder.tenants.TenantReachIndex
 import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import zio.{System as _, *}
@@ -59,6 +61,50 @@ final case class NodesContextResult(
     ok:    Map[NodeId, InterpolationContext],
     error: Map[NodeId, String]
 )
+
+/*
+ * Which global properties reach a node at generation:
+ * - the ones its scope admits (ADR 29409)
+ * - and the one whose tenants can see the node (ADR 28945-global-parameters-and-tenant-scoping).
+ *
+ * Both filters are per node and resolved once for the fleet: a scope to its node ids per property,
+ * the tenant reach memoized on the node tag.
+ */
+final class GlobalPropertyDistribution[A] private (
+    unscoped: TenantReachIndex[(GlobalParameter, A)],
+    scoped:   TenantReachIndex[(Set[NodeId], (GlobalParameter, A))]
+) {
+
+  def forNode(node: CoreNodeFact): List[(GlobalParameter, A)] = {
+    val security       = node.rudderSettings.security
+    val inScope        = scoped.reaching(security).collect { case (ids, p) if ids.contains(node.id) => p }
+    val unscopedByName = unscoped.reaching(security).map(p => (p._1.name, p)).toMap
+    // a scoped property overrides the unscoped one of the same name, as in the property hierarchy
+    (unscopedByName ++ inScope.map(p => (p._1.name, p))).values.toList
+  }
+}
+
+object GlobalPropertyDistribution {
+
+  def apply[A](
+      globalProperties: Map[GlobalParameter, A],
+      allGroups:        FullNodeGroupCategory,
+      nodeFacts:        Map[NodeId, CoreNodeFact]
+  ): GlobalPropertyDistribution[A] = {
+    val ids                = NodeAndServerIds.fromFacts(nodeFacts)
+    val (unscoped, scoped) = globalProperties.toList.partitionMap {
+      case (p, a) =>
+        p.scope match {
+          case None    => Left((p, a))
+          case Some(t) => Right((allGroups.getNodeIds(Set(t), ids), (p, a)))
+        }
+    }
+    new GlobalPropertyDistribution(
+      TenantReachIndex(unscoped.map { case (p, a) => (p.security, (p, a)) }),
+      TenantReachIndex(scoped.map { case (nodeIds, (p, a)) => (p.security, (nodeIds, (p, a))) })
+    )
+  }
+}
 
 /*
  * This service build the interpolation context for nodes.
@@ -163,6 +209,8 @@ class NodeContextBuilderImpl(
       globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
       parameters            <- buildParams(globalParameters).toBox ?~! "Can not parsed global parameter (looking for interpolated variables)"
     } yield {
+      val distribution = GlobalPropertyDistribution(parameters, allGroups, nodeFacts)
+
       val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) {
         case (res, nodeId) =>
           (for {
@@ -173,7 +221,7 @@ class NodeContextBuilderImpl(
               ) ?~! s"Policy server '${info.rudderSettings.policyServerId.value}' of Node '${nodeId.value}' was not found"
             context            = ParamInterpolationContext(info, policyServer, globalPolicyMode)
             nodeParam         <- ZIO
-                                   .foreach(parameters.toList) {
+                                   .foreach(distribution.forNode(info)) {
                                      case (param, interpol) =>
                                        for {
                                          i <- interpol(context)

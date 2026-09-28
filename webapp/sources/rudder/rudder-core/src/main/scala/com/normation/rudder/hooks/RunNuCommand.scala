@@ -37,12 +37,12 @@
 
 package com.normation.rudder.hooks
 
-import RunNuCommand.SudoRun
-import SudoRun.*
 import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.rudder.hooks.Cmd.sudoBinary
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.*
 import com.normation.zio.*
 import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
