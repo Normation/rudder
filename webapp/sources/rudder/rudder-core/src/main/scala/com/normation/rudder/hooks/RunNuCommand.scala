@@ -42,6 +42,7 @@ import SudoRun.*
 import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.rudder.hooks.Cmd.sudoBinary
 import com.normation.zio.*
 import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
@@ -91,11 +92,31 @@ final case class Cmd(
     sudoRun:     SudoRun
 ) {
   def display: String = s"${sudoRun match {
-      case WithSudo            => "sudo "
-      case WithSudoPreserveEnv => "sudo --preserve-env "
+      case WithSudo            => s"$sudoBinary "
+      case WithSudoPreserveEnv => s"$sudoBinary --preserve-env "
       case WithoutSudo         => ""
     }}${cmdPath} ${parameters.mkString(" ")}"
 }
+
+object Cmd {
+
+  /**
+    * Use correct `sudo` binary to run privileged commands.
+    *
+    * On Ubuntu >= 25.10, the default `sudo` implementation is `sudo-rs`, which does not
+    * support `--preserve-env` in the same way as `sudo.ws` (the classic `sudo`). To provide the ability to avoid using
+    * `sudo-rs` the rudder packaging enforce the installation of `sudo.ws` on the rudder server.
+    *
+    * To keep the behavior consistent, the webapp uses `/usr/bin/sudo.ws` if that binary
+    * exists (i.e. for Ubuntu >= 25.10 distributions), and otherwise falls back to the plain `sudo` command resolved via the `PATH`.
+    */
+  def sudoBinary: String = {
+    val SUDO_WS = "/usr/bin/sudo.ws"
+    val file    = new java.io.File(SUDO_WS)
+    if (file.exists()) SUDO_WS else "sudo"
+  }
+}
+
 final case class CmdResult(code: Int, stdout: String, stderr: String) {
 
   /**
@@ -214,8 +235,8 @@ object RunNuCommand {
     import scala.jdk.CollectionConverters.*
     val errorMsg = s"Error when executing command ${cmd.display}"
     val command  = (cmd.sudoRun match {
-      case WithSudo            => "sudo" :: Nil
-      case WithSudoPreserveEnv => "sudo" :: "--preserve-env" :: Nil
+      case WithSudo            => sudoBinary :: Nil
+      case WithSudoPreserveEnv => sudoBinary :: "--preserve-env" :: Nil
       case WithoutSudo         => Nil
     }) ::: cmd.cmdPath :: cmd.parameters
 
