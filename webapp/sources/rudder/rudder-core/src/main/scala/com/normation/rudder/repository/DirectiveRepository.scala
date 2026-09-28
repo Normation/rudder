@@ -596,6 +596,18 @@ trait WoDirectiveRepository {
   )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId]
 
   /**
+   * Set the tenant tag of the active technique to the one declared by its technique.
+   *
+   * A tag may only grow (see the tenant write law in `TenantCheckLogic`), so a narrower tag is refused:
+   * it is up to the caller to check that following its technique is a growth, with
+   * `SecurityTag.isWiderOrEqual`.
+   */
+  def changeSecurity(
+      id:       ActiveTechniqueId,
+      security: Option[SecurityTag]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId]
+
+  /**
    * Add new (version,acceptation datetime) to existing
    * acceptation datetimes by the new one.
    *
@@ -729,7 +741,7 @@ class InitDirectivesTree(
                                                             ids.map(_.version).toSeq,
                                                             if (newUserPTCat.isSystem) PolicyTypes.rudderSystem
                                                             else PolicyTypes.rudderBase,
-                                                            security = SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
+                                                            security = newUserPTCat.security
                                                           )(using cc.withMsg("Initialize active templates library"))
                                                           .toBox ?~!
                                                         "Error when adding Technique '%s' into user library category '%s'"

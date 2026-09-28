@@ -3388,6 +3388,15 @@ object RudderConfigInit {
       )
     }
 
+    // Copy the tenants in LDAP from FS values.
+    // The raw storage repositories on purpose: the copy is a system task and must not be filtered nor
+    // subjected to the write law.
+    lazy val techniqueLibraryTenantSync = new TechniqueLibraryTenantSync(
+      directiveRead.storage,
+      directiveWrite.storage,
+      techniqueRepository
+    )
+
     // must be here because of circular dependency if in techniqueRepository
     techniqueRepositoryImpl.registerCallback(
       new TechniqueAcceptationUpdater(
@@ -3395,7 +3404,8 @@ object RudderConfigInit {
         50,
         directiveRead.repository,
         directiveWrite.repository,
-        techniqueRepository
+        techniqueRepository,
+        techniqueLibraryTenantSync
       )
     )
 
@@ -3900,6 +3910,8 @@ object RudderConfigInit {
         asyncDeploymentAgentImpl
       ), // new CheckDirectiveBusinessRules()
 
+      // must be after `CheckInitUserTemplateLibrary`: it aligns the library that check may have just created
+      new CheckTechniqueLibraryTenants(techniqueLibraryTenantSync),
       new CheckRudderGlobalProperties(globalPropertyRead.repository, globalPropertyWrite.repository, stringUuidGenerator),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
       new MigrateDirectiveWithSelectInputBroken(

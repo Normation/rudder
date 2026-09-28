@@ -81,6 +81,7 @@ impl MethodTestSuite {
             policy_types: Vec::new(),
             items,
             params: vec![],
+            security: None,
         }
     }
 

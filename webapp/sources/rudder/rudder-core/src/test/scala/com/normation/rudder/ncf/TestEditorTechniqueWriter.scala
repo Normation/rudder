@@ -263,6 +263,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         id:            ActiveTechniqueId,
         newCategoryId: ActiveTechniqueCategoryId
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    def changeSecurity(
+        id:       ActiveTechniqueId,
+        security: Option[SecurityTag]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def changeStatus(
         id:     ActiveTechniqueId,
         status: Boolean

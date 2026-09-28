@@ -186,6 +186,15 @@ class TechniqueApi(
 
   implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
+  // the tenants the stored technique of that id and version declares, none when it is not in the library
+  private def storedSecurityTag(technique: EditorTechnique): Option[SecurityTag] = {
+    TechniqueVersion
+      .parse(technique.version.value)
+      .toOption
+      .flatMap(v => techniqueRepository.get(TechniqueId(TechniqueName(technique.id.value), v)))
+      .flatMap(_.security)
+  }
+
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
@@ -359,7 +368,11 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           _                <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using authzToken.qc.newCC())
+          cc                = authzToken.qc.newCC()
+          // a client that does not know about tenants posts the technique back without the field: keep
+          // the tag it already has rather than dropping it
+          tagged            = technique.withSecurityIfUndeclared(storedSecurityTag(technique))
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(tagged)(using cc)
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -579,7 +592,11 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using authzToken.qc.newCC())
+          cc           = authzToken.qc.newCC()
+          // a technique that declares no tenants belongs to the tenants of whoever creates it, like a rule
+          // or a group. An administrator has an all-tenants grant, whose tag is none: nothing changes.
+          tagged       = technique.withSecurityIfUndeclared(cc.accessGrant.restrictToWrite.toSecurityTag)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(tagged)(using cc)
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json

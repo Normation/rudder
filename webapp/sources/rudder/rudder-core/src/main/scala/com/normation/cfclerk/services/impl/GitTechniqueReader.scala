@@ -48,9 +48,12 @@ import com.normation.rudder.git.ExactFileTreeFilter
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.ncf.UserTechniqueCategory
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -866,9 +869,10 @@ class GitTechniqueReader(
     for {
       policyVersion <- ZIO.fromEither(TechniqueVersion.parse(descriptorFile.getParentFile.getName)).mapError(s => Unexpected(s))
       techniqueId    = TechniqueId(policyName, policyVersion)
-      pack          <- if (parseDescriptor)
+      parsed        <- if (parseDescriptor)
                          loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
                        else dummyTechnique.succeed
+      pack           = withDefaultSecurity(parsed, descriptorFile.getParentFile)
       info          <- techniquesInfo.get
       res           <- (
                          // if we are in the case of a yaml technique, check that techniqueId in yaml/path agrees
@@ -908,6 +912,33 @@ class GitTechniqueReader(
     } yield {
       ()
     }
+  }
+
+  /*
+   * A technique that says nothing about its tenants gets a default which depends on where it comes from:
+   * - a technique that only has a `metadata.xml` is visible to every tenant (see `SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG`)
+   * - a technique written in YAML is admin-only.
+   *
+   * techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
+   */
+  private def withDefaultSecurity(technique: Technique, techniqueRelativePath: File): Technique = {
+    if (
+      technique.security.isDefined || technique.policyTypes.isSystem || isUnderUserCategory(techniqueRelativePath) ||
+      hasYamlDescriptor(techniqueRelativePath)
+    ) {
+      technique
+    } else {
+      technique.modify(_.security).setTo(SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG)
+    }
+  }
+
+  private def isUnderUserCategory(techniqueRelativePath: File): Boolean = {
+    techniqueRelativePath.getPath.stripPrefix("/").startsWith(UserTechniqueCategory.name.value + "/")
+  }
+
+  private def hasYamlDescriptor(techniqueRelativePath: File): Boolean = {
+    val relative = techniqueRelativePath.getPath.stripPrefix("/")
+    (repo.rootDirectory / canonizedRelativePath.getOrElse("") / relative / TechniqueFiles.yaml).exists
   }
 
   // techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
@@ -990,7 +1021,11 @@ class GitTechniqueReader(
     for {
       metadata <- parse(db, parseDescriptor, catId)
     } yield {
-      val TechniqueCategoryMetadata(name, desc, system, security) = metadata
+      val TechniqueCategoryMetadata(name, desc, system, declared) = metadata
+      // category is `open-ro` apart if said otherwise by a defined security tag
+      val security: Option[SecurityTag] = {
+        if (declared.isDefined || system) declared else SecurityTag.LIBRARY_SECURITY_TAG
+      }
       catId match {
         case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system, security = security)
         case sId: SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system, security = security)

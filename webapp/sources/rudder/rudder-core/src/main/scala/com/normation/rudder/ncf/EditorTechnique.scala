@@ -55,6 +55,8 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Property
 import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
 import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
+import com.normation.rudder.tenants.SecurityTag
+import com.softwaremill.quicklens.*
 import java.nio.file.Paths
 import java.util.regex.Pattern
 import zio.json.SnakeCase
@@ -114,7 +116,8 @@ final case class EditorTechnique(
     resources:     Seq[ResourceFile],
     tags:          Map[String, Json],
     policyTypes:   Option[List[String]],
-    internalId:    Option[String]
+    internalId:    Option[String],
+    security:      Option[SecurityTag] = None
 ) {
 
   /**
@@ -122,6 +125,10 @@ final case class EditorTechnique(
    * Better files reasons over absolute paths, so we have to keep relative paths here and use NIO API.
    */
   val path: java.nio.file.Path = Paths.get("techniques", category, id.value, version.value)
+
+  def withSecurityIfUndeclared(fallback: => Option[SecurityTag]): EditorTechnique = {
+    if (security.isDefined) this else this.modify(_.security).setTo(fallback)
+  }
 }
 
 final case class EditorTechniquePath(categoryDir: File, id: BundleName, version: Version) {

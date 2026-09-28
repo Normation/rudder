@@ -39,6 +39,7 @@ package com.normation.rudder.domain
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.rule.category.RuleCategoryId
 
 object Constants {
@@ -120,4 +121,6 @@ object Constants {
   // root of things
   val ROOT_GROUP_CATEGORY = NodeGroupCategoryId("GroupRoot")
   val ROOT_RULE_CATEGORY  = RuleCategoryId("rootRuleCategory")
+
+  val ROOT_ACTIVE_TECHNIQUES = ActiveTechniqueCategoryId("Active Techniques")
 }

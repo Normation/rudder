@@ -389,7 +389,7 @@ object InMemoryTenantService {
  * We still put its modification behind an eval.
  */
 class InMemoryTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
-  private def showTenantIds(ids: Set[TenantId]) = ids.toList.map(_.value).sorted.mkString(s",", "','", "'")
+  private def showTenantIds(ids: Set[TenantId]) = ids.toList.map(_.value).sorted.mkString(s"[", ",", "]")
 
   def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
     ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
