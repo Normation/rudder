@@ -14,6 +14,7 @@ mod linux;
 
 use clap::Parser;
 use log::error;
+use std::process::exit;
 
 #[derive(Parser, Debug)]
 #[command(name = "agentd")]
@@ -34,13 +35,20 @@ impl Args {
         let scheduler = windows::init_scheduler();
         #[cfg(target_os = "linux")]
         let scheduler = linux::init_scheduler();
+        let scheduler = match scheduler {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error: {:#}", e);
+                exit(1);
+            }
+        };
         if self.list {
             match scheduler.get_all_jobs() {
                 Ok(json) => {
                     println!("{}", json);
                 }
                 Err(e) => {
-                    error!("Failed to list the jobs: {:?}", e);
+                    error!("Error: failed to list the jobs: {:?}", e);
                 }
             }
         }
