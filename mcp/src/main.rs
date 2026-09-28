@@ -1,3 +1,4 @@
+mod api_index;
 mod auth;
 mod compliance;
 mod config;
@@ -10,7 +11,7 @@ mod template;
 #[cfg(test)]
 mod tests;
 
-use std::{borrow::Cow, process::ExitCode, sync::Arc, time::Duration};
+use std::{borrow::Cow, collections::BTreeMap, process::ExitCode, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use axum::{
@@ -37,6 +38,7 @@ use tokio::signal::unix::{SignalKind, signal};
 use tracing_subscriber::{self, EnvFilter};
 
 use crate::{
+    api_index::ApiIndex,
     auth::{ApiAccount, ApiToken, AuthorizationType, require_token},
     config::{ApiConfig, Cli, Config},
     docs::{DocTopic, TECHNIQUE_SYNTAX},
@@ -187,6 +189,24 @@ struct RuleQuery {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct ApiSearch {
+    /// Words to look for in the endpoints (path, summary, description, tags), e.g. `groups`,
+    /// `technique versions`, `parameters`
+    query: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct ApiGet {
+    /// Endpoint path with its values filled in, as given by `api_search`, e.g. `groups/abc-123`
+    path: String,
+    /// Query parameters documented for the endpoint, e.g. `{"include": "minimal"}`
+    #[serde(default)]
+    query: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CompileTechnique {
     /// Technique source, in Rudder's YAML technique format
     technique: String,
@@ -226,6 +246,7 @@ struct Rudder {
     api: RudderApi,
     rudderc: Rudderc,
     mode: AccessMode,
+    api_index: Arc<ApiIndex>,
     // Built once at startup: a `Rudder` is created for every request
     tool_router: Arc<ToolRouter<Self>>,
     prompt_router: Arc<PromptRouter<Self>>,
@@ -346,6 +367,44 @@ impl Rudder {
             return Err(format!("'{rule}' is not a rule id"));
         }
         rules::info(&self.api, &parts, &rule).await
+    }
+
+    #[tool(
+        description = "Search the Rudder REST API GET endpoints (from its OpenAPI spec), for data no other tool gives. Returns matching endpoints with their parameters, to call with `api_get`",
+        annotations(read_only_hint = true)
+    )]
+    fn api_search(&self, Parameters(ApiSearch { query }): Parameters<ApiSearch>) -> String {
+        self.api_index.search(&query)
+    }
+
+    #[tool(
+        description = "Call a documented Rudder REST API GET endpoint (find it with `api_search`), with the caller's token. Returns the response data, cut if very large. Prefer the dedicated tools when one fits",
+        annotations(read_only_hint = true)
+    )]
+    async fn api_get(
+        &self,
+        Extension(parts): Extension<Parts>,
+        Parameters(ApiGet { path, query }): Parameters<ApiGet>,
+    ) -> Result<String, String> {
+        let (endpoint, path) = self.api_index.resolve(&path)?;
+        let documented: Vec<&str> = endpoint.query_parameters().collect();
+        if let Some(unknown) = query.keys().find(|k| !documented.contains(&k.as_str())) {
+            return Err(format!(
+                "`{unknown}` is not a query parameter of GET {}, documented ones: {}",
+                endpoint.path,
+                if documented.is_empty() {
+                    "none".to_owned()
+                } else {
+                    documented.join(", ")
+                }
+            ));
+        }
+        let query: Vec<(&str, &str)> = query
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        let body = self.api.call(&parts, Method::GET, &path, &query).await?;
+        Ok(api_index::trim_response(&body))
     }
 
     #[tool(
@@ -536,6 +595,7 @@ async fn start(config: Config) -> Result<(tokio::net::TcpListener, axum::Router)
 
     // Stateless: a `Rudder` is built for each request, so shared state lives outside it
     let tool_router = Rudder::router(mode);
+    let api_index = Arc::new(ApiIndex::embedded());
     let prompt_router = Arc::new(Rudder::prompt_router());
     let handler_api = api.clone();
     let service = StreamableHttpService::new(
@@ -544,6 +604,7 @@ async fn start(config: Config) -> Result<(tokio::net::TcpListener, axum::Router)
                 api: handler_api.clone(),
                 rudderc: rudderc.clone(),
                 mode,
+                api_index: api_index.clone(),
                 tool_router: tool_router.clone(),
                 prompt_router: prompt_router.clone(),
             })

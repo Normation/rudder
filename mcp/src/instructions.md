@@ -26,4 +26,7 @@ Server tools:
   on the version.
 - server_health: webapp status and server healthchecks (CPU, disk, file descriptors). Use it when
   the user reports the server misbehaving.
+- api_search then api_get: any other read-only data from the Rudder API (groups, parameters,
+  techniques, settings...). Only when no tool above fits: search the endpoint, then call it with
+  its documented parameters, asking for as little data as possible.
 - reload_groups (only listed when writes are enabled): recompute dynamic groups.

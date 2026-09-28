@@ -307,6 +307,8 @@ async fn refuses_requests_when_rudder_is_unreachable() {
 async fn write_tools_only_without_read_only() {
     let (api, _) = mock_rudder().await;
     let read_only = [
+        "api_get",
+        "api_search",
         "compile_technique",
         "compliance",
         "documentation",
@@ -682,4 +684,57 @@ async fn rule_info_resolves_directives_and_targets() {
     let (text, is_error) = call_tool(&url, "ro", "rule_info", json!({"rule": "../nodes"})).await;
     assert!(is_error);
     assert!(text.contains("is not a rule id"), "{text}");
+}
+
+#[tokio::test]
+async fn api_search_and_get() {
+    let (api, received) = mock_rudder().await;
+    let url = mcp_server(&api, true).await;
+
+    let (text, is_error) =
+        call_tool(&url, "ro", "api_search", json!({"query": "group details"})).await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("GET /groups/{groupId}"), "{text}");
+
+    // The data, without the envelope, with the caller's token
+    let (text, is_error) = call_tool(&url, "ro", "api_get", json!({"path": "groups/group1"})).await;
+    assert!(!is_error, "{text}");
+    let data: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(data["groups"][0]["displayName"], "Web servers");
+    assert!(
+        received
+            .lock()
+            .unwrap()
+            .contains(&("GET groups/group1".to_owned(), "ro".to_owned()))
+    );
+
+    // Refused before any API call
+    let before = received.lock().unwrap().len();
+    for (arguments, expected) in [
+        (
+            json!({"path": "groups/group1", "query": {"secret": "x"}}),
+            "`secret` is not a query parameter",
+        ),
+        (
+            json!({"path": "groups/../system/info"}),
+            "not a valid API path",
+        ),
+        (
+            json!({"path": "system/doesnotexist"}),
+            "not a documented GET endpoint",
+        ),
+    ] {
+        let (text, is_error) = call_tool(&url, "ro", "api_get", arguments.clone()).await;
+        assert!(is_error, "{arguments}: {text}");
+        assert!(text.contains(expected), "{arguments}: {text}");
+    }
+    // Only the token checks of these three requests reached the API
+    let after: Vec<String> = received.lock().unwrap()[before..]
+        .iter()
+        .map(|(r, _)| r.clone())
+        .collect();
+    assert!(
+        after.iter().all(|r| r == "GET apiaccounts/token"),
+        "{after:?}"
+    );
 }
