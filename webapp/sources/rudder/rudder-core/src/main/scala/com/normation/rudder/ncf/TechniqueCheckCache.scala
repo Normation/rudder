@@ -48,7 +48,6 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.SimpleActor
 import zio.*
-import zio.syntax.*
 
 sealed trait CompilationResult
 object CompilationResult {
@@ -200,10 +199,6 @@ trait TechniqueCompilationSyncService {
    */
   def syncOneCompilation(result: EditorTechniqueCompilationResult): IOResult[EditorTechniqueStatus]
 
-  /**
-   * The whole process that lookup for compilation status and update them for sync with the UI.
-   */
-  def syncCompilation(results: List[EditorTechniqueCompilationResult]): IOResult[EditorTechniqueStatus]
 }
 
 /**
@@ -254,7 +249,7 @@ class TechniqueCheckStatusService(
 }
 
 /**
-  * Service to gather technique attributes using the directive repository : 
+  * Service to gather technique attributes using the directive repository :
   * it knows about active techniques and their status
   */
 class TechniqueActiveStatusService(directiveRepo: RoDirectiveRepository) extends ReadEditorTechniqueActiveStatus {
@@ -330,7 +325,7 @@ class TechniqueCheckActorSync(
       _            <- {
 
         /**
-         * Only take a single result to update the cached technique if it is there, else do nothing 
+         * Only take a single result to update the cached technique if it is there, else do nothing
          */
         // only replace when current one is an error, when present or absent we should set the value
         val replacement: Option[EditorTechniqueError] => Option[EditorTechniqueError] = _ => result.toError(activeStatus)
@@ -345,20 +340,16 @@ class TechniqueCheckActorSync(
   }
 
   override def checkSyncAll(): IOResult[Unit] = {
-    syncAll(None).unit
-  }
-
-  override def syncCompilation(results: List[EditorTechniqueCompilationResult]): IOResult[EditorTechniqueStatus] = {
-    syncAll(Some(results.map(EditorTechniqueCheckResult(_))))
+    syncAll().unit
   }
 
   /*
-   * The whole process that lookup for check status and update everything.
+   * Recompute the whole status from the library and replace it.
    * Sync always looks up for the latest status of techniques to filter out disabled ones.
    */
-  private[ncf] def syncAll(results: Option[List[EditorTechniqueCheckResult]]): IOResult[EditorTechniqueStatus] = {
+  private[ncf] def syncAll(): IOResult[EditorTechniqueStatus] = {
     (for {
-      res            <- results.map(_.succeed).getOrElse(reader.get())
+      res            <- reader.get()
       activeStatuses <- attributesReader.getActiveStatuses()
       // ones without status are filtered out (if the status is unknown, they are ignored)
       resWithStatus   = res.flatMap(r => activeStatuses.get(r.id).map(r -> _))

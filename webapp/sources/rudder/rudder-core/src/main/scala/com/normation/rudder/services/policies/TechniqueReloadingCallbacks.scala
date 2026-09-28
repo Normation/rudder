@@ -90,7 +90,8 @@ class LogEventOnTechniqueReloadCallback(
             modificationId = None,
             principal = cc.actor,
             details = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods),
-            reason = cc.message
+            reason = cc.message,
+            securityTag = None
           )
         )
       )

@@ -248,7 +248,8 @@ final class AsyncDeploymentActor(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = EventLog.withContent(xml)
+      details = EventLog.withContent(xml),
+      securityTag = None
     )
   }
 
@@ -426,7 +427,8 @@ final class AsyncDeploymentActor(
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
                   creationDate = startTime.toJavaInstant,
-                  reason = None
+                  reason = None,
+                  securityTag = None
                 )
               )
             )
@@ -449,7 +451,8 @@ final class AsyncDeploymentActor(
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
                   creationDate = startTime.toJavaInstant,
-                  reason = None
+                  reason = None,
+                  securityTag = None
                 )
               )
             )

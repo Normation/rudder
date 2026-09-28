@@ -178,6 +178,7 @@ class TechniqueApi(
     implicit val uuidGen:    StringUuidGenerator,
     userPropertyService:     UserPropertyService,
     resourceFileService:     ResourceFileService,
+    checkTenant:             TenantCheckLogic,
     configRepoPath:          String
 ) extends LiftApiModuleProvider[API] {
 
@@ -186,7 +187,16 @@ class TechniqueApi(
 
   implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
-  // the tenants the stored technique of that id and version declares, none when it is not in the library
+  /*
+   * Since a technique may have several version with different tenant, we want to allow any tenant in the
+   * set to be able to see the technique.
+   */
+  private def canSeeTechnique(name: String)(using qc: QueryContext): Boolean = {
+    TenantScopedTechniqueWriter
+      .joinVersions(techniqueRepository.getByName(TechniqueName(name)).values)
+      .exists(t => checkTenant.canSeeSecurityTag(t.security))
+  }
+
   private def storedSecurityTag(technique: EditorTechnique): Option[SecurityTag] = {
     TechniqueVersion
       .parse(technique.version.value)
@@ -284,9 +294,15 @@ class TechniqueApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
       (for {
         techniqueId <- extractString("techniqueId")(req).toIO.notOptional("technique id parameter is missing")
         category    <- extractString("category")(req).toIO.notOptional("category parameter is missing")
+        // the resource files of a technique are its content: cloning them is reading it
+        _           <- ZIO.unless(canSeeTechnique(techniqueId)) {
+                         Inconsistency(s"Technique '${techniqueId}' was not found").fail
+                       }
         _           <- resourceFileService.cloneResourcesFromTechnique(draftInfo._1, techniqueId, draftInfo._2, category)
       } yield {
         "ok"
@@ -456,11 +472,14 @@ class TechniqueApi(
     val schema: API.GetAllTechniqueCategories.type = API.GetAllTechniqueCategories
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      // `fromCategory` walks the tree through this map, so a category dropped here takes its subtree with it
+      val visible  = techniqueRepository.getAllCategories.filter {
+        case (_, c) => !c.isSystem && checkTenant.canSeeSecurityTag(c.security)
+      }
       val response = JsonTechniqueCategoryTree(
-        JsonTechniqueCategory.fromCategory(
-          techniqueRepository.getTechniqueLibrary,
-          techniqueRepository.getAllCategories.filterNot((_, c) => c.isSystem)
-        )
+        JsonTechniqueCategory.fromCategory(techniqueRepository.getTechniqueLibrary, visible)
       )
 
       response.succeed.toLiftResponseOne(params, schema, None)
@@ -485,7 +504,10 @@ class TechniqueApi(
                         TechniqueCategoryId
                           .parse(parent)
                           .toIO
-                          .flatMap(techniqueCategoryWriter.createCategory(_, name, description))
+                          .flatMap(
+                            techniqueCategoryWriter
+                              .createCategory(_, name, description, cc.accessGrant.restrictToWrite.toSecurityTag)
+                          )
                       case JsonTechniqueCategoryAction.Update(catPath, name, description) =>
                         TechniqueCategoryId
                           .parse(catPath)

@@ -427,12 +427,7 @@ class PolicyServerManagementServiceImpl(
           eventLogRepo.saveEventLog(
             modId,
             UpdatePolicyServer(
-              EventLogDetails(
-                modificationId = Some(modId),
-                principal = actor,
-                details = log,
-                reason = None
-              )
+              EventLogDetails(modificationId = Some(modId), principal = actor, details = log, reason = None, securityTag = None)
             )
           )
         }

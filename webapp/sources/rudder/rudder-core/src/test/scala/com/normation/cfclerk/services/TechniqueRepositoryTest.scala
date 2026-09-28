@@ -410,11 +410,25 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       .security
   }
 
-  "A technique that only has a metadata.xml is visible to every tenant" in {
+  "A technique that declares nothing is admin-only, whatever it is made of" in {
     createTechnique("legacyTechnique/1.0", "Legacy technique", system = false, yaml = false)
     fsRepos.update()
 
-    securityOf("legacyTechnique") must beEqualTo(SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG)
+    securityOf("legacyTechnique") must beEqualTo(None)
+  }
+
+  // the shipped library says it in its own metadata.xml, no default stands in for it
+  "A technique visible to every tenant says so" in {
+    createTechnique(
+      "sharedLibTechnique/1.0",
+      "Shared lib technique",
+      system = false,
+      yaml = false,
+      security = "<security><open-ro /></security>"
+    )
+    fsRepos.update()
+
+    securityOf("sharedLibTechnique") must beEqualTo(Some(SecurityTag.OpenRo))
   }
 
   "A system technique stays admin-only, whatever its descriptor says" in {
@@ -432,17 +446,17 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   }
 
   // `ncf_techniques` is the technique editor's area: what is written there belongs to whoever wrote it,
-  // not to the shared library, so it gets no default even without a `technique.yml`
-  "A technique under `ncf_techniques` is not defaulted" in {
+
+  "A technique under `ncf_techniques` declaring nothing is admin-only too" in {
     createTechnique("ncf_techniques/userTechnique/1.0", "User technique", system = false, yaml = false)
     fsRepos.update()
 
     securityOf("userTechnique") must beEqualTo(None)
   }
 
-  // this is the other half of the round-trip rudderc writes: what it puts in `metadata.xml` must come back
-  // as the tag the technique declared, not as the default a silent technique gets
-  "A tag declared in metadata.xml wins over the default" in {
+  // the other half of the round-trip rudderc writes: what it puts in `metadata.xml` must come back
+  // as the tag the technique declared
+  "A tag declared in metadata.xml is read back as it is" in {
     createTechnique(
       "sharedTechnique/1.0",
       "Shared technique",

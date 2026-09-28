@@ -49,6 +49,7 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.FileUtils
 import zio.*
 import zio.syntax.*
@@ -107,7 +108,7 @@ trait TechniqueCategoryWriter {
   /*
    * Create a sub-category of `parent`. Its ID is derived from `name` and must be free.
    */
-  def createCategory(parent: TechniqueCategoryId, name: String, description: String)(implicit
+  def createCategory(parent: TechniqueCategoryId, name: String, description: String, security: Option[SecurityTag])(implicit
       cc: ChangeContext
   ): IOResult[TechniqueCategoryInfo]
 
@@ -138,8 +139,8 @@ class TechniqueCategoryWriterImpl(
 
   private val techniquesDir: File = File(baseConfigRepoPath) / "techniques"
 
-  override def createCategory(parent: TechniqueCategoryId, name: String, description: String)(implicit
-      cc: ChangeContext
+  override def createCategory(parent: TechniqueCategoryId, name: String, description: String, security: Option[SecurityTag])(
+      implicit cc: ChangeContext
   ): IOResult[TechniqueCategoryInfo] = {
     for {
       _       <- checkManageable(parent)
@@ -156,7 +157,8 @@ class TechniqueCategoryWriterImpl(
                      s"please choose another name for category '${name}'"
                    ).fail
                  }
-      metadata = TechniqueCategoryMetadata(name, description, isSystem = false, cc.accessGrant.toSecurityTag)
+      metadata = TechniqueCategoryMetadata(name, description, isSystem = false, security)
+      // the actual tag might be updated by the tenant law here
       _       <- archiver.saveTechniqueCategory(
                    segments,
                    metadata,
