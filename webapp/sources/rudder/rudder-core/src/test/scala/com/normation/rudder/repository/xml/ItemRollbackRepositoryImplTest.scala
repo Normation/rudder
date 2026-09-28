@@ -55,6 +55,7 @@ import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
 import com.normation.rudder.configuration.GroupAndCat
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.Constants.ROOT_ACTIVE_TECHNIQUES
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -523,7 +524,7 @@ private object ItemRollbackRepositoryImplTest {
 
   private def emptyActiveTechniqueCategory = {
     ActiveTechniqueCategory(
-      ActiveTechniqueCategoryId("Active Techniques"),
+      ROOT_ACTIVE_TECHNIQUES,
       "Active Techniques",
       "",
       Nil,

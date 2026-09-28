@@ -21,13 +21,15 @@ response:
             "name": "technique_with_blocks",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "test-migrate-select",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "server-roles",
@@ -39,14 +41,16 @@ response:
             "name": "technique_by_Rudder",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "technique_any",
             "versions": [
               "1.0",
               "2.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "server-common",
@@ -58,7 +62,8 @@ response:
             "name": "packageManagement",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "common",
@@ -82,7 +87,8 @@ response:
             "name": "test_import_export_archive",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "rudder-service-apache",
@@ -100,7 +106,8 @@ response:
             "name": "a_simple_yaml_technique",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "rudder-service-postgresql",
@@ -130,25 +137,29 @@ response:
             "name": "copyGitFile",
             "versions": [
               "2.3"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "clockConfiguration",
             "versions": [
               "3.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "Create_file",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "fileTemplate",
             "versions": [
               "1.0"
-            ]
+            ],
+           "security" : "open-ro"
           },
           {
             "name": "rudder-service-slapd",
@@ -161,7 +172,8 @@ response:
             "versions": [
               "1.0",
               "2.0"
-            ]
+            ],
+           "security" : "open-ro"
           }
         ]
       }
@@ -190,6 +202,13 @@ response:
                 "zoneB"
               ]
             }
+          },
+          {
+            "name" : "packageManagement",
+            "versions" : [
+              "1.0"
+            ],
+            "security" : "open-ro"
           }
         ]
       }
@@ -217,7 +236,14 @@ response:
                 "zoneB"
               ]
             }
-          }
+          },
+          {
+            "name" : "packageManagement",
+            "versions" : [
+              "1.0"
+            ],
+            "security" : "open-ro"
+          }    
         ]
       }
     }

@@ -41,6 +41,7 @@ import com.normation.GitVersion
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.Constants.ROOT_ACTIVE_TECHNIQUES
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -419,7 +420,7 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
   // in the test technique library, the active technique `user_defined_tech1` and its directive
   // `ce8aec6f-...` (and the parent category `ncf_techniques`) are tagged with tenant `zoneA`.
   val directiveWithTenantA = DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")
-  val atRootCat            = ActiveTechniqueCategoryId("Active Techniques")
+  val atRootCat            = ROOT_ACTIVE_TECHNIQUES
 
   "[Directives] Reading the full directive library" should {
     "let an admin (tenant=*) see the zoneA active technique and directive" in {

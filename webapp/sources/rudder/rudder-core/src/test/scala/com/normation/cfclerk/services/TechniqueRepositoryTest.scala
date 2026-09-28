@@ -40,6 +40,7 @@ package com.normation.cfclerk.services
 import better.files.File
 import com.normation.cfclerk.domain.*
 import com.normation.errors.*
+import com.normation.rudder.domain.Constants.ROOT_ACTIVE_TECHNIQUES
 import com.normation.rudder.domain.policies.AcceptationDateTime
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -56,10 +57,12 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
+import com.normation.rudder.services.policies.TechniqueLibraryTenantSync
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantId
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -112,6 +115,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     var moved:             List[(String, String, Option[String])] = Nil // (what, where, new name)
     var deleted:           List[String]                           = Nil
     var updatedTechniques: List[String]                           = Nil
+    var updatedCategories: List[String]                           = Nil
 
     override def addActiveTechniqueCategory(
         that: ActiveTechniqueCategory,
@@ -153,7 +157,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = {
       FullActiveTechniqueCategory(
-        ActiveTechniqueCategoryId("Active Techniques"),
+        ROOT_ACTIVE_TECHNIQUES,
         name = "",
         description = "",
         subCategories = Nil,
@@ -201,9 +205,13 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ): IOResult[ActiveTechniqueCategory] =
       ???
     override def containsDirective(id:               ActiveTechniqueCategoryId): UIO[Boolean] = ???
+    // used by `TechniqueLibraryTenantSync` to align the tenants of the user library
     override def saveActiveTechniqueCategory(
         category: ActiveTechniqueCategory
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
+      updatedCategories = category.id.value :: updatedCategories
+      category.succeed
+    }
     override def restoreDirective(
         inActiveTechniqueId: ActiveTechniqueId,
         directive:           Directive
@@ -237,9 +245,14 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def deleteActiveTechnique(
         id: ActiveTechniqueId
     )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    override def changeSecurity(
+        id:       ActiveTechniqueId,
+        security: Option[SecurityTag]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
   }
 
-  val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos)
+  val tenantSync   = new TechniqueLibraryTenantSync(ldapRepo, ldapRepo, fsRepos)
+  val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos, tenantSync)
 
   fsRepos.registerCallback(testCallback)
   fsRepos.registerCallback(ldapCallBack)
@@ -360,5 +373,95 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     (ldapRepo.moved must beEqualTo(("fileSecurity", "Active Techniques", None) :: Nil)) and
     (ldapRepo.updatedTechniques must containTheSameElementsAs(Seq("fileTemplate", "copyGitFile")))
 
+  }
+
+  def createTechnique(path: String, name: String, system: Boolean, yaml: Boolean, security: String = ""): Unit = {
+    val dir = File(techniqueRoot, path)
+    dir.createDirectories()
+    File(dir, "metadata.xml").writeText(
+      s"""<TECHNIQUE name="${name}">
+         |  <DESCRIPTION>A technique to check tenant defaults</DESCRIPTION>
+         |  <DISPLAY>true</DISPLAY>
+         |  ${if (system) "<SYSTEM>true</SYSTEM>" else ""}
+         |  ${security}
+         |  <TMLS></TMLS>
+         |</TECHNIQUE>
+         |""".stripMargin
+    )
+    if (yaml) {
+      File(dir, "technique.yml").writeText(
+        s"""id: ${File(path).parent.name}
+           |name: ${name}
+           |version: '1.0'
+           |items: []
+           |""".stripMargin
+      )
+    }
+    addCommitAll(s"Add technique '${name}'")
+  }
+
+  def securityOf(techniqueName: String): Option[SecurityTag] = {
+    fsRepos
+      .getTechniquesInfo()
+      .techniques
+      .get(TechniqueName(techniqueName))
+      .flatMap(_.values.headOption)
+      .getOrElse(throw new Exception(s"error in test hypothesis: technique '${techniqueName}' not found"))
+      .security
+  }
+
+  "A technique that only has a metadata.xml is visible to every tenant" in {
+    createTechnique("legacyTechnique/1.0", "Legacy technique", system = false, yaml = false)
+    fsRepos.update()
+
+    securityOf("legacyTechnique") must beEqualTo(SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG)
+  }
+
+  "A system technique stays admin-only, whatever its descriptor says" in {
+    createTechnique("systemTechnique/1.0", "System technique", system = true, yaml = false)
+    fsRepos.update()
+
+    securityOf("systemTechnique") must beEqualTo(None)
+  }
+
+  "A technique written in YAML says what it wants: nothing declared means nothing" in {
+    createTechnique("yamlTechnique/1.0", "Yaml technique", system = false, yaml = true)
+    fsRepos.update()
+
+    securityOf("yamlTechnique") must beEqualTo(None)
+  }
+
+  // `ncf_techniques` is the technique editor's area: what is written there belongs to whoever wrote it,
+  // not to the shared library, so it gets no default even without a `technique.yml`
+  "A technique under `ncf_techniques` is not defaulted" in {
+    createTechnique("ncf_techniques/userTechnique/1.0", "User technique", system = false, yaml = false)
+    fsRepos.update()
+
+    securityOf("userTechnique") must beEqualTo(None)
+  }
+
+  // this is the other half of the round-trip rudderc writes: what it puts in `metadata.xml` must come back
+  // as the tag the technique declared, not as the default a silent technique gets
+  "A tag declared in metadata.xml wins over the default" in {
+    createTechnique(
+      "sharedTechnique/1.0",
+      "Shared technique",
+      system = false,
+      yaml = false,
+      security = "<security><open-rw /></security>"
+    )
+    createTechnique(
+      "scopedTechnique/1.0",
+      "Scoped technique",
+      system = false,
+      yaml = false,
+      security = "<security><tenants><tenant id='zoneA'/><tenant id='zoneB'/></tenants></security>"
+    )
+    fsRepos.update()
+
+    (securityOf("sharedTechnique") must beEqualTo(Some(SecurityTag.OpenRw))) and
+    (securityOf("scopedTechnique") must beEqualTo(
+      Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+    ))
   }
 }

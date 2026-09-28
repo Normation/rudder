@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.*
 import com.normation.errors.*
+import com.normation.rudder.domain.Constants.ROOT_ACTIVE_TECHNIQUES
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -78,7 +79,8 @@ class TechniqueAcceptationUpdater(
     override val order:    Int,
     roActiveTechniqueRepo: RoDirectiveRepository,
     rwActiveTechniqueRepo: WoDirectiveRepository,
-    techniqueRepo:         TechniqueRepository
+    techniqueRepo:         TechniqueRepository,
+    tenantSync:            TechniqueLibraryTenantSync
 ) extends TechniquesLibraryUpdateNotification with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
@@ -149,7 +151,7 @@ class TechniqueAcceptationUpdater(
             List(),
             List(),
             isSystem = false,
-            security = cc.accessGrant.restrictToWrite.toSecurityTag
+            security = info.security
           )
 
           rwActiveTechniqueRepo
@@ -173,7 +175,7 @@ class TechniqueAcceptationUpdater(
       // *safe* for root category: it's "/" for technique, and "Active Techniques" in LDAP
       def toActiveCatId(id: TechniqueCategoryId): ActiveTechniqueCategoryId = {
         id match {
-          case RootTechniqueCategoryId                => ActiveTechniqueCategoryId("Active Techniques")
+          case RootTechniqueCategoryId                => ROOT_ACTIVE_TECHNIQUES
           case SubTechniqueCategoryId(name, parentId) => ActiveTechniqueCategoryId(name.value)
         }
       }
@@ -375,16 +377,24 @@ class TechniqueAcceptationUpdater(
                                              techLib
                                            )
                                          }
-                                         logPure.info(
-                                           s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library"
-                                         ) *>
+                                         // the active technique inherits what the union of all its technique declares;
+                                         // by default, falls back to `USER_LIB_TECHNIQUE_SECURITY_TAG`
+                                         val security  = t.values
+                                           .foldLeft(SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG)((tag, technique) =>
+                                             SecurityTag.join(tag, technique.security)
+                                           )
+
+                                         logPure
+                                           .info(
+                                             s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library"
+                                           ) *>
                                          rwActiveTechniqueRepo
                                            .addTechniqueInUserLibrary(
                                              parentCat._1,
                                              name,
                                              mods.keys.toSeq,
                                              policyTypes,
-                                             security = SecurityTag.USER_LIB_TECHNIQUE_SECURITY_TAG
+                                             security = security
                                            )
                                            .chainError(
                                              s"Error when automatically activating technique '${name.value}'"
@@ -395,6 +405,7 @@ class TechniqueAcceptationUpdater(
                                  }
                              }
                          }
+      _               <- tenantSync.syncAll()
     } yield {}).toBox
   }
 }

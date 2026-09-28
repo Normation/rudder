@@ -319,6 +319,20 @@ class WoTenantDirectiveRepo(
     )(_ => underlying.changeStatus(id, status))
   }
 
+  override def changeSecurity(id: ActiveTechniqueId, security: Option[SecurityTag])(implicit
+      cc: ChangeContext
+  ): IOResult[ActiveTechniqueId] = {
+    roRepo.getActiveTechniqueByActiveTechnique(id)(using QueryContext.systemQC).flatMap {
+      case None     => Inconsistency(s"Active technique '${id.value}' was not found").fail
+      case Some(at) =>
+        checkTenant.manageUpdate(
+          at.modify(_.security).setTo(security),
+          ZIO.some(at),
+          IfAbsent.fail(s"Active technique '${id.value}' was not found")
+        )(updated => underlying.changeSecurity(id, updated.security))
+    }
+  }
+
   override def setAcceptationDatetimes(id: ActiveTechniqueId, datetimes: Map[TechniqueVersion, Instant])(implicit
       cc: ChangeContext
   ): IOResult[ActiveTechniqueId] = {

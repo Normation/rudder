@@ -1322,6 +1322,46 @@ class WoLDAPDirectiveRepository(
     })
   }
 
+  /*
+   * Storage-wise, changing the tenant tag of an active technique is just another attribute update: the
+   * tenant law (the tag may only grow) is applied by the proxy, see `WoTenantDirectiveRepo`.
+   */
+  override def changeSecurity(
+      uactiveTechniqueId: ActiveTechniqueId,
+      security:           Option[SecurityTag]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = {
+    userLibMutex.writeLock(for {
+      con                <- ldap
+      oldTechnique       <-
+        getUPTEntry(con, uactiveTechniqueId).notOptional(s"Technique with id '${uactiveTechniqueId.value}' was not found")
+      activeTechnique     = LDAPEntry(oldTechnique.backed)
+      saved              <- {
+        security match {
+          case Some(tag) => activeTechnique.resetValuesTo(A_SECURITY_TAG, SecurityTag.toLdapValue(tag))
+          case None      => activeTechnique.deleteAttribute(A_SECURITY_TAG)
+        }
+        con.save(activeTechnique)
+      }
+      newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(
+                              s"Technique with id '${uactiveTechniqueId.value}' can't be find back after tenant tag change"
+                            )
+      autoArchive        <-
+        ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newactiveTechnique.policyTypes.isSystem) {
+          for {
+            parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+            archive  <- gitATArchiver.archiveActiveTechnique(
+                          newactiveTechnique,
+                          parents.map(_.id),
+                          Some((cc.modId, commiter, cc.message))
+                        )
+          } yield archive
+        }
+    } yield {
+      uactiveTechniqueId
+    })
+  }
+
   override def setAcceptationDatetimes(
       uactiveTechniqueId: ActiveTechniqueId,
       datetimes:          Map[TechniqueVersion, Instant]

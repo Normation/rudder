@@ -291,10 +291,46 @@ impl Default for Technique {
             description: Some("A technique".to_string()),
             documentation: None,
             policy_types: vec![],
+            security: None,
             items: vec![],
             params: vec![],
         }
     }
+}
+
+/// Tenant scoping of a technique, the same notion as on any other Rudder configuration object.
+///
+/// In `technique.yml` it is written either as one of the two open literals or as an explicit tenant
+/// list:
+///
+/// ```yaml
+/// # every tenant may use the technique, read-only but for admin
+/// security: open-ro
+/// # every tenant may use and change it
+/// security: open-rw
+/// # or a list of tenants:
+/// security:
+///   tenants: [zoneA, zoneB]
+/// ```
+///
+/// Absent means "no tag", which Rudder reads as admin-only. The tag is forwarded as-is to `metadata.xml`
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SecurityTag {
+    /// `security: open-ro` or `security: open-rw`
+    Open(OpenTag),
+    /// `security: { tenants: [...] }`
+    ByTenants { tenants: Vec<String> },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OpenTag {
+    /// everybody uses it, an administrator maintains it
+    #[serde(rename = "open-ro")]
+    OpenRo,
+    /// everybody uses it and anybody who may write at all may change it
+    #[serde(rename = "open-rw")]
+    OpenRw,
 }
 
 /// A Rudder technique (based on methods and/or modules)
@@ -317,6 +353,9 @@ pub struct Technique {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub policy_types: Vec<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub security: Option<SecurityTag>,
     pub items: Vec<ItemKind>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -432,6 +471,8 @@ pub struct DeserTechnique {
     #[serde(default)]
     pub policy_types: Vec<String>,
     #[serde(default)]
+    pub security: Option<SecurityTag>,
+    #[serde(default)]
     pub items: Vec<DeserItem>,
     #[serde(default)]
     pub params: Vec<Parameter>,
@@ -465,6 +506,7 @@ impl DeserTechnique {
             description: self.description,
             documentation: self.documentation,
             policy_types: self.policy_types,
+            security: self.security,
             items: items?,
             params: self.params,
         })

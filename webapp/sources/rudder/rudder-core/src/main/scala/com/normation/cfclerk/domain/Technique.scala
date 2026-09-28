@@ -40,6 +40,7 @@ package com.normation.cfclerk.domain
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.services.policies.ComponentId
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils.*
 import enumeratum.*
 import org.apache.commons.text.StringEscapeUtils
@@ -199,7 +200,8 @@ final case class Technique(
     longDescription:    String = "",
     policyTypes:        PolicyTypes = PolicyTypes.rudderBase,
     generationMode:     TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives,
-    useMethodReporting: Boolean = false
+    useMethodReporting: Boolean = false,
+    security:           Option[SecurityTag] = None
 ) {
 
   require(null != id && !isEmpty(id.name.value), "ID is required in policy")
