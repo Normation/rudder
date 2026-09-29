@@ -45,23 +45,23 @@ macro_rules! fatal(
 );
 
 /// This exits the process in case of failure (see fatal!)
-pub fn init_scheduler() -> Scheduler {
+pub fn init_scheduler() -> anyhow::Result<Scheduler> {
     // PowerShell command builder
     let command_builder = CommandBuilder::new(Some("powershell.exe"), vec![], true);
     // Read configuration before starting the service to fail early in case of error
-    match Scheduler::from_configuration_file(
+    Scheduler::from_configuration_file(
         Path::new(CONFIGURATION_FILE),
         Path::new(UUID_FILE),
         command_builder,
-    ) {
-        Err(e) => fatal!("{}\n", e),
-        Ok(c) => c,
-    }
+    )
 }
 
 /// The service itself
 fn run_service() -> Result<()> {
-    let scheduler = init_scheduler();
+    let scheduler = match init_scheduler() {
+        Err(e) => fatal!("{:?}\n", e),
+        Ok(s) => s,
+    };
 
     info!("Starting {} service ...", SERVICE_NAME);
     let (sender, receiver) = channel(10);
