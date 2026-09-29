@@ -7,7 +7,7 @@
 
 use crate::configuration::{Configuration, ScheduleConfiguration};
 use crate::{ExitType, ServiceMessage, configuration};
-use anyhow::{Context,Result, bail};
+use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Local, NaiveTime, SubsecRound, TimeDelta};
 use log::{debug, error, info, warn};
 use serde::Serialize;
@@ -270,15 +270,20 @@ impl Scheduler {
         let configuration = match Configuration::from_file(path) {
             Ok(conf) => conf,
             Err(e) => {
-                error!("Syntax error in configuration file {}: {}\nWARNING: using default configuration!", path.display(), e);
+                error!(
+                    "Syntax error in configuration file {}: {}\nWARNING: using default configuration!",
+                    path.display(),
+                    e
+                );
                 Configuration::from_str(default_configuration, "Default Configuration")?
-            },
+            }
         };
         let uuid = configuration::read_uuid(uuid_file)?;
         let mut scheduler = Self::from_configuration(configuration, uuid, command_builder);
         if scheduler.schedules.is_empty() {
             warn!("WARNING: configuration file is empty, using a default one");
-            let configuration = Configuration::from_str(default_configuration, "Default Configuration")?;
+            let configuration =
+                Configuration::from_str(default_configuration, "Default Configuration")?;
             scheduler = Self::from_configuration(configuration, uuid, scheduler.command_builder);
         }
         Ok(scheduler)
