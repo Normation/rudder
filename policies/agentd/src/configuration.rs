@@ -185,6 +185,15 @@ period = "120s"
             "test_str",
         );
         assert!(conf.is_err(), "Schedules must be in a section");
+
+        let conf = Configuration::from_str(
+            r#"[agent]
+command = "'C:\Program Files\Rudder\rudder.ps1' agent run"
+period = "120s"
+"#,
+            "test_str",
+        );
+        assert!(conf.is_err(), "TOML error");
     }
 
     #[test]

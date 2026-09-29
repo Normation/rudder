@@ -11,7 +11,7 @@ use agentd::scheduler::Scheduler;
 // TODO write the function
 // this is not the real function, but we have to have it to make clippy happy while we don't have
 // a linux implementation
-pub fn init_scheduler() -> Scheduler {
+pub fn init_scheduler() -> anyhow::Result<Scheduler> {
     todo!()
 }
 
