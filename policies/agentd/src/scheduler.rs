@@ -7,8 +7,7 @@
 
 use crate::configuration::{Configuration, ScheduleConfiguration};
 use crate::{ExitType, ServiceMessage, configuration};
-use anyhow::Context;
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Local, NaiveTime, SubsecRound, TimeDelta};
 use log::{debug, error, info, warn};
 use serde::Serialize;
@@ -266,17 +265,35 @@ impl Scheduler {
         path: &Path,
         uuid_file: &Path,
         command_builder: CommandBuilder,
+        default_configuration: &str,
     ) -> Result<Scheduler> {
-        let configuration = Configuration::from_file(path)?;
+        let configuration = match Configuration::from_file(path) {
+            Ok(conf) => conf,
+            Err(e) => {
+                error!(
+                    "Syntax error in configuration file {}: {}\nWARNING: using default configuration!",
+                    path.display(),
+                    e
+                );
+                Configuration::from_str(default_configuration, "Default Configuration")?
+            }
+        };
         let uuid = configuration::read_uuid(uuid_file)?;
-        Self::from_configuration(configuration, uuid, command_builder)
+        let mut scheduler = Self::from_configuration(configuration, uuid, command_builder);
+        if scheduler.schedules.is_empty() {
+            warn!("WARNING: configuration file is empty, using a default one");
+            let configuration =
+                Configuration::from_str(default_configuration, "Default Configuration")?;
+            scheduler = Self::from_configuration(configuration, uuid, scheduler.command_builder);
+        }
+        Ok(scheduler)
     }
 
     pub fn from_configuration(
         configuration: Configuration,
         uuid: Uuid,
         command_builder: CommandBuilder,
-    ) -> Result<Scheduler> {
+    ) -> Scheduler {
         let mut hasher = DefaultHasher::new();
         uuid.hash(&mut hasher);
         let uuid_hash = hasher.finish();
@@ -288,7 +305,13 @@ impl Scheduler {
         };
         for (name, schedule_conf) in configuration.schedules {
             // there's only one schedulable type, assume IntervalSchedulable for now
-            let schedule = Schedule::from_schedule_configuration(&name, &schedule_conf)?;
+            let schedule = match Schedule::from_schedule_configuration(&name, &schedule_conf) {
+                Ok(schedule) => schedule,
+                Err(e) => {
+                    error!("Skipping Invalid schedule {}: {}", name, e);
+                    continue;
+                }
+            };
             let ScheduleConfiguration {
                 command,
                 period: _,
@@ -307,7 +330,7 @@ impl Scheduler {
             scheduler.schedules.push(item);
             scheduler.children.push(AtomicUsize::new(0));
         }
-        Ok(scheduler)
+        scheduler
     }
 
     /// A command rudder task (one per command)
