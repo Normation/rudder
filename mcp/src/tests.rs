@@ -51,8 +51,21 @@ async fn mock_rudder() -> (String, Received) {
         }
         received.lock().unwrap().push((request, token.clone()));
         let include = query.get("include").cloned().unwrap_or_default();
-        let node =
-            |id: &str, hostname: &str| json!({"id": id, "hostname": hostname, "include": include});
+        let node = |id: &str, hostname: &str| {
+            let mut node = json!({"id": id, "hostname": hostname, "include": include});
+            // As Rudder, the software section comes with the available updates
+            if include.contains("software") {
+                node["software"] = json!([
+                    {"name": "openssl", "version": "3.5.1-1+deb13u1"},
+                    {"name": "bash", "version": "5.2.37-2"}
+                ]);
+                node["softwareUpdate"] = json!([
+                    {"name": "openssl", "version": "3.5.7-1~deb13u2", "kind": "security"},
+                    {"name": "python3-requests", "version": "2.32.3+dfsg-5+deb13u1", "kind": "none"}
+                ]);
+            }
+            node
+        };
         let nodes =
             |nodes: Vec<Value>| json!({"result": "success", "data": {"nodes": nodes}}).to_string();
         let account = |rights: &str| {
@@ -737,4 +750,32 @@ async fn api_search_and_get() {
         after.iter().all(|r| r == "GET apiaccounts/token"),
         "{after:?}"
     );
+}
+
+#[tokio::test]
+async fn node_info_filters_software() {
+    let (api, received) = mock_rudder().await;
+    let url = mcp_server(&api, true).await;
+    let (text, is_error) = call_tool(
+        &url,
+        "ro",
+        "node_info",
+        json!({"node": NODE1_ID, "software": "SSL"}),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    let node: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        node["software"],
+        json!([{"name": "openssl", "version": "3.5.1-1+deb13u1"}])
+    );
+    assert_eq!(
+        node["softwareUpdate"],
+        json!([{"name": "openssl", "version": "3.5.7-1~deb13u2", "kind": "security"}])
+    );
+    // The filter adds the software section to the request
+    assert!(received.lock().unwrap().contains(&(
+        format!("GET nodes/{NODE1_ID}?include=default,software"),
+        "ro".to_owned()
+    )));
 }

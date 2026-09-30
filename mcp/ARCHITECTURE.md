@@ -1,7 +1,7 @@
 # rudder-mcp architecture
 
-Prototype MCP server for Rudder. This file keeps a short summary of the design decisions;
-update it whenever one changes.
+Prototype MCP server for Rudder. This file keeps the detail of the design decisions; update it
+whenever one changes. For the high-level view, see [DESIGN.md](DESIGN.md).
 
 ## Design decisions
 
@@ -46,6 +46,8 @@ update it whenever one changes.
 - Node queries (`where`) leave out policy servers unless `select=nodeAndPolicyServer`.
 - Unknown node or rule ids give a 500 ("... was not found"), not a 404: passed to
   the model as a tool error with Rudder's message. Worth reporting on the Rudder side.
+- `include=software` also returns `softwareUpdate` (available updates, with their kind, e.g.
+  `security`).
 - Inventory sizes for one server: default level ~1.4 KB, `software` ~100 KB, `processes` ~54 KB.
 
 ## Known rmcp quirks
@@ -68,7 +70,12 @@ Current tools:
   or `root`) or exact hostname, `default` inventory level plus requested sections (enum of the
   `full` level sections). Only a valid id reaches the URL path; anything else is a hostname sent as
   an encoded query value. One API call either way; no match or duplicate hostnames give a tool
-  error listing ids. Rudder's node JSON returned as is
+  error listing ids. Rudder's node JSON returned as is, capped at 20,000 characters (shared `cap`,
+  also used by `api_get`). `software` filter: adds the software section and keeps only packages
+  whose name contains the text (case-insensitive), in both `software` (installed) and
+  `softwareUpdate` (available updates, returned by Rudder with the software section), as there
+  is no software API endpoint and one node's lists are ~100 KB (over Claude Code's tool result
+  limit)
 - `compliance` (read): no argument → `GET /compliance` + `GET /compliance/rules?level=1`
   (concurrent), global rate and one line per rule, worst first; `node` (id or hostname, resolved
   with one extra call) → `GET /compliance/nodes/{id}`; `rule` (id, only `[A-Za-z0-9_-]` reaches the

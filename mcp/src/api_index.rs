@@ -3,10 +3,10 @@
 
 use serde::Deserialize;
 
+use crate::cap;
+
 /// Upper bound on search results
 const MAX_RESULTS: usize = 15;
-/// Upper bound on an `api_get` answer: raw endpoints can return megabytes
-const MAX_RESPONSE: usize = 20_000;
 
 #[derive(Debug, Deserialize)]
 pub struct Endpoint {
@@ -156,8 +156,7 @@ impl ApiIndex {
     }
 }
 
-/// The response `data` (without the `action` / `result` envelope), pretty-printed and cut to
-/// `MAX_RESPONSE` characters
+/// The response `data` (without the `action` / `result` envelope), pretty-printed and capped
 pub fn trim_response(body: &str) -> String {
     let text = match serde_json::from_str::<serde_json::Value>(body) {
         Ok(mut response) if !response["data"].is_null() => {
@@ -165,14 +164,9 @@ pub fn trim_response(body: &str) -> String {
         }
         _ => body.to_owned(),
     };
-    let length = text.chars().count();
-    if length <= MAX_RESPONSE {
-        return text;
-    }
-    let cut: String = text.chars().take(MAX_RESPONSE).collect();
-    format!(
-        "{cut}\n... cut, {} more characters: narrow the request with the endpoint's parameters (e.g. `include`, `level`, `where`)",
-        length - MAX_RESPONSE
+    cap(
+        text,
+        "narrow the request with the endpoint's parameters (e.g. `include`, `level`, `where`)",
     )
 }
 
@@ -191,6 +185,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::MAX_OUTPUT;
 
     #[test]
     fn index_is_built_from_the_spec() {
@@ -223,14 +218,14 @@ mod tests {
             trim_response(r#"{"action":"x","result":"success","data":{"a":1}}"#),
             "{\n  \"a\": 1\n}"
         );
-        let long = format!(r#"{{"data":"{}"}}"#, "x".repeat(MAX_RESPONSE * 2));
+        let long = format!(r#"{{"data":"{}"}}"#, "x".repeat(MAX_OUTPUT * 2));
         let trimmed = trim_response(&long);
         assert!(
             trimmed.contains("... cut, "),
             "{}",
             &trimmed[trimmed.len() - 200..]
         );
-        assert!(trimmed.chars().count() < MAX_RESPONSE + 200);
+        assert!(trimmed.chars().count() < MAX_OUTPUT + 200);
     }
 
     #[test]

@@ -21,7 +21,7 @@ Server tools:
 - rule_info: a rule's definition: status (applied or not, and why), directives, target groups.
   Use it to explain a rule's compliance, e.g. a rule with no reports.
 - node_info: a node's inventory by id or exact hostname. Ask only for the extra sections you
-  need (software and processes can be large).
+  need (software and processes can be large); for installed packages, filter with `software`.
 - system_info: Rudder version, plugins, relays, node counts. Call it first when an answer depends
   on the version.
 - server_health: webapp status and server healthchecks (CPU, disk, file descriptors). Use it when

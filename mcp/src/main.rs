@@ -72,6 +72,23 @@ impl From<bool> for AccessMode {
     }
 }
 
+/// Upper bound on a tool answer built from raw API data, which can be megabytes (a node's software
+/// list alone is ~100 KB), beyond what clients accept
+const MAX_OUTPUT: usize = 20_000;
+
+/// `text` cut to `MAX_OUTPUT` characters, with how much was cut and how to ask for less
+fn cap(text: String, hint: &str) -> String {
+    let length = text.chars().count();
+    if length <= MAX_OUTPUT {
+        return text;
+    }
+    let cut: String = text.chars().take(MAX_OUTPUT).collect();
+    format!(
+        "{cut}\n... cut, {} more characters: {hint}",
+        length - MAX_OUTPUT
+    )
+}
+
 /// A Rudder object id (rule, directive, group) that can go into a URL path. System objects use ids
 /// like `hasPolicyServer-root`, not only UUIDs.
 fn is_object_id(id: &str) -> bool {
@@ -170,6 +187,9 @@ struct NodeQuery {
     /// processes): only request what is needed.
     #[serde(default)]
     details: Vec<InventorySection>,
+    /// Only the software whose name contains this text (case-insensitive), e.g. `openssl`: installed
+    /// packages and available updates. Adds the software section; use it rather than the whole list.
+    software: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -304,18 +324,29 @@ impl Rudder {
     }
 
     #[tool(
-        description = "Get a node's information from its inventory, by id or hostname: OS, IP addresses, last run and inventory dates, agent, policy mode, node properties, RAM. Other inventory sections on request",
+        description = "Get a node's information from its inventory, by id or hostname: OS, IP addresses, last run and inventory dates, agent, policy mode, node properties, RAM. Other inventory sections on request, and installed software filtered by name (e.g. which openssl version a node runs)",
         annotations(read_only_hint = true)
     )]
     async fn node_info(
         &self,
         Extension(parts): Extension<Parts>,
-        Parameters(NodeQuery { node, details }): Parameters<NodeQuery>,
+        Parameters(NodeQuery {
+            node,
+            mut details,
+            software,
+        }): Parameters<NodeQuery>,
     ) -> Result<String, String> {
+        if software.is_some() && !details.contains(&InventorySection::Software) {
+            details.push(InventorySection::Software);
+        }
         let (path, query) = nodes::request(&node, &details);
         let query: Vec<(&str, &str)> = query.iter().map(|(k, v)| (*k, v.as_str())).collect();
         let body = self.api.call(&parts, Method::GET, &path, &query).await?;
-        nodes::select(&body, &node)
+        let node = nodes::select(&body, &node, software.as_deref())?;
+        Ok(cap(
+            node,
+            "request fewer sections, or filter the software list with `software`",
+        ))
     }
 
     #[tool(

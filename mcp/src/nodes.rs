@@ -109,9 +109,25 @@ fn lookup(node: &str, include: String) -> (String, Vec<(&'static str, String)>) 
     }
 }
 
-/// Extracts the single node from the API response, as JSON for the model
-pub fn select(body: &str, node: &str) -> Result<String, String> {
-    serde_json::to_string_pretty(&select_one(body, node)?).map_err(|e| e.to_string())
+/// Extracts the single node from the API response, as JSON for the model. With `software`, keeps
+/// only the packages whose name contains it (case-insensitive), both installed (`software`) and
+/// available updates (`softwareUpdate`, which Rudder returns along with the software section)
+pub fn select(body: &str, node: &str, software: Option<&str>) -> Result<String, String> {
+    let mut node = select_one(body, node)?;
+    if let Some(filter) = software {
+        let filter = filter.to_lowercase();
+        for section in ["software", "softwareUpdate"] {
+            // `get_mut`, not `node[section]`: mutable indexing would insert a `null` field
+            if let Some(list) = node.get_mut(section).and_then(Value::as_array_mut) {
+                list.retain(|package| {
+                    package["name"]
+                        .as_str()
+                        .is_some_and(|name| name.to_lowercase().contains(&filter))
+                });
+            }
+        }
+    }
+    serde_json::to_string_pretty(&node).map_err(|e| e.to_string())
 }
 
 fn select_one(body: &str, node: &str) -> Result<Value, String> {
@@ -202,15 +218,47 @@ mod tests {
     #[test]
     fn select_single_node() {
         let body = r#"{"result":"success","data":{"nodes":[{"id":"root","hostname":"server"}]}}"#;
-        let node: Value = serde_json::from_str(&select(body, "root").unwrap()).unwrap();
+        let node: Value = serde_json::from_str(&select(body, "root", None).unwrap()).unwrap();
         assert_eq!(node, json!({"id": "root", "hostname": "server"}));
     }
 
     #[test]
+    fn select_filters_software_by_name() {
+        // Real 9.2 inventory entries
+        let body = json!({"data": {"nodes": [{"id": "root", "software": [
+            {"name": "openssl", "version": "3.5.1-1+deb13u1"},
+            {"name": "libssl3t64", "version": "3.5.1-1+deb13u1"},
+            {"name": "OpenSSL-provider-legacy", "version": "3.5.1-1+deb13u1"},
+            {"name": "bash", "version": "5.2.37-2"}
+        ], "softwareUpdate": [
+            {"name": "openssl", "version": "3.5.7-1~deb13u2", "kind": "security"},
+            {"name": "python3-requests", "version": "2.32.3+dfsg-5+deb13u1", "kind": "none"}
+        ]}]}})
+        .to_string();
+        let node: Value =
+            serde_json::from_str(&select(&body, "root", Some("OpenSSL")).unwrap()).unwrap();
+        let names: Vec<&str> = node["software"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["openssl", "OpenSSL-provider-legacy"]);
+        assert_eq!(
+            node["softwareUpdate"],
+            json!([{"name": "openssl", "version": "3.5.7-1~deb13u2", "kind": "security"}])
+        );
+        // Without filter, everything
+        let node: Value = serde_json::from_str(&select(&body, "root", None).unwrap()).unwrap();
+        assert_eq!(node["software"].as_array().unwrap().len(), 4);
+    }
+
+    #[test]
     fn select_none_or_ambiguous() {
-        let error = select(r#"{"data":{"nodes":[]}}"#, "web").unwrap_err();
+        let error = select(r#"{"data":{"nodes":[]}}"#, "web", None).unwrap_err();
         assert!(error.contains("no node found for 'web'"), "{error}");
-        let error = select(r#"{"data":{"nodes":[{"id":"a"},{"id":"b"}]}}"#, "web").unwrap_err();
+        let error =
+            select(r#"{"data":{"nodes":[{"id":"a"},{"id":"b"}]}}"#, "web", None).unwrap_err();
         assert!(error.contains("use one of their ids: a, b"), "{error}");
     }
 }
