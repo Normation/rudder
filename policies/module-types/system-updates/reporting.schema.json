@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "System updates reports",
+  "description": "Reports produced by rudder-module-system-updates. See REPORTING.md for the specification.",
+  "anyOf": [
+    { "$ref": "#/$defs/schedule" },
+    { "$ref": "#/$defs/update" }
+  ],
+  "$defs": {
+    "schedule": {
+      "description": "Schedule report, sent in the 'campaign-system-schedule' component.",
+      "type": "object",
+      "required": ["status", "date"],
+      "properties": {
+        "status": { "const": "success" },
+        "date": { "type": "string", "format": "date-time" }
+      }
+    },
+    "update": {
+      "description": "Update report, sent in the 'campaign-system-update' component.",
+      "type": "object",
+      "required": ["software-updated", "status", "output"],
+      "properties": {
+        "software-updated": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/package" }
+        },
+        "status": { "enum": ["success", "repaired", "error", "scheduled"] },
+        "output": { "type": "string" },
+        "errors": { "type": "string" }
+      }
+    },
+    "package": {
+      "description": "A change in the installed packages.",
+      "type": "object",
+      "required": ["name", "arch", "action"],
+      "properties": {
+        "name": { "type": "string" },
+        "arch": { "type": "string" },
+        "old-version": { "type": "string" },
+        "new-version": { "type": "string" },
+        "action": { "enum": ["added", "updated", "removed", "pending-install"] },
+        "details": { "type": "string" }
+      },
+      "oneOf": [
+        {
+          "properties": { "action": { "const": "added" } },
+          "required": ["new-version"],
+          "not": { "required": ["old-version"] }
+        },
+        {
+          "properties": { "action": { "const": "updated" } },
+          "required": ["old-version", "new-version"]
+        },
+        {
+          "properties": { "action": { "const": "removed" } },
+          "required": ["old-version"],
+          "not": { "required": ["new-version"] }
+        },
+        {
+          "properties": { "action": { "const": "pending-install" } },
+          "required": ["details"],
+          "not": {
+            "anyOf": [
+              { "required": ["old-version"] },
+              { "required": ["new-version"] }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
