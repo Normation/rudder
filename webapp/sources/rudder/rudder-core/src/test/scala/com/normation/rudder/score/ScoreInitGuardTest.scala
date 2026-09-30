@@ -40,6 +40,7 @@ package com.normation.rudder.score
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.MockNodes
+import com.normation.rudder.MockTenants
 import com.normation.rudder.tenants.QueryContext
 import org.junit.runner.RunWith
 import zio.*
@@ -57,7 +58,7 @@ import zio.test.junit.ZTestJUnitRunner
 @RunWith(classOf[ZTestJUnitRunner])
 class ScoreInitGuardTest extends ZIOSpecDefault {
 
-  val mockNodes = new MockNodes()
+  val mockNodes = new MockNodes(new MockTenants())
 
   val globalScoreRepo = new InMemoryGlobalScoreRepository()
   val scoreRepo       = new InMemoryScoreRepository()
