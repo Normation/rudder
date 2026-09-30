@@ -123,6 +123,7 @@ rootGroupCategoryId =
 type Msg
     = OpenModal
     | CloseModal
+    | DisplayExternalTemplate
     | LoadGroupTable
     | LoadMore
     | OpenGroupDetails GroupId

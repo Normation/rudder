@@ -236,7 +236,8 @@ class NodeGroupCategoryForm(
       )
       .toBox match {
       case Full(id) =>
-        JsRaw("""hideBsModal('basePopup');""") & // JsRaw ok, const
+        JsRaw("""hideBsModal('basePopup');""") &                                // JsRaw ok, const
+        JsRaw(s"""$$('#${htmlIdCategory}').trigger("group-close-detail");""") & // JsRaw ok, const
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
