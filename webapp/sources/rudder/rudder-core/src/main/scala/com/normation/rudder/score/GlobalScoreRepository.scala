@@ -37,14 +37,16 @@
 
 package com.normation.rudder.score
 
-import com.normation.errors.IOResult
+import cats.data.NonEmptyList
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import com.normation.zio.*
 import doobie.implicits.*
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
-import zio.Ref
+import doobie.util.update.Update
+import zio.*
 import zio.interop.catz.*
 
 trait GlobalScoreRepository {
@@ -52,6 +54,11 @@ trait GlobalScoreRepository {
   def get(id:      NodeId): IOResult[Option[GlobalScore]]
   def delete(id:   NodeId): IOResult[Unit]
   def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)]
+
+  /*
+   * Save all of these global scores in one go.
+   */
+  def saveAll(globalScores: Iterable[(NodeId, GlobalScore)]): IOResult[Unit]
 }
 
 /*
@@ -62,8 +69,10 @@ class InMemoryGlobalScoreRepository extends GlobalScoreRepository {
   override def getAll(): IOResult[Map[NodeId, GlobalScore]] = cache.get
   override def get(id:    NodeId): IOResult[Option[GlobalScore]] = cache.get.map(_.get(id))
   override def delete(id: NodeId): IOResult[Unit]                = cache.update(_.removed(id))
-  override def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] =
+  override def save(nodeId: NodeId, globalScore: GlobalScore):         IOResult[(NodeId, GlobalScore)] =
     cache.update(_.updated(nodeId, globalScore)).map(_ => (nodeId, globalScore))
+  override def saveAll(globalScores: Iterable[(NodeId, GlobalScore)]): IOResult[Unit]                  =
+    cache.update(_ ++ globalScores)
 }
 
 object GlobalScoreRepositoryImpl {
@@ -105,7 +114,7 @@ object GlobalScoreRepositoryImpl {
 
 }
 
-class GlobalScoreRepositoryImpl(doobie: Doobie) extends GlobalScoreRepository {
+class GlobalScoreRepositoryImpl(doobie: Doobie, jdbcBatchSize: Int) extends GlobalScoreRepository {
   import GlobalScoreRepositoryImpl.*
   import doobie.*
 
@@ -119,6 +128,24 @@ class GlobalScoreRepositoryImpl(doobie: Doobie) extends GlobalScoreRepository {
     transactIOResult(s"error when inserting global score for node '${nodeId.value}''")(xa => query.update.run.transact(xa)).map(
       _ => (nodeId, globalScore)
     )
+  }
+
+  override def saveAll(globalScores: Iterable[(NodeId, GlobalScore)]): IOResult[Unit] = {
+    val query = Update[(NodeId, GlobalScore)](
+      """insert into GlobalScore (nodeId, score, message, details) values (?,?,?,?)
+        |  ON CONFLICT (nodeId) DO UPDATE
+        |  SET score = excluded.score, message = excluded.message, details = excluded.details ;""".stripMargin
+    )
+
+    // batch update, don't fail on first error. `grouped` and not `sliding`, which would overlap
+    // the batches and save every score once per position of the window
+    ZIO
+      .validate(globalScores.grouped(jdbcBatchSize).to(Iterable)) { batch =>
+        ScoreLoggerPure.debug(s"Saving ${batch.size} global scores in base") *>
+        transactIOResult(s"error when saving global scores")(xa => query.updateMany(batch.toVector).transact(xa))
+      }
+      .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
+      .unit
   }
 
   override def getAll(): IOResult[Map[NodeId, GlobalScore]] = {
