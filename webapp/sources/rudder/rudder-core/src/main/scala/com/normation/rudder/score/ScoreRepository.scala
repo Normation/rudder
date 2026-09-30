@@ -37,10 +37,12 @@
 
 package com.normation.rudder.score
 
+import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
+import com.normation.rudder.db.JsonRaw
 import com.normation.zio.*
 import doobie.Fragments
 import doobie.Meta
@@ -50,7 +52,7 @@ import doobie.implicits.*
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
 import doobie.util.update.Update
-import zio.Ref
+import zio.*
 import zio.interop.catz.*
 import zio.json.ast.Json
 
@@ -62,6 +64,11 @@ trait ScoreRepository {
   def getOneScore(nodeId:     NodeId, scoreId:      String):         IOResult[Score]
   def saveScore(nodeId:       NodeId, score:        Score):          IOResult[Unit]
   def deleteScore(nodeId:     Seq[NodeId], scoreId: Option[String]): IOResult[Unit]
+
+  /*
+   * Save all of these scores at once - see https://issues.rudder.io/issues/29781
+   */
+  def saveScores(scores: Iterable[(NodeId, Score)]): IOResult[Unit]
 
 }
 
@@ -93,6 +100,9 @@ class InMemoryScoreRepository extends ScoreRepository {
       case Some(values) => Some(score :: values.filterNot(_.scoreId == score.scoreId))
     }
   })
+  override def saveScores(scores: Iterable[(NodeId, Score)]):             IOResult[Unit]                     = {
+    ZIO.foreachDiscard(scores) { case (nodeId, score) => saveScore(nodeId, score) }
+  }
   override def deleteScore(nodeId: Seq[NodeId], scoreId: Option[String]): IOResult[Unit]                     = cache.update(c => {
     nodeId.foldLeft(c) {
       case (acc, n) =>
@@ -108,7 +118,7 @@ class InMemoryScoreRepository extends ScoreRepository {
   })
 }
 
-class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
+class ScoreRepositoryImpl(doobie: Doobie, jdbcBatchSize: Int) extends ScoreRepository {
 
   import com.normation.rudder.db.json.implicits.*
 
@@ -143,8 +153,18 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
   import doobie.*
   override def getAll(): IOResult[Map[NodeId, List[Score]]] = {
     val q = sql"select nodeId, scoreId, score, message, details from scoredetails "
-    transactIOResult(s"error when getting scores for node")(xa => q.query[(NodeId, Score)].to[List].transact(xa))
-      .map(_.groupMap(_._1)(_._2))
+    // get score in raw so that parsing is parallel - see https://issues.rudder.io/issues/29781
+    for {
+      rows   <- transactIOResult(s"error when getting scores for node")(xa =>
+                  q.query[(NodeId, String, ScoreValue, String, JsonRaw)].to[List].transact(xa)
+                )
+      scores <- JsonRaw.parseAllPar[(NodeId, String, ScoreValue, String), Json, Json](rows.map {
+                  case (nodeId, scoreId, value, message, details) => ((nodeId, scoreId, value, message), details)
+                })(identity)
+    } yield {
+      scores.toList.map { case ((nodeId, scoreId, value, message), details) => (nodeId, Score(scoreId, value, message, details)) }
+        .groupMap(_._1)(_._2)
+    }
   }
 
   override def getAllOneScore(scoreId: String): IOResult[Map[NodeId, Score]] = {
@@ -182,6 +202,24 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
     transactIOResult(s"error when inserting global score for node '${nodeId.value}''")(xa => query.update.run.transact(xa)).unit
 
+  }
+
+  override def saveScores(scores: Iterable[(NodeId, Score)]): IOResult[Unit] = {
+    val query = Update[(NodeId, Score)](
+      """insert into scoredetails (nodeId, scoreId, score, message, details) values (?,?,?,?,?)
+        |  ON CONFLICT (nodeId, scoreId) DO UPDATE
+        |  SET score = excluded.score, message = excluded.message, details = excluded.details ;""".stripMargin
+    )
+
+    // batch update, don't fail on first error. `grouped` and not `sliding`, which would overlap
+    // the batches and save every score once per position of the window - see https://issues.rudder.io/issues/29781
+    ZIO
+      .validate(scores.grouped(jdbcBatchSize).to(Iterable)) { batch =>
+        ScoreLoggerPure.debug(s"Saving ${batch.size} scores in base") *>
+        transactIOResult(s"error when saving scores")(xa => query.updateMany(batch.toVector).transact(xa))
+      }
+      .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
+      .unit
   }
 
   override def deleteScore(nodeId: Seq[NodeId], scoreId: Option[String]): IOResult[Unit] = {
