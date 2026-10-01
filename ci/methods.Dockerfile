@@ -23,7 +23,6 @@ wget https://repository.rudder.io/tools/rudder-setup
 sed -i "s/set -e/set -xe/" rudder-setup
 sed -i "s/rudder agent inventory//" rudder-setup
 sed -i "s/rudder agent health/rudder agent health || true/" rudder-setup
-<<<<<<< HEAD
 sh ./rudder-setup setup-agent 9.2-nightly
 wget https://github.com/hercules-team/augeas/releases/download/release-1.15.0/augeas-1.15.0.tar.gz
 tar -xf augeas-1.15.0.tar.gz
