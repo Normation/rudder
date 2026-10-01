@@ -216,8 +216,11 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
                  |});
                  |// When custom event to close group details fires, we load the group table state in the Elm app
                  |$$("#${htmlId_item}").on("group-close-detail", function () {
-                 |  $$("#${htmlId_item} .main-container").hide(); // guarantee to hide details
                  |  app.ports.loadGroupTable.send(null)
+                 |});
+                 |// Symmetrically, when the Lift template fills the right panel, Elm must give it the place
+                 |$$("#${htmlId_item}").on("group-display-detail", function () {
+                 |  app.ports.displayExternalTemplate.send(null)
                  |});
                  |
                  |// Initialize tooltips
@@ -249,7 +252,7 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
    * We want to look for #{ "groupId":"XXXXXXXXXXXX" } or #{"targer":"....."}
    */
   private def parseJsArg(rootCategory: Box[FullNodeGroupCategory])(implicit qc: QueryContext): JsCmd = {
-    def displayGroupNotFound:                     JsCmd = SetHtml(
+    def displayGroupNotFound:                     JsCmd = displayExternalPanel & SetHtml(
       htmlId_item,
       <div class="jumbotron">
         <h2>Group not found</h2>
@@ -346,10 +349,16 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
     }
   }
 
+  // Tell the Elm app that we are taking over the right panel, so that it hides its own group table
+  // there. Elm never renders anything in htmlId_item: only one virtual DOM per node.
+  private def displayExternalPanel: JsCmd = {
+    JsRaw(s"""$$('#${htmlId_item}').trigger("group-display-detail");""") // JsRaw ok, const
+  }
+
   // utility to refresh right panel
   private def refreshRightPanel(panel: RightPanel)(implicit qc: QueryContext): JsCmd = {
     boxGroupLib match {
-      case Full(lib) => SetHtml(htmlId_item, setAndShowRightPanel(panel, lib))
+      case Full(lib) => displayExternalPanel & SetHtml(htmlId_item, setAndShowRightPanel(panel, lib))
       case eb: EmptyBox =>
         val e = eb ?~! "Error when trying to get the root node group category"
         logger.error(e.messageChain)
@@ -578,9 +587,9 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
 
   private def displayCategory(category: NodeGroupCategory)(implicit qc: QueryContext): JsCmd = {
     selectedCategoryId = Full(category.id)
-    // update UI - no modification here, so no refreshGroupLib
-    refreshRightPanel(CategoryForm(category)) &
-    JsRaw("""$('#ajaxItemContainer').show();""") // JsRaw ok, const
+    // update UI - no modification here, so no refreshGroupLib. The panel visibility is Elm's, see
+    // refreshRightPanel
+    refreshRightPanel(CategoryForm(category))
   }
 
   // adaptater
@@ -602,7 +611,6 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
       case Right(_) => s"'groupId':'${value}'"
     }
     JsRaw(s"""
-             |jQuery('#ajaxItemContainer').show();
              |var groupId = JSON.stringify({${js}});
              |window.location.hash = "#"+groupId;
              |

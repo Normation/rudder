@@ -54,12 +54,20 @@ port loadGroupTable : (() -> msg) -> Sub msg
 port readUrl : (String -> msg) -> Sub msg
 
 
+
+-- the Lift template took over the right panel: stop displaying the group table there
+
+
+port displayExternalTemplate : (() -> msg) -> Sub msg
+
+
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ closeModal (\_ -> CloseModal)
         , loadGroupTable (\_ -> LoadGroupTable)
         , readUrl (\s -> OpenGroupDetails (GroupId s))
+        , displayExternalTemplate (\_ -> DisplayExternalTemplate)
         ]
 
 
@@ -94,8 +102,17 @@ update msg model =
             let
                 ui =
                     model.ui
+
+                -- when the modal did create an item, the Lift template owns the right panel and we
+                -- must not fetch the compliance of a table we are not displaying. Else, OpenModal
+                -- emptied the compliance, so the table needs a full reload to leave its loading state
+                reloadTable =
+                    model.mode /= ExternalTemplate
             in
-            ( { model | ui = { ui | modal = NoModal, loadingGroups = True } }, Cmd.batch [ getGroupsTree model False ] )
+            ( { model | ui = { ui | modal = NoModal, loadingGroups = True } }, getGroupsTree model reloadTable )
+
+        DisplayExternalTemplate ->
+            ( { model | mode = ExternalTemplate }, Cmd.none )
 
         LoadGroupTable ->
             let
