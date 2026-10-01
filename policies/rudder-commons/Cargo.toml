@@ -22,3 +22,4 @@ regex = "1"
 
 [dev-dependencies]
 pretty_assertions = "1"
+tempfile = "3"
