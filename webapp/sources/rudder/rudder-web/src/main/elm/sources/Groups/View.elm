@@ -141,6 +141,17 @@ view model =
 
                 ExternalModal ->
                     div [ class "modal-backdrop fade show", style "height" "100%" ] []
+
+        externalTemplate =
+            model.mode == ExternalTemplate
+
+        hideWhen : Bool -> String
+        hideWhen shouldHide =
+            if shouldHide then
+                " d-none"
+
+            else
+                ""
     in
     div [ class "rudder-template" ]
         [ div [ class "template-sidebar sidebar-left" ]
@@ -198,10 +209,13 @@ view model =
                     ]
                 ]
             ]
-
-        -- The content of "ajaxItemContainer" can be replaced with external template, when model has the ExternalTemplate mode
-        , div [ class "template-main", id "ajaxItemContainer" ]
+        , div [ class ("template-main" ++ hideWhen externalTemplate) ]
             [ templateMain
             ]
+
+        -- "ajaxItemContainer" is filled by the Lift template (group and category details). It must
+        -- stay childless here: two virtual DOMs over the same node desynchronize Elm's patching,
+        -- which then crashes on nodes it does not own. Elm only owns its visibility.
+        , div [ class ("template-main" ++ hideWhen (not externalTemplate)), id "ajaxItemContainer" ] []
         , modal
         ]
