@@ -226,14 +226,6 @@ object SecurityTag {
   val LIBRARY_SECURITY_TAG: Option[SecurityTag] = Some(OpenRo)
 
   /*
-   * Tag of a non-system technique with only a `metadata.xml`: shipped by Rudder or hand-written in the
-   * configuration repository, usable by a tenant and changeable by an administrator, ie a library object.
-   * A technique with a `technique.yml` declares its own `security` field, and falls back to
-   * `USER_LIB_TECHNIQUE_SECURITY_TAG`.
-   */
-  val LEGACY_TECHNIQUE_SECURITY_TAG: Option[SecurityTag] = LIBRARY_SECURITY_TAG
-
-  /*
    * Visibility lattice. `None` (administrators only) is the bottom, the open tags are the top, a tenant
    * list is above the lists it contains. Two disjoint tenant lists are not comparable.
    *

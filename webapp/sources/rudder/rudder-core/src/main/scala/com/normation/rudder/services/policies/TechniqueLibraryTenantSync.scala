@@ -57,9 +57,8 @@ import zio.*
  * Copy the tenant tags of the reference library onto the user library.
  * Invariant: what the file system declares is what the active techniques and their categories carry.
  *
- * A technique declares its tag in `metadata.xml` (written by rudderc from the `security` field of `technique.yml`,
- * or defaulted for the techniques that only have a `metadata.xml`, see `SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG`),
- * a category in its `category.xml`.
+ * A technique declares its tag in `metadata.xml` (written by rudderc from the `security` field of
+ * `technique.yml`), a category in its `category.xml`. Declaring nothing means administrators only.
  *
  * This is done even if the tenant plugin is absent or disable.
  */
