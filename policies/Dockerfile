@@ -23,9 +23,7 @@ apt-get update && apt-get install -y rsync msitools libapt-pkg-dev clang python3
 # ignore postinst failures
 curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\)/rudder agent \1 \| true/g' | bash -s setup-agent $RUDDER_VER
 pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
-# we need a patched augeas
-wget https://github.com/hercules-team/augeas/releases/download/release-1.14.1/augeas-1.14.1.tar.gz
-wget https://patch-diff.githubusercontent.com/raw/hercules-team/augeas/pull/859.patch
-tar -xf augeas-1.14.1.tar.gz
-cd augeas-1.14.1 && patch -p1 < ../859.patch && ./configure --prefix=/usr && make install
+wget https://github.com/hercules-team/augeas/releases/download/release-1.15.0/augeas-1.15.0.tar.gz
+tar -xf augeas-1.15.0.tar.gz
+cd augeas-1.15.0 && ./configure --prefix=/usr && make install
 EOF
