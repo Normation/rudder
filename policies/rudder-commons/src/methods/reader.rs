@@ -16,12 +16,16 @@ use super::method::MethodInfo;
 /// Directories to skip when loading methods
 const NON_METHOD_DIR: [&str; 2] = ["10_ncf_internals", "20_cfe_basics"];
 
+fn is_in_non_method_dir(path: &Path) -> bool {
+    NON_METHOD_DIR
+        .iter()
+        .any(|dir| path.to_string_lossy().contains(dir))
+}
+
 /// Detect valid .cf source files, skip ignored ones (starting with _, non 30_generic_methods).
 fn is_cf_method(entry: &DirEntry) -> bool {
-    for dir in NON_METHOD_DIR {
-        if entry.path().to_string_lossy().contains(dir) {
-            return false;
-        }
+    if is_in_non_method_dir(entry.path()) {
+        return false;
     }
     entry
         .file_name()
@@ -38,11 +42,22 @@ pub fn read_lib(path: &Path) -> Result<Vec<MethodInfo>> {
         bail!("Could not open library in {}", path.display());
     }
 
-    let walker = WalkDir::new(path)
-        .into_iter()
-        .filter(|r| r.as_ref().map(is_cf_method).unwrap_or(false));
+    // Keep walk errors (e.g. an unreadable directory) so they are reported instead of
+    // silently producing an incomplete library, except in directories we would skip anyway.
+    let walker = WalkDir::new(path).into_iter().filter(|r| match r {
+        Ok(entry) => is_cf_method(entry),
+        Err(e) => !e.path().is_some_and(is_in_non_method_dir),
+    });
     for source_file in walker {
-        let source = source_file?;
+        let source = match source_file {
+            Ok(s) => s,
+            Err(e) => {
+                // Display error
+                warn!("Listing method files in {}: {e}", path.display());
+                // Skip unreadable entry
+                continue;
+            }
+        };
 
         debug!("Parsing {}", source.path().display());
         let data = read_to_string(source.path())
@@ -67,4 +82,40 @@ pub fn read_lib(path: &Path) -> Result<Vec<MethodInfo>> {
     }
 
     Ok(methods)
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::{
+        fs::{self, Permissions},
+        os::unix::fs::PermissionsExt,
+    };
+
+    use super::*;
+
+    fn make_unreadable(dir: &Path) {
+        fs::set_permissions(dir, Permissions::from_mode(0o000)).unwrap();
+    }
+
+    #[test]
+    fn it_skips_unreadable_method_dir() {
+        let lib = tempfile::tempdir().unwrap();
+        let methods_dir = lib.path().join("30_generic_methods");
+        fs::create_dir(&methods_dir).unwrap();
+        make_unreadable(&methods_dir);
+        let res = read_lib(lib.path());
+        fs::set_permissions(&methods_dir, Permissions::from_mode(0o755)).unwrap();
+        assert!(res.unwrap().is_empty());
+    }
+
+    #[test]
+    fn it_ignores_unreadable_non_method_dir() {
+        let lib = tempfile::tempdir().unwrap();
+        let internals_dir = lib.path().join("10_ncf_internals");
+        fs::create_dir(&internals_dir).unwrap();
+        make_unreadable(&internals_dir);
+        let res = read_lib(lib.path());
+        fs::set_permissions(&internals_dir, Permissions::from_mode(0o755)).unwrap();
+        assert!(res.unwrap().is_empty());
+    }
 }
