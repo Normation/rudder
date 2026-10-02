@@ -70,7 +70,7 @@ handleEnvMsg msg model =
                 | pos2 = pos2
                 , showBound = model.mouseDown && (not << isJust) model.caller
                 , bound = toBound model.pos1 pos2
-                , drag = model.hasWriteRights && model.mouseDown && isJust model.caller && isFar model.pos1 pos2 && model.filesAmount <= 0
+                , drag = model.hasWriteRights && model.mouseDown && isJust model.caller && isFar model.pos1 pos2 && not (isUploading model.uploadStatus)
               }
             , Cmd.none
             )
