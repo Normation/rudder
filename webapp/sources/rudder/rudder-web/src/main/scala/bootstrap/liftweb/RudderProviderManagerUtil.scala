@@ -26,7 +26,7 @@ object RudderProviderManagerUtil {
     (userRepository
       .logStartSession(
         details.getUsername,
-        com.normation.rudder.Role.toDisplayNames(details.roles),
+        com.normation.rudder.Role.toSessionPermissions(details.roles),
         com.normation.rudder.Rights
           .combineAll(details.roles.toList.map(_.rights))
           .authorizationTypes
