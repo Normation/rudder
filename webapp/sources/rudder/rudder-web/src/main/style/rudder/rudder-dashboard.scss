@@ -58,7 +58,7 @@ $doughnut-size : 160px;
   overflow: hidden;
 }
 
-.homePage .col-auto:not(:has(> .canvas-only canvas)){
+.homePage .col-auto:has(> .canvas-only):not(:has(> .canvas-only canvas)){
   display: none !important;
 }
 .homePage a.card{
@@ -215,6 +215,16 @@ $doughnut-size : 160px;
       height: $size;
       width: $size;
     }
+
+    p {
+      padding: 0;
+      margin: 0;
+      color: rudder.$gray-600;
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 }
 
@@ -308,7 +318,7 @@ $doughnut-size : 160px;
   display: none;
   //Show plugin extensions only if they have been populated
   &:has(.plugin-container:not(:empty)){
-    display: block;
+    display: flex;
   }
   .plugin-container:empty{
     display: none;
