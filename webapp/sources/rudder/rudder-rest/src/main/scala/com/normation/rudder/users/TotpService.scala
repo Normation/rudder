@@ -39,7 +39,6 @@ import cats.syntax.functor.*
 import com.bastiaanjansen.otp.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.users.Totp.*
 import com.normation.utils.DateFormaterService
 import java.net.URI
 import java.time.Instant

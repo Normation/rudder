@@ -43,7 +43,6 @@ import com.normation.rudder.api.AccountLastAuthentication
 import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountExpirationPolicy
-import com.normation.rudder.api.ApiAccountExpirationPolicy.*
 import com.normation.rudder.api.ApiAccountExpirationPolicyKind
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind

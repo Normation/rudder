@@ -51,7 +51,6 @@ import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
 import zio.json.*
-import zio.json.ast.Json.*
 
 /**
  * That file contains all the kind of status reports for:
