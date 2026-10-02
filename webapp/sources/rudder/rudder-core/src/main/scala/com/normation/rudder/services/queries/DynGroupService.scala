@@ -359,7 +359,7 @@ class CheckPendingNodeInDynGroups(
                   DynGroup(id, newDep, newNodeIds, query, newInc)
               }
               // we can be in a case where the dyngroup don't have any criteria remaning, because they were
-              // only subgroups. In that case, avoid to put it back in processing list, because their is nothing
+              // only subgroups. In that case, avoid to put it back in processing list, because there is nothing
               // left to do for it.
               // for these case, we keep all the node that are coming from the subgroup and that are looked for
               val (alreadyDone, remainingNewTodos) = newTodos.partition(_.query.criteria.isEmpty)

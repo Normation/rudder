@@ -49,6 +49,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantReachIndex
 import com.typesafe.config.ConfigRenderOptions
 import zio.*
 
@@ -74,16 +75,25 @@ class NodePropertiesServiceImpl(
 ) extends NodePropertiesService {
   override def updateAll(): IOResult[Unit] = QueryContext.asSystem("node properties are computed for the whole fleet") {
     for {
-      allParams       <- globalPropsRepo.getAllGlobalParameters()
-      groups          <- roNodeGroupRepository.getFullGroupLibrary()
-      nodes           <- nodeFactRepository.getAll().map(_.values)
+      allProperties     <- globalPropsRepo.getAllGlobalParameters()
+      groups            <- roNodeGroupRepository.getFullGroupLibrary()
+      nodes             <- nodeFactRepository.getAll().map(_.values)
       // scopes are resolved to node ids once for the whole fleet, not once per node
-      splitParams     <- partitionScopedParams(allParams, groups)
-      (params, scoped) = splitParams
-      mergedGroups     = {
+      split             <- partitionScopedProperties(allProperties, groups)
+      (unscoped, scoped) = split
+      // which global properties are roots for a given tenant (ADR 28945-global-properties-and-tenant-scoping)
+      globalByTenant     = TenantReachIndex(unscoped.map(p => (p.security, p)))
+      scopedByTenant     = TenantReachIndex(scoped.map { case (ids, t) => (t.value.security, (ids, t)) })
+      mergedGroups       = {
         groups.allGroups.map {
           case (gid, group) =>
-            val resolved = MergeNodeProperties.forGroup(group, groups.allGroups, params, scoped.map(_._2))
+            val security = group.nodeGroup.security
+            val resolved = MergeNodeProperties.forGroup(
+              group,
+              groups.allGroups,
+              byName(globalByTenant.reaching(security)),
+              scopedByTenant.reaching(security).map(_._2)
+            )
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
                 NodePropertiesLoggerPure.logEffect.debug(
@@ -102,14 +112,22 @@ class NodePropertiesServiceImpl(
             gid -> TenantScopedGroupProps(group.nodeGroup.security, resolved)
         }
       }
-      mergedNodes      = {
+      mergedNodes        = {
         nodes
           .map(n => {
+            val security   = n.rudderSettings.security
             // a name scoped away from that node must not reach it through a group or node
-            // override either, so we carry both halves of the split (ADR 29409)
-            val (in, out)  = scoped.partition { case (nodeIds, _) => nodeIds.contains(n.id) }
+            // override either, so we carry both halves of the split (ADR 29409). A parameter the
+            // node's tenants can not see is out of the split entirely: it is absent from the roots
+            // and leaves group and node properties of the same name alone.
+            val (in, out)  = scopedByTenant.reaching(security).partition { case (nodeIds, _) => nodeIds.contains(n.id) }
             val nodeScoped = NodeScopedParameters(in.map(_._2), out.map(_._2.value.name).toSet)
-            val resolved   = MergeNodeProperties.forNode(n, groups.getGroupTarget(n).values, params, nodeScoped)
+            val resolved   = MergeNodeProperties.forNode(
+              n,
+              groups.getGroupTarget(n).values,
+              byName(globalByTenant.reaching(security)),
+              nodeScoped
+            )
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
                 NodePropertiesLoggerPure.logEffect.debug(
@@ -128,28 +146,33 @@ class NodePropertiesServiceImpl(
             n.id -> resolved
           })
       }
-      _               <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
-      _               <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
+      _                 <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
+      _                 <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
     } yield ()
   }
 
+  private def byName(properties: List[GlobalParameter]): Map[String, GlobalParameter] = {
+    properties.map(p => (p.name, p)).toMap
+  }
+
   /*
-   * Split parameters between the unscoped ones - distributed to every node, as before - and the
-   * scoped ones, resolving each scope to its node ids once for the whole fleet (ADR 29409).
+   * Split global properties between the unscoped ones - candidate for every node - and the scoped
+   * ones, resolving each scope to its node ids once for the whole fleet (ADR 29409). Tenants are
+   * applied afterwards, per node and per group.
    */
-  private def partitionScopedParams(
-      params: Seq[GlobalParameter],
-      groups: FullNodeGroupCategory
-  )(implicit qc: QueryContext): IOResult[(Map[String, GlobalParameter], List[(Set[NodeId], ParentProperty.Target)])] = {
+  private def partitionScopedProperties(
+      properties: Seq[GlobalParameter],
+      groups:     FullNodeGroupCategory
+  )(implicit qc: QueryContext): IOResult[(List[GlobalParameter], List[(Set[NodeId], ParentProperty.Target)])] = {
     // the qc does the tenant filtering, and policy servers are cached in the repository
     nodeFactRepository.getNodeAndServerIds().map { ids =>
-      val split = params.toList.map { p =>
+      val split = properties.toList.map { p =>
         p.scope match {
-          case None    => Left((p.name, p))
+          case None    => Left(p)
           case Some(t) => Right((groups.getNodeIds(Set(t), ids), ParentProperty.Target(t, p, None)))
         }
       }
-      (split.collect { case Left(x) => x }.toMap, split.collect { case Right(x) => x })
+      (split.collect { case Left(x) => x }, split.collect { case Right(x) => x })
     }
   }
 }

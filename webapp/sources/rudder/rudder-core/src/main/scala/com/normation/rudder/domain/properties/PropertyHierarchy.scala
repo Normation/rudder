@@ -119,8 +119,8 @@ object ParentProperty {
    * A global parameter restricted to a target (ADR 29409). It sits between the global
    * level and the groups: it overrides the unscoped parameter of the same name, and is
    * overridden by group and node properties.
-   * `value` is the already-combined value when several scopes contribute to that name
-   * (see MergeNodeProperties.combineScopedParams).
+   * A name carries at most one scope: a global parameter's name is unique in storage, its LDAP
+   * RDN being the name, so there is nothing to combine here.
    */
   final case class Target(
       scope:              RuleTarget,
