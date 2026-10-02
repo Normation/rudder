@@ -1,0 +1,10 @@
+#!/bin/bash
+
+
+if echo "${SSH_ORIGINAL_COMMAND}" | grep -qP '^rsync (-\S+ )+\. /var/rudder/\S+$'
+then
+  exec ${SSH_ORIGINAL_COMMAND}
+else
+  echo "Forbidden command"
+  exit 1
+fi
