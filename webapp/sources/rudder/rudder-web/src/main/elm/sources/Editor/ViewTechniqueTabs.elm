@@ -543,9 +543,8 @@ techniqueTab model technique creation ui =
         General ->
             div [ class "tab tab-general" ]
                 [ div [ class "row form-group" ]
-                    [ label [ for "techniqueName", class "col-sm-12" ]
+                    [ label [ for "techniqueName", class "col-sm-12 mandatory-field" ]
                         [ text "Name"
-                        , span [ class "mandatory-param" ] [ text " *" ]
                         ]
                     , div [ class "col-md-8" ]
                         [ input
@@ -593,7 +592,7 @@ techniqueTab model technique creation ui =
                             text ""
                     ]
                 , div [ class "row form-group" ]
-                    [ label [ for "techniqueDescription", class "col-sm-12 control-label fw-normal" ] [ text "Description" ]
+                    [ label [ for "techniqueDescription", class "col-sm-12 fw-normal" ] [ text "Description" ]
                     , div [ class "col-md-8" ]
                         [ input
                             [ readonly (not model.hasWriteRights)
@@ -609,7 +608,7 @@ techniqueTab model technique creation ui =
                         ]
                     ]
                 , div [ class "row form-group" ]
-                    [ label [ for "techniqueDocumentation", class "col-sm-12 control-label" ]
+                    [ label [ for "techniqueDocumentation", class "col-sm-12" ]
                         [ span [ class "fw-normal" ] [ text "Documentation" ]
                         , img [ class "markdown-icon tooltip-icon", src (model.contextPath ++ "/images/markdown-mark-solid.svg") ] []
                         ]
@@ -628,7 +627,7 @@ techniqueTab model technique creation ui =
                         ]
                     ]
                 , div [ class "row form-group" ]
-                    [ label [ for "bundleName", class "col-sm-12 control-label" ] [ text "Technique ID" ]
+                    [ label [ for "bundleName", class "col-sm-12" ] [ text "Technique ID" ]
                     , div [ class "col-md-8" ]
                         [ input [ readonly True, id "bundleName", name "bundle_name", class ("form-control" ++ classErrorInputId), value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                         ]
@@ -658,7 +657,7 @@ techniqueTab model technique creation ui =
                                 text ""
                     ]
                 , div [ class "row form-group" ]
-                    [ label [ for "category", class "col-sm-12 control-label" ] [ text "Category" ]
+                    [ label [ for "category", class "col-sm-12" ] [ text "Category" ]
                     , div [ class "col-md-8" ]
                         [ disableCategory
 
@@ -766,13 +765,13 @@ techniqueTab model technique creation ui =
                 Just out ->
                     div [ class "tab tab-general" ]
                         [ div [ class "row form-group" ]
-                            [ label [ class "col-sm-12 control-label" ] [ text "Compiled by" ]
+                            [ label [ class "col-sm-12" ] [ text "Compiled by" ]
                             , div [ class "col-md-8" ]
                                 [ input [ readonly True, type_ "text", class "form-control", value out.compiler ] []
                                 ]
                             ]
                         , div [ class "row form-group" ]
-                            [ label [ class "col-sm-12 control-label" ] [ text "Result code" ]
+                            [ label [ class "col-sm-12" ] [ text "Result code" ]
                             , div [ class "col-md-8" ]
                                 [ input [ readonly True, type_ "text", class "form-control", value (String.fromInt out.resultCode) ] []
                                 ]
@@ -782,7 +781,7 @@ techniqueTab model technique creation ui =
 
                           else
                             div [ class "row form-group" ]
-                                [ label [ class "col-sm-12 control-label" ] [ text "Message" ]
+                                [ label [ class "col-sm-12" ] [ text "Message" ]
                                 , div [ class "col-sm-12" ]
                                     [ pre [ class "command-output pre-scrollable" ] [ text out.msg ]
                                     ]
@@ -792,7 +791,7 @@ techniqueTab model technique creation ui =
 
                           else
                             div [ class "row form-group" ]
-                                [ label [ class "col-sm-12 control-label" ] [ text "Standard out" ]
+                                [ label [ class "col-sm-12" ] [ text "Standard out" ]
                                 , div [ class "col-sm-12" ]
                                     [ pre [ class "command-output pre-scrollable" ] [ text out.stdout ]
                                     ]
@@ -802,7 +801,7 @@ techniqueTab model technique creation ui =
 
                           else
                             div [ class "row form-group" ]
-                                [ label [ class "col-sm-12 control-label" ] [ text "Error out" ]
+                                [ label [ class "col-sm-12" ] [ text "Error out" ]
                                 , div [ class "col-sm-12" ]
                                     [ pre [ class "command-output pre-scrollable" ] [ text out.stderr ]
                                     ]

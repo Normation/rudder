@@ -36,6 +36,7 @@
 */
 
 @use 'rudder-variables' as rudder;
+@use 'rudder-form';
 
 body {
   height: 100%;
@@ -2925,6 +2926,7 @@ $node-logo-size: 50px;
   width:40px;
   padding: 0 !important;
 }
+
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}
