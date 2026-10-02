@@ -443,7 +443,7 @@ class ReportDisplayer(
                             </button>
                           </div>
                         } else {
-                          <div id={"triggerAgent" + defaultOrInventory}  class="btn-group" role="group">
+                          <div id={"triggerAgent" + defaultOrInventory}  class="btn-group me-2" role="group">
                             <button
                               id={"triggerBtn" + defaultOrInventory}
                               class="btn btn-primary pe-auto"
@@ -565,15 +565,17 @@ class ReportDisplayer(
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"
 
-    val classes               =
-      "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid" || tableId != "systemStatusGrid") " hide" else "")
-    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid" || tableId == "systemStatusGrid") {
+    val classes               = {
+      "btn btn-primary" + (if (runDate.isEmpty || (tableId != "reportsGrid" && tableId != "systemStatusGrid")) " visually-hidden"
+                           else "")
+    }
+    val onclick               = if (runDate.nonEmpty && (tableId == "reportsGrid" || tableId == "systemStatusGrid")) {
       val init    = AnonFunc(logDisplayer.asyncDisplay(nodeId, runDate, complianceLogGridId))
       val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
       s"""showHideRunLogs("${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
     } else ""
     val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs<i class="ms-2 fa fa-table"></i></button>
-    val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary hide" onclick={
+    val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary" onclick={
       s"showHideRunLogs('${tabId}')"
     }>Hide logs<i class="ms-2 fa fa-table"></i></button>
     val complianceLogGridHtml =
