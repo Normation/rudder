@@ -5,6 +5,8 @@ use std::{collections::HashMap, fmt::Display, io::BufWriter, path::Path, process
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
 use tracing::debug;
 
 use crate::{
@@ -34,12 +36,66 @@ pub fn short_name(p: &str) -> &str {
     p.strip_prefix("rudder-plugin-").unwrap_or(p)
 }
 
+// A package name must starts with rudder-plugin- and only use authorized chars afterward
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct PackageName(String);
+
+impl PackageName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for PackageName {
+    type Error = anyhow::Error;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        fn valid_char(c: char) -> bool {
+            let v = ['_', '-'];
+            c.is_ascii_alphanumeric() || v.contains(&c)
+        }
+        if s.is_empty() || short_name(&s).is_empty() || !s.chars().all(valid_char) {
+            bail!(
+                "Invalid package name: '{}', only ASCII alphanumerics, '_' and '-' are allowed",
+                s
+            )
+        }
+        Ok(Self(s.to_string()))
+    }
+}
+
+impl FromStr for PackageName {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s.to_owned())
+    }
+}
+
+impl From<PackageName> for String {
+    fn from(n: PackageName) -> Self {
+        n.0
+    }
+}
+
+impl fmt::Display for PackageName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl AsRef<Path> for PackageName {
+    fn as_ref(&self) -> &Path {
+        Path::new(&self.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {
     #[serde(rename = "type")]
     pub package_type: archive::PackageType,
-    pub name: String,
+    pub name: PackageName,
     pub version: versions::ArchiveVersion,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -97,7 +153,7 @@ impl Metadata {
     }
 
     pub fn short_name(&self) -> &str {
-        short_name(&self.name)
+        short_name(self.name.as_str())
     }
 
     pub fn run_package_script(
@@ -146,5 +202,17 @@ impl Metadata {
             );
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PackageName;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("rudder-plugin-system-updates")]
+    fn package_name_accepts_good_names(#[case] s: &str) {
+        assert!(s.parse::<PackageName>().is_ok())
     }
 }

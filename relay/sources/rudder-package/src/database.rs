@@ -80,7 +80,7 @@ impl Database {
     }
 
     pub fn is_installed(&self, r: &Rpkg) -> bool {
-        match self.plugins.get(&r.metadata.name) {
+        match self.plugins.get(r.metadata.name.as_str()) {
             None => false,
             Some(installed) => installed.metadata.version == r.metadata.version,
         }
@@ -158,7 +158,7 @@ impl Database {
             dest.as_path().display().to_string()
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
-        if self.plugins.contains_key(&rpkg.metadata.name) {
+        if self.plugins.contains_key(rpkg.metadata.name.as_str()) {
             info!(
                 "Plugin {} already installed, upgrading",
                 rpkg.metadata.short_name()
@@ -511,7 +511,7 @@ mod tests {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
                 package_type: archive::PackageType::Plugin,
-                name: String::from("my_name"),
+                name: "my_name".parse().unwrap(),
                 description: None,
                 version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),
@@ -525,7 +525,7 @@ mod tests {
                 requires_license: false,
             },
         };
-        a.insert(addon.metadata.name.clone(), addon).unwrap();
+        a.insert(addon.metadata.name.to_string(), addon).unwrap();
         let reference: serde_json::Value = serde_json::from_str(
             &read_to_string("./tests/database/plugin_database_update_sample.json.expected")
                 .unwrap(),
