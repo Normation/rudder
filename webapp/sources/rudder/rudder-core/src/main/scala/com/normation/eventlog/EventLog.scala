@@ -118,7 +118,7 @@ final case class EventLogDetails(
     // Because object tags may only grow (see the object-tenant-tag-lifecycle ADR), anyone who
     // can see the object today can see this event, and a tenant added later never sees older pre-membership
     // values. It is used to filter event-log reads by the reader's tenant grant.
-    val securityTag:    Option[SecurityTag] = None
+    val securityTag:    Option[SecurityTag]
 )
 
 trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails), EventLog] {

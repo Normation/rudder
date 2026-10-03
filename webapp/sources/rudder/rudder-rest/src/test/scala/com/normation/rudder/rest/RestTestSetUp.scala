@@ -353,7 +353,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       principal = EventActor("test"),
       creationDate = DateTime.parse("2024-12-04T15:30:10Z").toJavaInstant,
       details = <test/>,
-      reason = None
+      reason = None,
+      securityTag = None
     )
   )
   val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
@@ -1114,6 +1115,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       uuidGen,
       userPropertyService,
       resourceFileService,
+      mockTenants.checkTenant,
       mockGitRepo.configurationRepositoryRoot.pathAsString
     ),
     new DirectiveApi(

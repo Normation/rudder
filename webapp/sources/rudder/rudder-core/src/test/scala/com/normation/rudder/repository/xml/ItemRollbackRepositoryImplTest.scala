@@ -539,12 +539,8 @@ private object ItemRollbackRepositoryImplTest {
 
   //////////////////////////// event logs ////////////////////////////
 
-  def eventDetails(details: Elem): EventLogDetails = EventLogDetails(
-    modificationId = None,
-    principal = EventActor("test"),
-    reason = None,
-    details = details
-  )
+  def eventDetails(details: Elem): EventLogDetails =
+    EventLogDetails(modificationId = None, principal = EventActor("test"), reason = None, details = details, securityTag = None)
 
   def directiveXml(uid: DirectiveUid): Elem = <entry>
     <directive>

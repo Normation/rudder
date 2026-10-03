@@ -110,7 +110,9 @@ object AcceptNodeEventLog extends EventLogFilter {
       )
     )
 
-    AcceptNodeEventLog(EventLogDetails(id, None, principal, creationDate, None, severity, description, details))
+    AcceptNodeEventLog(
+      EventLogDetails(id, None, principal, creationDate, None, severity, description, details, securityTag = None)
+    )
   }
 }
 
@@ -141,7 +143,9 @@ object RefuseNodeEventLog extends EventLogFilter {
       )
     )
 
-    RefuseNodeEventLog(EventLogDetails(id, None, principal, creationDate, None, severity, description, details))
+    RefuseNodeEventLog(
+      EventLogDetails(id, None, principal, creationDate, None, severity, description, details, securityTag = None)
+    )
   }
 }
 
@@ -178,7 +182,9 @@ object DeleteNodeEventLog extends EventLogFilter {
       )
     )
 
-    DeleteNodeEventLog(EventLogDetails(id, None, principal, creationDate, None, severity, description, details))
+    DeleteNodeEventLog(
+      EventLogDetails(id, None, principal, creationDate, None, severity, description, details, securityTag = None)
+    )
   }
 }
 

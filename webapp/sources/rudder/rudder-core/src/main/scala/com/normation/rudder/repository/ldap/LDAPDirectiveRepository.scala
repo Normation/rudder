@@ -1291,6 +1291,8 @@ class WoLDAPDirectiveRepository(
         activeTechnique.resetValuesTo(A_IS_ENABLED, status.toLDAPString)
         con.save(activeTechnique)
       }
+      // only for the change log
+      oldTenants         <- mapper.entry2ActiveTechnique(oldTechnique).toIO.map(_.security)
       optDiff            <- diffMapper
                               .modChangeRecords2TechniqueDiff(oldTechnique, saved)
                               .toIO
@@ -1300,7 +1302,13 @@ class WoLDAPDirectiveRepository(
       loggedAction       <- optDiff match {
                               case None       => ZIO.unit
                               case Some(diff) =>
-                                actionLogger.saveModifyTechnique(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
+                                actionLogger.saveModifyTechnique(
+                                  cc.modId,
+                                  principal = cc.actor,
+                                  modifyDiff = diff,
+                                  reason = cc.message,
+                                  securityTag = oldTenants
+                                )
                             }
       newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(
                               s"Technique with id '${uactiveTechniqueId.value}' can't be find back after status change"

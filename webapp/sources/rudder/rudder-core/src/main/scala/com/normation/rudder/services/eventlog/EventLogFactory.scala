@@ -101,7 +101,7 @@ trait EventLogFactory {
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyRule
 
   def getAddDirectiveFromDiff(
@@ -134,7 +134,7 @@ trait EventLogFactory {
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyDirective
 
   def getAddEditorTechniqueFromDiff(
@@ -164,7 +164,8 @@ trait EventLogFactory {
       modifyDiff:     ModifyEditorTechniqueDiff,
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
-      reason:         Option[String]
+      reason:         Option[String],
+      securityTag:    Option[SecurityTag]
   ): ModifyEditorTechnique
   def getAddNodeGroupFromDiff(
       id:             Option[Int] = None,
@@ -194,7 +195,7 @@ trait EventLogFactory {
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyNodeGroup
 
   def getAddTechniqueFromDiff(
@@ -214,7 +215,8 @@ trait EventLogFactory {
       modifyDiff:     ModifyTechniqueDiff,
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
-      reason:         Option[String]
+      reason:         Option[String],
+      securityTag:    Option[SecurityTag]
   ): ModifyTechnique
 
   def getDeleteTechniqueFromDiff(
@@ -255,7 +257,7 @@ trait EventLogFactory {
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyGlobalParameter
 
   def getChangeRequestFromDiff(
@@ -456,7 +458,7 @@ class EventLogFactoryImpl(
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyRule = {
     val modCategory = modifyDiff.modCategory.map(diff => SimpleDiff(diff.oldValue.value, diff.newValue.value))
     val details     = EventLog.withContent {
@@ -578,7 +580,7 @@ class EventLogFactoryImpl(
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyDirective = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(
@@ -647,7 +649,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = addDiff.editorTechnique.security
       )
     )
   }
@@ -674,7 +677,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = deleteDiff.editorTechnique.security
       )
     )
   }
@@ -686,7 +690,8 @@ class EventLogFactoryImpl(
       modifyDiff:     ModifyEditorTechniqueDiff,
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
-      reason:         Option[String]
+      reason:         Option[String],
+      securityTag:    Option[SecurityTag]
   ): ModifyEditorTechnique = {
     val details = EventLog.withContent {
       editorTechniqueSerializer.serialiseDiff(modifyDiff)
@@ -699,7 +704,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = securityTag
       )
     )
   }
@@ -760,7 +766,7 @@ class EventLogFactoryImpl(
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyNodeGroup = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
@@ -829,7 +835,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = addDiff.technique.security
       )
     )
   }
@@ -841,7 +848,8 @@ class EventLogFactoryImpl(
       modifyDiff:     ModifyTechniqueDiff,
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
-      reason:         Option[String]
+      reason:         Option[String],
+      securityTag:    Option[SecurityTag]
   ): ModifyTechnique = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<activeTechnique changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
@@ -859,7 +867,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = securityTag
       )
     )
   }
@@ -889,7 +898,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = deleteDiff.technique.security
       )
     )
   }
@@ -950,7 +960,7 @@ class EventLogFactoryImpl(
       creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
-      securityTag:    Option[SecurityTag] = None
+      securityTag:    Option[SecurityTag]
   ): ModifyGlobalParameter = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<globalParameter changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
@@ -992,7 +1002,8 @@ class EventLogFactoryImpl(
         details = xml,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     }
     val diffName = diff.diffName.map(x => SimpleDiff.stringToXml(<diffName/>, x)).getOrElse(NodeSeq.Empty)
@@ -1041,7 +1052,8 @@ class EventLogFactoryImpl(
       details = details,
       creationDate = creationDate,
       reason = reason,
-      severity = severity
+      severity = severity,
+      securityTag = None
     )
     WorkflowStepChanged(data)
   }
@@ -1066,7 +1078,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1118,7 +1131,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1141,7 +1155,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1166,7 +1181,8 @@ class EventLogFactoryImpl(
       details = details,
       creationDate = creationDate,
       reason = reason,
-      severity = severity
+      severity = severity,
+      securityTag = None
     )
 
     ModifyGlobalProperty(eventLogType, eventLogDetails)
@@ -1198,7 +1214,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = promotedNode.node.security
       )
     )
   }
@@ -1229,7 +1246,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = promotedNode.node.security
       )
     )
   }
@@ -1316,7 +1334,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1339,7 +1358,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1363,7 +1383,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }
@@ -1408,7 +1429,8 @@ class EventLogFactoryImpl(
         details = details,
         creationDate = creationDate,
         reason = reason,
-        severity = severity
+        severity = severity,
+        securityTag = None
       )
     )
   }

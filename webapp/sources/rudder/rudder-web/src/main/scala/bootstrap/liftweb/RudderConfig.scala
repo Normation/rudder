@@ -2077,6 +2077,23 @@ object RudderConfigInit {
       (sync, sync)
     }
 
+    /*
+     * Tenant filtering proxy for techniques "repo".
+     */
+    lazy val techniqueWrite: TenantScopedWrite[TechniqueWriter, TechniqueWriter] = {
+      TenantScopedWrite(
+        new TenantScopedTechniqueWriter(ncfTechniqueWriter, techniqueRepository, tenantCheckLogic),
+        ncfTechniqueWriter
+      )
+    }
+
+    lazy val techniqueCategoryWrite: TenantScopedWrite[TechniqueCategoryWriter, TechniqueCategoryWriter] = {
+      TenantScopedWrite(
+        new TenantScopedTechniqueCategoryWriter(ncfTechniqueCategoryWriter, techniqueRepository, tenantCheckLogic),
+        ncfTechniqueCategoryWriter
+      )
+    }
+
     lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver,
       updateTechniqueLibrary,
@@ -2582,14 +2599,15 @@ object RudderConfigInit {
               techniqueSerializer,
               techniqueCompiler
             ),
-            ncfTechniqueWriter,
-            ncfTechniqueCategoryWriter,
+            techniqueWrite.repository,
+            techniqueCategoryWrite.repository,
             ncfTechniqueReader,
             techniqueRepository,
             techniqueSerializer,
             stringUuidGenerator,
             userPropertyService,
             resourceFileService,
+            tenantCheckLogic,
             RUDDER_GIT_ROOT_CONFIG_REPO
           ),
           new RuleApi(

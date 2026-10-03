@@ -559,10 +559,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     ): IOResult[EventLog] = ZIO.succeed(null)
 
     override def saveModifyEditorTechnique(
-        modId:      ModificationId,
-        principal:  EventActor,
-        modifyDiff: ModifyEditorTechniqueDiff,
-        reason:     Option[String]
+        modId:       ModificationId,
+        principal:   EventActor,
+        modifyDiff:  ModifyEditorTechniqueDiff,
+        reason:      Option[String],
+        securityTag: Option[SecurityTag]
     ): IOResult[EventLog] = ZIO.succeed(null)
 
     override def saveAddEditorTechnique(
