@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 mod cli;
-mod engine;
+pub mod engine;
 use crate::cli::Cli;
 use engine::{Engine, Mode};
 use rudder_module_type::ProtocolResult;
