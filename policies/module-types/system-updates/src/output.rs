@@ -358,3 +358,230 @@ mod tests {
         assert!(!Report::error_is_empty(&Some("\t  \na\r".to_string())));
     }
 }
+
+/// Check the reports against the format specified in `REPORTING.md`.
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+    use crate::package_manager::{PackageInfo, PackageList, PackageManager};
+    use chrono::TimeZone;
+    use jsonschema::Validator;
+    use serde_json::{Value, json};
+
+    const SCHEMA: &str = include_str!("../reporting.schema.json");
+
+    /// Validator for one of the definitions of the schema.
+    fn validator(definition: &str) -> Validator {
+        let mut schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let root = schema.as_object_mut().unwrap();
+        root.remove("anyOf");
+        root.insert("$ref".to_string(), json!(format!("#/$defs/{definition}")));
+        jsonschema::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .unwrap()
+    }
+
+    fn assert_valid(definition: &str, value: &Value) {
+        let errors: Vec<String> = validator(definition)
+            .iter_errors(value)
+            .map(|e| e.to_string())
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "{value} should be a valid {definition} report: {errors:#?}"
+        );
+    }
+
+    fn package_list(packages: &[(&str, &str, &str)]) -> PackageList {
+        PackageList::new(
+            packages
+                .iter()
+                .map(|(name, arch, version)| {
+                    (
+                        PackageId::new(name.to_string(), arch.to_string()),
+                        PackageInfo {
+                            version: version.to_string(),
+                            from: "".to_string(),
+                            source: PackageManager::Yum,
+                            details: None,
+                        },
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    /// A diff with one package of each action.
+    fn diff() -> Vec<PackageDiff> {
+        let before = package_list(&[
+            ("xz", "x86_64", "5.2.4-3.el8"),
+            ("dbus-common", "noarch", "1:1.12.8-18.el8"),
+            ("telnet", "x86_64", "1:0.17-76.el8"),
+        ]);
+        let after = package_list(&[
+            ("xz", "x86_64", "5.2.4-4.el8"),
+            ("dbus-common", "noarch", "1:1.12.8-18.el8.1"),
+            ("kernel-core", "x86_64", "4.18.0-553.el8"),
+        ]);
+        before.diff(after)
+    }
+
+    #[test]
+    fn schema_matches_both_reports() {
+        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let validator = jsonschema::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .unwrap();
+        let date = Utc.with_ymd_and_hms(2026, 9, 30, 22, 41, 17).unwrap();
+        assert!(validator.is_valid(&serde_json::to_value(ScheduleReport::new(date)).unwrap()));
+        assert!(validator.is_valid(&serde_json::to_value(Report::new()).unwrap()));
+    }
+
+    #[test]
+    fn schedule_report_is_valid() {
+        let date = Utc.with_ymd_and_hms(2026, 9, 30, 22, 41, 17).unwrap();
+        let report = serde_json::to_value(ScheduleReport::new(date)).unwrap();
+        assert_eq!(
+            report,
+            json!({"status": "success", "date": "2026-09-30T22:41:17Z"})
+        );
+        assert_valid("schedule", &report);
+    }
+
+    #[test]
+    fn schedule_report_with_subsecond_date_is_valid() {
+        // Immediate events use the current time, with a fractional part
+        let report = serde_json::to_value(ScheduleReport::new(Utc::now())).unwrap();
+        assert_valid("schedule", &report);
+    }
+
+    #[test]
+    fn empty_report_is_valid() {
+        let report = serde_json::to_value(Report::new()).unwrap();
+        assert_eq!(
+            report,
+            json!({"software-updated": [], "status": "success", "output": ""})
+        );
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn repaired_report_is_valid() {
+        let mut report = Report::new();
+        report.stdout("cmd: yum '-y' 'update'");
+        report.diff(diff(), None);
+        assert_eq!(report.status, Status::Repaired);
+
+        let report = serde_json::to_value(report).unwrap();
+        let actions: Vec<&str> = report["software-updated"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["action"].as_str().unwrap())
+            .collect();
+        for action in ["added", "updated", "removed"] {
+            assert!(actions.contains(&action), "missing {action} in {report}");
+        }
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn report_with_details_is_valid() {
+        let details = HashMap::from([(
+            PackageId::new("kernel-core".to_string(), "x86_64".to_string()),
+            "\nDownload result:\n  - result_code: 2, HRESULT 0x00000000".to_string(),
+        )]);
+        let mut report = Report::new();
+        report.diff(diff(), Some(details));
+
+        let report = serde_json::to_value(report).unwrap();
+        assert!(
+            report["software-updated"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|p| p.get("details").is_some())
+        );
+        assert_valid("update", &report);
+    }
+
+    /// Updates with details but absent from the diff, e.g. waiting for a reboot.
+    fn pending_details() -> HashMap<PackageId, String> {
+        HashMap::from([(
+            PackageId::new(
+                "2026-09 Cumulative Update (KB5065432)".to_string(),
+                "noarch".to_string(),
+            ),
+            "\nDownload result:\n  - result_code: 2, HRESULT 0x00000000\nInstall result:\n  - result_code: 2, HRESULT 0x00000000, reboot_required: true".to_string(),
+        )])
+    }
+
+    #[test]
+    fn report_with_pending_install_is_valid() {
+        let mut report = Report::new();
+        report.diff(diff(), Some(pending_details()));
+        assert_eq!(report.status, Status::Repaired);
+
+        let report = serde_json::to_value(report).unwrap();
+        let pending: Vec<&Value> = report["software-updated"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| p["action"] == "pending-install")
+            .collect();
+        assert_eq!(pending.len(), 1, "{report}");
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn report_with_only_pending_install_is_success() {
+        let mut report = Report::new();
+        report.diff(vec![], Some(pending_details()));
+        // Pending installs are not changes, see REPORTING.md
+        assert_eq!(report.status, Status::Success);
+
+        let report = serde_json::to_value(report).unwrap();
+        assert_eq!(report["software-updated"].as_array().unwrap().len(), 1);
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn error_report_is_valid() {
+        let mut report = Report::new();
+        report.step(ResultOutput::<()>::new_output(
+            Err(anyhow!("Command failed with code: 1")),
+            vec!["cmd: yum '-y' 'update'".to_string()],
+            vec!["Error: Failed to download metadata".to_string()],
+        ));
+        report.stderr("Pre-run hooks failed, aborting upgrade");
+        assert_eq!(report.status, Status::Error);
+
+        let report = serde_json::to_value(report).unwrap();
+        assert!(report["errors"].is_string());
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn report_with_blank_errors_omits_them() {
+        let mut report = Report::new();
+        report.stderr("  ");
+
+        let report = serde_json::to_value(report).unwrap();
+        assert!(report.get("errors").is_none());
+        assert_valid("update", &report);
+    }
+
+    #[test]
+    fn report_round_trips() {
+        let mut report = Report::new();
+        report.stdout("output");
+        report.stderr("error");
+        report.diff(diff(), None);
+
+        let value = serde_json::to_value(&report).unwrap();
+        assert_valid("update", &value);
+        assert_eq!(serde_json::from_value::<Report>(value).unwrap(), report);
+    }
+}
