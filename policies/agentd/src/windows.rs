@@ -29,6 +29,10 @@ const SERVICE_NAME: &str = "RudderAgentD";
 const LOG_SOURCE: &str = "AgentD";
 const CONFIGURATION_FILE: &str = "C:\\Program Files\\Rudder\\etc\\agentd.conf";
 const UUID_FILE: &str = "C:\\Program Files\\Rudder\\etc\\uuid.hive";
+const DEFAULT_CONFIGURATION: &str = r#"
+[agent_run]
+command = "&'C:\\Program Files\\Rudder\\bin\\rudder.ps1' agent run"
+"#;
 
 /// Log error as fatal, then terminate the process
 /// Should only be used when the service is not properly initialized
@@ -53,6 +57,7 @@ pub fn init_scheduler() -> anyhow::Result<Scheduler> {
         Path::new(CONFIGURATION_FILE),
         Path::new(UUID_FILE),
         command_builder,
+        DEFAULT_CONFIGURATION,
     )
 }
 
