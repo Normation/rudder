@@ -157,7 +157,7 @@ class CleanupUsers(
             s"Error when purging user sessions older than '${DateFormaterService.serializeOffsetDateTime(start)}': ${err.fullMsg}"
           )
         })
-    end   <- Clock.instant
+    end   <- currentOffsetDateTimeUTC
     _     <- logger.info(s"Cleaning user accounts and sessions performed in ${Duration.between(start, end).render}")
   } yield ()
 
