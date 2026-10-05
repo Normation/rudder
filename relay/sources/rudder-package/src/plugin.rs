@@ -220,8 +220,8 @@ mod tests {
         let p = SafePackageName::try_from("rudder-plugin-dsc").unwrap();
         assert_eq!(
             p.scripts_dir(),
-            Path::new("/var/rudder/packages/rudder-plugin-aix")
+            Path::new("/var/rudder/packages/rudder-plugin-dsc")
         );
-        assert_eq!(p.content_dir(), Path::new("/opt/rudder/share/plugins/aix"));
+        assert_eq!(p.content_dir(), Path::new("/opt/rudder/share/plugins/dsc"));
     }
 }

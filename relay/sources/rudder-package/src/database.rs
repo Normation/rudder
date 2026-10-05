@@ -86,11 +86,9 @@ impl Database {
     }
 
     pub fn is_installed(&self, r: &Rpkg) -> bool {
-        match self.plugins.get(&r.metadata.name) {
-            None => false,
-            Some(installed) => installed.metadata.version == r.metadata.version,
-        }
+        self.plugins.contains_key(&r.metadata.name)
     }
+
 
     /// Return the plugin containing a given jar
     pub fn plugin_provides_jar(&self, jar: &String) -> Option<&InstalledPlugin> {

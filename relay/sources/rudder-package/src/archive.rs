@@ -222,10 +222,6 @@ impl Rpkg {
         Ok(())
     }
 
-    pub fn is_installed(&self, db: &Database) -> bool {
-        db.is_installed(self)
-    }
-
     fn clean_dir(dir: &Path) -> Result<()> {
         match fs::remove_dir_all(dir) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
@@ -237,7 +233,7 @@ impl Rpkg {
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
         debug!("Installing rpkg file '{}'...", self.path.display());
-        let is_upgrade = self.is_installed(db);
+        let is_upgrade = db.plugins.contains_key(&self.metadata.name);
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
             bail!(
@@ -305,17 +301,17 @@ impl Rpkg {
             },
         )?;
         // Run postinst if any
-        let arg = if self.is_installed(db) {
-            PackageScriptArg::Upgrade
-        } else {
-            PackageScriptArg::Install
-        };
         if env::var(DONT_RUN_POSTINST_ENV_VAR).is_ok() {
             debug!(
                 "Skipping postinstall scripts as {} environment variable is set",
                 DONT_RUN_POSTINST_ENV_VAR
             );
         } else {
+            let arg = if is_upgrade {
+                PackageScriptArg::Upgrade
+            } else {
+                PackageScriptArg::Install
+            };
             self.metadata
                 .run_package_script(PackageScript::Postinst, arg)?;
         }
