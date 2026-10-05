@@ -6,12 +6,14 @@
 
 ## Context
 
-Enumerations can be of two kinds, and this ADR addresses both:
+Enumerations can be of three kinds, and this ADR addresses them:
 
 1/ **plain domain enumeration**: union of subtypes used to pattern match and do some logic,
 
 2/ **serialization model (DTO)**: also a union, but with an additional way to serialize or deserialize
   the values, in a REST payload, in a database column, ...
+
+3/ other cases when they can have mixed definitions of domain and serialization, or complex hierarchies
 
 
 The first kind have a new language feature since our Scala 3 update: the [Scala 3 enumeration](https://docs.scala-lang.org/scala3/reference/enums/enums.html).
@@ -46,6 +48,14 @@ Our historical usage before adopting the enumeratum library was already based on
 
 _enumeratum_ seems to be a battle-proof Scala 3 library and from the widespread adoption in our codebase,
 we want to clarify the use cases and the convention of the API that we should rely on.
+
+
+Finally, the third kind is one that we should specifically paying attention to:
+* legacy data types which have serialization in their own way but are still clearly "enumeration" models (e.g. settings)
+* hierarchies without explicit resort to closed enumerations:
+  * open hierarchies (e.g. in event logs current architecture)
+  * complex ADT where cases are not enumeration but have their own representation (e.g. `RuleTarget`)
+We handle the serialisation of such types on a case-by-case basis, depending on involved architecture and typeclasses.
 
 
 ## Decision
@@ -96,6 +106,15 @@ object RestRollbackType extends Enum[RestRollbackType] extends EnumCodec[RestRol
 
 This implies that enumeratum's parsing with `RestRollbackType.withNameX`
 will also rely on the passed values.
+
+
+### 3/ Other cases
+
+We should consider rewriting those which can fall into the category of 1/ or 2/, but since there is a specific design for each case,
+the decision cannot be absolute and we should find ways to work around each specific case.
+For instance:
+* open hierarchies: we should keep them as is until we find a more suited representation, likely typeclass instances
+* other complex cases: we should keep them as is until we find other design solution that will be further traced in ADRs.
 
 
 ## Consequences
