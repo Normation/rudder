@@ -150,9 +150,9 @@ impl ListOutput {
 
         for p in db.plugins.values() {
             let name = p.metadata.short_name().to_string();
-            let enabled = enabled_plugins.contains(p.metadata.name.as_str());
+            let enabled = enabled_plugins.contains(&p.metadata.name);
             let latest_version = index
-                .and_then(|i| i.latest_compatible_plugin(&webapp.version, p.metadata.name.as_str()))
+                .and_then(|i| i.latest_compatible_plugin(&webapp.version, &p.metadata.name))
                 .map(|p| p.metadata.version.to_string());
 
             let e = ListEntry {
@@ -164,7 +164,7 @@ impl ListOutput {
                 enabled,
                 installed: true,
                 description: p.metadata.description.clone(),
-                license: licenses.inner.get(p.metadata.name.as_str()).cloned(),
+                license: licenses.inner.get(&p.metadata.name).cloned(),
             };
             if !show_only_enabled || enabled {
                 // Standalone plugins are always considered enabled
@@ -175,7 +175,7 @@ impl ListOutput {
 
         if show_all && let Some(available) = latest {
             for p in available {
-                if !installed_plugins.contains(&&p.metadata.name.as_str().to_string()) {
+                if !installed_plugins.contains(&&p.metadata.name) {
                     let name = p.metadata.short_name().to_string();
                     let e = ListEntry {
                         name,
@@ -186,7 +186,7 @@ impl ListOutput {
                         installed: false,
                         enabled: false,
                         description: p.metadata.description.clone(),
-                        license: licenses.inner.get(p.metadata.name.as_str()).cloned(),
+                        license: licenses.inner.get(&p.metadata.name).cloned(),
                     };
                     plugins.push(e);
                 }

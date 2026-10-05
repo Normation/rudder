@@ -61,8 +61,8 @@ impl RepoIndex {
             .index
             .iter()
             .filter(|p| webapp_version.is_compatible(&p.metadata.version))
-            .map(|p| p.metadata.name.as_str())
-            .collect::<HashSet<&str>>();
+            .map(|p| &p.metadata.name)
+            .collect::<HashSet<&String>>();
         names
             .into_iter()
             .flat_map(|n| self.latest_compatible_plugin(webapp_version, n))
@@ -78,8 +78,7 @@ impl RepoIndex {
         self.index
             .iter()
             .filter(|p| {
-                plugin_name == p.metadata.name.as_str()
-                    && webapp_version.is_compatible(&p.metadata.version)
+                plugin_name == p.metadata.name && webapp_version.is_compatible(&p.metadata.version)
             })
             .max_by_key(|p| &p.metadata.version)
     }
@@ -94,8 +93,7 @@ impl RepoIndex {
         self.index
             .iter()
             .filter(|p| {
-                plugin_name == p.metadata.name.as_str()
-                    && webapp_version.is_compatible(&p.metadata.version)
+                plugin_name == p.metadata.name && webapp_version.is_compatible(&p.metadata.version)
             })
             .find(|p| &p.metadata.version == plugin_version)
     }
@@ -106,9 +104,9 @@ impl RepoIndex {
         plugin_name: &str,
         plugin_version: &ArchiveVersion,
     ) -> Option<&Plugin> {
-        self.index.iter().find(|p| {
-            p.metadata.name.as_str() == plugin_name && &p.metadata.version == plugin_version
-        })
+        self.index
+            .iter()
+            .find(|p| p.metadata.name == plugin_name && &p.metadata.version == plugin_version)
     }
 }
 
@@ -138,7 +136,7 @@ mod tests {
             Plugin {
                 metadata: Metadata {
                     package_type: archive::PackageType::Plugin,
-                    name: "rudder-plugin-aix".parse().unwrap(),
+                    name: "rudder-plugin-aix".to_string(),
                     version: versions::ArchiveVersion::from_str("8.0.0~beta2-2.1").unwrap(),
                     description: None,
                     build_date: String::from("2023-09-14T14:31:35+00:00"),
@@ -156,7 +154,7 @@ mod tests {
             Plugin {
                 metadata: Metadata {
                     package_type: archive::PackageType::Plugin,
-                    name: "rudder-plugin-aix".parse().unwrap(),
+                    name: "rudder-plugin-aix".to_string(),
                     version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1").unwrap(),
                     description: None,
                     build_date: String::from("2023-10-13T09:44:54+00:00"),
@@ -176,7 +174,7 @@ mod tests {
             Plugin {
                 metadata: Metadata {
                     package_type: archive::PackageType::Plugin,
-                    name: "rudder-plugin-vault".parse().unwrap(),
+                    name: "rudder-plugin-vault".to_string(),
                     version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1-nightly").unwrap(),
                     description: None,
                     build_date: String::from("2023-10-07T20:38:18+00:00"),

@@ -47,8 +47,6 @@ use crate::{
     webapp::Webapp,
 };
 
-const PACKAGES_FOLDER: &str = "/var/rudder/packages";
-const PACKAGE_CONTENT_DEFAULT_FOLDER: &str = "/opt/rudder/share/plugins";
 const DEFAULT_LOG_FOLDER: &str = "/var/log/rudder/rudder-pkg/";
 const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
@@ -177,7 +175,7 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
 
             for p in &to_uninstall {
-                if let Err(e) = db.uninstall(p, true, &mut webapp) {
+                if let Err(e) = db.uninstall(p, database::UninstallMode::Full, &mut webapp) {
                     errors = true;
                     error!("Uninstallation of {} failed: {e:?}", short_name(p));
                 }

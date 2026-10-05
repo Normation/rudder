@@ -5,17 +5,18 @@ use std::{collections::HashMap, fmt::Display, io::BufWriter, path::Path, process
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::str::FromStr;
+use std::path::PathBuf;
 use tracing::debug;
 
 use crate::{
-    PACKAGES_FOLDER,
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
     versions,
 };
+
+const PACKAGES_FOLDER: &str = "/var/rudder/packages";
+const PACKAGE_CONTENT_DEFAULT_FOLDER: &str = "/opt/rudder/share/plugins";
 
 pub fn long_names(l: Vec<String>) -> Vec<String> {
     l.into_iter()
@@ -36,57 +37,34 @@ pub fn short_name(p: &str) -> &str {
     p.strip_prefix("rudder-plugin-").unwrap_or(p)
 }
 
-// A package name must starts with rudder-plugin- and only use authorized chars afterward
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct PackageName(String);
+// A package name must only use authorized chars
+#[derive(Clone, Debug, Copy)]
+pub struct SafePackageName<'a>(&'a str);
 
-impl PackageName {
-    pub fn as_str(&self) -> &str {
-        &self.0
+impl SafePackageName<'_> {
+    pub fn scripts_dir(&self) -> PathBuf {
+        Path::new(PACKAGES_FOLDER).join(self.0)
+    }
+    pub fn content_dir(&self) -> PathBuf {
+        Path::new(PACKAGE_CONTENT_DEFAULT_FOLDER).join(short_name(self.0))
     }
 }
 
-impl TryFrom<String> for PackageName {
+impl<'a> TryFrom<&'a str> for SafePackageName<'a> {
     type Error = anyhow::Error;
 
-    fn try_from(s: String) -> Result<Self, Self::Error> {
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
         fn valid_char(c: char) -> bool {
             let v = ['_', '-'];
             c.is_ascii_alphanumeric() || v.contains(&c)
         }
-        if s.is_empty() || short_name(&s).is_empty() || !s.chars().all(valid_char) {
+        if s.is_empty() || short_name(s).is_empty() || !s.chars().all(valid_char) {
             bail!(
                 "Invalid package name: '{}', only ASCII alphanumerics, '_' and '-' are allowed",
                 s
             )
         }
-        Ok(Self(s.to_string()))
-    }
-}
-
-impl FromStr for PackageName {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_from(s.to_owned())
-    }
-}
-
-impl From<PackageName> for String {
-    fn from(n: PackageName) -> Self {
-        n.0
-    }
-}
-
-impl fmt::Display for PackageName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl AsRef<Path> for PackageName {
-    fn as_ref(&self) -> &Path {
-        Path::new(&self.0)
+        Ok(Self(s))
     }
 }
 
@@ -95,7 +73,7 @@ impl AsRef<Path> for PackageName {
 pub struct Metadata {
     #[serde(rename = "type")]
     pub package_type: archive::PackageType,
-    pub name: PackageName,
+    pub name: String,
     pub version: versions::ArchiveVersion,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -156,6 +134,10 @@ impl Metadata {
         short_name(self.name.as_str())
     }
 
+    pub fn safe_name(&self) -> Result<SafePackageName<'_>, anyhow::Error> {
+        self.name.as_str().try_into()
+    }
+
     pub fn run_package_script(
         &self,
         script: PackageScript,
@@ -169,9 +151,7 @@ impl Metadata {
             self.version.rudder_version,
             self.version.plugin_version
         );
-        let package_script_path = Path::new(PACKAGES_FOLDER)
-            .join(self.name.clone())
-            .join(script.to_string());
+        let package_script_path = self.safe_name()?.scripts_dir().join(script.to_string());
         if !package_script_path.exists() {
             debug!("Skipping as the script does not exist.");
             return Ok(());
@@ -207,12 +187,41 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
-    use super::PackageName;
+    use super::SafePackageName;
     use rstest::rstest;
+    use std::path::Path;
 
     #[rstest]
     #[case("rudder-plugin-system-updates")]
+    #[case("rudder-plugin-system-aix")]
+    #[case("my_plugin-name")]
+    #[case("-------my-plugin")]
     fn package_name_accepts_good_names(#[case] s: &str) {
-        assert!(s.parse::<PackageName>().is_ok())
+        assert!(SafePackageName::try_from(s).is_ok())
+    }
+
+    #[rstest]
+    #[case("")]
+    #[case("rudder-plugin-")]
+    #[case("rudder-plugin-..")]
+    #[case("rudder-plugin-system~updates")]
+    #[case("rudder-plugin-system/updates")]
+    #[case("rudder-plugin-🐒-system")]
+    #[case("/etc/")]
+    #[case("../etc/")]
+    #[case("foo\\bar")]
+    #[case("foo\\-bar")]
+    fn package_name_rejects_bad_names(#[case] s: &str) {
+        assert!(SafePackageName::try_from(s).is_err())
+    }
+
+    #[test]
+    fn safe_package_name_path() {
+        let p = SafePackageName::try_from("rudder-plugin-dsc").unwrap();
+        assert_eq!(
+            p.scripts_dir(),
+            Path::new("/var/rudder/packages/rudder-plugin-aix")
+        );
+        assert_eq!(p.content_dir(), Path::new("/opt/rudder/share/plugins/aix"));
     }
 }
