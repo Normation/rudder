@@ -434,11 +434,25 @@ object Role       extends Enum[Role] {
   def allBuiltInRoles: Map[String, Role] =
     standardBuiltIn.map { case (k, v) => (k.value, v) } ++ specialBuiltIn.map(r => (r.name, r)).toMap
 
-  // a method used for the log of permission in a correct human readable way, callable from Java
-  def toDisplayNames(roles: Iterable[Role]): List[String] = {
+  // a method used for the log of permission in an auditable way, callable from Java
+  def toSessionPermissions(roles: Iterable[Role]): List[String] = {
     roles.map { r =>
       r match {
         case Custom(rights)                    => s"anon[${rights.displayAuthorizations}]"
+        case Builtin(_name, rights)            => _name.value
+        case Administrator                     => Administrator.name
+        case NoRights                          => NoRights.name
+        case NamedCustom(name, permissions)    => name
+        case Alias(of, aliasName, description) => s"${aliasName}(${of.name})"
+      }
+    }.toList.sorted
+  }
+
+  // a method used for the log of permission in a correct human-readable way
+  def toDisplayNames(roles: Iterable[Role]): List[String] = {
+    roles.map { r =>
+      r match {
+        case Custom(rights)                    => s"authz[${rights.displayAuthorizations}]"
         case Builtin(_name, rights)            => _name.value
         case Administrator                     => Administrator.name
         case NoRights                          => NoRights.name
