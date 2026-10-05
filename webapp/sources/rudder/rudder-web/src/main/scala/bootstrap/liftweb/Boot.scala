@@ -374,7 +374,8 @@ object UserLogout {
                                    modificationId = None,
                                    principal = EventActor(u.getUsername),
                                    details = EventLog.emptyDetails,
-                                   reason = None
+                                   reason = None,
+                                   securityTag = None
                                  )
                                )
                              )
@@ -869,14 +870,17 @@ class Boot extends Loggable {
             modificationId = None,
             principal = com.normation.rudder.domain.eventlog.RudderEventActor,
             details = EventLog.emptyDetails,
-            reason = None
+            reason = None,
+            securityTag = None
           )
         )
       )
       .either
       .runNow match {
       case Left(err) =>
-        ApplicationLogger.error(s"Error when trying to save the EventLog for application start: ${err.fullMsg}")
+        ApplicationLogger.error(
+          s"Error when trying to save the EventLog for application start: ${err.fullMsg}"
+        )
       case Right(_)  => ApplicationLogger.info("Application Rudder started")
     }
 

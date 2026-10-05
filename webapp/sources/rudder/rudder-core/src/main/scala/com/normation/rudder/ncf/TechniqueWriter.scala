@@ -117,7 +117,7 @@ class TechniqueWriterImpl(
   )(implicit cc: ChangeContext): IOResult[EditorTechnique] = {
     for {
       updated              <-
-        compileArchiveTechnique(technique, syncStatus = false) // sync is already done in library update
+        compileArchiveTechnique(technique)
       (updatedTechnique, _) = updated
       _                    <-
         techLibUpdate
@@ -135,24 +135,21 @@ class TechniqueWriterImpl(
     compileArchiveTechnique(technique).map { case (t, _) => t }
   }
 
+  /*
+   * Each technique records its own compilation result in `compileArchiveTechnique`.
+   * The global status is recomputed when the library is reloaded via `TechniqueReloadingCallbacks` -> `checkSyncAll`.
+   */
   override def writeTechniques(
       techniques: List[EditorTechnique]
   )(implicit cc: ChangeContext): IOResult[List[EditorTechnique]] = {
-    for {
-      updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, syncStatus = false))
-      (updatedTechniques, results) = updated.unzip
-      _                           <- compilationStatusService.syncCompilation(results)
-    } yield {
-      updatedTechniques
-    }
+    ZIO.foreach(techniques)(compileArchiveTechnique(_).map(_._1))
   }
 
   ///// utility methods /////
 
   // Write and commit all techniques files
   def compileArchiveTechnique(
-      technique:  EditorTechnique,
-      syncStatus: Boolean = true // should update the compilation status ?
+      technique: EditorTechnique
   )(implicit cc: ChangeContext): IOResult[(EditorTechnique, EditorTechniqueCompilationResult)] = {
     for {
       time_0                      <- currentTimeMillis
@@ -200,7 +197,8 @@ class TechniqueWriterImpl(
                                 cc.modId,
                                 principal = cc.actor,
                                 modifyDiff = diff,
-                                reason = cc.message
+                                reason = cc.message,
+                                securityTag = previous.security
                               )
                             case None           =>
                               val diff = AddEditorTechniqueDiff(technique)

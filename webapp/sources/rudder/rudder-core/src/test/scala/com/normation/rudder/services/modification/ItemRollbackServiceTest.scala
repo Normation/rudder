@@ -114,7 +114,8 @@ private object ItemRollbackServiceTest {
       modificationId = modificationId,
       principal = EventActor("test"),
       reason = None,
-      details = <entry/>
+      details = <entry/>,
+      securityTag = None
     )
   )
 

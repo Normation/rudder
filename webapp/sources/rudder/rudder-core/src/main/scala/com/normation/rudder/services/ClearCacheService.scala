@@ -59,7 +59,8 @@ class ClearCacheServiceImpl(
                             modificationId = Some(modId),
                             principal = actor,
                             details = EventLog.emptyDetails,
-                            reason = Some("Node configuration cache deleted on user request")
+                            reason = Some("Node configuration cache deleted on user request"),
+                            securityTag = None
                           )
                         )
                       )
@@ -94,7 +95,9 @@ class ClearCacheServiceImpl(
                  modificationId = Some(modId),
                  principal = actor,
                  details = EventLog.emptyDetails,
-                 reason = Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request")
+                 reason =
+                   Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request"),
+                 securityTag = None
                )
              )
            )

@@ -97,7 +97,8 @@ final case class ExportGroupsArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ExportGroupsArchive.buildDetails(gitArchiveId)
+      details = ExportGroupsArchive.buildDetails(gitArchiveId),
+      securityTag = None
     )
   )
 }
@@ -123,7 +124,8 @@ final case class ImportGroupsArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ImportGroupsArchive.buildDetails(gitCommitId)
+      details = ImportGroupsArchive.buildDetails(gitCommitId),
+      securityTag = None
     )
   )
 }
@@ -149,7 +151,8 @@ final case class ExportTechniqueLibraryArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId)
+      details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId),
+      securityTag = None
     )
   )
 }
@@ -175,7 +178,8 @@ final case class ImportTechniqueLibraryArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId)
+      details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId),
+      securityTag = None
     )
   )
 }
@@ -201,7 +205,8 @@ final case class ExportRulesArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ExportRulesArchive.buildDetails(gitArchiveId)
+      details = ExportRulesArchive.buildDetails(gitArchiveId),
+      securityTag = None
     )
   )
 }
@@ -227,7 +232,8 @@ final case class ImportRulesArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ImportRulesArchive.buildDetails(gitCommitId)
+      details = ImportRulesArchive.buildDetails(gitCommitId),
+      securityTag = None
     )
   )
 }
@@ -253,7 +259,8 @@ final case class ExportParametersArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ExportParametersArchive.buildDetails(gitArchiveId)
+      details = ExportParametersArchive.buildDetails(gitArchiveId),
+      securityTag = None
     )
   )
 }
@@ -279,7 +286,8 @@ final case class ImportParametersArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ImportParametersArchive.buildDetails(gitCommitId)
+      details = ImportParametersArchive.buildDetails(gitCommitId),
+      securityTag = None
     )
   )
 }
@@ -305,7 +313,8 @@ final case class ExportFullArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ExportFullArchive.buildDetails(gitArchiveId)
+      details = ExportFullArchive.buildDetails(gitArchiveId),
+      securityTag = None
     )
   )
 }
@@ -331,7 +340,8 @@ final case class ImportFullArchive(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = ImportFullArchive.buildDetails(gitCommitId)
+      details = ImportFullArchive.buildDetails(gitCommitId),
+      securityTag = None
     )
   )
 }
@@ -363,7 +373,8 @@ final case class Rollback(
       modificationId = None,
       principal = actor,
       reason = reason,
-      details = Rollback.buildDetails(rollbackedEvent, targetEvent, rollbackPosition)
+      details = Rollback.buildDetails(rollbackedEvent, targetEvent, rollbackPosition),
+      securityTag = None
     )
   )
 }

@@ -222,7 +222,7 @@ class TestTechniqueCheckCache extends Specification with BeforeAfterAll {
 
   "TechniqueCheckActorSync" should {
     "correctly sync status" in {
-      (writeCache.syncAll(Some(expectedListOfOutputs)) *> // println(mockActor.messages.head).succeed *>
+      (writeCache.syncAll() *> // println(mockActor.messages.head).succeed *>
       msgLock.withPermit(
         (mockActor hasReceivedMessage_? UpdateTechniqueStatus(expectedEditorTechniqueStatus)).succeed
       )).runNow.aka("actor received message") must beTrue

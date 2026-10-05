@@ -76,7 +76,8 @@ class UserSessionLogEvent(
                     modificationId = None,
                     principal = EventActor(u.getUsername),
                     details = EventLog.emptyDetails,
-                    reason = None
+                    reason = None,
+                    securityTag = None
                   )
                 )
               )
@@ -98,7 +99,8 @@ class UserSessionLogEvent(
                     modificationId = None,
                     principal = EventActor(u),
                     details = EventLog.emptyDetails,
-                    reason = None
+                    reason = None,
+                    securityTag = None
                   )
                 )
               )

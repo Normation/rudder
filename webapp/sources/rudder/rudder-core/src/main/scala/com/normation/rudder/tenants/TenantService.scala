@@ -37,6 +37,7 @@
 
 package com.normation.rudder.tenants
 
+import com.normation.errors.AccumulateErrors
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.IOStream
@@ -140,6 +141,16 @@ object IfAbsent {
   extension [A](x: IfAbsent[A]) {
     def toIO: IOResult[A] = PureToIoResult(x).toIO
   }
+}
+
+/*
+ * Transform into a data what was an operation. This one give the context of executing the action in the
+ * context of the ChangeContext after checking tenant law, especially computing the correct tenants.
+ * It allows to implement `traverse` and implement bulk operation on collection.
+ */
+final case class Authorized[A](cc: ChangeContext, value: A) {
+  def run[R](action: ChangeContext ?=> A => IOResult[R]): IOResult[R]   = action(using cc)(value)
+  def map[B](f:      A => B):                             Authorized[B] = Authorized(cc, f(value))
 }
 
 /*
@@ -289,6 +300,25 @@ trait TenantCheckLogic {
   )(using cc: ChangeContext)(
       action:   ChangeContext ?=> B => IOResult[R]
   ): IOResult[R]
+
+  /*
+   * The decision part of `manageSave`. Produce the `Authorized` data that can be then traversed.
+   */
+  def decideSave[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      saved:    B,
+      existing: Lookup[A],
+      into:     Container[C]
+  )(using cc: ChangeContext): IOResult[Authorized[B]]
+
+  /*
+   * `decideSave` over a collection, refusing the whole batch if any element is refused and reporting every
+   * refusal rather than the first.
+   */
+  def decideSaveAll[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      saved:    List[B],
+      existing: B => Lookup[A],
+      into:     B => Container[C]
+  )(using cc: ChangeContext): IOResult[List[Authorized[B]]]
 
   /*
    * Modify an existing object without submitting a new version of it (enable/disable, accept a technique
@@ -561,14 +591,14 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
    * Creation: the object gets the actor's writable tenants (an explicitly provided tag is validated), and
    * the action runs under a change context restricted to those tenants.
    */
-  private def createLogic[A: HasSecurityTag, R](
+  private def createLogic[A: HasSecurityTag](
       created: A
-  )(using cc: ChangeContext)(action: ChangeContext ?=> A => IOResult[R]): IOResult[R] = {
+  )(using cc: ChangeContext): IOResult[Authorized[A]] = {
     writeAllowed(created, created.isSystem, cantWrite).flatMap {
       case TenantStatus.Disabled         =>
         // creation when feature disabled: set securityTag to "none" if admin, error in other cases
         cc.accessGrant match {
-          case TenantAccessGrant.All => action(created.updateSecurityContext(None))
+          case TenantAccessGrant.All => Authorized(cc, created.updateSecurityContext(None)).succeed
           case x                     =>
             Inconsistency(
               s"Tenant restricted actor '${cc.actor}' (${cc.accessGrant.serialize}) is trying to create an object when tenant plugin is disabled. '"
@@ -587,8 +617,8 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
                   Inconsistency(
                     s"Object '${created.debugId}' can not be created with tenant(s) '${unknown.map(_.value).mkString(",")}' because they don't exist"
                   ).fail
-                } else action(using cc)(created)
-              case _                               => action(using cc)(created) // None (admin-only) or Open: no tenant list to check
+                } else Authorized(cc, created).succeed
+              case _                               => Authorized(cc, created).succeed // None (admin-only) or Open: no tenant list to check
             }
           case TenantAccessGrant.None          =>
             // already managed by `writeAllowed`
@@ -600,7 +630,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
               cantWrite(created).fail
             } else {
               val restrictedCC = cc.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(intersect))
-              action(using restrictedCC)(created.updateFromChangeContext(using restrictedCC))
+              Authorized(restrictedCC, created.updateFromChangeContext(using restrictedCC)).succeed
             }
         }
     }
@@ -638,19 +668,19 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
     }
   }
 
-  private def updateLogic[A: HasSecurityTag, B: HasSecurityTag, R](
+  private def updateLogic[A: HasSecurityTag, B: HasSecurityTag](
       existing:       A,
       updated:        B,
       // `manageRestore` puts an object back in a state it had in the past, so it - and only it - may narrow
       // a monotonic tag. Every other guarantee is unchanged.
       allowNarrowing: Boolean = false
-  )(using cc: ChangeContext)(action: ChangeContext ?=> B => IOResult[R]): IOResult[R] = {
+  )(using cc: ChangeContext): IOResult[Authorized[B]] = {
     val writeGrant = cc.accessGrant.restrictToWrite
 
     writeAllowed(updated, existing.isSystem || updated.isSystem, cantWrite).flatMap {
       // when feature is disabled, we keep existing security tag
       case TenantStatus.Disabled         =>
-        action(using cc)(updated.updateSecurityContext(existing.security))
+        Authorized(cc, updated.updateSecurityContext(existing.security)).succeed
       // when feature is enabled, we check consistency
       case TenantStatus.Enabled(tenants) =>
         (if (!cc.accessGrant.canModify(existing)) {
@@ -724,7 +754,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
            // non-admin user: the tenant list can not be changed.
            // Ignore the security tag the request carries and keep the existing tag
            updated.updateSecurityContext(existing.security).succeed
-         }).flatMap(up => action(using cc)(up))
+         }).map(up => Authorized(cc, up))
     }
   }
 
@@ -734,7 +764,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   )(using cc: ChangeContext)(
       action:  ChangeContext ?=> A => IOResult[R]
   ): IOResult[R] = {
-    checkContainer(into) *> createLogic(created)(action)
+    (checkContainer(into) *> createLogic(created)).flatMap(_.run(action))
   }
 
   override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, R](
@@ -746,7 +776,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   ): IOResult[R] = {
     existing(using QueryContext.systemQC).flatMap {
       case None    => ifAbsent.toIO
-      case Some(e) => updateLogic(e, updated)(action)
+      case Some(e) => updateLogic(e, updated).flatMap(_.run(action))
     }
   }
 
@@ -759,8 +789,8 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   ): IOResult[R] = {
     existing(using QueryContext.systemQC).flatMap {
       // reverting a deletion is a restore too: the object is created back
-      case None    => checkContainer(into) *> createLogic(restored)(action)
-      case Some(e) => updateLogic(e, restored, allowNarrowing = true)(action)
+      case None    => (checkContainer(into) *> createLogic(restored)).flatMap(_.run(action))
+      case Some(e) => updateLogic(e, restored, allowNarrowing = true).flatMap(_.run(action))
     }
   }
 
@@ -771,11 +801,27 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   )(using cc: ChangeContext)(
       action:   ChangeContext ?=> B => IOResult[R]
   ): IOResult[R] = {
+    decideSave(saved, existing, into).flatMap(_.run(action))
+  }
+
+  override def decideSave[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      saved:    B,
+      existing: Lookup[A],
+      into:     Container[C]
+  )(using cc: ChangeContext): IOResult[Authorized[B]] = {
     existing(using QueryContext.systemQC).flatMap {
       // the container is only checked when the object is created into it: an update doesn't change it
-      case None    => checkContainer(into) *> createLogic(saved)(action)
-      case Some(e) => updateLogic(e, saved)(action)
+      case None    => checkContainer(into) *> createLogic(saved)
+      case Some(e) => updateLogic(e, saved)
     }
+  }
+
+  override def decideSaveAll[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      saved:    List[B],
+      existing: B => Lookup[A],
+      into:     B => Container[C]
+  )(using cc: ChangeContext): IOResult[List[Authorized[B]]] = {
+    saved.accumulate(b => decideSave(b, existing(b), into(b)))
   }
 
   override def manageUpdateAndMove[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag, R](
@@ -788,7 +834,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
   ): IOResult[R] = {
     existing(using QueryContext.systemQC).flatMap {
       case None    => ifAbsent.toIO
-      case Some(e) => checkContainer(into) *> updateLogic(e, updated)(action)
+      case Some(e) => (checkContainer(into) *> updateLogic(e, updated)).flatMap(_.run(action))
     }
   }
 
@@ -801,7 +847,7 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
     existing(using QueryContext.systemQC).flatMap {
       case None    => ifAbsent.toIO
       // there is no new version to tag: the object is its own "updated" version, so the tag can not change
-      case Some(e) => updateLogic(e, e)(action)
+      case Some(e) => updateLogic(e, e).flatMap(_.run(action))
     }
   }
 
