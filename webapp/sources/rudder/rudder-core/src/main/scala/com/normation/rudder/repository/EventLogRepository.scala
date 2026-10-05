@@ -127,7 +127,7 @@ trait EventLogRepository {
       principal:   EventActor,
       modifyDiff:  ModifyRuleDiff,
       reason:      Option[String],
-      securityTag: Option[SecurityTag] = None
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,
@@ -181,7 +181,7 @@ trait EventLogRepository {
       principal:   EventActor,
       modifyDiff:  ModifyDirectiveDiff,
       reason:      Option[String],
-      securityTag: Option[SecurityTag] = None
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,
@@ -227,17 +227,19 @@ trait EventLogRepository {
   }
 
   def saveModifyEditorTechnique(
-      modId:      ModificationId,
-      principal:  EventActor,
-      modifyDiff: ModifyEditorTechniqueDiff,
-      reason:     Option[String]
+      modId:       ModificationId,
+      principal:   EventActor,
+      modifyDiff:  ModifyEditorTechniqueDiff,
+      reason:      Option[String],
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyEditorTechniqueFromDiff(
         principal = principal,
         modifyDiff = modifyDiff,
-        reason = reason
+        reason = reason,
+        securityTag = securityTag
       )
     )
   }
@@ -276,7 +278,7 @@ trait EventLogRepository {
       principal:   EventActor,
       modifyDiff:  ModifyNodeGroupDiff,
       reason:      Option[String],
-      securityTag: Option[SecurityTag] = None
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,
@@ -306,17 +308,19 @@ trait EventLogRepository {
   }
 
   def saveModifyTechnique(
-      modId:      ModificationId,
-      principal:  EventActor,
-      modifyDiff: ModifyTechniqueDiff,
-      reason:     Option[String]
+      modId:       ModificationId,
+      principal:   EventActor,
+      modifyDiff:  ModifyTechniqueDiff,
+      reason:      Option[String],
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyTechniqueFromDiff(
         principal = principal,
         modifyDiff = modifyDiff,
-        reason = reason
+        reason = reason,
+        securityTag = securityTag
       )
     )
   }
@@ -406,7 +410,7 @@ trait EventLogRepository {
       principal:   EventActor,
       modifyDiff:  ModifyGlobalParameterDiff,
       reason:      Option[String],
-      securityTag: Option[SecurityTag] = None
+      securityTag: Option[SecurityTag]
   ): IOResult[EventLog] = {
     saveEventLog(
       modId,

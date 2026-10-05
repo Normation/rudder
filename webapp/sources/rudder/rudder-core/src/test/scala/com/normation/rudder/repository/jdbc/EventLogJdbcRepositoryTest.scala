@@ -183,7 +183,8 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
           cause = Some(1),
           severity = 2,
           reason = Some("reason"),
-          details = EventLog.withContent(scala.xml.Utility.trim(<hello>world</hello>))
+          details = EventLog.withContent(scala.xml.Utility.trim(<hello>world</hello>)),
+          securityTag = None
         )
       ),
       EventLog.withContent(scala.xml.Utility.trim(<hello>world</hello>))

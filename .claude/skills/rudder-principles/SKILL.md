@@ -146,6 +146,31 @@ hidden surprises.
 The house idiom is "**longer but naively explicit**" over clever. A reader should see what
 is required and what may happen from the type alone.
 
+### No default values
+
+A default value is a decision taken silently, by whoever forgets to pass the argument. It
+is a design smell and it is ruled out: **parameters and case-class fields are mandatory**.
+
+The damage is not theoretical. `EventLogDetails.securityTag` defaulted to `None`, which
+means "administrator only"; six technique event types were written without it and shipped
+untagged, with no call site reading wrong and nothing failing to compile. `CampaignInfo`
+likewise: a five-argument construction silently gave a security benchmark's schedule no
+tenants. In both cases a mandatory field would have turned a security bug into a
+compilation error.
+
+Two exceptions, and they are narrow:
+
+- **Codecs and forward-compatible API payloads.** A default is how an absent JSON field
+  decodes. Keep it on the (de)serialization type, not on the domain type it maps to.
+- **A value with one meaning and no security or correctness weight** — a page size, a
+  timeout. If picking wrong is a bug, it is not this case.
+
+When a caller genuinely has nothing to say, make it say so: `securityTag = None` written
+at the call site documents the fail-closed choice; an omitted argument documents nothing.
+
+Removing a default is not a refactor you can trust incrementally: zinc will report
+`BUILD SUCCESS` on call sites it did not recompile. Build clean before believing it.
+
 Mechanics: [`rudder-scala/000`](../rudder-scala/000-coding-philosophy.md),
 [`rudder-scala/300`](../rudder-scala/300-effects-zio-ioresult.md),
 [`rudder-rust/principles.md`](../rudder-rust/principles.md).

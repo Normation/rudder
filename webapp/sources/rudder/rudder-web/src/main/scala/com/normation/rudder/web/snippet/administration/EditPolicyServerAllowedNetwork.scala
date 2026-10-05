@@ -185,7 +185,13 @@ class EditPolicyServerAllowedNetwork extends SecureDispatchSnippet with Loggable
               .saveEventLog(
                 modId,
                 UpdatePolicyServer(
-                  EventLogDetails(modificationId = None, principal = qc.actor, details = modifications, reason = None)
+                  EventLogDetails(
+                    modificationId = None,
+                    principal = qc.actor,
+                    details = modifications,
+                    reason = None,
+                    securityTag = None
+                  )
                 )
               )
               .toBox ?~! s"Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"

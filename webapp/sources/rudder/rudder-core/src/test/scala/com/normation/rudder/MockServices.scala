@@ -494,9 +494,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   }
 
   val techniqueCompilationCache: TechniqueCompilationSyncService = new TechniqueCompilationSyncService {
-    override def syncOneCompilation(result: EditorTechniqueCompilationResult):     IOResult[EditorTechniqueStatus] =
-      EditorTechniqueStatus.AllSuccess.succeed
-    override def syncCompilation(results: List[EditorTechniqueCompilationResult]): IOResult[EditorTechniqueStatus] =
+    override def syncOneCompilation(result: EditorTechniqueCompilationResult): IOResult[EditorTechniqueStatus] =
       EditorTechniqueStatus.AllSuccess.succeed
   }
 
@@ -559,10 +557,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     ): IOResult[EventLog] = ZIO.succeed(null)
 
     override def saveModifyEditorTechnique(
-        modId:      ModificationId,
-        principal:  EventActor,
-        modifyDiff: ModifyEditorTechniqueDiff,
-        reason:     Option[String]
+        modId:       ModificationId,
+        principal:   EventActor,
+        modifyDiff:  ModifyEditorTechniqueDiff,
+        reason:      Option[String],
+        securityTag: Option[SecurityTag]
     ): IOResult[EventLog] = ZIO.succeed(null)
 
     override def saveAddEditorTechnique(

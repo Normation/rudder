@@ -40,8 +40,11 @@ package com.normation.cfclerk.domain
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.services.policies.ComponentId
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.Utils.*
+import com.softwaremill.quicklens.*
 import enumeratum.*
 import org.apache.commons.text.StringEscapeUtils
 
@@ -250,7 +253,7 @@ object BundleName {
   extension (x: BundleName) {
     def value: String = x
 
-    // sometimes we need an other name in test \o/
+    // sometimes we need another name in test \o/
     def getValue: String = x
   }
 }
@@ -258,5 +261,19 @@ object BundleName {
 object Technique {
   def normalizeName(name: String): String = {
     name.replaceAll("""\s""", "").toLowerCase
+  }
+
+  /*
+   * The tag a technique declares on disk, in `metadata.xml`.
+   */
+  given HasSecurityTag[Technique] with {
+    extension (a: Technique) {
+      override def security:                                             Option[SecurityTag] = a.security
+      override def isSystem:                                             Boolean             = a.policyTypes.isSystem
+      override def tenantTagLifecycle:                                   TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:                                              String              = a.id.debugString
+      override def updateSecurityContext(security: Option[SecurityTag]): Technique           =
+        a.modify(_.security).setTo(security)
+    }
   }
 }

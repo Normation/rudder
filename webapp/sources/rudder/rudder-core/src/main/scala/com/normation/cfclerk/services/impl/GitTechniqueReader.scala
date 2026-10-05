@@ -48,12 +48,10 @@ import com.normation.rudder.git.ExactFileTreeFilter
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
-import com.normation.rudder.ncf.UserTechniqueCategory
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
-import com.softwaremill.quicklens.*
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -872,7 +870,6 @@ class GitTechniqueReader(
       parsed        <- if (parseDescriptor)
                          loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
                        else dummyTechnique.succeed
-      pack           = withDefaultSecurity(parsed, descriptorFile.getParentFile)
       info          <- techniquesInfo.get
       res           <- (
                          // if we are in the case of a yaml technique, check that techniqueId in yaml/path agrees
@@ -882,14 +879,14 @@ class GitTechniqueReader(
                            info.techniques.get(techniqueId.name) match {
                              case None             => // so we don't have any version yet, and so no id
                                if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
-                                 info.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
+                                 info.techniques(techniqueId.name) = MutMap(techniqueId.version -> parsed)
                                  info.techniquesCategory(techniqueId) = parentCategoryId
                                }
                              case Some(versionMap) => // check for the version
                                versionMap.get(techniqueId.version) match {
                                  case None    => // add that version
                                    if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
-                                     info.techniques(techniqueId.name)(techniqueId.version) = pack
+                                     info.techniques(techniqueId.name)(techniqueId.version) = parsed
                                      info.techniquesCategory(techniqueId) = parentCategoryId
                                    }
                                  case Some(v) => // error, policy package version already exists
@@ -912,33 +909,6 @@ class GitTechniqueReader(
     } yield {
       ()
     }
-  }
-
-  /*
-   * A technique that says nothing about its tenants gets a default which depends on where it comes from:
-   * - a technique that only has a `metadata.xml` is visible to every tenant (see `SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG`)
-   * - a technique written in YAML is admin-only.
-   *
-   * techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
-   */
-  private def withDefaultSecurity(technique: Technique, techniqueRelativePath: File): Technique = {
-    if (
-      technique.security.isDefined || technique.policyTypes.isSystem || isUnderUserCategory(techniqueRelativePath) ||
-      hasYamlDescriptor(techniqueRelativePath)
-    ) {
-      technique
-    } else {
-      technique.modify(_.security).setTo(SecurityTag.LEGACY_TECHNIQUE_SECURITY_TAG)
-    }
-  }
-
-  private def isUnderUserCategory(techniqueRelativePath: File): Boolean = {
-    techniqueRelativePath.getPath.stripPrefix("/").startsWith(UserTechniqueCategory.name.value + "/")
-  }
-
-  private def hasYamlDescriptor(techniqueRelativePath: File): Boolean = {
-    val relative = techniqueRelativePath.getPath.stripPrefix("/")
-    (repo.rootDirectory / canonizedRelativePath.getOrElse("") / relative / TechniqueFiles.yaml).exists
   }
 
   // techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
