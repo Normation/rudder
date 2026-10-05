@@ -58,14 +58,7 @@
           "not": { "required": ["new-version"] }
         },
         {
-          "properties": { "action": { "const": "pending-install" } },
-          "required": ["details"],
-          "not": {
-            "anyOf": [
-              { "required": ["old-version"] },
-              { "required": ["new-version"] }
-            ]
-          }
+          "properties": { "action": { "const": "pending-install" } }
         }
       ]
     }
