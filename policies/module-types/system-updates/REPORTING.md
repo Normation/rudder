@@ -165,26 +165,20 @@ two architectures means two distinct packages.
 | `old-version` | string | conditional | Version before the update. Present for `updated` and `removed`.  |
 | `new-version` | string | conditional | Version after the update. Present for `updated` and `added`.     |
 | `action`      | string | yes         | One of `added`, `updated`, `removed`, `pending-install` (9.2+).  |
-| `details`     | string | conditional | Package manager specific details, for display. Always present for `pending-install`. |
-
-| `action`  | `old-version` | `new-version` |
-|-----------|---------------|---------------|
-| `added`   | absent        | present       |
-| `updated` | present       | present       |
-| `removed` | present       | absent        |
-| `pending-install` (9.2+) | absent | absent |
+| `details`     | string | conditional | Package manager specific details, for display. Only present for Windows packages. |
 
 `pending-install` (9.2+) is an update that the package manager processed during the
 event, but that is not in the list of installed packages after it: typically an update
 waiting for a reboot to be fully installed, but also an update that failed to download or
-install. The `details` field tells them apart. These entries are appended after the
-computed changes, and do **not** count for the `repaired` status: an event where every
-entry is `pending-install` has status `success`.
+install. The format does not constrain its versions (the only current producer, Windows
+Update Agent, sets none, as hotfixes have no real version). These entries are appended
+after the computed changes, and do **not** count for the `repaired` status: an event
+where every entry is `pending-install` has status `success`.
 
 Absent fields are omitted, never `null`. The order of the array is unspecified.
 
 `details` is only set by package managers that provide per-package results (currently
-Windows Update Agent), on `added`, `updated` and `pending-install` entries.
+Windows Update Agent).
 
 #### Values per package manager
 
@@ -192,20 +186,11 @@ Windows Update Agent), on `added`, `updated` and `pending-install` entries.
 |-----------------------------|---------------------------------|----------------------------------------------------------|
 | APT                         | `amd64`, `all`, …               | Debian version, e.g. `1:2.4.52-1ubuntu4.6`               |
 | DNF/YUM, Zypper (via `rpm`) | `x86_64`, `noarch`, …           | `[epoch:]version-release`, epoch omitted when empty or 0, e.g. `5.2.4-4.el8`, `1:1.12.8-18.el8.1` |
-| Windows Update Agent        | always `noarch`                 | always `none:none`                                       |
+| Windows Update Agent        | always `noarch`                 | always `none:none`, omitted for `pending-install`        |
 
 On Windows, `name` is the title of the update (e.g.
 `2026-09 Cumulative Update for Windows Server 2022 for x64-based Systems (KB5065432)`),
-installed updates are reported as `added` (or `pending-install` from 9.2), and `details`
-has the form below. The `Install result` part is missing when the download failed.
-
-```text
-
-Download result:
-  - result_code: <code>, HRESULT 0x<hex> <message>
-Install result:
-  - result_code: <code>, HRESULT 0x<hex> <message>, reboot_required: <bool>
-```
+installed updates are reported as `added` (or `pending-install` from 9.2)
 
 Legacy producers:
 
@@ -218,7 +203,6 @@ Legacy producers:
   `old-version` **and** `new-version` both set to `(none):(none)`, and:
   * a per-package `status` field, `success` or `failed` (Windows Update result code other
     than 2, "succeeded");
-  * `details` set to `Received HRESULT 0x<hex>`.
 
   The per-package `status` is the only way to report a failed package; the Rust module
   reports failures in the global `status` and in `details` only.
@@ -257,9 +241,9 @@ A consumer of these documents (the server-side parser in the `system-updates` pl
   `details` and per-package `status`;
 * should accept a missing `software-updated` (legacy Python reports), as an empty list;
 * must accept `repaired`, `success`, `error` and `scheduled` as the global `status`;
-* must accept package changes with neither `old-version` nor `new-version`
-  (`pending-install`, 9.2+), and should use `action` rather than the presence of the
-  versions to classify them;
+* must accept `pending-install` package changes (9.2+) with or without `old-version`
+  and `new-version` (they currently have neither), and should use `action` rather than
+  the presence of the versions to classify them;
 * must accept both the `Z` and `+00:00` forms, and fractional seconds, in the schedule
   `date`.
 
