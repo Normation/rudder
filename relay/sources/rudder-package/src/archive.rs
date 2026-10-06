@@ -106,7 +106,7 @@ impl Rpkg {
     fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {
         // Build the destination path
         if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
-            return Ok(self.metadata.safe_name()?.scripts_dir());
+            return Ok(self.metadata.scripts_dir());
         }
         let dst =
             self.metadata.content.get(txz_name).ok_or_else(|| {
@@ -184,11 +184,11 @@ impl Rpkg {
     }
 
     fn get_default_extract_folder(&self) -> Result<PathBuf> {
-        Ok(self.metadata.safe_name()?.content_dir())
+        Ok(self.metadata.content_dir())
     }
 
     fn get_default_package_scripts_extract_folder(&self) -> Result<PathBuf> {
-        Ok(self.metadata.safe_name()?.scripts_dir())
+        Ok(self.metadata.scripts_dir())
     }
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
@@ -233,7 +233,7 @@ impl Rpkg {
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
         debug!("Installing rpkg file '{}'...", self.path.display());
-        let is_upgrade = db.plugins.contains_key(&self.metadata.name);
+        let is_upgrade = db.plugins.contains_key(&self.metadata.name.to_string());
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
             bail!(
@@ -253,7 +253,11 @@ impl Rpkg {
 
         if is_upgrade {
             // First uninstall old version, but without running prerm/postrm scripts
-            db.uninstall(&self.metadata.name, UninstallMode::Upgrade, webapp)?;
+            db.uninstall(
+                &self.metadata.name.to_string(),
+                UninstallMode::Upgrade,
+                webapp,
+            )?;
         }
 
         // Clean the plugin package script folder before extracting the files
@@ -294,7 +298,7 @@ impl Rpkg {
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
         db.insert(
-            self.metadata.name.clone(),
+            self.metadata.name.to_string(),
             InstalledPlugin {
                 files: self.get_archive_installed_files()?,
                 metadata: self.metadata.clone(),

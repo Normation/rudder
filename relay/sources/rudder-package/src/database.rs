@@ -157,8 +157,7 @@ impl Database {
             dest.as_path().display().to_string()
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
-        rpkg.metadata.safe_name()?;
-        if self.plugins.contains_key(&rpkg.metadata.name) {
+        if self.plugins.contains_key(&rpkg.metadata.name.to_string()) {
             info!(
                 "Plugin {} already installed, upgrading",
                 rpkg.metadata.short_name()
@@ -187,7 +186,6 @@ impl Database {
             "Could not extract data for plugin {} in the database",
             short_name
         ))?;
-        let safe_name = installed_plugin.metadata.safe_name().context(format!("Refusing to uninstall '{plugin_name}', remove its files and its entry from the plugin database manually."))?;
         debug!(
             "Uninstalling plugin {} (version {})",
             short_name, installed_plugin.metadata.version
@@ -208,9 +206,9 @@ impl Database {
                 .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
         }
         // Remove associated package scripts and plugin folder
-        let mut dirs = vec![safe_name.scripts_dir()];
+        let mut dirs = vec![installed_plugin.metadata.scripts_dir()];
         if full_uninstall {
-            dirs.push(safe_name.content_dir())
+            dirs.push(installed_plugin.metadata.content_dir())
         }
         for dir in dirs {
             debug!("Removing the package folder '{}'", dir.display());
@@ -362,7 +360,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
-    use crate::{archive, versions::RudderVersion};
+    use crate::{archive, plugin::SafePackageName, versions::RudderVersion};
 
     /// The statuses, as the packaging would redirect them into its snapshot file.
     fn save(d: &Database, w: &mut Webapp) -> String {
@@ -522,7 +520,7 @@ mod tests {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
                 package_type: archive::PackageType::Plugin,
-                name: "my_name".to_string(),
+                name: SafePackageName::try_from("my_name").unwrap(),
                 description: None,
                 version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),

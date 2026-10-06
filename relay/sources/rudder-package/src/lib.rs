@@ -118,9 +118,15 @@ pub fn run_inner(args: Args) -> Result<()> {
     // Now initialize all common data structures
     let keyring_path = PathBuf::from(SIGNATURE_KEYRING_PATH);
     let repo = Repository::new(&cfg, signature::verifier(keyring_path)?)?;
-    let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+    let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH).context(format!(
+        "Failed to read the rudder version from '{}'",
+        RUDDER_VERSION_PATH
+    ))?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
-    let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
+    let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH)).context(format!(
+        "Failed to load the installed plugins database from '{}'",
+        PACKAGES_DATABASE_PATH
+    ))?;
 
     // Global error flag, used to exit with non-zero code
     // but not interrupt the program.
@@ -132,7 +138,10 @@ pub fn run_inner(args: Args) -> Result<()> {
 
     match args.command {
         Command::Install { force, package } => {
-            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH).context(format!(
+                "Failed to parse the repository index in '{}'",
+                REPOSITORY_INDEX_PATH
+            ))?;
 
             let to_install = long_names(package);
 
@@ -192,7 +201,10 @@ pub fn run_inner(args: Args) -> Result<()> {
             package,
             all_postinstall,
         } => {
-            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH).context(format!(
+                "Failed to parse the repository index in '{}'",
+                REPOSITORY_INDEX_PATH
+            ))?;
             if all_postinstall {
                 for p in db.plugins.values() {
                     if let Err(e) = p.metadata.run_package_script(
@@ -249,8 +261,14 @@ pub fn run_inner(args: Args) -> Result<()> {
             enabled,
             format,
         } => {
-            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH).context(format!(
+                "Failed to parse the repository index in '{}'",
+                REPOSITORY_INDEX_PATH
+            ))?;
+            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER)).context(format!(
+                "Failed to read the licenses from '{}'",
+                LICENSES_FOLDER
+            ))?;
             ListOutput::new(all, enabled, &licenses, &db, index.as_ref(), &webapp)?
         }
         .display(format)?,
@@ -381,8 +399,14 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
         }
         Command::Info {} => {
-            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH).context(format!(
+                "Failed to parse the repository index in '{}'",
+                REPOSITORY_INDEX_PATH
+            ))?;
+            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER)).context(format!(
+                "Failed to read the licenses from '{}'",
+                LICENSES_FOLDER
+            ))?;
             display_info(&licenses, &repo, index.as_ref())
         }
     }
