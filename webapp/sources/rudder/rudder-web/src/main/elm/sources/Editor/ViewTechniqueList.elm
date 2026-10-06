@@ -43,10 +43,9 @@ foldUnfoldCategory treeFilters catId =
     { treeFilters | folded = foldedList }
 
 
-{-| An empty category is only hidden while filtering: without a filter, it is precisely the one
-the user wants to select, to fill it or to delete it.
+{-| Renders the category tree as it is given because filtering happened in `visibleCategories`
 -}
-treeCategory : Model -> List TreeTechnique -> TechniqueCategory -> Maybe (Html Msg)
+treeCategory : Model -> List TreeTechnique -> TechniqueCategory -> Html Msg
 treeCategory model techniques category =
     let
         techniquesElem =
@@ -55,25 +54,11 @@ treeCategory model techniques category =
                 |> List.map (techniqueItem model)
 
         subCategoriesElem =
-            case category.subCategories of
-                SubCategories l ->
-                    List.filterMap (treeCategory model techniques) l
+            List.map (treeCategory model techniques) (getSubElems category)
 
-        filtering =
-            not (String.isEmpty (String.trim model.techniqueFilter.filter))
-
-        childsList =
-            case ( subCategoriesElem, techniquesElem ) of
-                ( [], [] ) ->
-                    if filtering then
-                        Nothing
-
-                    else
-                        Just []
-
-                ( subCats, techs ) ->
-                    -- sub-categories before techniques, like a file browser
-                    Just (subCats ++ techs)
+        -- sub-categories before techniques, like a file browser
+        children =
+            subCategoriesElem ++ techniquesElem
 
         activeClass =
             case model.mode of
@@ -86,35 +71,30 @@ treeCategory model techniques category =
 
                 _ ->
                     ""
-    in
-    Maybe.map
-        (\children ->
-            let
-                -- a category holding nothing is a leaf, like a technique: an expander that opens
-                -- onto nothing looks broken
-                ( nodeClass, expander, subTree ) =
-                    if List.isEmpty children then
-                        ( "jstree-node jstree-leaf"
-                        , i [ class "jstree-icon jstree-ocl" ] []
-                        , []
-                        )
 
-                    else
-                        ( "jstree-node " ++ foldedClass model.techniqueFilter category.id
-                        , i [ class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id)) ] []
-                        , [ ul [ class "jstree-children" ] children ]
-                        )
-            in
-            li [ class nodeClass ]
-                (expander
-                    :: a [ class ("jstree-anchor" ++ activeClass), onClick (SelectCategory category) ]
-                        [ i [ class ("jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom" ++ categoryIconClass category) ] []
-                        , span [ class "treeGroupCategoryName" ] [ text category.name ]
-                        ]
-                    :: subTree
+        -- a category holding nothing is a leaf, like a technique: an expander that opens
+        -- onto nothing looks broken
+        ( nodeClass, expander, subTree ) =
+            if List.isEmpty children then
+                ( "jstree-node jstree-leaf"
+                , i [ class "jstree-icon jstree-ocl" ] []
+                , []
                 )
+
+            else
+                ( "jstree-node " ++ foldedClass model.techniqueFilter category.id
+                , i [ class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id)) ] []
+                , [ ul [ class "jstree-children" ] children ]
+                )
+    in
+    li [ class nodeClass ]
+        (expander
+            :: a [ class ("jstree-anchor" ++ activeClass), onClick (SelectCategory category) ]
+                [ i [ class ("jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom" ++ categoryIconClass category) ] []
+                , span [ class "treeGroupCategoryName" ] [ text category.name ]
+                ]
+            :: subTree
         )
-        childsList
 
 
 techniqueList : Model -> List TreeTechnique -> Html Msg
@@ -129,19 +109,25 @@ techniqueList model techniques =
         filteredDrafts =
             List.sortWith (\t1 t2 -> N.compare t1.technique.name t2.technique.name) (List.filter (\t -> String.contains strFilter (String.toLower t.technique.name) && Maybe.Extra.isNothing t.origin) (Dict.values model.drafts))
 
+        filtering =
+            treeFiltering model.techniqueFilter
+
+        emptyTreeMessage =
+            case filtering of
+                Filtered ->
+                    "No techniques match your filters."
+
+                Unfiltered ->
+                    "The techniques list is empty."
+
+        -- the library root is not displayed, we start with the first level categories, see https://issues.rudder.io/issues/29901
         techniqueItems =
-            case ( filteredTechniques, filteredDrafts ) of
-                ( [], [] ) ->
-                    if List.isEmpty techniques && Dict.isEmpty model.drafts then
-                        -- no technique yet, but categories are still there to organize
-                        treeCategory model [] model.categories
-                            |> Maybe.withDefault (div [ class "empty" ] [ text "The techniques list is empty." ])
+            case visibleCategories filtering filteredTechniques model.categories of
+                Just root ->
+                    List.map (treeCategory model filteredTechniques) (getSubElems root)
 
-                    else
-                        div [ class "empty" ] [ text "No techniques match your filters." ]
-
-                ( list, _ ) ->
-                    treeCategory model list model.categories |> Maybe.withDefault (text "")
+                Nothing ->
+                    [ div [ class "empty" ] [ text emptyTreeMessage ] ]
 
         drafts =
             if List.isEmpty filteredDrafts then
@@ -195,7 +181,7 @@ techniqueList model techniques =
 
                   else
                     div [ class "jstree jstree-default" ]
-                        [ ul [ class "jstree-container-ul jstree-children" ] [ techniqueItems, drafts ]
+                        [ ul [ class "jstree-container-ul jstree-children" ] (techniqueItems ++ [ drafts ])
                         ]
                 ]
             ]
