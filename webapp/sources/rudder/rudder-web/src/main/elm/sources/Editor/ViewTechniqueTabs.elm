@@ -442,13 +442,6 @@ techniqueParameter model technique param =
         ]
 
 
-getSubElems : TechniqueCategory -> List TechniqueCategory
-getSubElems cat =
-    case cat.subCategories of
-        SubCategories subs ->
-            subs
-
-
 {-| A technique of the editor can only live under `User Techniques`: the rest of the library is
 provided by Rudder packages could be changed on upgrade.
 -}

@@ -245,15 +245,23 @@ selectTechnique model technique =
 
                 Right d ->
                     let
+                        -- a draft is a technique still to be created, so it goes under `User Techniques` whatever category
+                        -- it was stored with in past version of Rudder. See https://issues.rudder.io/issues/29901
+                        draftTechnique =
+                            { tech | category = creationCategory tech.category }
+
+                        tech =
+                            d.technique
+
                         st =
                             case d.origin of
                                 Just o ->
-                                    Clone d.technique Nothing o.id
+                                    Clone draftTechnique Nothing o.id
 
                                 Nothing ->
                                     Creation (TechniqueId d.id.value)
                     in
-                    ( d.technique, st, Cmd.none )
+                    ( draftTechnique, st, Cmd.none )
 
         defaultUi =
             defaultTechniqueUi effectiveTechnique
@@ -646,7 +654,7 @@ update msg model =
                     TechniqueEditInfo "" False
 
                 newModel =
-                    { model | mode = TechniqueDetails { technique | name = copiedName, id = TechniqueId newId } (Clone technique optDraftId internalId) ui editInfo }
+                    { model | mode = TechniqueDetails { technique | name = copiedName, id = TechniqueId newId, category = creationCategory technique.category } (Clone technique optDraftId internalId) ui editInfo }
 
                 ( nm, cmd ) =
                     updatedStoreTechnique newModel
@@ -1578,8 +1586,13 @@ update msg model =
 
                                 editInfo =
                                     TechniqueEditInfo "" False
+
+                                -- an imported technique is created here and now: the category of the file cannot send it to the Rudder-provided part
+                                -- of the library. See https://issues.rudder.io/issues/29901
+                                imported =
+                                    { technique | category = creationCategory technique.category }
                             in
-                            update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui editInfo }
+                            update (GenerateId FinalizeImport) { model | mode = TechniqueDetails imported (Creation (TechniqueId "")) ui editInfo }
 
                         EditYaml _ ->
                             case model.mode of

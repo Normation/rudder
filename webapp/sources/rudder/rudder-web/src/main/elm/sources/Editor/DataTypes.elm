@@ -262,11 +262,25 @@ type SubCategories
     = SubCategories (List TechniqueCategory)
 
 
+getSubElems : TechniqueCategory -> List TechniqueCategory
+getSubElems cat =
+    case cat.subCategories of
+        SubCategories subs ->
+            subs
+
+
 {-| User technique category: the only part of the library a user can reorganize.
 -}
 userTechniquesPath : String
 userTechniquesPath =
     "ncf_techniques"
+
+
+{-| `ncf_techniques` + anything under it
+-}
+isUserCategoryPath : String -> Bool
+isUserCategoryPath path =
+    path == userTechniquesPath || String.startsWith (userTechniquesPath ++ "/") path
 
 
 {-| What can be done with a category, which its place in the library decides.
@@ -282,11 +296,64 @@ categoryKind category =
     if category.path == userTechniquesPath then
         UserTechniquesRoot
 
-    else if String.startsWith (userTechniquesPath ++ "/") category.path then
+    else if isUserCategoryPath category.path then
         UserCategory
 
     else
         StandardCategory
+
+
+{-| The target category for a new technique (new, clone, draft migrated between Rudder version).
+This actually only change behavior for old cases, when user technique were created anywhere.
+-}
+creationCategory : String -> String
+creationCategory path =
+    if isUserCategoryPath path then
+        path
+
+    else
+        userTechniquesPath
+
+
+{-| Technique filter is not always used (search case)
+-}
+type TreeFiltering
+    = Filtered
+    | Unfiltered
+
+
+treeFiltering : TreeFilters -> TreeFiltering
+treeFiltering filters =
+    if String.isEmpty (String.trim filters.filter) then
+        Unfiltered
+
+    else
+        Filtered
+
+
+{-| What categories should be shown (see: <https://issues.rudder.io/issues/29901>):
+
+  - "User Techniques" and all its subcategories,
+  - a category from the technique lib that holds an user technique (broken or not), recursively.
+
+-}
+visibleCategories : TreeFiltering -> List TreeTechnique -> TechniqueCategory -> Maybe TechniqueCategory
+visibleCategories filtering techniques category =
+    let
+        visibleSubCategories =
+            List.filterMap (visibleCategories filtering techniques) (getSubElems category)
+
+        holdsTechnique =
+            List.any (.category >> (==) category.path) techniques
+
+        alwaysShown =
+            filtering == Unfiltered && categoryKind category /= StandardCategory
+    in
+    if List.isEmpty visibleSubCategories && not holdsTechnique && not alwaysShown then
+        Nothing
+
+    else
+        Just { category | subCategories = SubCategories visibleSubCategories }
 
 
 {-| Category ID, derived from the name. The server is authoritative, this only shows the user
