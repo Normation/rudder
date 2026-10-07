@@ -113,6 +113,8 @@ install: build
 	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	install -m 644 ../../target/rudder.bash $(DESTDIR)/etc/bash_completion.d/rudder-package.sh
 	install -m 644 rudder-package/tools/rudder_plugins_key.asc $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.asc
+	# rsync command filter
+	install -m 755 rsync-command-filter $(DESTDIR)/opt/rudder/bin/rsync-command-filter
 	# Keyring file created with:
 	# gpg --no-default-keyring --homedir=. --keyring=./rudder_plugins_key.gpg --import tools/rudder_plugins_key.asc
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
