@@ -213,7 +213,7 @@ period of time to allow migration from previous versions.
       <td class="code">24</td>
       <td class="code">9.2</td>
       <td><ul>
-        <li>JWT support for UserInfo endpoint</li>
+        <li>Security tag for tenants of configuration objects</li>
         <li>Compliance CSV for configuration objects</li>
       </ul></td>
     </tr>
