@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -179,7 +179,7 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
   private var level: Option[WorkflowLevelService] = None
 
   def overrideLevel(l: WorkflowLevelService): Unit = {
-    PluginLogger.info(s"Update Validation Workflow level to '${l.name}'")
+    ApplicationLoggerPure.Plugin.info(s"Update Validation Workflow level to '${l.name}'")
     level = Some(l)
   }
 
