@@ -16,7 +16,7 @@ use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
-    PACKAGES_FOLDER, TMP_PLUGINS_FOLDER,
+    TMP_PLUGINS_FOLDER,
     archive::{PackageScript, PackageScriptArg},
     plugin::{self, short_name},
     repo_index::RepoIndex,
@@ -24,6 +24,12 @@ use crate::{
     versions::ArchiveVersion,
     webapp::Webapp,
 };
+
+#[derive(PartialEq)]
+pub enum UninstallMode {
+    Full,
+    Upgrade,
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
@@ -77,13 +83,6 @@ impl Database {
             )
         })?;
         Ok(())
-    }
-
-    pub fn is_installed(&self, r: &Rpkg) -> bool {
-        match self.plugins.get(&r.metadata.name) {
-            None => false,
-            Some(installed) => installed.metadata.version == r.metadata.version,
-        }
     }
 
     /// Return the plugin containing a given jar
@@ -158,7 +157,7 @@ impl Database {
             dest.as_path().display().to_string()
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
-        if self.plugins.contains_key(&rpkg.metadata.name) {
+        if self.plugins.contains_key(&rpkg.metadata.name.to_string()) {
             info!(
                 "Plugin {} already installed, upgrading",
                 rpkg.metadata.short_name()
@@ -171,10 +170,12 @@ impl Database {
     pub fn uninstall(
         &mut self,
         plugin_name: &str,
-        run_rm_scripts: bool,
+        mode: UninstallMode,
         webapp: &mut Webapp,
     ) -> Result<()> {
         let short_name = short_name(plugin_name);
+        // Pre and Postrm scripts are not run when uninstalling for an upgrade
+        let full_uninstall = mode == UninstallMode::Full;
         // Return Ok if not installed
         if !self.plugins.contains_key(plugin_name) {
             info!("Plugin {} is not installed.", short_name);
@@ -190,7 +191,7 @@ impl Database {
             short_name, installed_plugin.metadata.version
         );
         installed_plugin.disable(webapp)?;
-        if run_rm_scripts {
+        if full_uninstall {
             installed_plugin
                 .metadata
                 .run_package_script(PackageScript::Prerm, PackageScriptArg::None)?;
@@ -199,19 +200,27 @@ impl Database {
             Ok(()) => (),
             Err(e) => debug!("{}", e),
         }
-        if run_rm_scripts {
+        if full_uninstall {
             installed_plugin
                 .metadata
                 .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
         }
         // Remove associated package scripts and plugin folder
-        let plugin_dir = PathBuf::from(PACKAGES_FOLDER).join(&installed_plugin.metadata.name);
-        if plugin_dir.exists() {
-            fs::remove_dir_all(&plugin_dir).context(format!(
-                "Could not remove {} plugin folder '{}'",
-                short_name,
-                plugin_dir.display()
-            ))?;
+        let mut dirs = vec![installed_plugin.metadata.scripts_dir()];
+        if full_uninstall {
+            dirs.push(installed_plugin.metadata.content_dir())
+        }
+        for dir in dirs {
+            debug!("Removing the package folder '{}'", dir.display());
+            if dir.exists()
+                && let Err(e) = fs::remove_dir_all(&dir)
+            {
+                warn!(
+                    "Could not remove the package folder '{}'.\n{:?}",
+                    dir.display(),
+                    e
+                )
+            }
         }
         // Update the database
         self.plugins.remove(plugin_name);
@@ -351,7 +360,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
-    use crate::{archive, versions::RudderVersion};
+    use crate::{archive, plugin::SafePackageName, versions::RudderVersion};
 
     /// The statuses, as the packaging would redirect them into its snapshot file.
     fn save(d: &Database, w: &mut Webapp) -> String {
@@ -511,7 +520,7 @@ mod tests {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
                 package_type: archive::PackageType::Plugin,
-                name: String::from("my_name"),
+                name: SafePackageName::try_from("my_name").unwrap(),
                 description: None,
                 version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),
@@ -525,7 +534,7 @@ mod tests {
                 requires_license: false,
             },
         };
-        a.insert(addon.metadata.name.clone(), addon).unwrap();
+        a.insert(addon.metadata.name.to_string(), addon).unwrap();
         let reference: serde_json::Value = serde_json::from_str(
             &read_to_string("./tests/database/plugin_database_update_sample.json.expected")
                 .unwrap(),

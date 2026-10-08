@@ -139,7 +139,7 @@ impl ListOutput {
         let enabled_plugins: HashSet<String> = jars
             .into_iter()
             .flat_map(|j| db.plugin_provides_jar(&j))
-            .map(|p| p.metadata.name.clone())
+            .map(|p| p.metadata.name.to_string())
             .collect();
         if index.is_none() {
             info!(
@@ -150,9 +150,11 @@ impl ListOutput {
 
         for p in db.plugins.values() {
             let name = p.metadata.short_name().to_string();
-            let enabled = enabled_plugins.contains(&p.metadata.name);
+            let enabled = enabled_plugins.contains(&p.metadata.name.to_string());
             let latest_version = index
-                .and_then(|i| i.latest_compatible_plugin(&webapp.version, &p.metadata.name))
+                .and_then(|i| {
+                    i.latest_compatible_plugin(&webapp.version, &p.metadata.name.to_string())
+                })
                 .map(|p| p.metadata.version.to_string());
 
             let e = ListEntry {
@@ -164,7 +166,7 @@ impl ListOutput {
                 enabled,
                 installed: true,
                 description: p.metadata.description.clone(),
-                license: licenses.inner.get(&p.metadata.name).cloned(),
+                license: licenses.inner.get(&p.metadata.name.to_string()).cloned(),
             };
             if !show_only_enabled || enabled {
                 // Standalone plugins are always considered enabled
@@ -175,7 +177,7 @@ impl ListOutput {
 
         if show_all && let Some(available) = latest {
             for p in available {
-                if !installed_plugins.contains(&&p.metadata.name) {
+                if !installed_plugins.contains(&&p.metadata.name.to_string()) {
                     let name = p.metadata.short_name().to_string();
                     let e = ListEntry {
                         name,
@@ -186,7 +188,7 @@ impl ListOutput {
                         installed: false,
                         enabled: false,
                         description: p.metadata.description.clone(),
-                        license: licenses.inner.get(&p.metadata.name).cloned(),
+                        license: licenses.inner.get(&p.metadata.name.to_string()).cloned(),
                     };
                     plugins.push(e);
                 }
