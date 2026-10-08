@@ -9,7 +9,7 @@ import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), SortOrder(..), buildConfig, buildCustomizations, buildOptions)
 import Time exposing (Zone)
-import Utils.DateUtils exposing (posixToString)
+import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
 
 
 initTable : Bool -> ContextPath -> Zone -> Rudder.Table.Model EventLog msg
@@ -20,17 +20,19 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
            Build the json parameters to query on this event log with the log id.
            {
              "id":{"value":1234,"regex":false,"fixed":[]},
+             "startDate":"2026-09-14 00:00:00",
+             "endDate":"2026-09-14 17:17:08"
              "draw":1,
              "start":0,
              "length":5
            }
         -}
-        idWithLinkToChangeLogsPage : Int -> Html msg
-        idWithLinkToChangeLogsPage eventLogId =
+        idWithLinkToChangeLogsPage : EventLog -> Html msg
+        idWithLinkToChangeLogsPage eventLog =
             let
                 id =
                     object
-                        [ ( "value", eventLogId |> int )
+                        [ ( "value", eventLog.id |> int )
                         , ( "regex", bool False )
                         , ( "fixed", list bool [] )
                         ]
@@ -38,6 +40,8 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                 json =
                     object
                         [ ( "id", id )
+                        , ( "startDate", string (posixToStringWithHoursMinutesAndSecondsTo0 timezone eventLog.date) )
+                        , ( "endDate", string (posixToStringWithoutTimeZoneOffset timezone eventLog.date) )
                         , ( "draw", int 1 )
                         , ( "start", int 0 )
                         , ( "length", int 5 )
@@ -51,7 +55,7 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                         ++ json
                     )
                 ]
-                [ text (String.fromInt eventLogId) ]
+                [ text (String.fromInt eventLog.id) ]
 
         idWithoutLink : Int -> Html msg
         idWithoutLink eventLogId =
@@ -64,7 +68,7 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                 , renderHtml =
                     \eventLog ->
                         if canReadChangeLogs then
-                            idWithLinkToChangeLogsPage eventLog.id
+                            idWithLinkToChangeLogsPage eventLog
 
                         else
                             idWithoutLink eventLog.id

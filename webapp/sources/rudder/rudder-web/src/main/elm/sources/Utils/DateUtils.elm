@@ -3,6 +3,8 @@ module Utils.DateUtils exposing
     , posixOrdering
     , posixToDateString
     , posixToString
+    , posixToStringWithHoursMinutesAndSecondsTo0
+    , posixToStringWithoutTimeZoneOffset
     , posixToTimeString
     , relativeTimeOptions
     )
@@ -58,6 +60,39 @@ posixToString zone time =
         ++ ":"
         ++ padded (Time.toSecond zone time)
         ++ offsetString zone time
+
+
+{-| Format date setting the hours, minutes and seconds to 0
+
+Use case : in recent activity tabs we can navigate from some activity log in the table to the change log page with
+filters to see only this log. To do so we need to pass some parameters like the id of the log and the start date.
+
+Keeping the current day and setting the hours, minutes and seconds to 0 enforce a correct range of date.
+
+-}
+posixToStringWithHoursMinutesAndSecondsTo0 : Zone -> Posix -> String
+posixToStringWithHoursMinutesAndSecondsTo0 zone time =
+    String.fromInt (Time.toYear zone time)
+        ++ "-"
+        ++ monthToNmbString (Time.toMonth zone time)
+        ++ "-"
+        ++ padded (Time.toDay zone time)
+        ++ " 00:00:00"
+
+
+posixToStringWithoutTimeZoneOffset : Zone -> Posix -> String
+posixToStringWithoutTimeZoneOffset zone time =
+    String.fromInt (Time.toYear zone time)
+        ++ "-"
+        ++ monthToNmbString (Time.toMonth zone time)
+        ++ "-"
+        ++ padded (Time.toDay zone time)
+        ++ " "
+        ++ padded (Time.toHour zone time)
+        ++ ":"
+        ++ padded (Time.toMinute zone time)
+        ++ ":"
+        ++ padded (Time.toSecond zone time)
 
 
 monthToNmbString : Month -> String
