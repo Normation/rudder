@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
-    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, PACKAGES_FOLDER,
-    database::{Database, InstalledPlugin},
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE,
+    database::{Database, InstalledPlugin, UninstallMode},
     plugin::Metadata,
     webapp::Webapp,
 };
@@ -106,7 +106,7 @@ impl Rpkg {
     fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {
         // Build the destination path
         if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
-            return Ok(PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone()));
+            return Ok(self.metadata.scripts_dir());
         }
         let dst =
             self.metadata.content.get(txz_name).ok_or_else(|| {
@@ -183,6 +183,14 @@ impl Rpkg {
             .collect::<Result<Vec<String>>>()
     }
 
+    fn get_default_extract_folder(&self) -> Result<PathBuf> {
+        Ok(self.metadata.content_dir())
+    }
+
+    fn get_default_package_scripts_extract_folder(&self) -> Result<PathBuf> {
+        Ok(self.metadata.scripts_dir())
+    }
+
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
         debug!(
             "Extracting archive '{}' in folder '{}'",
@@ -214,13 +222,18 @@ impl Rpkg {
         Ok(())
     }
 
-    pub fn is_installed(&self, db: &Database) -> bool {
-        db.is_installed(self)
+    fn clean_dir(dir: &Path) -> Result<()> {
+        match fs::remove_dir_all(dir) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                Err(e).context(format!("Could not clean the folder '{}'", dir.display(),))
+            }
+            _ => Ok(()),
+        }
     }
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
         debug!("Installing rpkg file '{}'...", self.path.display());
-        let is_upgrade = self.is_installed(db);
+        let is_upgrade = db.plugins.contains_key(&self.metadata.name.to_string());
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
             bail!(
@@ -239,15 +252,23 @@ impl Rpkg {
         }
 
         if is_upgrade {
-            // First uninstall old version, but without running prerm/portrm scripts
-            db.uninstall(&self.metadata.name, false, webapp)?;
+            // First uninstall old version, but without running prerm/postrm scripts
+            db.uninstall(
+                &self.metadata.name.to_string(),
+                UninstallMode::Upgrade,
+                webapp,
+            )?;
         }
 
+        // Clean the plugin package script folder before extracting the files
+        let package_script_folder = self.get_default_package_scripts_extract_folder()?;
+        debug!(
+            "Cleaning the {} folder before extracting the plugin package scripts",
+            package_script_folder.display()
+        );
+        Self::clean_dir(&package_script_folder)?;
         // Extract package scripts
-        self.unpack_embedded_txz(
-            PACKAGE_SCRIPTS_ARCHIVE,
-            PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone()),
-        )?;
+        self.unpack_embedded_txz(PACKAGE_SCRIPTS_ARCHIVE, package_script_folder)?;
         // Run preinst if any
         let arg = if is_upgrade {
             PackageScriptArg::Upgrade
@@ -257,6 +278,18 @@ impl Rpkg {
         self.metadata
             .run_package_script(PackageScript::Preinst, arg)?;
 
+        // Clean the plugin default content folder before extracting the files
+        let default_extract_folder = self.get_default_extract_folder()?;
+        debug!(
+            "Cleaning the {} folder before extracting the plugin content",
+            default_extract_folder.display()
+        );
+        Self::clean_dir(&default_extract_folder)?;
+        fs::create_dir_all(&default_extract_folder).context(format!(
+            "Could not create the default extract folder {} for plugin {}",
+            default_extract_folder.display(),
+            self.metadata.name
+        ))?;
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
@@ -265,24 +298,24 @@ impl Rpkg {
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
         db.insert(
-            self.metadata.name.clone(),
+            self.metadata.name.to_string(),
             InstalledPlugin {
                 files: self.get_archive_installed_files()?,
                 metadata: self.metadata.clone(),
             },
         )?;
         // Run postinst if any
-        let arg = if self.is_installed(db) {
-            PackageScriptArg::Upgrade
-        } else {
-            PackageScriptArg::Install
-        };
         if env::var(DONT_RUN_POSTINST_ENV_VAR).is_ok() {
             debug!(
                 "Skipping postinstall scripts as {} environment variable is set",
                 DONT_RUN_POSTINST_ENV_VAR
             );
         } else {
+            let arg = if is_upgrade {
+                PackageScriptArg::Upgrade
+            } else {
+                PackageScriptArg::Install
+            };
             self.metadata
                 .run_package_script(PackageScript::Postinst, arg)?;
         }
