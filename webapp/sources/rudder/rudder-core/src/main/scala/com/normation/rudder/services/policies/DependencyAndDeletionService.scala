@@ -46,6 +46,7 @@ import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -228,7 +229,8 @@ class DependencyAndDeletionServiceImpl(
     roDirectiveRepository: RoDirectiveRepository,
     woDirectiveRepository: WoDirectiveRepository,
     woRuleRepository:      WoRuleRepository,
-    woGroupRepository:     WoNodeGroupRepository
+    woGroupRepository:     WoNodeGroupRepository,
+    campaignRepository: CampaignRepository
 ) extends DependencyAndDeletionService with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
@@ -516,6 +518,20 @@ class DependencyAndDeletionServiceImpl(
         for {
           configRules   <- findDependencies.findRulesForTarget(targetToDelete)
           updatedRules  <- ZIO.foreach(configRules)(updateRule)
+          campaigns <- campaignRepository.getAll(List(), List())
+          filteredCampaign <- campaigns.filter(c => c.details.)
+          _ <- // ZIO.foreach(campaigns). campaignRepository.save()
+
+          ZIO.foreach(campaigns) { campaign =>
+          if (campaign..contains(r) || AuthorizationType.parseRight(r).isRight) { Some(r).succeed }
+        else {
+        logger.warn(
+        s"Role '${name}' reference unknown role '${r}': '${r}' will be ignored."
+        ) *> None.succeed
+        }
+        }
+
+          // FIXME : add a step to update campaign having dependencies on this group
           deletedTarget <- woGroupRepository
                              .delete(groupId, modId, actor, reason)
                              .chainError(
