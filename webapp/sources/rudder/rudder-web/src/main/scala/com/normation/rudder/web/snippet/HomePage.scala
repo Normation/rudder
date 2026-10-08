@@ -421,7 +421,13 @@ class HomePage extends SecureExtendableSnippet[HomePage] with StatefulSnippet wi
   }
 
   private def countAllDirectives()(using qc: QueryContext): Box[Int] = {
-    directiveRepo.getFullDirectiveLibrary().map(_.allDirectives.size).toBox
+    directiveRepo
+      .getFullDirectiveLibrary()
+      .map(_.allDirectives.count {
+        case (_, (at, _)) if at.policyTypes.isBase => true
+        case _                                     => false
+      })
+      .toBox
   }
 
   private def countAllTechniques()(using qc: QueryContext): Box[Int] = {
