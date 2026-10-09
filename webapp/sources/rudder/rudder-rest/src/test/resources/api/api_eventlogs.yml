@@ -71,7 +71,7 @@ body: >-
       "regex": false
     },
     "startDate": "2024-12-04 15:31:15",
-    "endDate": "2024-12-04 15:30:54"
+    "endDate": "2024-12-04T15:30:54.000Z"
   }
 response:
   code: 200

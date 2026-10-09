@@ -36,12 +36,8 @@
  */
 package com.normation.rudder.rest.data
 
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.EventLogRequest
+import com.normation.eventlog.*
 import com.normation.eventlog.EventLogRequest.*
-import com.normation.eventlog.EventLogType
-import com.normation.eventlog.RollbackPosition
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.QueryContext
@@ -164,21 +160,34 @@ object RestEventLogFilter  {
   implicit val eventLogTypeDecoder: JsonDecoder[EventLogType] =
     JsonDecoder[String].mapOrFail(t => EventTypeFactory.get(t).toRight(s"Type ${t} doesn't exist"))
 
-  implicit val idDecoder:                 JsonDecoder[Id]                        = DeriveJsonDecoder.gen[Id]
-  implicit val objectIdDecoder:           JsonDecoder[ObjectId]                  = DeriveJsonDecoder.gen[ObjectId]
-  implicit val searchDecoder:             JsonDecoder[Search]                    = DeriveJsonDecoder.gen[Search]
-  implicit val columnDecoder:             JsonDecoder[Column]                    = JsonDecoder[Int].mapOrFail(Column.fromId)
-  implicit val directionDecoder:          JsonDecoder[Direction]                 = JsonDecoder[String].mapOrFail(Direction.parse)
-  implicit val eventActorDecoder:         JsonDecoder[NonEmptyChunk[EventActor]] = JsonDecoder[String].mapOrFail(actors =>
+  implicit val idDecoder:              JsonDecoder[Id]                        = DeriveJsonDecoder.gen[Id]
+  implicit val objectIdDecoder:        JsonDecoder[ObjectId]                  = DeriveJsonDecoder.gen[ObjectId]
+  implicit val searchDecoder:          JsonDecoder[Search]                    = DeriveJsonDecoder.gen[Search]
+  implicit val columnDecoder:          JsonDecoder[Column]                    = JsonDecoder[Int].mapOrFail(Column.fromId)
+  implicit val directionDecoder:       JsonDecoder[Direction]                 = JsonDecoder[String].mapOrFail(Direction.parse)
+  implicit val eventActorDecoder:      JsonDecoder[NonEmptyChunk[EventActor]] = JsonDecoder[String].mapOrFail(actors =>
     NonEmptyChunk.fromIterableOption(actors.split(",").toList.map(EventActor(_))).toRight("Could not decode actors.")
   )
-  implicit val principalFilterDecoder:    JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
-  implicit val orderDecoder:              JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
-  implicit val localDateTimeDecoder:      JsonDecoder[LocalDateTime]             = {
+  implicit val principalFilterDecoder: JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
+  implicit val orderDecoder:           JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
+  /*implicit val localDateTimeDecoder:      JsonDecoder[LocalDateTime]             = {
     val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    JsonDecoder[String].map(LocalDateTime.parse(_, format))
+    JsonDecoder[String].map(LocalDateTime.parse(_, format)).orElse
+      (DateFormaterService.json.decoderInstant.map(LocalDateTime.ofInstant(_, ZoneOffset.UTC)))
   }
-  implicit val restEventLogFilterDecoder: JsonDecoder[RestEventLogFilter]        = DeriveJsonDecoder.gen[RestEventLogFilter]
+   */
+
+  implicit val localDateTimeDecoder: JsonDecoder[LocalDateTime] = {
+    import cats.syntax.either.*
+    val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    JsonDecoder[String]
+      .mapOrFail(s => Either.catchNonFatal(LocalDateTime.parse(s, format)).left.map(_.getMessage))
+      .orElse(
+        DateFormaterService.json.decoderInstant.map(LocalDateTime.ofInstant(_, ZoneOffset.UTC))
+      )
+  }
+
+  implicit val restEventLogFilterDecoder: JsonDecoder[RestEventLogFilter] = DeriveJsonDecoder.gen[RestEventLogFilter]
 }
 
 final case class RestEventLogDetails(
