@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2026 Normation SAS
+description: >-
+  Tenants of the object (requires the `multi-tenants` plugin).
+  Absent when the object is visible only to accounts with access to all tenants.
+  `{"tenants": [...]}` when the object belongs to the listed tenants. An account sees it if it has access to one of them,
+  and can change it if it has write access to one of them.
+  `"open-ro"` when every account sees the object and only accounts with write access to all tenants can change it.
+  `"open-rw"` when every account sees the object and accounts with write access to at least one tenant can change it.
+  The value is filtered for the caller: an account with access to a subset of tenants only sees, in the list, the tenants
+  it has access to; for an account with no tenant the field is absent.
+readOnly: true
+oneOf:
+  - type: string
+    enum:
+      - open-ro
+      - open-rw
+  - type: object
+    required:
+      - tenants
+    properties:
+      tenants:
+        type: array
+        items:
+          type: string
+          description: Tenant id
+example:
+  tenants:
+    - zone-1

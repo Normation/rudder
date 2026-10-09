@@ -13,6 +13,8 @@ items:
       items:
         type: string
         description: Technique version
+    security:
+      $ref: security-tag.yml
   example:
     name: userManagement
     versions: ["1.0", "1.2", "3.0"]

@@ -1,1 +1,1 @@
-curl --header "X-API-Token: yourToken" --request POST --header "Content-Type: application/json" 'https://rudder.example.com/rudder/api/latest/tenants' --data '[{"id":"zone1","name":"Zone One"}]'
+curl --header "X-API-Token: yourToken" --request POST --header "Content-Type: application/json" 'https://rudder.example.com/rudder/api/latest/tenants' --data '[{"id":"zone-1","name":"Zone 1","description":"Nodes of the European geo zone","documentation":"","enabled":true}]'

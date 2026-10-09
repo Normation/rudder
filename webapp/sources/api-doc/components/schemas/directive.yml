@@ -125,3 +125,8 @@ properties:
                     - var:
                         name: FILE_AND_FOLDER_MANAGEMENT_POST_HOOK_RUN
                         value: "false"
+
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Tenants of the directive (requires the `multi-tenants` plugin), with the values described in the security tag schema.
