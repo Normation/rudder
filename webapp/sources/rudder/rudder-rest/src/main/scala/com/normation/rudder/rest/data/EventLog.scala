@@ -170,6 +170,11 @@ object RestEventLogFilter  {
   )
   implicit val principalFilterDecoder: JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
   implicit val orderDecoder:           JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
+  /**
+   * Decoder able to handle both format : "2024-12-04 15:31:15" and "2024-12-04T15:30:54.000Z"
+   *
+   * Note: the format "2024-12-04 15:31:15" is deprecated we should always have the timezoned format.
+   */
   implicit val localDateTimeDecoder:   JsonDecoder[LocalDateTime]             = {
     import cats.syntax.either.*
     val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
