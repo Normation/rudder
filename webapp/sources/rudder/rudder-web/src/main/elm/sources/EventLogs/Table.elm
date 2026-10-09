@@ -4,13 +4,11 @@ import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg)
 import EventLogs.HtmlParserAdapter exposing (toHtml, toString)
 import Html exposing (Html, a, text)
 import Html.Attributes exposing (class, href)
-import Iso8601 exposing (fromTime)
-import Json.Encode exposing (Value, bool, encode, int, list, object, string)
+import Json.Encode exposing (Value, bool, encode, int, list, object)
 import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), SortOrder(..), buildConfig, buildCustomizations, buildOptions)
 import Time exposing (Posix, Zone)
-import Time.Extra
 import Utils.DateUtils exposing (posixToString)
 
 
@@ -22,8 +20,6 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
            Build the json parameters to query on this event log with the log id.
            {
              "id":{"value":1234,"regex":false,"fixed":[]},
-             "startDate":"2026-09-14 00:00:00",
-             "endDate":"2026-09-14 17:17:08"
              "draw":1,
              "start":0,
              "length":5
@@ -39,16 +35,9 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                         , ( "fixed", list bool [] )
                         ]
 
-                calculateDate : Zone -> Posix -> (Int -> Int) -> Posix
-                calculateDate zone posix operation =
-                    Time.Extra.posixToParts zone posix
-                        |> (\parts -> Time.Extra.partsToPosix zone { parts | hour = parts.hour, minute = operation parts.minute, second = parts.second })
-
                 json =
                     object
                         [ ( "id", id )
-                        , ( "startDate", string (fromTime (calculateDate timezone eventLog.date (\min -> min - 1))) )
-                        , ( "endDate", string (fromTime (calculateDate timezone eventLog.date (\min -> min + 1))) )
                         , ( "draw", int 1 )
                         , ( "start", int 0 )
                         , ( "length", int 5 )

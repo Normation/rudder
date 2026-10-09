@@ -110,25 +110,15 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
     , "contentType": "application/json"
     , "url" : contextPath + "/secure/api/eventlog"
     , "data" :
-       function (d) {
-         if (filterCriteria.startDate === undefined) {
-           d.startDate = $(".pickStartInput").val()
-         } else {
-           d.startDate = filterCriteria.startDate
-         }
-         if (filterCriteria.endDate === undefined) {
-           d.endDate = $(".pickEndInput").val()
-         } else {
-           d.endDate = filterCriteria.endDate
-         }
-         if (filterCriteria.id !== undefined) {
-           d.id = filterCriteria.id
-         }
-         if (filterCriteria.search !== undefined) {
-           d.search = filterCriteria.search
-         }
-         return JSON.stringify( d );
-       }
+            function (d) {
+                if (filterCriteria.id !== undefined) {
+                    d.id = filterCriteria.id
+                } else {
+                    d.startDate = new Date($(".pickStartInput").val()).toISOString()
+                    d.endDate = new Date($(".pickEndInput").val()).toISOString()
+                }
+                return JSON.stringify( d );
+            }
     }
   , "paging" : true
   , "lengthChange": true

@@ -42,14 +42,10 @@ import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.EventLogDetailsGenerator
-import com.normation.utils.DateFormaterService
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import org.joda.time.DateTime
+import java.time.Instant
 import scala.xml.NodeSeq
 import zio.Chunk
 import zio.NonEmptyChunk
@@ -62,7 +58,7 @@ import zio.json.ast.Json
   */
 final case class RestEventLog(
     id:                              Option[Int],
-    @jsonField("date") creationDate: DateTime,
+    @jsonField("date") creationDate: Instant,
     actor:                           EventActor,
     description:                     NodeSeq,
     hasDetails:                      Boolean
@@ -70,8 +66,6 @@ final case class RestEventLog(
 
 object RestEventLog {
 
-  // We still have Joda DateTime because we map an event log field using chimney
-  implicit val datetimeEncoder:    JsonEncoder[DateTime]     = DateFormaterService.json.encoderDateTime
   implicit val eventActorEncoder:  JsonEncoder[EventActor]   = JsonEncoder[String].contramap(_.name)
   implicit val descriptionEncoder: JsonEncoder[NodeSeq]      = JsonEncoder[String].contramap(_.toString())
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]
@@ -86,7 +80,6 @@ object RestEventLog {
       .withFieldComputed(_.actor, _.principal)
       .withFieldComputed(_.description, eventLogDetail.displayDescription)
       .withFieldComputed(_.hasDetails, _.details != <entry></entry>)
-      .withFieldComputed(_.creationDate, e => DateFormaterService.toDateTime(e.creationDate))
       .buildTransformer
   }
 }
@@ -132,8 +125,8 @@ final case class RestEventLogFilter(
     id:         Option[EventLogRequest.Id],
     objectId:   Option[EventLogRequest.ObjectId],
     search:     Option[EventLogRequest.Search],
-    startDate:  Option[LocalDateTime],
-    endDate:    Option[LocalDateTime],
+    startDate:  Option[Instant],
+    endDate:    Option[Instant],
     principal:  Option[EventLogRequest.PrincipalFilter],
     order:      Chunk[EventLogRequest.Order],
     typeFilter: Option[EventLogRequest.TypeFilter]
@@ -145,8 +138,8 @@ final case class RestEventLogFilter(
       id,
       objectId,
       search,
-      startDate.map(_.toInstant(ZoneOffset.UTC)),
-      endDate.map(_.toInstant(ZoneOffset.UTC)),
+      startDate,
+      endDate,
       principal,
       order.toList.headOption,
       typeFilter
@@ -160,32 +153,17 @@ object RestEventLogFilter  {
   implicit val eventLogTypeDecoder: JsonDecoder[EventLogType] =
     JsonDecoder[String].mapOrFail(t => EventTypeFactory.get(t).toRight(s"Type ${t} doesn't exist"))
 
-  implicit val idDecoder:              JsonDecoder[Id]                        = DeriveJsonDecoder.gen[Id]
-  implicit val objectIdDecoder:        JsonDecoder[ObjectId]                  = DeriveJsonDecoder.gen[ObjectId]
-  implicit val searchDecoder:          JsonDecoder[Search]                    = DeriveJsonDecoder.gen[Search]
-  implicit val columnDecoder:          JsonDecoder[Column]                    = JsonDecoder[Int].mapOrFail(Column.fromId)
-  implicit val directionDecoder:       JsonDecoder[Direction]                 = JsonDecoder[String].mapOrFail(Direction.parse)
-  implicit val eventActorDecoder:      JsonDecoder[NonEmptyChunk[EventActor]] = JsonDecoder[String].mapOrFail(actors =>
+  implicit val idDecoder:                 JsonDecoder[Id]                        = DeriveJsonDecoder.gen[Id]
+  implicit val objectIdDecoder:           JsonDecoder[ObjectId]                  = DeriveJsonDecoder.gen[ObjectId]
+  implicit val searchDecoder:             JsonDecoder[Search]                    = DeriveJsonDecoder.gen[Search]
+  implicit val columnDecoder:             JsonDecoder[Column]                    = JsonDecoder[Int].mapOrFail(Column.fromId)
+  implicit val directionDecoder:          JsonDecoder[Direction]                 = JsonDecoder[String].mapOrFail(Direction.parse)
+  implicit val eventActorDecoder:         JsonDecoder[NonEmptyChunk[EventActor]] = JsonDecoder[String].mapOrFail(actors =>
     NonEmptyChunk.fromIterableOption(actors.split(",").toList.map(EventActor(_))).toRight("Could not decode actors.")
   )
-  implicit val principalFilterDecoder: JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
-  implicit val orderDecoder:           JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
-  /**
-   * Decoder able to handle both format : "2024-12-04 15:31:15" and "2024-12-04T15:30:54.000Z"
-   *
-   * Note: the format "2024-12-04 15:31:15" is deprecated we should always have the timezoned format.
-   */
-  implicit val localDateTimeDecoder:   JsonDecoder[LocalDateTime]             = {
-    import cats.syntax.either.*
-    val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    JsonDecoder[String]
-      .mapOrFail(s => Either.catchNonFatal(LocalDateTime.parse(s, format)).left.map(_.getMessage))
-      .orElse(
-        DateFormaterService.json.decoderInstant.map(LocalDateTime.ofInstant(_, ZoneOffset.UTC))
-      )
-  }
-
-  implicit val restEventLogFilterDecoder: JsonDecoder[RestEventLogFilter] = DeriveJsonDecoder.gen[RestEventLogFilter]
+  implicit val principalFilterDecoder:    JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
+  implicit val orderDecoder:              JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
+  implicit val restEventLogFilterDecoder: JsonDecoder[RestEventLogFilter]        = DeriveJsonDecoder.gen[RestEventLogFilter]
 }
 
 final case class RestEventLogDetails(
