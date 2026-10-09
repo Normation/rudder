@@ -138,7 +138,7 @@ properties:
       required:
         - name
         - capabilities
-        - nodeKind 
+        - nodeKind
       properties:
         name:
           type: string
@@ -216,6 +216,11 @@ properties:
         format: +/-difference
         description: Timezone offset to UTC
         example: "+0000"
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Since API version 24. Tenants of the node (requires the `multi-tenants` plugin), with the values described in the security tag schema.
+      Unlike the other objects, the value is not reduced to the tenants of the caller.
   ##########
   #
   # full

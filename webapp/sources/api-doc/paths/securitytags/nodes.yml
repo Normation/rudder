@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2024 Normation SAS
 post:
-  summary: Define a tenant on nodes
-  description: Set given tenant to the list of nodes. You can give several (tenantId, nodes) in one go.
-  operationId: setNodeSecurityTags
+  summary: Set the tenant of nodes
+  description: >-
+    Set the tenant of the given nodes, replacing their previous tenant. Several (tenantId, nodeIds) pairs can be given in one
+    request; a node can only be given one tenant, otherwise the request is refused.
+  operationId: setNodeSecurityTag
   requestBody:
     required: true
     content:
@@ -77,7 +79,7 @@ post:
 
 delete:
   summary: Remove tenant value on nodes
-  description: Remove defined tenant on the list of nodes. Nodes without a tenant are not changed.
+  description: Remove the tenant of the given nodes. Nodes without a tenant are not changed.
   operationId: deleteNodeSecurityTag
   requestBody:
     required: true
@@ -90,7 +92,7 @@ delete:
             description: a node ID on which the tenant must be removed
   responses:
     "200":
-      description: The list of tenants
+      description: The nodes whose tenant was removed
       content:
         application/json:
           schema:

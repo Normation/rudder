@@ -37,6 +37,7 @@
 
 package com.normation.rudder.apidata
 
+import com.normation.rudder.api.ApiVersion
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import enumeratum.EnumEntry.Lowercase
@@ -105,6 +106,20 @@ object NodeFileFormat {
   case object V1 extends NodeFileFormat
 }
 
+/*
+ * The field that shows the tenants of a node:
+ * - up to API 23, `tenant`: the first tenant of the node
+ * - from API 24, `security`: the security tag, with the codec of configuration objects.
+ */
+enum NodeTenantField {
+  case Tenant
+  case Security
+}
+
+object NodeTenantField {
+  def forApiVersion(version: ApiVersion): NodeTenantField = if (version.value < 24) Tenant else Security
+}
+
 // this is for NodeFileFormat.V1
 object NodeDetailLevel {
 
@@ -124,7 +139,8 @@ object NodeDetailLevel {
     "properties",
     "policyMode",
     "timezone",
-    "tenant"
+    "tenant",  // API < 24, see `NodeTenantField`
+    "security" // API >= 24
   )
 
   val otherAllFields: List[String] = List(

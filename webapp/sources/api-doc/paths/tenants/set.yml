@@ -1,14 +1,22 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2026 Normation SAS
-get:
-  summary: Get a tenant
-  description: Get one tenant. An unknown id is an error.
-  operationId: getTenant
-  parameters:
-    - $ref: ../../components/parameters/tenant-id.yml
+post:
+  summary: Replace all tenants
+  description: >-
+    Replace the declared tenants by the given list: tenants absent from it are deleted, as with the delete endpoint. Every id
+    is checked first: if one is invalid, nothing is changed.
+  operationId: setTenants
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: ../../components/schemas/tenant.yml
   responses:
     "200":
-      description: The tenant, in a list of one element
+      description: Ids of the tenants now declared
       content:
         application/json:
           schema:
@@ -28,7 +36,7 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getTenant
+                  - setTenants
               data:
                 type: object
                 required:
@@ -37,10 +45,11 @@ get:
                   tenants:
                     type: array
                     items:
-                      $ref: ../../components/schemas/tenant.yml
+                      type: string
+                      description: Tenant id
   tags:
     - 🧩 Multi-tenants
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/tenants/id.sh
+        $ref: ../../code_samples/curl/tenants/set.sh

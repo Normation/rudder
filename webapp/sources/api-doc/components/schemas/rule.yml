@@ -21,13 +21,14 @@ properties:
     description: Rule documentation
   directives:
     type: array
-    description: Directives linked to the rule
+    description: Directives linked to the rule. With the `multi-tenants` plugin, the list contains all directives whatever their tenants are.
     items:
       type: string
       description: "Directive id"
       example: ff3bf651-3fce-49bc-8bf3-85132fa9b875
   targets:
     $ref: ../../components/schemas/rule-targets.yml
+    description: Groups and other targets of the rule. With the `multi-tenants` plugin, the list contains all items whatever their tenants are.
   enabled:
     type: boolean
     description: Is the rule enabled
@@ -56,3 +57,8 @@ properties:
       details:
         type: string
         example: "Directive 'test parameter name' disabled"
+
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Tenants of the group (requires the `multi-tenants` plugin), with the values described in the security tag schema.

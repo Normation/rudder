@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2026 Normation SAS
+post:
+  summary: Set the tenants of a security benchmark
+  description: >-
+    Since API version 24. Set the tenants of a security benchmark, which are also given to the rules and directives it
+    generates. Only accounts with access to all tenants can use it. The tenants of a benchmark can only be extended: a
+    value that removes a tenant, or names an unknown tenant, is refused.
+  operationId: updateSecurityBenchmarkTenants
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Id of the security benchmark
+      schema:
+        type: string
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - security
+          properties:
+            security:
+              description: The new tenants of the benchmark, with the values described in the security tag schema
+              oneOf:
+                - type: string
+                  enum:
+                    - open-ro
+                    - open-rw
+                - type: object
+                  required:
+                    - tenants
+                  properties:
+                    tenants:
+                      type: array
+                      items:
+                        type: string
+                        description: Tenant id
+          example:
+            security:
+              tenants:
+                - zone-1
+  responses:
+    "200":
+      description: The updated security benchmark
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateSecurityBenchmarkTenants
+              data:
+                type: object
+                description: The security benchmark
+                properties:
+                  security:
+                    $ref: ../../components/schemas/security-tag.yml
+  tags:
+    - 🧩 Security benchmarks
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/securityBenchmarks/security.sh

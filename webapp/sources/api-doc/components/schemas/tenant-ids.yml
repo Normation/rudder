@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2026 Normation SAS
 type: string
-description: a comma separated list of tenant IDs (validated with non empty alpha-num and hyphen) allowed for that account, or special value "\*" / "-".
-oneOf:
-  - const: '*'
-  - const: '-'
-  - pattern: '^([A-Za-z0-9][A-Za-z0-9_-]*)(,([A-Za-z0-9][A-Za-z0-9_-]*))*$'
-example: '*'
+description: >-
+  Tenants the account has access to (requires the `multi-tenants` plugin).
+  `*` gives access to all tenants, `-` to no tenant (only objects open to all tenants are visible).
+  Otherwise, a comma separated list of tenant ids, each one optionally followed by `:r` (read only) or `:rw` (read and write,
+  the default when no suffix is given). A list containing `-` means no tenant, otherwise a list containing `*` means all tenants.
+  The value is returned normalized, without the `:rw` suffix.
+  When an account is created, or its tenants are updated, the value can not be wider than the tenants the caller can write on:
+  a caller with access to all tenants can give any value, a caller without any writable tenant can only give `-`, and any
+  other caller only a subset of its writable tenants. A wider value is refused.
+pattern: '^(\*|-|[A-Za-z0-9][A-Za-z0-9_-]*(:(r|rw))?(,[A-Za-z0-9][A-Za-z0-9_-]*(:(r|rw))?)*)$'
+example: 'zone-1,zone-2:r'

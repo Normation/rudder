@@ -105,3 +105,8 @@ properties:
                 enum:
                   - byNode
                 example: byNode
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Tenants of the data source (requires the `multi-tenants` plugin), with the values described in the security tag schema.
+      Unlike the other objects, the value is not reduced to the tenants of the caller.
