@@ -36,24 +36,16 @@
  */
 package com.normation.rudder.rest.data
 
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.EventLogRequest
+import com.normation.eventlog.*
 import com.normation.eventlog.EventLogRequest.*
-import com.normation.eventlog.EventLogType
-import com.normation.eventlog.RollbackPosition
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.EventLogDetailsGenerator
-import com.normation.utils.DateFormaterService
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import org.joda.time.DateTime
+import java.time.Instant
 import scala.xml.NodeSeq
 import zio.Chunk
 import zio.NonEmptyChunk
@@ -66,7 +58,7 @@ import zio.json.ast.Json
   */
 final case class RestEventLog(
     id:                              Option[Int],
-    @jsonField("date") creationDate: DateTime,
+    @jsonField("date") creationDate: Instant,
     actor:                           EventActor,
     description:                     NodeSeq,
     hasDetails:                      Boolean
@@ -74,8 +66,6 @@ final case class RestEventLog(
 
 object RestEventLog {
 
-  // We still have Joda DateTime because we map an event log field using chimney
-  implicit val datetimeEncoder:    JsonEncoder[DateTime]     = DateFormaterService.json.encoderDateTime
   implicit val eventActorEncoder:  JsonEncoder[EventActor]   = JsonEncoder[String].contramap(_.name)
   implicit val descriptionEncoder: JsonEncoder[NodeSeq]      = JsonEncoder[String].contramap(_.toString())
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]
@@ -90,7 +80,6 @@ object RestEventLog {
       .withFieldComputed(_.actor, _.principal)
       .withFieldComputed(_.description, eventLogDetail.displayDescription)
       .withFieldComputed(_.hasDetails, _.details != <entry></entry>)
-      .withFieldComputed(_.creationDate, e => DateFormaterService.toDateTime(e.creationDate))
       .buildTransformer
   }
 }
@@ -136,8 +125,8 @@ final case class RestEventLogFilter(
     id:         Option[EventLogRequest.Id],
     objectId:   Option[EventLogRequest.ObjectId],
     search:     Option[EventLogRequest.Search],
-    startDate:  Option[LocalDateTime],
-    endDate:    Option[LocalDateTime],
+    startDate:  Option[Instant],
+    endDate:    Option[Instant],
     principal:  Option[EventLogRequest.PrincipalFilter],
     order:      Chunk[EventLogRequest.Order],
     typeFilter: Option[EventLogRequest.TypeFilter]
@@ -149,8 +138,8 @@ final case class RestEventLogFilter(
       id,
       objectId,
       search,
-      startDate.map(_.toInstant(ZoneOffset.UTC)),
-      endDate.map(_.toInstant(ZoneOffset.UTC)),
+      startDate,
+      endDate,
       principal,
       order.toList.headOption,
       typeFilter
@@ -174,10 +163,6 @@ object RestEventLogFilter  {
   )
   implicit val principalFilterDecoder:    JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
   implicit val orderDecoder:              JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
-  implicit val localDateTimeDecoder:      JsonDecoder[LocalDateTime]             = {
-    val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    JsonDecoder[String].map(LocalDateTime.parse(_, format))
-  }
   implicit val restEventLogFilterDecoder: JsonDecoder[RestEventLogFilter]        = DeriveJsonDecoder.gen[RestEventLogFilter]
 }
 

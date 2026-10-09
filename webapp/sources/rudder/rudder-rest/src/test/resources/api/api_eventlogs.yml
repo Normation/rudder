@@ -70,8 +70,8 @@ body: >-
       "value": "",
       "regex": false
     },
-    "startDate": "2024-12-04 15:31:15",
-    "endDate": "2024-12-04 15:30:54"
+    "startDate": "2024-12-04T15:31:15.000Z",
+    "endDate": "2024-12-04T15:30:54.000Z"
   }
 response:
   code: 200
@@ -123,8 +123,8 @@ body: >-
       "value": "",
       "regex": false
     },
-    "startDate": "2024-12-04 15:31:15",
-    "endDate": "2024-12-04 15:30:54"
+    "startDate": "2024-12-04T15:31:15.000Z",
+    "endDate": "2024-12-04T15:30:54.000Z"
   }
 response:
   code: 500
@@ -169,8 +169,8 @@ body: >-
       "value": "",
       "regex": false
     },
-    "startDate": "2024-12-04 15:31:15",
-    "endDate": "2024-12-04 15:30:54"
+    "startDate": "2024-12-04T15:31:15.000Z",
+    "endDate": "2024-12-04T15:30:54.000Z"
   }
 response:
   code: 500
@@ -214,8 +214,8 @@ body: >-
       "value": "",
       "regex": false
     },
-    "startDate": "2024-12-04 15:31:15",
-    "endDate": "2024-12-04 15:30:54"
+    "startDate": "2024-12-04T15:31:15.000Z",
+    "endDate": "2024-12-04T15:30:54.000Z"
   }
 response:
   code: 500
