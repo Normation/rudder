@@ -2,6 +2,10 @@
 # SPDX-FileCopyrightText: 2013-2025 Normation SAS
 ## same as directive-new without source
 type: object
+required:
+  - name
+  - status
+  - tenants
 properties:
   id:
     description: An optional ID for that account. It needs to match [a-zA-Z0-9_-]+

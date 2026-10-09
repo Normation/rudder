@@ -20,7 +20,6 @@ properties:
         description: Campaign description
         example: ""
       status:
-
         oneOf:
           - $ref: './campaign-status-enabled.yml'
           - $ref: './campaign-status-disabled.yml'
@@ -31,6 +30,11 @@ properties:
           - $ref: './campaign-schedule-weekly.yml'
           - $ref: './campaign-schedule-oneshot.yml'
           - $ref: './campaign-schedule-monthly.yml'
+      security:
+        $ref: security-tag.yml
+        description: >-
+          Tenants of the campaign (requires the `multi-tenants` plugin), with the values described in the security tag schema.
+          Unlike the other objects, the value is not reduced to the tenants of the caller.
   campaignType:
     type: string
     enum:

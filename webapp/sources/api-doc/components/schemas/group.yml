@@ -95,3 +95,7 @@ properties:
           format: string or JSON
           example: debian10
           description: Property value (can be a string or JSON object)
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Tenants of the group (requires the `multi-tenants` plugin), with the values described in the security tag schema.

@@ -3509,7 +3509,8 @@ final case class TestCampaign(info: CampaignInfo, details: TestCampaignDetails) 
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
 }
 
-class MockCampaign() {
+// `checkTenant` applies the tenant law of the real repository (`CampaignRepositoryImpl`) to reads and saves
+class MockCampaign(checkTenant: TenantCheckLogic) {
 
   val campaignSerializer = new CampaignSerializer()
 
@@ -3545,15 +3546,16 @@ class MockCampaign() {
       for {
         campaigns <- items.get.map(_.valuesIterator.toList)
       } yield {
-        Campaign.filter(campaigns, typeFilter, statusFilter)
+        checkTenant.filter(Campaign.filter(campaigns, typeFilter, statusFilter))
       }
     }
 
-    override def get(id: CampaignId)(using qc: QueryContext): IOResult[Option[Campaign]] = items.get.map(_.get(id))
+    override def get(id: CampaignId)(using qc: QueryContext): IOResult[Option[Campaign]] =
+      items.get.map(m => checkTenant.flatMap(m.get(id): Option[Campaign]))
 
     override def save(c: Campaign)(using cc: ChangeContext): IOResult[Campaign] = {
-      c match {
-        case x: TestCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
+      checkTenant.manageSave(c, items.get.map(_.get(c.info.id): Option[Campaign]), Container.none) {
+        case x: TestCampaignTrait => items.update(_ + (x.info.id -> x)).as(x)
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
@@ -3745,8 +3747,6 @@ class MockCampaign() {
       }
     }
   }
-
-  val checkTenant: TenantCheckLogic = new MockTenants().checkTenant
 
   val mainCampaignService: MainCampaignService = {
     MainCampaignService

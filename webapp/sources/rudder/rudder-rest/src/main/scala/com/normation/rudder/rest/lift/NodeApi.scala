@@ -48,6 +48,7 @@ import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.JRInventoryStatus.RemovedInventory
 import com.normation.rudder.apidata.NodeDetailLevel
+import com.normation.rudder.apidata.NodeTenantField
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.config.ReasonBehavior
@@ -265,7 +266,8 @@ class NodeApi(
         res   <-
           nodeApiService.nodeDetailsGeneric(
             NodeId(id),
-            level.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+            level.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel),
+            NodeTenantField.forApiVersion(version)
           )
       } yield {
         res
@@ -422,15 +424,16 @@ class NodeApi(
       implicit val qc: QueryContext = authzToken.qc
       val state = AcceptedInventory
       (for {
-        optLevel <-
+        optLevel   <-
           restExtractor.extractNodeDetailLevelFromParams(req.params).toIO.chainError("Node detail level not correctly sent")
-        level     = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
-        query    <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Node query not correctly sent")
-        res      <- (query match {
-                      case None        => nodeApiService.listNodes(state, level, None)
-                      case Some(query) => nodeApiService.queryNodes(query, state, level)
+        level       = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+        tenantField = NodeTenantField.forApiVersion(version)
+        query      <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Node query not correctly sent")
+        res        <- (query match {
+                        case None        => nodeApiService.listNodes(state, level, tenantField, None)
+                        case Some(query) => nodeApiService.queryNodes(query, state, level, tenantField)
 
-                    }).chainError(s"Could not fetch ${state.name} Nodes")
+                      }).chainError(s"Could not fetch ${state.name} Nodes")
       } yield {
         res
       }).toLiftResponseList(params, schema)
@@ -445,15 +448,16 @@ class NodeApi(
       implicit val qc: QueryContext = authzToken.qc
       val state = PendingInventory
       (for {
-        optLevel <-
+        optLevel   <-
           restExtractor.extractNodeDetailLevelFromParams(req.params).toIO.chainError("Node detail level not correctly sent")
-        level     = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
-        query    <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Query for pending nodes not correctly sent")
-        res      <- (query match {
-                      case None        => nodeApiService.listNodes(state, level, None)
-                      case Some(query) => nodeApiService.queryNodes(query, state, level)
+        level       = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+        tenantField = NodeTenantField.forApiVersion(version)
+        query      <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Query for pending nodes not correctly sent")
+        res        <- (query match {
+                        case None        => nodeApiService.listNodes(state, level, tenantField, None)
+                        case Some(query) => nodeApiService.queryNodes(query, state, level, tenantField)
 
-                    }).chainError(s"Could not fetch ${state.name} Nodes")
+                      }).chainError(s"Could not fetch ${state.name} Nodes")
       } yield {
         res
       }).toLiftResponseList(params, schema)
@@ -1213,6 +1217,7 @@ class NodeApiService(
   def getNodeDetails(
       nodeId:      NodeId,
       detailLevel: NodeDetailLevel,
+      tenantField: NodeTenantField,
       state:       InventoryStatus
   )(implicit qc: QueryContext): IOResult[Option[JRNodeDetailLevel]] = {
     for {
@@ -1224,19 +1229,20 @@ class NodeApiService(
         implicit val agentRun:        Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten
         implicit val inventoryStatus: InventoryStatus                = state
         implicit val instanceId:      InstanceId                     = instanceIdService.instanceId
+        implicit val nodeTenantField: NodeTenantField                = tenantField
         detailLevel.transformInto[JRNodeDetailLevel]
       }
     }
   }
 
-  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel)(implicit
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, tenantField: NodeTenantField)(implicit
       qc: QueryContext
   ): IOResult[JRNodeDetailLevel] = {
     (for {
-      accepted  <- getNodeDetails(nodeId, detailLevel, AcceptedInventory)
+      accepted  <- getNodeDetails(nodeId, detailLevel, tenantField, AcceptedInventory)
       orPending <- accepted match {
                      case Some(i) => Some(i).succeed
-                     case None    => getNodeDetails(nodeId, detailLevel, PendingInventory)
+                     case None    => getNodeDetails(nodeId, detailLevel, tenantField, PendingInventory)
                    }
     } yield {
       orPending
@@ -1244,8 +1250,13 @@ class NodeApiService(
       .chainError(s"An error was encountered when looking for node with ID '${nodeId.value}'")
   }
 
-  def listNodes(state: InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]])(implicit
-      qc: QueryContext
+  def listNodes(
+      state:       InventoryStatus,
+      detailLevel: NodeDetailLevel,
+      tenantField: NodeTenantField,
+      nodeFilter:  Option[Seq[NodeId]]
+  )(implicit
+      qc:          QueryContext
   ): IOResult[Chunk[JRNodeDetailLevel]] = {
     val predicate = nodeFilter match {
       case Some(ids) => (n: NodeFact) => ids.contains(n.id)
@@ -1260,7 +1271,8 @@ class NodeApiService(
           .run(ZSink.collectAllToMap[NodeFact, NodeId](_.id)((a, b) => a))
       runs      <- reportsExecutionRepository.getNodesLastRun(nodeFacts.keySet)
     } yield {
-      implicit val instanceId: InstanceId = instanceIdService.instanceId
+      implicit val instanceId:      InstanceId      = instanceIdService.instanceId
+      implicit val nodeTenantField: NodeTenantField = tenantField
       nodeFacts.toChunk.map {
         case (nodeId, nodeFact) =>
           implicit val agentRun:       Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten
@@ -1278,7 +1290,7 @@ class NodeApiService(
   def getNodeDetailsScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[List[Score]] = {
     scoreService.getScoreDetails(nodeId)
   }
-  def queryNodes(query: Query, state: InventoryStatus, detailLevel: NodeDetailLevel)(implicit
+  def queryNodes(query: Query, state: InventoryStatus, detailLevel: NodeDetailLevel, tenantField: NodeTenantField)(implicit
       qc: QueryContext
   ): IOResult[Chunk[JRNodeDetailLevel]] = {
     for {
@@ -1286,7 +1298,7 @@ class NodeApiService(
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
                    case AcceptedInventory => acceptedNodeQueryProcessor.process(query).toIO
                  }
-      res     <- listNodes(state, detailLevel, Some(nodeIds.toSeq))
+      res     <- listNodes(state, detailLevel, tenantField, Some(nodeIds.toSeq))
     } yield {
       res
     }

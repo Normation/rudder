@@ -77,7 +77,11 @@ properties:
           $ref: right.yml
   tenants:
     type: string
-    example: all
+    readOnly: true
+    description: >-
+      Tenants of the user (requires the `multi-tenants` plugin): `all`, `none`, or a comma separated list of tenant ids, each one
+      followed by `:r` when the access is read only. They are set in the users file or by the identity provider.
+    example: zone-1,zone-2:r
   lastLogin:
     type: string
     format: date-time
