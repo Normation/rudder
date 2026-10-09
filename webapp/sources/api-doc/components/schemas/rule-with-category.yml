@@ -24,13 +24,13 @@ properties:
     description: The parent category id.
   directives:
     type: array
-    description: Directives linked to the rule. With the `multi-tenants` plugin, the list also contains the directives the caller can not see.
+    description: Directives linked to the rule. With the `multi-tenants` plugin, the list contains all directives whatever their tenants are.
     items:
       type: string
       description: "Directive id"
   targets:
     $ref: rule-targets.yml
-    description: Groups and other targets of the rule. With the `multi-tenants` plugin, they also contain the groups the caller can not see.
+    description: Groups and other targets of the rule. With the `multi-tenants` plugin, the list contains all items whatever their tenants are.
   enabled:
     type: boolean
     description: Is the rule enabled
