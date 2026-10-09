@@ -210,7 +210,17 @@ class TechniqueApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      //val modId = ModificationId(uuidGen.newUuid)
+      // val modId = ModificationId(uuidGen.newUuid)
+
+      // TODO : il faut mettre a jour le tableau de ressources dans la technique comme c'est fait dans le endpoint de CREATE technique
+      // TODO : faire un change request ?
+      // TODO : faire un service commun aux ressource et techniques
+      // TODO : update technique library ? (technique tree) C'est la gestion des categories, techniques, metadata.xml -> il faut voir si les resources y sont référencées
+      // TODO : supprimer le fichier sur le file system
+      // TODO : impacts avec les tenants en 9.2
+      // TODO : faire les commit (il faut utiliser l'archiver : TechniqueArchiver)
+
+      // FIXME : pb connu : on peut créer des dossiers même si on a pas les droits
 
       val content = Json.Str("")
       ZIO.succeed(Json.Obj(("techniques", content))).toLiftResponseOne(params, schema, _ => Some(resources._1))
@@ -468,6 +478,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor) // todo
           updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor) // todo
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
