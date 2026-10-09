@@ -170,14 +170,7 @@ object RestEventLogFilter  {
   )
   implicit val principalFilterDecoder: JsonDecoder[PrincipalFilter]           = DeriveJsonDecoder.gen[PrincipalFilter]
   implicit val orderDecoder:           JsonDecoder[Order]                     = DeriveJsonDecoder.gen[Order]
-  /*implicit val localDateTimeDecoder:      JsonDecoder[LocalDateTime]             = {
-    val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    JsonDecoder[String].map(LocalDateTime.parse(_, format)).orElse
-      (DateFormaterService.json.decoderInstant.map(LocalDateTime.ofInstant(_, ZoneOffset.UTC)))
-  }
-   */
-
-  implicit val localDateTimeDecoder: JsonDecoder[LocalDateTime] = {
+  implicit val localDateTimeDecoder:   JsonDecoder[LocalDateTime]             = {
     import cats.syntax.either.*
     val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     JsonDecoder[String]
