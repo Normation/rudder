@@ -40,3 +40,5 @@ apt-compat = ["dep:rust-apt-compat", "dep:memfile"]
 tempfile = "3"
 pretty_assertions = "1"
 libc = "0.2.164"
+# Validate the reports against reporting.schema.json. No remote schema resolution needed.
+jsonschema = { version = "0.58", default-features = false }
