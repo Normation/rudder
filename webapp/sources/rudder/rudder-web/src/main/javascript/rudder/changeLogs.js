@@ -54,21 +54,17 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
   /* Get the parameters form the url to fill the filter criteria request
      *
      * If the change log page is accessed by this url :
-     * http://localhost:8081/rudder-web/secure/configurationManager/changeLogs then the filter criteria to query the
+     * http://localhost:8081/rudder-web/secure/configurationManager/changeLogs then the filters to query the
      * change logs will be filled from the html form.
      *
      * If the change log page is accessed by the same url with # fragment :
      * http://localhost:8081/rudder-web/secure/configurationManager/changeLogs#{"id":{"value":3278,"regex":false,"fixed":[]},"draw":1,"start":0,"length":10 }
-     * then the filter criteria will be filled from this json fragment.
-     * The use case is the recent activity table provide links for each activity to navigate to the details in the
+     * then the filters will be filled from this json fragment.
+     * The use case is the history tables provide links for each event log to navigate to the details in the
      * change log page.
-     *
-     * Other examples of url with fragment:
-     * http://localhost:8081/rudder-web/secure/nodeManager/nodes#{"query":{"select":"node","composition":"and","where":[]}}
-     * http://localhost:8081/rudder-web/secure/configurationManager/directiveManagement#{"directiveId":"1c99b738-742b-4444-a964-0759c9fc5b74"}
      */
-  const param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
-  const filterCriteria = Object.keys(param).length === 0 ? {} : JSON.parse(param);
+  const hash = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
+  const filters = Object.keys(hash).length === 0 ? {} : JSON.parse(hash);
 
   var columns = [ {
     "width"       : "10%"
@@ -110,15 +106,15 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
     , "contentType": "application/json"
     , "url" : contextPath + "/secure/api/eventlog"
     , "data" :
-            function (d) {
-                if (filterCriteria.id !== undefined) {
-                    d.id = filterCriteria.id
-                } else {
-                    d.startDate = new Date($(".pickStartInput").val()).toISOString()
-                    d.endDate = new Date($(".pickEndInput").val()).toISOString()
-                }
-                return JSON.stringify( d );
-            }
+      function (d) {
+          if (filters.id !== undefined) {
+              d.id = filters.id
+          } else {
+              d.startDate = new Date($(".pickStartInput").val()).toISOString()
+              d.endDate = new Date($(".pickEndInput").val()).toISOString()
+          }
+          return JSON.stringify( d );
+      }
     }
   , "paging" : true
   , "lengthChange": true
