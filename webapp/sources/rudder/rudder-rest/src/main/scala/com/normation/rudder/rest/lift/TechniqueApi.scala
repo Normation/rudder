@@ -115,6 +115,7 @@ class TechniqueApi(
       case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteResource            => DeleteResource
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -198,6 +199,24 @@ class TechniqueApi(
     }
   }
 
+  object DeleteResource extends LiftApiModule {
+    val schema: TwoParam = API.DeleteResource
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        resources:  (String, String),
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      //val modId = ModificationId(uuidGen.newUuid)
+
+      val content = Json.Str("")
+      ZIO.succeed(Json.Obj(("techniques", content))).toLiftResponseOne(params, schema, _ => Some(resources._1))
+    }
+  }
+
   object DeleteTechnique extends LiftApiModule {
     val schema: TwoParam = API.DeleteTechnique
 
@@ -230,7 +249,7 @@ class TechniqueApi(
 
       val modId = ModificationId(uuidGen.newUuid)
 
-      val content = {
+      val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
           force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
           _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
