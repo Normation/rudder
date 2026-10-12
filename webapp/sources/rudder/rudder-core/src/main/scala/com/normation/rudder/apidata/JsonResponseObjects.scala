@@ -279,6 +279,7 @@ object JsonResponseObjects {
       policyMode:                  Option[String],
       timezone:                    Option[domain.NodeTimezone],
       tenant:                      Option[TenantId],
+      security:                    Option[SecurityTag],
       // full
       accounts:                    Option[Chunk[String]],
       bios:                        Option[Chunk[domain.Bios]],
@@ -314,10 +315,11 @@ object JsonResponseObjects {
     private given JsonEncoder[InstanceId]            = JsonEncoder.string.contramap(_.value)
 
     implicit def transformer(implicit
-        nodeFact:   NodeFact,
-        status:     InventoryStatus,
-        agentRun:   Option[AgentRunWithNodeConfig],
-        instanceId: InstanceId
+        nodeFact:    NodeFact,
+        status:      InventoryStatus,
+        agentRun:    Option[AgentRunWithNodeConfig],
+        instanceId:  InstanceId,
+        tenantField: NodeTenantField
     ): Transformer[NodeDetailLevel, JRNodeDetailLevel] = {
       val nodeInfo:    NodeInfo               = nodeFact.toNodeInfo
       val securityTag: Option[SecurityTag]    = nodeFact.rudderSettings.security
@@ -357,13 +359,22 @@ object JsonResponseObjects {
         )
         .withFieldComputed(_.policyMode, levelField("policyMode")(nodeInfo.policyMode.map(_.name).getOrElse("default")))
         .withFieldComputed(_.timezone, levelField(_)("timezone")(nodeInfo.timezone))
-        // here, we only know how to deal with a "byTenant" of size 1. Consider "open" as "none", and
-        // several tenants as only the first one.
         .withFieldComputed(
           _.tenant,
-          levelField(_)("tenant")(securityTag.flatMap {
-            case _: SecurityTag.Open => None
-            case SecurityTag.ByTenants(ts) => ts.headOption
+          levelField(_)("tenant")(tenantField match {
+            case NodeTenantField.Tenant   =>
+              securityTag.flatMap {
+                case _: SecurityTag.Open => None
+                case SecurityTag.ByTenants(ts) => ts.headOption
+              }
+            case NodeTenantField.Security => None
+          })
+        )
+        .withFieldComputed(
+          _.security,
+          levelField(_)("security")(tenantField match {
+            case NodeTenantField.Tenant   => None
+            case NodeTenantField.Security => securityTag
           })
         )
         // full

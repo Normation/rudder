@@ -209,7 +209,7 @@ class CampaignApi(
         c           = if (campaign.info.schedule.tz.isDefined) campaign else campaign.setScheduleTimeZone(ScheduleTimeZone.now())
         withId      = if (campaign.info.id.value.isEmpty) c.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else c
         saved      <- mainCampaignService.saveCampaign(withId)(using authzToken.qc.newCC(Some("Save campaign from API")))
-        serialized <- campaignSerializer.getJson(withId)
+        serialized <- campaignSerializer.getJson(saved)
       } yield {
         serialized
       }).tapError(err => CampaignLogger.error(s"Error when saving campaign: " + err.fullMsg))

@@ -956,7 +956,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     )
   }
 
-  val mockCampaign = new MockCampaign()
+  val mockCampaign = new MockCampaign(mockTenants.checkTenant)
   object campaignApiModule {
 
     val translator = new CampaignSerializer()

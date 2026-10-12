@@ -59,6 +59,29 @@ API.
 This limits the risks of exploitation if a token is stolen, and allows tracking the activity
 of each token separately. Token renewal is also easier when they are only used for a limited purpose.
 
+### Multi-tenancy
+
+With the `multi-tenants` plugin, nodes and configuration objects are split between tenants:
+
+* Each object carries a security tag, returned in its `security` field: absent when the object is reserved to accounts with
+  access to all tenants, a list of tenants, or `open-ro` / `open-rw` for an object visible by every account.
+* Each account has access to a set of tenants, in read only or read and write (see the `tenants` field of API accounts).
+  User tokens have the tenants of their user.
+
+An account only sees the objects that share a tenant with it, and the open ones. An object it can not see answers
+exactly like an object that does not exist: reading or updating it is a "not found" error, deleting it does nothing.
+Changing an object requires write access to one of its tenants (`open-ro` objects can only be changed by accounts with
+access to all tenants); otherwise the request is refused with an error.
+
+An object created by an account with a tenant list gets the tenants on which that account has write access. An account
+with no tenant can not create objects.
+
+A change request is visible only if every object it changes is visible, and acting on it (validate, deploy, decline...)
+requires write access on every object it changes. Restoring archives is reserved to accounts with access to all tenants.
+
+When the `multi-tenants` plugin is not enabled, an API account with a list of tenants is handled like an account with no
+tenant, and it only sees open objects.
+
 ## Versioning
 
 Each time the API is extended with new features (new functions, new parameters, new responses, ...), it will be assigned a new version number. This will allow you
@@ -214,6 +237,7 @@ period of time to allow migration from previous versions.
       <td class="code">9.2</td>
       <td><ul>
         <li>Security tag for tenants of configuration objects</li>
+        <li>Nodes: <code>security</code> replaces <code>tenant</code></li>
         <li>Compliance CSV for configuration objects</li>
       </ul></td>
     </tr>

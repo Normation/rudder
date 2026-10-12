@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+post:
+  summary: Replace all tenants
+  description: >-
+    Replace the declared tenants by the given list: tenants absent from it are deleted, as with the delete endpoint. Every id
+    is checked first: if one is invalid, nothing is changed.
+  operationId: setTenants
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: ../../components/schemas/tenant.yml
+  responses:
+    "200":
+      description: Ids of the tenants now declared
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - setTenants
+              data:
+                type: object
+                required:
+                  - tenants
+                properties:
+                  tenants:
+                    type: array
+                    items:
+                      type: string
+                      description: Tenant id
+  tags:
+    - 🧩 Multi-tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/tenants/set.sh

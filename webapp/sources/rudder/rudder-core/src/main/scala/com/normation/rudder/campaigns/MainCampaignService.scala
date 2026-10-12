@@ -55,9 +55,9 @@ import zio.syntax.*
 trait CampaignApiService {
 
   /*
-   * Save a campaign
+   * Save a campaign, returning it as stored: the tenant law may have changed its security tag
    */
-  def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Unit]
+  def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Campaign]
 
   /*
    * Delete a campaign
@@ -175,12 +175,12 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Unit] = {
+  override def saveCampaign(c: Campaign)(using cc: ChangeContext): IOResult[Campaign] = {
     for {
-      _  <- campaignRepo.save(c)
-      ev <- effects.createNextScheduledCampaignEvent(c, DateTime.now(DateTimeZone.UTC))
-      _  <- effects.saveAndQueueEvents(List(ev))
-    } yield ()
+      saved <- campaignRepo.save(c)
+      ev    <- effects.createNextScheduledCampaignEvent(saved, DateTime.now(DateTimeZone.UTC))
+      _     <- effects.saveAndQueueEvents(List(ev))
+    } yield saved
   }
 
   // entry point for API

@@ -197,3 +197,49 @@ response:
   code: 200
   content: >-
     []
+---
+description: From API 24, admin gets the full security tag of a node
+user: admin
+method: GET
+url: /api/latest/nodes/node1?include=minimal,tenant,security
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "security":{"tenants":["zoneA","zoneB"]}
+          }
+        ]
+      }
+    }
+---
+description: Up to API 23, a node shows its first tenant in 'tenant'
+user: admin
+method: GET
+url: /api/23/nodes/node1?include=minimal,tenant,security
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "tenant":"zoneA"
+          }
+        ]
+      }
+    }
