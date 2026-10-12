@@ -1,0 +1,55 @@
+---
+description: A zoneA writer saving an 'open-rw' campaign gets the stored campaign back, tagged with its own tenant
+user: zoneA
+method: POST
+url: /api/latest/campaigns
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "campaignType" : "test-campaign",
+    "info" : {
+      "id" : "zoneA-campaign",
+      "name" : "zoneA campaign",
+      "description" : "a campaign created by a zoneA writer",
+      "status" : { "value" : "enabled" },
+      "schedule" : {
+        "type" : "weekly",
+        "start" : { "day" : 1, "hour" : 3, "minute" : 42 },
+        "end" : { "day" : 1, "hour" : 4, "minute" : 42 },
+        "tz" : "UTC"
+      },
+      "security" : "open-rw"
+    },
+    "details" : { "name" : "zoneA campaign" },
+    "version" : 1
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveCampaign",
+      "result" : "success",
+      "data" : {
+        "campaigns" : [
+          {
+            "campaignType" : "test-campaign",
+            "info" : {
+              "id" : "zoneA-campaign",
+              "name" : "zoneA campaign",
+              "description" : "a campaign created by a zoneA writer",
+              "status" : { "value" : "enabled" },
+              "schedule" : {
+                "type" : "weekly",
+                "start" : { "day" : 1, "hour" : 3, "minute" : 42 },
+                "end" : { "day" : 1, "hour" : 4, "minute" : 42 },
+                "tz" : "UTC"
+              },
+              "security" : { "tenants" : [ "zoneA" ] }
+            },
+            "details" : { "name" : "zoneA campaign" },
+            "version" : 1
+          }
+        ]
+      }
+    }

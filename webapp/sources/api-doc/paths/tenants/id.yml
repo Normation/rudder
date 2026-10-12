@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
 get:
-  summary: Get tenant details
-  description: Get detailed information about one tenant
+  summary: Get a tenant
+  description: Get one tenant. An unknown id is an error.
   operationId: getTenant
   parameters:
     - $ref: ../../components/parameters/tenant-id.yml
   responses:
     "200":
-      description: Tenant information
+      description: The tenant, in a list of one element
       content:
         application/json:
           schema:

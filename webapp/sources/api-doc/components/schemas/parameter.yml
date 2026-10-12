@@ -21,3 +21,8 @@ properties:
     type: boolean
     description: Is the global parameter overridable by node
     example: false
+
+  security:
+    $ref: security-tag.yml
+    description: >-
+      Tenants of the technique (requires the `multi-tenants` plugin), with the values described in the security tag schema.

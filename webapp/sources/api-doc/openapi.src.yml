@@ -111,12 +111,19 @@ tags:
 
 
       Get OpenSCAP reports for nodes.
+  - name: "🧩 Security benchmarks"
+    description: >-
+      **Requires that the `security-benchmarks` plugin is installed on the server.**
+
+
+      Manage security benchmarks.
   - name: "🧩 Multi-tenants"
     description: >-
-      **Requires that the `multitenants` plugin is installed on the server.**
+      **Requires that the `multi-tenants` plugin is installed on the server.**
 
 
-      Manage tenants and set them on nodes.
+      Declare tenants and set the tenant of nodes. How tenants restrict what an account can see and change is described
+      in the Multi-tenancy section of the introduction.
 paths:
   "/info":
     $ref: paths/info/all.yml
@@ -413,7 +420,11 @@ paths:
     $ref: paths/openscap/report.yml
   "/tenants":
     $ref: paths/tenants/all.yml
+  "/tenants/set":
+    $ref: paths/tenants/set.yml
   "/tenants/{id}":
     $ref: paths/tenants/id.yml
   "/securitytags/nodes":
     $ref: paths/securitytags/nodes.yml
+  "/securityBenchmarks/{id}/security":
+    $ref: paths/securityBenchmarks/security.yml
