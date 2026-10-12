@@ -363,9 +363,8 @@ class EventLogService(
                for {
                  event     <- repo.getEventLogById(id).catchSystemErrors
                  committer <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
-               } yield {
-                 rollbackReq.action(event, committer, Seq(event), event)
-               }
+                 _         <- rollbackReq.action(event, committer, Seq(event), event)
+               } yield ()
              case Item             =>
                itemRollbackService.restoreItem(RollbackEventId(id), position).catchSystemErrors
            }
