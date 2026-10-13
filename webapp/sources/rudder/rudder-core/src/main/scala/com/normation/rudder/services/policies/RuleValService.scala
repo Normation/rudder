@@ -232,7 +232,7 @@ class RuleValServiceImpl(
     // can see. This contains composite targets and any node wrongly present in a group's serverList.
     val nodeIds = presentNodeIds.filter(id => ruleScope.canSee(nodes.get(id).flatMap(_.security)))
     if (nodeIds.size != presentNodeIds.size) {
-      logger.trace(
+      logger.logEffect.trace(
         s"Rule '${rule.name}' (${rule.id.serialize}) targeted nodes filtered by tenant: excluded " +
         s"${(presentNodeIds -- nodeIds).map(_.value).mkString(", ")}"
       )
