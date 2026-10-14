@@ -2,8 +2,8 @@ port module Filters.Init exposing (..)
 
 import Filters.DataTypes exposing (..)
 import Json.Decode exposing (..)
-import Tags.DataTypes exposing (Action, CompletionValue, Tag)
 import Tags.JsonDecoder exposing (decodeTag)
+import Tags.Model exposing (CompletionValue, Tag)
 
 
 
@@ -33,12 +33,11 @@ subscriptions model =
         ]
 
 
+initModel : { contextPath : String, objectType : String } -> Model
+initModel flags =
+    Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True False
+
+
 init : { contextPath : String, objectType : String } -> ( Model, Cmd Msg )
 init flags =
-    let
-        initModel =
-            Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True False
-    in
-    ( initModel
-    , Cmd.none
-    )
+    ( initModel flags, Cmd.none )

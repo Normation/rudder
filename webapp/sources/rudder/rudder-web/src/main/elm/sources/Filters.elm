@@ -7,8 +7,21 @@ import Filters.Init exposing (..)
 import Filters.JsonEncoder exposing (..)
 import Filters.View exposing (view)
 import Json.Encode exposing (..)
-import Tags.DataTypes exposing (Action, Completion, Tag)
+import List.Extra
 import Tags.JsonEncoder exposing (..)
+import Tags.Model exposing (Completion, Tag, emptyTag)
+import Tags.Update exposing (Action)
+
+
+
+-- legende :
+-- ℹ️ : in progress
+-- x : done
+-- [x] deplacer les traitements de UpdateTags dans Model
+-- [ ] faire en sorte que la fonction view fasse aussi peu de logique que possible
+-- [ ] faire des tests sur le Model
+-- [ ] faire des tests sur Update
+-- [ ] coherence des utilisations de tags
 
 
 main =
@@ -70,18 +83,10 @@ update msg model =
         UpdateTag completion tag ->
             ( { model | newTag = tag }, getCompletionTags model completion )
 
-        UpdateTags action tags ->
+        UpdateTags action ->
             let
-                newTag =
-                    case action of
-                        Tags.DataTypes.Add ->
-                            Tag "" ""
-
-                        Tags.DataTypes.Remove ->
-                            model.newTag
-
                 newModel =
-                    { model | tags = tags, newTag = newTag }
+                    model |> applyActionOnModel action
 
                 encodedFilters =
                     encodeFilters newModel
@@ -97,10 +102,10 @@ update msg model =
                     let
                         newModel =
                             case completion of
-                                Tags.DataTypes.Key ->
+                                Tags.Model.Key ->
                                     { model | completionKeys = l }
 
-                                Tags.DataTypes.Val ->
+                                Tags.Model.Val ->
                                     { model | completionValues = l }
                     in
                     ( newModel, Cmd.none )
@@ -121,9 +126,26 @@ update msg model =
         ResetFilters ->
             let
                 ( prevModel, updateTags ) =
-                    update (UpdateTags Tags.DataTypes.Remove []) model
+                    update (UpdateTags Tags.Update.Clear) model
 
                 ( newModel, updateFilter ) =
                     update (UpdateFilter "") prevModel
             in
             ( newModel, Cmd.batch [ updateTags, updateFilter ] )
+
+
+applyActionOnModel : Action -> Model -> Model
+applyActionOnModel action model =
+    case action of
+        Tags.Update.Add tag ->
+            model
+                |> addTag tag
+                |> setCurrentTag emptyTag
+
+        Tags.Update.Remove tag ->
+            model
+                |> removeTag tag
+
+        Tags.Update.Clear ->
+            model
+                |> clearTags
