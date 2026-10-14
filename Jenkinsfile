@@ -586,7 +586,7 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'make dev-doc', label: 'rust dev doc'
                             withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/rust/', label: 'publish techniques docs'
+                                sh script: 'rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/rust/', label: 'publish techniques docs'
                             }
                         }
                     }
@@ -801,7 +801,7 @@ pipeline {
                                 }
                                 sh script: 'make docs', label: 'policies lib doc'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/book/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/techniques/${RUDDER_VERSION}', label: 'publish techniques docs'
+                                    sh script: 'rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/book/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/techniques/${RUDDER_VERSION}', label: 'publish techniques docs'
                                 }
                                 sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'repository-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
