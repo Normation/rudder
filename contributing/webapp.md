@@ -448,7 +448,7 @@ mv allnodescerts.pem /var/rudder/lib/ssl/shared/
     
     - Set the property `command.with.sudo=false` in the file `configuration-rudder.properties` used to run the local jetty.
     - Setup the hook `20-mv-policies` locally otherwise, the nodes won't be able to fetch the generated policies
-      - Copy the hook [20-mv-policies](https://github.com/P4uline/rudder/blob/0f48874405867bdfef52784a1e4e2bdaf9900a16/webapp/sources/rudder/rudder-core/src/main/resources/hooks.d/policy-generation-finished/20-mv-policies) in `ls /opt/rudder/etc/hooks.d/policy-generation-finished/20-mv-policies` on your machine
+      - Copy the hook [20-mv-policies](https://github.com/P4uline/rudder/blob/0f48874405867bdfef52784a1e4e2bdaf9900a16/webapp/sources/rudder/rudder-core/src/main/resources/hooks.d/policy-generation-finished/20-mv-policies) in `/opt/rudder/etc/hooks.d/policy-generation-finished/20-mv-policies` on your machine
       - Set the hook executable
       - The webapp should be able to generate the policies in the right place so the nodes could benefit of 
       
