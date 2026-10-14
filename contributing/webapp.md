@@ -370,6 +370,7 @@ The plugin relay should be installed automatically when setting up the platform 
 ```
 vagrant ssh dev_server
 sudo su
+chmod 777 inventories
 cd /var/rudder/inventories
 chmod 777 accepted-nodes-updates failed historical incoming received
 ```
