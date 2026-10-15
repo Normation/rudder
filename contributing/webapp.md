@@ -370,7 +370,7 @@ The plugin relay should be installed automatically when setting up the platform 
 ```
 vagrant ssh dev_server
 sudo su
-chmod 777 inventories
+chmod 777 /var/rudder/inventories
 cd /var/rudder/inventories
 chmod 777 accepted-nodes-updates failed historical incoming received
 ```
@@ -444,6 +444,18 @@ vagrant ssh dev_server
 sudo su
 mv allnodescerts.pem /var/rudder/lib/ssl/shared/
 ```
+
+  - Send inventory from each node
+
+After that, each node should be able to send inventory to the server and be added as pending node.
+```
+rudder agent inventory
+```
+
+> [!NOTE]
+> You should see the nodes in the pending nodes table in the web application and accept them from the ui.
+> 
+> ✅ Congrats, you have a now a full setup running with server and nodes able to send reports and inventories.
 
   - Setup the local machine
     
