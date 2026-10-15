@@ -171,23 +171,59 @@ object TechniqueLogDetails {
       <div>{displaySimpleDiff(diff.modDocumentation, "Documentation").getOrElse(NodeSeq.Empty)}</div>
       <div>{displaySimpleDiff(diff.modCategory, "Category").getOrElse(NodeSeq.Empty)}</div>
       <div>{mapComplexDiff(diff.modTags, "Tags")(tagModDetails)}</div>
-      <div>{mapComplexDiff(diff.modResources, "Resources")(resourceModDetails)}</div>
-      <div>{mapComplexDiff(diff.modResources, "Resources")(resourceModDetails)}</div>
+      <div>{resourcesDiffDetails(diff.modResources)}</div>
       <div>{parametersDiffDetails(diff.modParameters)}</div>
       <div>{methodElemDiffDetails(diff.modCalls)}</div>
         </ul>
     </div>
   }
 
-  private def tagModDetails(tags: Map[String, Json])           = {
+  private def tagModDetails(tags: Map[String, Json]) = {
     <ul class="ms-3">
       {tags.toList.sortBy(_._1).map { case (k, v) => <li><ul><li>{k}</li><li>{v.toJsonPretty}</li></ul></li> }}
     </ul>
   }
-  private def resourceModDetails(resources: Seq[ResourceFile]) = {
-    <ul class="ms-3">
-      {resources.sortBy(_.path).map(resource => <li><ul><li>{resource.path}</li><li>{resource.state.value}</li></ul></li>)}
-    </ul>
+
+  private def resourcesDiffDetails(resources: Option[SimpleDiff[Seq[ResourceFile]]]) = {
+    def displayResource(resource: ResourceFile)(stateDiff: Option[SimpleDiff[ResourceFileState]]): NodeSeq = {
+      <li>
+      <ul>
+        <b>Name:</b>
+        <li>{resource.path}</li>
+        {
+        displaySimpleDiff(stateDiff.map(_.map(_.value)), "State").getOrElse(
+          <b>State:</b>
+        <li>{resource.state.value}</li>
+        )
+      }
+      </ul>
+      </li>
+    }
+    resources
+      .map(diff => {
+        val res = {
+          <div>
+          <b>Resources:</b>
+          <ul class="ms-3">
+            {
+            // old values have the add/remove in the state
+            diff.oldValue
+              .sortBy(_.path)
+              .map(resource => {
+                resource.state match {
+                  case ResourceFileState.Untouched =>
+                    displayResource(resource)(None)
+                  case state                       =>
+                    displayResource(resource)(Some(SimpleDiff(ResourceFileState.Untouched, state)))
+                }
+              })
+          }
+          </ul>
+        </div>
+        }
+        res
+      })
+      .getOrElse(NodeSeq.Empty)
   }
 
   def parameterModDetails(techniqueParameterDiff: TechniqueParameterDiff): NodeSeq = {
