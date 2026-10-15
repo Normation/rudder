@@ -156,7 +156,7 @@ object DiffDisplayer {
       name: String
   ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
 
-  def displayFormDiff(
+  private def displayFormDiff(
       diff: SimpleDiff[String],
       name: String
   ): NodeSeq = {
