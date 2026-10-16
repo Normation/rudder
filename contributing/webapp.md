@@ -327,26 +327,50 @@ If in case a change would happen in `rudder-techniques` remote repository
 git pull ~/<workspace>/rudder-techniques/techniques
 rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
 ```
+
+Reload the technique tree from the webapp UI following the path `Administration > Maintenance > Technique Tree` then click button `Reload Techniques`
+
+> [!TIP]
+> You can check the new techniques are taken in account running `rudder agent run`
+> 
+> You should see some logs for instance setting up a dummy technique named `ls technique`
+>
+>       $rudder agent run
+>       ...
+>       E| repaired      ls_technique              Command execution         ls                 Execute command ls was repaired
+
+
 But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change
+
+> [!WARNING]
+> The system techniques changed in 9.2 !
 
 #### Developer platform configuration
 
 A "developer" platform is already included in the rudder-tests repository at path `rudder-tests/platforms/dev.json` . This environment is well-suited for developer testing needs. However, some additional configuration steps are required to configure this environment properly. These steps are described below.
+
+Clone https://github.com/Normation/rudder-tests
 
 In rudder-test, run : `$ ./rtf setup platform dev`
 
 The difficult part in this dev environment is to make agents communicate with the server on a virtual machine, and with the webapp deployed on a local jetty server.
 There are a couple actions to do on the dev server to be able to use the webapp properly.
 
-- plugin relay issues
+- Synchronize the techniques 
 
-The plugin relay be installed automatically when setting up the plaform with the command `./rtf setup platform dev`. If the relay doesn't work properly, something probably went wrong when setup, so you should destroy the vm and create another one.
 
-- set some rights to the vagrant shared directory for reports, inventory and so on
+- Handle plugin relay issues
+
+The plugin relay should be installed automatically when setting up the platform with the command `./rtf setup platform dev`. If the relay doesn't work properly, something probably went wrong when setup, so you should destroy the vm and create another one.
+
+
+
+- Set some rights to the vagrant shared directory for reports, inventory and so on
 
 ```
 vagrant ssh dev_server
 sudo su
+chmod 777 /var/rudder/inventories
 cd /var/rudder/inventories
 chmod 777 accepted-nodes-updates failed historical incoming received
 ```
@@ -355,15 +379,19 @@ chmod 777 accepted-nodes-updates failed historical incoming received
 rudder agent run
 ```
 
+
+
 Start the webapp with Jetty. If you navigate to the "Pending Nodes" page, you should be able to see your nodes in the table and accept them one by one. From there on, your newly accepted nodes should appear in the "Nodes" page.
 
-- the server is not able to see the node to accept
+- Specific configuration so the server can accept the nodes
 
-It is a known issue due to the particular architecture of the dev environment. 
+The particular architecture of the dev environment requires a specific configuration to be able to accept nodes.
 The webapp is running on the local machine and uses a configuration (`-Drudder.configFile=<config-file-path>`) file with postgresql port number value 15432. 
 The relayd configuration is generated base on this configuration file but as relayd is deployed on the same machine as postgresql it should use the port 5432.
 
 ![Development environment architecture](dev-env.png)
+
+  - Change postgresql port
 
 The next step is to change the postgresql port number and make the file immutable otherwise, this file will be overwritten by the next agent run (as would be the case in a "normal" environment).
 
@@ -388,7 +416,8 @@ After that, you can restart the apache2 and rudder-relayd services. Check their 
 >     check relayd logs : 
 >     $ journalctl -r -g rudder-relayd
 
-- bad synchronization with nodes
+
+  - Synchronize nodes
 
 For some reason, sometimes the relay messes up with the node list, we can have unknown node ids. 
 To fix this, we need to copy `nodeslist.json` in the rudder lib.
@@ -406,7 +435,7 @@ systemctl restart rudder-relayd
 ```
 You should be able to get reports from agents through the webapp rudder.
 
-- certificate issues
+  - Fix certificate issues
 
 If you face certificate issues in `agent run` logs and/or if node reports do not reach the server, then the file that contains node certificates on the server (`/var/rudder/lib/ssl/shared/allnodescerts.pem`) might not be up to date. You might want to try to copy the certificate local file on the dev_server:
 ```
@@ -415,6 +444,38 @@ vagrant ssh dev_server
 sudo su
 mv allnodescerts.pem /var/rudder/lib/ssl/shared/
 ```
+
+  - Send inventory from each node
+
+After that, each node should be able to send inventory to the server and be added as pending node.
+```
+rudder agent inventory
+```
+
+> [!NOTE]
+> You should see the nodes in the pending nodes table in the web application and accept them from the ui.
+> 
+> ✅ Congrats, you have a now a full setup running with server and nodes able to send reports and inventories.
+
+  - Setup the local machine
+    
+    - Set the property `command.with.sudo=false` in the file `configuration-rudder.properties` used to run the local jetty.
+    - Setup the hook `20-mv-policies` locally otherwise, the nodes won't be able to fetch the generated policies
+      - Copy the hook [20-mv-policies](https://github.com/P4uline/rudder/blob/0f48874405867bdfef52784a1e4e2bdaf9900a16/webapp/sources/rudder/rudder-core/src/main/resources/hooks.d/policy-generation-finished/20-mv-policies) in `/opt/rudder/etc/hooks.d/policy-generation-finished/20-mv-policies` on your machine
+      - Set the hook executable
+      - The webapp should be able to generate the policies in the right place so the nodes could benefit of 
+      
+> [!NOTE] 
+> How to validate the hook is working
+> - Create a new technique
+> - You should see the technique in the shared dir `ls -lh /var/rudder/share/root/rules/cfengine-community/`
+> - Run policy generation from webapp
+> - The technique should be copied in the input dir by the hook `ls -lh /var/rudder/cfengine-community/inputs`
+> 
+> ✅ Congrats the hook works properly
+
+
+
 
 ## Part 2 : Setup workspace development with IntelliJ and Maven
 ### Install plugin from marketplace
