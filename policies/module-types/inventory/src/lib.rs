@@ -7,8 +7,6 @@
 //! them from, and the differences from FusionInventory it carries. This module holds what the
 //! inventory is as a whole: the document, and the order the sections are built in.
 
-#![allow(dead_code)]
-
 pub mod bios;
 pub mod cli;
 pub mod cpu;
@@ -38,6 +36,7 @@ use crate::{
     drives::Drive,
     hardware::Hardware,
     os::OperatingSystem,
+    packages::{Package, Update},
     rudder::Rudder,
     users::User,
     util::{fqdn, hostname},
@@ -133,6 +132,10 @@ pub struct Inventory {
     #[serde(rename = "DRIVES")]
     drives: Vec<Drive>,
     hardware: Hardware,
+    #[serde(rename = "SOFTWARES")]
+    softwares: Vec<Package>,
+    #[serde(rename = "SOFTWAREUPDATES")]
+    software_updates: Vec<Update>,
     #[serde(rename = "ACCESSLOG")]
     access_log: AccessLog,
 }
@@ -157,6 +160,7 @@ impl Inventory {
         // says what they make of the machine.
         let bios = Bios::inventory();
         let vm_system = VmSystem::of(bios.as_ref());
+        let (softwares, software_updates) = packages::inventory(&os_release)?;
 
         let env: Vec<EnvironmentVariable> = env::vars()
             .map(|(key, value)| EnvironmentVariable { key, value })
@@ -173,6 +177,8 @@ impl Inventory {
             cpus: cpu::inventory(&sys),
             drives: drives::inventory(),
             hardware: Hardware::inventory(&sys, hostname, vm_system),
+            softwares,
+            software_updates,
             access_log: AccessLog::new(),
         })
     }
