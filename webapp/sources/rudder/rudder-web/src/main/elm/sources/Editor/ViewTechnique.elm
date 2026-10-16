@@ -759,7 +759,7 @@ showTechnique model technique origin ui editInfo =
         , div [ class "main-details", id "details" ]
             [ div [ class "editForm", name "ui.editForm" ]
                 [ techniqueTab model technique creation ui
-                , if ui.tab == Directives then
+                , if not (hasEdition ui.tab) then
                     text ""
 
                   else

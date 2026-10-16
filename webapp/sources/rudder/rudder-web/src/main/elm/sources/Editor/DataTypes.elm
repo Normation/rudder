@@ -819,24 +819,24 @@ editionStateForTab tab state =
         mode =
             techniqueEditMode state
     in
+    if hasEdition tab then
+        EnabledEdition mode
+
+    else
+        DisabledEdition mode
+
+
+hasEdition : Tab -> Bool
+hasEdition tab =
     case tab of
         General ->
-            EnabledEdition mode
+            True
 
         Parameters ->
-            EnabledEdition mode
+            True
 
-        Resources ->
-            DisabledEdition mode
-
-        Directives ->
-            DisabledEdition mode
-
-        Output ->
-            DisabledEdition mode
-
-        None ->
-            DisabledEdition mode
+        _ ->
+            False
 
 
 updateMode : (Mode -> Mode) -> Model -> Model
