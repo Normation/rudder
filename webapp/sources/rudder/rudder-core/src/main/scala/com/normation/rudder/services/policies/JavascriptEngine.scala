@@ -55,7 +55,6 @@ import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.io.IOAccess
 import org.graalvm.polyglot.proxy.ProxyObject
 import scala.annotation.nowarn
-import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.syntax.*
 
@@ -294,7 +293,7 @@ object JsEngineProvider {
    * have any for now.
    *
    */
-  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(
+  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: Duration)(
       script: JsEngine => IOResult[T]
   ): IOResult[T] = {
     feature match {
@@ -422,14 +421,14 @@ object JsEngine {
      * for reasons. As it is something rather exceptional, and which will ends the
      * Policy Generation, the value can be rather high.
      */
-    val DEFAULT_MAX_EVAL_DURATION: FiniteDuration = FiniteDuration(5, TimeUnit.SECONDS)
+    val DEFAULT_MAX_EVAL_DURATION: Duration = 5.seconds
 
     /**
      * Get a new JS Engine.
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(
+    def sandboxed[T](maxThread: Int = 1, timeout: Duration = DEFAULT_MAX_EVAL_DURATION)(
         script: SandboxedJsEngine => IOResult[T]
     ): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
@@ -478,7 +477,7 @@ object JsEngine {
    * So generally, you want to manage that in a contained scope.
    */
 
-  final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
+  final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: Duration) extends JsEngine {
 
     private trait KillingThread {
 
@@ -603,19 +602,19 @@ object JsEngine {
                 task.cancel(true)
               }
               if (task.isCancelled || task.isDone) {
-                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
+                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.render}, aborting").fail
               } else {
                 // not interrupted - force kill
                 scriptCallable.abortWithConsequences() // that throws TreadDead, the following is never reached
                 Unexpected(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                  s"Evaluating script '${name}' took more than ${maxTime.render}, and " +
                   "we were force to kill the thread. Check for infinite loop or uninterruptible system calls"
                 ).fail
               }
             } catch {
               case ex: ThreadDeath =>
                 SystemError(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                  s"Evaluating script '${name}' took more than ${maxTime.render}, and " +
                   "we were force to kill the thread. Check for infinite loop or uninterruptible system calls",
                   ex
                 ).fail

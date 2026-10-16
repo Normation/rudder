@@ -63,10 +63,11 @@ import enumeratum.EnumEntry.*
 import net.liftweb.actor.*
 import net.liftweb.common.*
 import net.liftweb.http.ListenerManager
-import org.joda.time.*
-import scala.concurrent.duration.Duration
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.NodeSeq
 import zio.*
+import zio.Duration
 import zio.syntax.*
 
 sealed trait StartDeploymentMessage
@@ -558,7 +559,7 @@ final class AsyncDeploymentActor(
         _ <- PolicyGenerationLoggerPure.manager.trace("Policy updater Agent: start to update policies")
         d <- delay
         _ <- ZIO.when(d.toMillis > 0) {
-               PolicyGenerationLoggerPure.manager.info(s"Policy generation will start in ${d.toString}")
+               PolicyGenerationLoggerPure.manager.info(s"Policy generation will start in ${d.render}")
              }
         _ <- (for {
                _   <- PolicyGenerationLoggerPure.manager.debug(s"Policy generation starts now!")
@@ -582,7 +583,7 @@ final class AsyncDeploymentActor(
                      nd.eventLogId
                    )
                  )
-             } yield ()).delay(zio.Duration.fromScala(d))
+             } yield ()).delay(d)
       } yield ()
 
       val managedErr = prog.catchAll { err =>

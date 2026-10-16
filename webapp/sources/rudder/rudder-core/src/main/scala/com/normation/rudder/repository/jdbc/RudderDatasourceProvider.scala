@@ -40,10 +40,10 @@ package com.normation.rudder.repository.jdbc
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import java.io.Closeable
+import java.time.Duration
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.DurationInt
+import zio.durationInt
 
 /**
  * A wrapper around defaut data source provider to allow for several

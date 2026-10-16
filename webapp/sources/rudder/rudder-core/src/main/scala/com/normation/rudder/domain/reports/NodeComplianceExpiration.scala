@@ -1,8 +1,9 @@
 package com.normation.rudder.domain.reports
 
+import com.normation.utils.DurationUtils
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import scala.concurrent.duration.Duration
+import java.time.Duration
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -39,13 +40,9 @@ case class NodeComplianceExpiration(mode: NodeComplianceExpirationMode, duration
 object NodeComplianceExpiration {
   val default: NodeComplianceExpiration = NodeComplianceExpiration(NodeComplianceExpirationMode.ExpireImmediately, None)
 
-  implicit val decoderDuration: JsonDecoder[Duration] = JsonDecoder[String].mapOrFail(s => {
-    try {
-      Right(Duration(s))
-    } catch {
-      case ex: Throwable => Left(s"Error decoding node compliance keep last duration: ${ex.getMessage}")
-    }
-  })
+  implicit val decoderDuration: JsonDecoder[Duration] = JsonDecoder[String].mapOrFail(s =>
+    DurationUtils.parse(s).left.map(msg => s"Error decoding node compliance keep last duration: $msg")
+  )
 
   implicit val decoderNodeComplianceExpiration: JsonDecoder[NodeComplianceExpiration] = DeriveJsonDecoder.gen
 }

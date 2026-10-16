@@ -52,7 +52,6 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
-import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -127,8 +126,7 @@ class ComplianceExpirationServiceTest extends Specification {
     .force
 
   s"When ${NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME} is set we should find it" >> {
-    val keep1h =
-      NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(scala.concurrent.duration.Duration(1, TimeUnit.HOURS)))
+    val keep1h = NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(1.hour))
 
     (getPolicyFromProp(
       Chunk(rudder_ok1),
@@ -191,7 +189,7 @@ class ComplianceExpirationServiceTest extends Specification {
     } yield v).runNow
 
     res === Map(
-      nodeId1 -> NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(Duration(1, TimeUnit.HOURS).asScala))
+      nodeId1 -> NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(1.hour))
     )
   }
 }

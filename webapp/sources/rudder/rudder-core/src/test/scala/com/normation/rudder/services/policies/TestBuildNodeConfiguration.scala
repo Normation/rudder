@@ -69,12 +69,12 @@ import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.policies.fetchinfo.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import java.time.Duration
 import java.time.Instant
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.collection.SortedMap
-import scala.concurrent.duration.*
 
 /*
  * This class test the JsEngine. 6.0
@@ -193,7 +193,7 @@ class TestBuildNodeConfiguration extends Specification {
   val allNodeModes:     Map[NodeId, NodeModeConfig] = allNodes.map { case (id, _) => (id, defaultModesConfig) }.toMap
   val scriptEngineEnabled = FeatureSwitch.Disabled
   val maxParallelism      = 8
-  val jsTimeout: FiniteDuration = FiniteDuration(5, "minutes")
+  val jsTimeout: Duration = Duration.ofMinutes(5)
   val generationContinueOnError = false
 
   val inheritedProps: Map[NodeId, ResolvedNodePropertyHierarchy] = Map()
