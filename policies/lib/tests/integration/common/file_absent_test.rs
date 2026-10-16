@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Normation SAS
+// SPDX-FileCopyrightText: 2026 Normation SAS
 
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::given::Given;
@@ -92,6 +92,27 @@ fn it_should_be_idempotent() {
         ],
     );
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
+    assert!(
+        !file.exists(),
+        "The file '{}' should have been removed by the method execution",
+        file.display()
+    );
+    end_test(workdir);
+}
+
+#[test]
+fn it_repairs_in_enforce_when_the_path_contains_brackets() {
+    let workdir = init_test();
+    let file = workdir.path().join("app[1].log");
+    let file_path = file.clone().to_string_lossy().into_owned();
+
+    let tested_method = &method("file_absent", &[&file_path]).enforce();
+    let r = MethodTestSuite::new()
+        .given(Given::file_present(&file_path, ""))
+        .when(tested_method)
+        .execute(get_lib_path(), workdir.path().to_path_buf());
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
     assert!(
         !file.exists(),
         "The file '{}' should have been removed by the method execution",

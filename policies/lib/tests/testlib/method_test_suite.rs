@@ -132,9 +132,13 @@ impl MethodTestSuite {
     pub fn execute(self, _library_folder: PathBuf, workdir: PathBuf) -> ExecutionResult {
         let technique = self.prepare_execution(&workdir);
         #[cfg(feature = "test-windows")]
-        let policy_library_folder = PathBuf::from(WINDOWS_LIB_FOLDER)
-            .canonicalize()
-            .expect("The library folder does not exist");
+        let policy_library_folder =
+            PathBuf::from(WINDOWS_LIB_FOLDER)
+                .canonicalize()
+                .expect(&format!(
+                    "The library folder in {} could not be found",
+                    WINDOWS_LIB_FOLDER
+                ));
         #[cfg(not(feature = "test-windows"))]
         let policy_library_folder = _library_folder;
         let fake_agent = FakeAgentBuilder::new(workdir.clone())
