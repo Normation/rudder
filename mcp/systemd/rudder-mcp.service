@@ -1,0 +1,28 @@
+[Unit]
+Description=Rudder MCP Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+# Settings in /opt/rudder/etc/rudder-mcp.conf (no secrets: must be world-readable for DynamicUser)
+ExecStart=/opt/rudder/bin/rudder-mcp
+#Environment=RUST_LOG=debug
+Restart=on-failure
+# Do not restart on configuration (2) or other startup (3) errors, a restart will not fix them
+RestartPreventExitStatus=2 3
+# SIGTERM triggers a graceful shutdown, SIGKILL after this delay
+TimeoutStopSec=10
+# Stateless, only reads its configuration: run as a throwaway user with a read-only system
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+# AF_UNIX for name resolution (systemd-resolved, nscd)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

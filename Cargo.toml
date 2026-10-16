@@ -1,5 +1,6 @@
 [workspace]
 members = [
+           "mcp",
            "policies/agent",
            "policies/agentd",
            "policies/rudderc",
