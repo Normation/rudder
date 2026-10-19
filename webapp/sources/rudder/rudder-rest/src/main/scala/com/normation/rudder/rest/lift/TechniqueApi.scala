@@ -221,10 +221,31 @@ class TechniqueApi(
       // TODO : faire les commit (il faut utiliser l'archiver : TechniqueArchiver)
 
       // FIXME : pb connu : on peut créer des dossiers même si on a pas les droits
-
+      /*
       val content = Json.Str("")
-      ZIO.succeed(Json.Obj(("techniques", content))).toLiftResponseOne(params, schema, _ => Some(resources._1))
+      ZIO.succeed(Json.Obj(("techniques", content))).toLiftResponseOne(params, schema, _ => Some(resources._1))*/
+      val modId = ModificationId(uuidGen.newUuid)
+
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        for {
+          _ <- techniqueWriter.deleteResource(path)
+        } yield {
+          // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
+          // in place of the normalized `"data": { "techniques": [ {"id":...}]}
+          // so we need to correct before API version 21
+          // see https://issues.rudder.io/issues/27644
+          val res     = Json.Obj(("id", Json.Str(techniqueInfo._1)), ("version" -> Json.Str(techniqueInfo._2)))
+          val content = {
+            if (version.value < 22) res
+            else Json.Arr(Chunk(res))
+          }
+          Json.Obj(("techniques", content))
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(techniqueInfo._1))
     }
+
   }
 
   object DeleteTechnique extends LiftApiModule {

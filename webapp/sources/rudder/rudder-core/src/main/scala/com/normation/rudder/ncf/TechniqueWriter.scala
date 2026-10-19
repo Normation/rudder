@@ -75,6 +75,13 @@ trait TechniqueWriter {
       committer:        QueryContext
   ): IOResult[Unit]
 
+  def deleteResource(
+      resourceName:     String,
+      techniqueVersion: String,
+      modId:            ModificationId,
+      committer:        QueryContext
+  ): IOResult[Unit]
+
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
       modId:     ModificationId,
@@ -118,6 +125,14 @@ class TechniqueWriterImpl(
   ): IOResult[Unit] = {
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
   }
+
+  override def deleteResource(
+      resourceName:     String,
+      techniqueVersion: String,
+      modId:            ModificationId,
+      committer:        QueryContext
+  ): IOResult[Unit] =
+    deleteService.deleteResource(resourceName, techniqueVersion, modId, committer)
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
@@ -208,6 +223,7 @@ class TechniqueWriterImpl(
       (techniqueWithResourceUpdated, compilationResult)
     }
   }
+
 }
 
 object TechniqueWriterImpl {
