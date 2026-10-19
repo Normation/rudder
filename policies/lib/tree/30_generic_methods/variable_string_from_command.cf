@@ -41,7 +41,8 @@ bundle agent variable_string_from_command(prefix, name, command)
 {
   vars:
       "class_prefix" string => canonify("variable_string_from_command_${name}");
-    agent::
+    agent.!pass1::
+      "result"         data => '{}';
       "result"         data => execresult_as_data("${command}", "useshell", "stdout");
 
     returned_zero::
