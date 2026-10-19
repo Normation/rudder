@@ -115,6 +115,7 @@ class TechniqueApi(
       case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteResource            => DeleteResource
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -198,6 +199,55 @@ class TechniqueApi(
     }
   }
 
+  object DeleteResource extends LiftApiModule {
+    val schema: TwoParam = API.DeleteResource
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        resources:  (String, String),
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      // val modId = ModificationId(uuidGen.newUuid)
+
+      // TODO : il faut mettre a jour le tableau de ressources dans la technique comme c'est fait dans le endpoint de CREATE technique
+      // TODO : faire un change request ?
+      // TODO : faire un service commun aux ressource et techniques
+      // TODO : update technique library ? (technique tree) C'est la gestion des categories, techniques, metadata.xml -> il faut voir si les resources y sont référencées
+      // TODO : supprimer le fichier sur le file system
+      // TODO : impacts avec les tenants en 9.2
+      // TODO : faire les commit (il faut utiliser l'archiver : TechniqueArchiver)
+
+      // FIXME : pb connu : on peut créer des dossiers même si on a pas les droits
+      /*
+      val content = Json.Str("")
+      ZIO.succeed(Json.Obj(("techniques", content))).toLiftResponseOne(params, schema, _ => Some(resources._1))*/
+      val modId = ModificationId(uuidGen.newUuid)
+
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        for {
+          _ <- techniqueWriter.deleteResource(path)
+        } yield {
+          // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
+          // in place of the normalized `"data": { "techniques": [ {"id":...}]}
+          // so we need to correct before API version 21
+          // see https://issues.rudder.io/issues/27644
+          val res     = Json.Obj(("id", Json.Str(techniqueInfo._1)), ("version" -> Json.Str(techniqueInfo._2)))
+          val content = {
+            if (version.value < 22) res
+            else Json.Arr(Chunk(res))
+          }
+          Json.Obj(("techniques", content))
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(techniqueInfo._1))
+    }
+
+  }
+
   object DeleteTechnique extends LiftApiModule {
     val schema: TwoParam = API.DeleteTechnique
 
@@ -230,7 +280,7 @@ class TechniqueApi(
 
       val modId = ModificationId(uuidGen.newUuid)
 
-      val content = {
+      val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
           force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
           _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
@@ -452,7 +502,8 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor) // todo
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor) // todo
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json
