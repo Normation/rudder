@@ -1,5 +1,6 @@
 FROM rust:bookworm
 LABEL ci=ci/methods.Dockerfile
+ARG RUDDER_VER
 
 # Accept all OSes
 ENV UNSUPPORTED=y
@@ -17,7 +18,7 @@ wget https://repository.rudder.io/tools/rudder-setup
 sed -i "s/set -e/set -xe/" rudder-setup
 sed -i "s/rudder agent inventory//" rudder-setup
 sed -i "s/rudder agent health/rudder agent health || true/" rudder-setup
-sh ./rudder-setup setup-agent 9.0-nightly
+sh ./rudder-setup setup-agent ${RUDDER_VER}
 wget https://github.com/hercules-team/augeas/releases/download/release-1.15.0/augeas-1.15.0.tar.gz
 tar -xf augeas-1.15.0.tar.gz
 cd augeas-1.15.0 && ./configure --prefix=/usr && make install
