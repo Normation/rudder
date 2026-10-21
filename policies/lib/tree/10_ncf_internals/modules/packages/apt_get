@@ -47,8 +47,7 @@ else:
     # The --force-yes option was deprecated in apt-get 1.1
     apt_get_options.extend( [ "--allow-downgrades",
                               "--allow-remove-essential",
-                              "--allow-change-held-packages",
-                              "--with-new-pkgs" ])
+                              "--allow-change-held-packages"])
 
 apt_get_list_update_options = []
 
