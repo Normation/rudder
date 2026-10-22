@@ -2081,6 +2081,27 @@ object RudderConfigInit {
      * Tenant filtering proxy for techniques "repo".
      */
     lazy val techniqueWrite: TenantScopedWrite[TechniqueWriter, TechniqueWriter] = {
+      val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
+        techniqueArchiver,
+        updateTechniqueLibrary,
+        new DeleteEditorTechniqueImpl(
+          techniqueArchiver,
+          updateTechniqueLibrary,
+          directiveRead.repository,
+          directiveWrite.repository,
+          techniqueRepository,
+          workflowLevelService,
+          techniqueCheckSyncService,
+          ncfTechniqueReader,
+          eventLogRepository,
+          RUDDER_GIT_ROOT_CONFIG_REPO
+        ),
+        techniqueCompiler,
+        techniqueCompilationCache,
+        ncfTechniqueReader,
+        eventLogRepository,
+        RUDDER_GIT_ROOT_CONFIG_REPO
+      )
       TenantScopedWrite(
         new TenantScopedTechniqueWriter(ncfTechniqueWriter, techniqueRepository, tenantCheckLogic),
         ncfTechniqueWriter
@@ -2093,28 +2114,6 @@ object RudderConfigInit {
         ncfTechniqueCategoryWriter
       )
     }
-
-    lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
-      techniqueArchiver,
-      updateTechniqueLibrary,
-      new DeleteEditorTechniqueImpl(
-        techniqueArchiver,
-        updateTechniqueLibrary,
-        directiveRead.repository,
-        directiveWrite.repository,
-        techniqueRepository,
-        workflowLevelService,
-        techniqueCheckSyncService,
-        ncfTechniqueReader,
-        eventLogRepository,
-        RUDDER_GIT_ROOT_CONFIG_REPO
-      ),
-      techniqueCompiler,
-      techniqueCompilationCache,
-      ncfTechniqueReader,
-      eventLogRepository,
-      RUDDER_GIT_ROOT_CONFIG_REPO
-    )
 
     lazy val ncfTechniqueCategoryWriter: TechniqueCategoryWriter = new TechniqueCategoryWriterImpl(
       techniqueArchiver,
@@ -2413,7 +2412,7 @@ object RudderConfigInit {
           parseGroupLibrary,
           logRepository,
           asyncDeploymentAgentImpl,
-          ncfTechniqueWriter,
+          techniqueWrite.repository,
           yamlTechniqueSerializer,
           archiveSemaphore
         )
@@ -3916,7 +3915,7 @@ object RudderConfigInit {
       "post-service instantiation checks",
       BootstrapLogger,
       new CheckNcfTechniqueUpdate(
-        ncfTechniqueWriter,
+        techniqueWrite.storage,
         roLDAPApiAccountRepository.systemAPIAccount,
         stringUuidGenerator,
         updateTechniqueLibrary,
@@ -4348,7 +4347,7 @@ object RudderConfigInit {
       ruleValGeneratedHookService,
       instanceIdService,
       systemInfoService,
-      ncfTechniqueWriter,
+      techniqueWrite.repository,
       yamlTechniqueSerializer
     )
 
