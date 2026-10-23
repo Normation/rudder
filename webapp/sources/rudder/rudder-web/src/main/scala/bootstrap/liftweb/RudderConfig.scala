@@ -2978,6 +2978,7 @@ object RudderConfigInit {
     )
     lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
 
+
     lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
       roLdapNodeGroupRepository,
       rwLdap,
@@ -3392,7 +3393,8 @@ object RudderConfigInit {
       roLdapDirectiveRepository,
       woLdapDirectiveRepository,
       woLdapRuleRepository,
-      woLdapNodeGroupRepository
+      woLdapNodeGroupRepository,
+      campaignRepo // FIXME
     )
 
     lazy val logDisplayerImpl:               LogDisplayer               =
