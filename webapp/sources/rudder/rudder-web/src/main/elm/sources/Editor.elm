@@ -555,7 +555,7 @@ update msg model =
         NewTechnique internalId ->
             let
                 ui =
-                    TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
+                    TechniqueUiInfo General Dict.empty Dict.empty [] False (InvalidState [ PristineName ]) Unchanged Nothing
 
                 t =
                     Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] [] Nothing

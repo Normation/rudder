@@ -96,11 +96,11 @@ invalidTechniqueNameState state =
                         |> List.map
                             (\e ->
                                 case e of
-                                    EmptyName ->
-                                        "Technique name is required"
-
                                     AlreadyTakenName ->
                                         "Technique name is already taken"
+
+                                    _ ->
+                                        "Technique name is required"
                             )
                         |> String.join ".\n"
             in
@@ -381,9 +381,6 @@ showTechniqueError model ui { version, id, errorPath, errorMsg } =
 showTechnique : Model -> Technique -> TechniqueState -> TechniqueUiInfo -> TechniqueEditInfo -> Html Msg
 showTechnique model technique origin ui editInfo =
     let
-        fakeMetadata =
-            Http.Metadata "internal-elm-call" 200 "call from elm app" Dict.empty
-
         errorOnBlocks =
             checkBlocksOnError technique.elems
 
