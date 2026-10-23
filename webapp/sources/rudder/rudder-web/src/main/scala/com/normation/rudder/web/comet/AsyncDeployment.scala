@@ -123,7 +123,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   private def displayDate(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
-    <span class="dropdown-header">{label + t}</span>
+    <span>{label + t}</span>
   }
   private def updateDeploymentStart = {
     val helpBlockDate = deploymentStatus.current match {
