@@ -3849,11 +3849,17 @@ dependencies = [
 name = "rudder-mcp"
 version = "0.0.0-dev"
 dependencies = [
+ "anyhow",
  "axum",
+ "clap",
+ "pretty_assertions",
  "reqwest",
  "rmcp",
+ "serde",
  "serde_json",
  "tokio",
+ "toml 0.9.12+spec-1.1.0",
+ "url",
 ]
 
 [[package]]
