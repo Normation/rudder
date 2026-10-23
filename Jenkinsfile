@@ -32,6 +32,7 @@ pipeline {
                         dockerfile {
                             label "generic-docker"
                             filename 'ci/methods.Dockerfile'
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
                             args '-u 0:0'
                         }
                     }
