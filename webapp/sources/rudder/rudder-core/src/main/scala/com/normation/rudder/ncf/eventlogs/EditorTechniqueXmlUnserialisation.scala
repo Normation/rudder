@@ -355,7 +355,7 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
       component      <- getFromToString((block \ "component").headOption)
       condition      <- getFromToString((block \ "name").headOption)
       reportingLogic <- getFromTo((block \ "reportingLogic").headOption, s => ReportingLogic.parse(s.text).toBox)
-      policyMode     <- getFromToOption((block \ "policyMode").headOption, s => PolicyMode.parse(s.text).toBox)
+      policyMode     <- getFromTo((block \ "policyMode").headOption, s => PolicyMode.parseDefault(s.text).toBox)
       foreachName    <- getFromToOption((block \ "foreachName").headOption, s => Full(s.text))
       foreach        <- getFromToOption((block \ "foreach").headOption, s => unserialiseForeach(s.head).toBox)
     } yield {
@@ -398,7 +398,7 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
       component        <- getFromToString((call \ "component").headOption)
       condition        <- getFromToString((call \ "name").headOption)
       disableReporting <- getFromTo((call \ "disableReporting").headOption, s => tryo(s.text.toBoolean))
-      policyMode       <- getFromToOption((call \ "policyMode").headOption, s => PolicyMode.parse(s.text).toBox)
+      policyMode       <- getFromTo((call \ "policyMode").headOption, s => PolicyMode.parseDefault(s.text).toBox)
       foreachName      <- getFromToOption((call \ "foreachName").headOption, s => Full(s.text))
       foreach          <- getFromToOption((call \ "foreach").headOption, s => unserialiseForeach(s.head).toBox)
       parameters       <- (call \ "parameters" \ "parameter").accumulatePure(unserialiseCallParametersDiff).toBox
