@@ -158,7 +158,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
       // maxPoolSize MUST BE '1', else temp table disappear between the two connections in
       // really funny ways
       1,
-      250.millis.asScala
+      250.millis
     )
     config.datasource
   }
