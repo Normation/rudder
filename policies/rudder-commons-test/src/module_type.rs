@@ -29,7 +29,8 @@ pub mod unix {
         // put cf-promises into workdir/bin
         let bin_dir = work_dir.path().join("bin");
         fs::create_dir(&bin_dir).unwrap();
-        fs::copy(cfe_dir.join("cf-promises"), bin_dir.join("cf-promises")).unwrap();
+        fs::copy(cfe_dir.join("cf-promises"), bin_dir.join("cf-promises"))
+            .expect("cf-promises not found in /opt/rudder/bin, is rudder-agent installed?");
         // write test policy into promises.cf
         fs::create_dir(work_dir.path().join("inputs")).unwrap();
         fs::write(policy_path, policy.as_bytes()).unwrap();
