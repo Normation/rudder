@@ -4,8 +4,11 @@ import Dict
 import Dom.DragDrop as DragDrop
 import Editor exposing (switchTab)
 import Editor.DataTypes exposing (..)
+import EventLogs.DataTypes exposing (..)
+import EventLogs.Table exposing (initTable)
 import Expect
 import Test exposing (..)
+import Time exposing (utc)
 
 
 technique : Technique
@@ -30,7 +33,7 @@ details =
 
 model : Mode -> Model
 model mode =
-    Model [] [] Dict.empty (TechniqueCategory "" "" "" "" (SubCategories [])) Dict.empty [] mode "" (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing True Nothing Nothing False [] "default"
+    Model [] [] Dict.empty (TechniqueCategory "" "" "" "" (SubCategories [])) Dict.empty [] mode "" (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing True Nothing Nothing False [] "default" (initTable True (ContextPath "") utc)
 
 
 editModeTests : Test

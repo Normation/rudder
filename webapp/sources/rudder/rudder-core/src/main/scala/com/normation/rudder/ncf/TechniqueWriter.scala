@@ -192,7 +192,7 @@ class TechniqueWriterImpl(
         TimingDebugLoggerPure.trace(s"writeTechnique: writing technique '${technique.name}' in cache took ${time_5 - time_4}ms")
       logged           <- existingTechnique match {
                             case Some(previous) =>
-                              val diff = ModifyEditorTechniqueDiff(previous, technique)
+                              val diff = ModifyEditorTechniqueDiff(previous, techniqueWithResourceUpdated)
                               actionLogger.saveModifyEditorTechnique(
                                 cc.modId,
                                 principal = cc.actor,
