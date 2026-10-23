@@ -507,6 +507,33 @@ class TestMergeGroupProperties extends Specification {
       res must beEqualTo(SuccessNodePropertyHierarchy(Chunk(List(parent2).toH1(Left(ct2.id), "foo"))))
     }
 
+    /*          global
+     *         /      \
+     *   parent1  <  parent2
+     *      |           |
+     *       \         /
+     *         \     /
+     *          child
+     */
+    "resolve conflict on parent groups up to the global parameter" >> {
+      val q2  = query.modify(_.criteria).setTo(parent1.toCriterion :: parent2.toCriterion :: Nil)
+      val ct2 = child
+        .modify(_.id.uid.value)
+        .setTo("ct2")
+        .modify(_.query)
+        .setTo(Some(q2)) // parent 2 wins
+        .modify(_.properties)
+        .setTo(Nil)
+      val global = "bar".toConfigValue.toGP("foo", None)
+
+      val res = MergeNodeProperties.forGroup(
+        ct2.toTarget,
+        Map(parent1.id -> parent1.toTarget, parent2.id -> parent2.toTarget, ct2.id -> ct2.toTarget),
+        Map("foo"      -> global)
+      )
+      res must beEqualTo(SuccessNodePropertyHierarchy(Chunk(List(parent2).toH3(Left(ct2.id), "foo", global))))
+    }
+
   }
 
   "global parameter are inherited" >> {
