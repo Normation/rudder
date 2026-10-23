@@ -524,7 +524,7 @@ class DependencyAndDeletionServiceImpl(
           //  - est ce qu'il faut bouger l'implem des campagnes dans rudder ?
           //  - est ce qu'il faut implementer la suppression la verification des groupes dans system-update ?
           //  - est ce qu'au moment de la suppression du groupe (action dans ihm elm) il faut catcher l'erreur et mettre a jour la campagne
-          
+
           //filteredCampaign <- campaigns.filter(c => c.details.)
           /*_ <- // ZIO.foreach(campaigns). campaignRepository.save()
 
