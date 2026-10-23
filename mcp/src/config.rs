@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! Configuration file (TOML).
+//! Configuration directory, as relayd: `main.conf` and `logging.conf` (TOML), the latter read
+//! with `rudder_cli::logs::daemon`.
 //!
 //! Every setting has a default, so an empty file is valid. Unknown keys are rejected to catch
 //! typos.
@@ -9,9 +10,18 @@
 use std::{net::SocketAddr, path::Path};
 
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, de::DeserializeOwned};
 use url::{Host, Url};
 
+/// Reads a TOML configuration file
+fn load<T: DeserializeOwned>(path: &Path) -> Result<T> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("could not read configuration file {}", path.display()))?;
+    toml::from_str(&content)
+        .with_context(|| format!("invalid configuration file {}", path.display()))
+}
+
+/// Content of `main.conf`
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
@@ -20,11 +30,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(path: &Path) -> Result<Self> {
-        let content = std::fs::read_to_string(path)
-            .with_context(|| format!("could not read configuration file {}", path.display()))?;
-        toml::from_str(&content)
-            .with_context(|| format!("invalid configuration file {}", path.display()))
+    pub fn load(dir: &Path) -> Result<Self> {
+        load(&dir.join("main.conf"))
     }
 }
 
@@ -90,6 +97,7 @@ impl TryFrom<String> for ServerUrl {
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
+    use rudder_cli::logs::daemon::LogConfig;
 
     use super::*;
 
@@ -147,20 +155,18 @@ mod tests {
     }
 
     #[test]
-    fn sample_file_is_valid() {
-        Config::load(Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/rudder-mcp.conf"
-        )))
-        .unwrap();
+    fn sample_files_are_valid() {
+        let dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/config"));
+        Config::load(dir).unwrap();
+        LogConfig::load(dir).unwrap();
     }
 
     #[test]
     fn rejects_unknown_keys() {
         let error = parse("[server]\nlisen = \"0.0.0.0:9000\"\n").unwrap_err();
         assert!(error.contains("unknown field `lisen`"), "{error}");
-        let error = parse("[logging]\nlevel = \"debug\"\n").unwrap_err();
-        assert!(error.contains("unknown field `logging`"), "{error}");
+        let error = parse("[metrics]\nenabled = true\n").unwrap_err();
+        assert!(error.contains("unknown field `metrics`"), "{error}");
     }
 
     #[test]
@@ -171,11 +177,11 @@ mod tests {
 
     #[test]
     fn load_reports_missing_file() {
-        let error = Config::load(Path::new("/nonexistent/rudder-mcp.conf")).unwrap_err();
+        let error = Config::load(Path::new("/nonexistent")).unwrap_err();
         assert!(
             error
                 .to_string()
-                .contains("could not read configuration file /nonexistent/rudder-mcp.conf")
+                .contains("could not read configuration file /nonexistent/main.conf")
         );
     }
 }
