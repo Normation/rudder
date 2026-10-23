@@ -616,8 +616,18 @@ type alias TechniqueUiInfo =
 
 type alias TechniqueEditInfo =
     { value : String
-    , open : Bool
+    , editionState : TechniqueEditionState
     }
+
+
+type TechniqueEditMode
+    = VisualEdit
+    | YamlEdit
+
+
+type TechniqueEditionState
+    = EnabledEdition TechniqueEditMode
+    | DisabledEdition TechniqueEditMode
 
 
 type UiInfo
@@ -782,3 +792,94 @@ treeTechnique { id, version, name, category, elems } =
 treeTechniqueError : TechniqueError -> TreeTechnique
 treeTechniqueError { id, version, category } =
     { id = id, version = version, name = id.value, category = category, elems = [] }
+
+
+defaultTechniqueEditInfo : TechniqueEditInfo
+defaultTechniqueEditInfo =
+    TechniqueEditInfo "" (EnabledEdition VisualEdit)
+
+
+techniqueEditMode : TechniqueEditionState -> TechniqueEditMode
+techniqueEditMode state =
+    case state of
+        EnabledEdition mode ->
+            mode
+
+        DisabledEdition mode ->
+            mode
+
+
+toggleEditMode : TechniqueEditMode -> TechniqueEditMode
+toggleEditMode mode =
+    case mode of
+        VisualEdit ->
+            YamlEdit
+
+        YamlEdit ->
+            VisualEdit
+
+
+editionStateForTab : Tab -> TechniqueEditionState -> TechniqueEditionState
+editionStateForTab tab state =
+    let
+        mode =
+            techniqueEditMode state
+    in
+    if hasEdition tab then
+        EnabledEdition mode
+
+    else
+        DisabledEdition mode
+
+
+hasEdition : Tab -> Bool
+hasEdition tab =
+    case tab of
+        General ->
+            True
+
+        Parameters ->
+            True
+
+        _ ->
+            False
+
+
+updateMode : (Mode -> Mode) -> Model -> Model
+updateMode f model =
+    { model | mode = f model.mode }
+
+
+updateTechniqueUi : (TechniqueUiInfo -> TechniqueUiInfo) -> Mode -> Mode
+updateTechniqueUi f mode =
+    case mode of
+        TechniqueDetails technique state ui editInfo ->
+            TechniqueDetails technique state (f ui) editInfo
+
+        _ ->
+            mode
+
+
+updateTechniqueEditInfo : (TechniqueEditInfo -> TechniqueEditInfo) -> Mode -> Mode
+updateTechniqueEditInfo f mode =
+    case mode of
+        TechniqueDetails technique state ui editInfo ->
+            TechniqueDetails technique state ui (f editInfo)
+
+        _ ->
+            mode
+
+
+updateEditionState : (TechniqueEditionState -> TechniqueEditionState) -> TechniqueEditInfo -> TechniqueEditInfo
+updateEditionState f editInfo =
+    { editInfo | editionState = f editInfo.editionState }
+
+
+setEditValue : String -> TechniqueEditInfo -> TechniqueEditInfo
+setEditValue value editInfo =
+    { editInfo | value = value }
+
+
+setTab : Tab -> TechniqueUiInfo -> TechniqueUiInfo
+setTab tab ui =
+    { ui | tab = tab }
