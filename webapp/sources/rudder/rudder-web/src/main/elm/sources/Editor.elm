@@ -325,9 +325,10 @@ selectTechnique model technique =
             Either.unpack (\_ -> defaultUi) (draftCheckState >> validateDraftUi) technique
 
         editInfo =
-            TechniqueEditInfo "" False
+            defaultTechniqueEditInfo
     in
     { model | mode = TechniqueDetails effectiveTechnique state ui editInfo }
+        |> switchTab General
         |> update OpenMethods
         |> Tuple.mapSecond (always (Cmd.batch [ initInputs "", getRessources state model, action ]))
 
@@ -335,6 +336,14 @@ selectTechnique model technique =
 selectTechniqueError : Model -> TechniqueError -> ( Model, Cmd Msg )
 selectTechniqueError model error =
     ( { model | mode = TechniqueErrorDetails error (TechniqueErrorUiYamlEditing error.content) }, Cmd.none )
+
+
+switchTab : Tab -> Model -> Model
+switchTab tab =
+    updateMode
+        (updateTechniqueUi (setTab tab)
+            >> updateTechniqueEditInfo (updateEditionState (editionStateForTab tab))
+        )
 
 
 generator : Random.Generator String
@@ -616,10 +625,11 @@ update msg model =
                     Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] [] Nothing
 
                 editInfo =
-                    TechniqueEditInfo "" False
+                    defaultTechniqueEditInfo
 
                 newModel =
                     { model | mode = TechniqueDetails t (Creation internalId) ui editInfo }
+                        |> switchTab General
             in
             updatedStoreTechnique newModel
 
@@ -633,37 +643,10 @@ update msg model =
         ParseImportedFile file content ->
             ( model, checkTechnique (Import content) model )
 
-        {-
-           case Json.Decode.decodeString (Json.Decode.at ["data"] decodeTechnique ) content of
-             Ok t ->
-               let
-                 callsState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls t.elems)))
-                 bloksState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks t.elems)))
-
-                 editInfo = TechniqueEditInfo "" False (Ok ())
-                 mode = TechniqueDetails t (Creation t.id) (
-                          TechniqueUiInfo General callsState bloksState [] False (checkTechniqueName t model) (checkTechniqueId (Creation t.id) t model) Nothing
-                        ) editInfo
-                 (newModel, cmd) = (update (CallApi ( getRessources (Creation t.id) ))  {model | mode = mode })
-               in
-                 ( newModel, Cmd.batch [ cmd, infoNotification ("Technique '"++ t.id.value ++ "' successfully imported, please save to create technique") ] )
-             Err err ->
-              (model, errorNotification ("Error when importing technique from file " ++ (File.name file) ++ ": " ++ (Json.Decode.errorToString err)))
-        -}
-        -- Edit a technique: high level action: save/update, clone, export, switch tab
         SwitchTab tab ->
-            let
-                newMode =
-                    case model.mode of
-                        TechniqueDetails technique o ui editInfo ->
-                            TechniqueDetails technique o { ui | tab = tab } editInfo
-
-                        m ->
-                            m
-            in
             -- (re)initialize Bootstrap tooltips so badges rendered in the newly displayed tab
             -- (eg. the policy mode badges of the Directives tab) get their HTML tooltip wired up
-            ( { model | mode = newMode }, initTooltips () )
+            ( model |> switchTab tab, initTooltips () )
 
         UpdateTechnique technique ->
             let
@@ -706,10 +689,11 @@ update msg model =
                     TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
 
                 editInfo =
-                    TechniqueEditInfo "" False
+                    defaultTechniqueEditInfo
 
                 newModel =
                     { model | mode = TechniqueDetails { technique | name = copiedName, id = TechniqueId newId, category = creationCategory technique.category } (Clone technique optDraftId internalId) ui editInfo }
+                        |> switchTab General
 
                 ( nm, cmd ) =
                     updatedStoreTechnique newModel
@@ -1640,14 +1624,14 @@ update msg model =
                                     TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
 
                                 editInfo =
-                                    TechniqueEditInfo "" False
+                                    defaultTechniqueEditInfo
 
                                 -- an imported technique is created here and now: the category of the file cannot send it to the Rudder-provided part
                                 -- of the library. See https://issues.rudder.io/issues/29901
                                 imported =
                                     { technique | category = creationCategory technique.category }
                             in
-                            update (GenerateId FinalizeImport) { model | mode = TechniqueDetails imported (Creation (TechniqueId "")) ui editInfo }
+                            update (GenerateId FinalizeImport) ({ model | mode = TechniqueDetails imported (Creation (TechniqueId "")) ui editInfo } |> switchTab General)
 
                         EditYaml _ ->
                             case model.mode of
@@ -1658,7 +1642,8 @@ update msg model =
                                     ( model, Cmd.none )
 
                         SaveYaml _ ->
-                            ( { model | mode = TechniqueDetails technique (Edit technique) (defaultTechniqueUi technique) (TechniqueEditInfo "" False) }
+                            ( { model | mode = TechniqueDetails technique (Edit technique) (defaultTechniqueUi technique) defaultTechniqueEditInfo }
+                                |> switchTab General
                             , saveTechnique technique False Nothing model
                             )
 
@@ -1683,12 +1668,7 @@ update msg model =
                 Ok ( _, yaml ) ->
                     case mode of
                         CheckJson _ ->
-                            case model.mode of
-                                TechniqueDetails t o ui oldEdit ->
-                                    ( { model | mode = TechniqueDetails t o ui { oldEdit | value = yaml } }, Cmd.none )
-
-                                _ ->
-                                    ( model, Cmd.none )
+                            ( model |> updateMode (updateTechniqueEditInfo (setEditValue yaml)), Cmd.none )
 
                         _ ->
                             ( model, Cmd.none )
@@ -1714,12 +1694,12 @@ update msg model =
 
         UpdateEdition value ->
             case model.mode of
-                TechniqueDetails t o ui oldEdit ->
+                TechniqueDetails _ _ _ oldEdit ->
                     if value == oldEdit.value then
                         ( model, Cmd.none )
 
                     else
-                        update (CheckEdition value) { model | mode = TechniqueDetails t o ui { oldEdit | value = value } }
+                        update (CheckEdition value) (model |> updateMode (updateTechniqueEditInfo (setEditValue value)))
 
                 TechniqueErrorDetails t _ ->
                     ( { model | mode = TechniqueErrorDetails t (TechniqueErrorUiYamlEditing value) }, Cmd.none )
@@ -1729,22 +1709,28 @@ update msg model =
 
         ToggleEdition ->
             case model.mode of
-                TechniqueDetails t o ui oldEdit ->
-                    let
-                        edition =
-                            { oldEdit | open = not oldEdit.open }
+                TechniqueDetails t _ _ editInfo ->
+                    case editInfo.editionState of
+                        EnabledEdition editMode ->
+                            let
+                                newEditMode =
+                                    toggleEditMode editMode
 
-                        newModel =
-                            { model | mode = TechniqueDetails t o ui edition }
+                                newModel =
+                                    model |> updateMode (updateTechniqueEditInfo (updateEditionState (always (EnabledEdition newEditMode))))
 
-                        cmd =
-                            if edition.open then
-                                checkTechnique (CheckJson t) newModel
+                                cmd =
+                                    case newEditMode of
+                                        YamlEdit ->
+                                            checkTechnique (CheckJson t) newModel
 
-                            else
-                                Cmd.none
-                    in
-                    ( newModel, cmd )
+                                        VisualEdit ->
+                                            Cmd.none
+                            in
+                            ( newModel, cmd )
+
+                        DisabledEdition _ ->
+                            ( model, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
