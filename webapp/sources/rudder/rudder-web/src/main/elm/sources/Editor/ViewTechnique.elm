@@ -20,6 +20,7 @@ import Http exposing (Metadata)
 import Json.Decode
 import Maybe.Extra
 import Regex
+import String.Extra
 
 
 
@@ -47,7 +48,7 @@ checkTechniqueId origin technique techniques =
 
 checkTechniqueName : TechniqueCheckState -> List TechniqueCheckState -> ValidationState TechniqueNameError
 checkTechniqueName technique techniques =
-    if String.isEmpty technique.name then
+    if String.Extra.isBlank technique.name then
         InvalidState [ EmptyName ]
 
     else if List.any (.name >> (==) technique.name) (List.filter (.id >> (/=) technique.id) techniques) then
@@ -96,11 +97,14 @@ invalidTechniqueNameState state =
                         |> List.map
                             (\e ->
                                 case e of
+                                    AlreadyTakenName ->
+                                        "Technique name is already taken"
+
                                     EmptyName ->
                                         "Technique name is required"
 
-                                    AlreadyTakenName ->
-                                        "Technique name is already taken"
+                                    PristineName ->
+                                        "Technique name is required"
                             )
                         |> String.join ".\n"
             in
@@ -381,9 +385,6 @@ showTechniqueError model ui { version, id, errorPath, errorMsg } =
 showTechnique : Model -> Technique -> TechniqueState -> TechniqueUiInfo -> TechniqueEditInfo -> Html Msg
 showTechnique model technique origin ui editInfo =
     let
-        fakeMetadata =
-            Http.Metadata "internal-elm-call" 200 "call from elm app" Dict.empty
-
         errorOnBlocks =
             checkBlocksOnError technique.elems
 

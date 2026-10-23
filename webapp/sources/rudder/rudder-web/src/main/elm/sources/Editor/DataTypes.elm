@@ -549,7 +549,8 @@ type ValidationState error
 
 
 type TechniqueNameError
-    = EmptyName
+    = PristineName
+    | EmptyName
     | AlreadyTakenName
 
 
