@@ -183,8 +183,10 @@ final case class FileSystemResource(file: File)  extends AnyVal with ConfigResou
  */
 object RudderProperties {
 
-  // extension used in overriding files
-  val configFileExtensions: Set[String] = Set("properties", "prop", "config")
+  // extension used in overriding files. Syntax is chosen by typesafe-config from the extension:
+  // `.properties` is java properties, `.json` is JSON, `.conf` is HOCON.
+  // We used to (<9.1.5) have `.prop` and `.config`, but they don't seem to be supported by HOCON anymore.
+  val configFileExtensions: Set[String] = Set("properties", "conf", "json")
 
   // by default, used and configured to /opt/rudder/etc/rudder-web.properties
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
