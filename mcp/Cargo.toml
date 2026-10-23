@@ -16,6 +16,9 @@ rmcp = { version = "3.4.1", features = ["server", "transport-streamable-http-ser
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
 toml = "0.9"
+# Compile dev and release with trace logs enabled
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
 url = "2"
 
 [dev-dependencies]
