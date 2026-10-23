@@ -10,6 +10,7 @@ use rudder_commons::methods::method::MethodInfo;
 use rudderc::backends::unix::cfengine::cfengine_canonify;
 use rudderc::ir::technique::{Id, ItemKind, Method};
 use std::collections::HashMap;
+use std::fmt;
 
 pub enum MethodStatus {
     Success,
@@ -18,25 +19,149 @@ pub enum MethodStatus {
     NA,
 }
 
-pub fn get_result_condition_suffixes(status: MethodStatus) -> Vec<String> {
-    let v = match status {
-        MethodStatus::Success => vec!["ok", "kept", "not_repaired", "reached"],
-        MethodStatus::Repaired => vec!["ok", "repaired", "not_kept", "reached"],
-        #[cfg(feature = "test-unix")]
-        MethodStatus::Error => vec![
-            "not_kept",
-            "not_ok",
-            "not_repaired",
-            "failed", //legacy
-            "error",
-            "reached",
-        ],
-        #[cfg(not(feature = "test-unix"))]
-        MethodStatus::Error => vec!["not_kept", "not_ok", "not_repaired", "error", "reached"],
-        MethodStatus::NA => vec!["noop"],
-    };
-    v.iter().map(|s| s.to_string()).collect()
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub enum ResultConditionSuffix {
+    Ok,
+    NotOk,
+    Kept,
+    NotKept,
+    Repaired,
+    NotRepaired,
+    Reached,
+    Error,
+    Noop,
+    Failed,
 }
+
+impl ResultConditionSuffix {
+    pub const ALL: [ResultConditionSuffix; 10] = [
+        ResultConditionSuffix::Ok,
+        ResultConditionSuffix::NotOk,
+        ResultConditionSuffix::Kept,
+        ResultConditionSuffix::NotKept,
+        ResultConditionSuffix::Repaired,
+        ResultConditionSuffix::NotRepaired,
+        ResultConditionSuffix::Reached,
+        ResultConditionSuffix::Error,
+        ResultConditionSuffix::Noop,
+        ResultConditionSuffix::Failed,
+    ];
+
+    pub const SUCCESS: [ResultConditionSuffix; 4] = [
+        ResultConditionSuffix::Ok,
+        ResultConditionSuffix::Kept,
+        ResultConditionSuffix::NotRepaired,
+        ResultConditionSuffix::Reached,
+    ];
+
+    pub const REPAIRED: [ResultConditionSuffix; 4] = [
+        ResultConditionSuffix::Ok,
+        ResultConditionSuffix::NotKept,
+        ResultConditionSuffix::Repaired,
+        ResultConditionSuffix::Reached,
+    ];
+
+    #[cfg(feature = "test-unix")]
+    pub const ERROR: [ResultConditionSuffix; 6] = [
+        ResultConditionSuffix::NotOk,
+        ResultConditionSuffix::NotKept,
+        ResultConditionSuffix::NotRepaired,
+        ResultConditionSuffix::Reached,
+        ResultConditionSuffix::Error,
+        ResultConditionSuffix::Failed,
+    ];
+    #[cfg(not(feature = "test-unix"))]
+    pub const ERROR: [ResultConditionSuffix; 5] = [
+        ResultConditionSuffix::NotOk,
+        ResultConditionSuffix::NotKept,
+        ResultConditionSuffix::NotRepaired,
+        ResultConditionSuffix::Reached,
+        ResultConditionSuffix::Error,
+    ];
+    pub const NA: [ResultConditionSuffix; 1] = [ResultConditionSuffix::Noop];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ResultConditionSuffix::Ok => "ok",
+            ResultConditionSuffix::NotOk => "not_ok",
+            ResultConditionSuffix::Kept => "kept",
+            ResultConditionSuffix::NotKept => "not_kept",
+            ResultConditionSuffix::Repaired => "repaired",
+            ResultConditionSuffix::NotRepaired => "not_repaired",
+            ResultConditionSuffix::Reached => "reached",
+            ResultConditionSuffix::Error => "error",
+            ResultConditionSuffix::Noop => "noop",
+            ResultConditionSuffix::Failed => "failed",
+        }
+    }
+
+    pub fn for_status(status: MethodStatus) -> Vec<ResultConditionSuffix> {
+        match status {
+            MethodStatus::Success => ResultConditionSuffix::SUCCESS.to_vec(),
+            MethodStatus::Repaired => ResultConditionSuffix::REPAIRED.to_vec(),
+            MethodStatus::Error => ResultConditionSuffix::ERROR.to_vec(),
+            MethodStatus::NA => ResultConditionSuffix::NA.to_vec(),
+        }
+    }
+}
+
+impl fmt::Display for ResultConditionSuffix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct ResultCondition {
+    pub prefix: String,
+    pub suffix: ResultConditionSuffix,
+}
+
+impl ResultCondition {
+    pub fn with_suffixes(prefix: &str, suffixes: &[ResultConditionSuffix]) -> Vec<ResultCondition> {
+        suffixes
+            .iter()
+            .map(|s| ResultCondition {
+                prefix: prefix.to_string(),
+                suffix: s.clone(),
+            })
+            .collect()
+    }
+
+    pub fn from_status(prefix: &str, status: MethodStatus) -> Vec<ResultCondition> {
+        let s: &[ResultConditionSuffix] = match status {
+            MethodStatus::Success => &ResultConditionSuffix::SUCCESS,
+            MethodStatus::Repaired => &ResultConditionSuffix::REPAIRED,
+            MethodStatus::Error => &ResultConditionSuffix::ERROR,
+            MethodStatus::NA => &ResultConditionSuffix::NA,
+        };
+        ResultCondition::with_suffixes(&prefix, s)
+    }
+
+    pub fn from_statuses(prefix: &str, statuses: Vec<MethodStatus>) -> Vec<ResultCondition> {
+        let mut result: Vec<ResultCondition> = statuses
+            .into_iter()
+            .flat_map(|s| ResultCondition::from_status(prefix, s))
+            .collect();
+        result.sort();
+        result.dedup();
+        result
+    }
+}
+
+impl fmt::Display for ResultCondition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}_{}", self.prefix, self.suffix)
+    }
+}
+
+pub fn get_result_condition_suffixes(status: MethodStatus) -> Vec<String> {
+    ResultConditionSuffix::for_status(status)
+        .iter()
+        .map(|s| s.as_str().to_string())
+        .collect()
+}
+
 #[derive(Clone)]
 pub struct MethodToTest {
     pub id: Id,
@@ -97,7 +222,7 @@ impl MethodToTest {
     }
     pub fn get_result_condition_prefix(&self) -> String {
         cfengine_canonify(&format!(
-            "{}_{}_",
+            "{}_{}",
             self.method_info.class_prefix,
             self.params.get(&self.method_info.class_parameter).unwrap()
         ))
@@ -112,23 +237,9 @@ impl MethodToTest {
 
     // As legacy result condition can overlap between method calls, we have to handle
     // combinations of expected statuses
-    pub fn legacy_result_conditions(&self, statuses: Vec<MethodStatus>) -> Vec<String> {
-        let mut expected_suffixes: Vec<String> = Vec::new();
-        statuses.into_iter().for_each(|status| {
-            expected_suffixes.extend(get_result_condition_suffixes(status));
-        });
-        expected_suffixes
-            .into_iter()
-            .unique()
-            .map(|s| {
-                cfengine_canonify(&format!(
-                    "{}_{}_{}",
-                    self.method_info.class_prefix,
-                    self.params.get(&self.method_info.class_parameter).unwrap(),
-                    s
-                ))
-            })
-            .collect::<Vec<String>>()
+    pub fn legacy_result_conditions(&self, statuses: Vec<MethodStatus>) -> Vec<ResultCondition> {
+        let prefix = self.get_result_condition_prefix();
+        ResultCondition::from_statuses(&prefix, statuses)
     }
 }
 pub fn method(method_name: &str, args: &[&str]) -> MethodToTest {
