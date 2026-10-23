@@ -660,16 +660,7 @@ showTechnique model technique origin ui editInfo =
                         [ text "Reset "
                         , i [ class "fa fa-undo" ] []
                         ]
-                    , button [ class "btn btn-primary", onClick ToggleEdition ]
-                        [ text
-                            (if editInfo.open then
-                                "Visual editor "
-
-                             else
-                                "YAML editor"
-                            )
-                        , i [ class "fa fa-pen" ] []
-                        ]
+                    , viewBtnToggleEdition editInfo.editionState
                     , viewBtnSave ui.saving checkList StartSaving
                     ]
                 ]
@@ -768,7 +759,7 @@ showTechnique model technique origin ui editInfo =
         , div [ class "main-details", id "details" ]
             [ div [ class "editForm", name "ui.editForm" ]
                 [ techniqueTab model technique creation ui
-                , if ui.tab == Directives then
+                , if not (hasEdition ui.tab) then
                     text ""
 
                   else
@@ -787,13 +778,14 @@ showTechnique model technique origin ui editInfo =
                                     , i [ class "fa fa-plus-circle" ] []
                                     ]
                             ]
-                        , if editInfo.open then
-                            div [ class "col-sm-12" ]
-                                [ viewYamlEdit editInfo.value
-                                ]
+                        , case techniqueEditMode editInfo.editionState of
+                            YamlEdit ->
+                                div [ class "col-sm-12" ]
+                                    [ viewYamlEdit editInfo.value
+                                    ]
 
-                          else
-                            render methodsList
+                            VisualEdit ->
+                                render methodsList
                         ]
                 ]
             ]
@@ -888,6 +880,38 @@ view model =
             Just (CategoryDeletionValidation category) ->
                 categoryDeletionPopup category
         ]
+
+
+viewBtnToggleEdition : TechniqueEditionState -> Html Msg
+viewBtnToggleEdition editionState =
+    let
+        label =
+            case techniqueEditMode editionState of
+                YamlEdit ->
+                    "Visual editor "
+
+                VisualEdit ->
+                    "YAML editor"
+
+        btn attributes =
+            button (class "btn btn-primary" :: attributes)
+                [ text label
+                , i [ class "fa fa-pen" ] []
+                ]
+    in
+    case editionState of
+        EnabledEdition _ ->
+            btn [ onClick ToggleEdition ]
+
+        DisabledEdition _ ->
+            span
+                [ class "d-inline-block"
+                , tabindex 0
+                , attribute "data-bs-toggle" "tooltip"
+                , attribute "data-bs-placement" "bottom"
+                , title "The edition mode can only be switched from the Information and Parameters tabs"
+                ]
+                [ btn [ disabled True ] ]
 
 
 viewYamlEdit : String -> Html Msg
