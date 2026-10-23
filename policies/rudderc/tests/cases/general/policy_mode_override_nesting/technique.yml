@@ -1,0 +1,23 @@
+id: nested_policy_mode
+name: nested policy mode
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a01
+    name: Outer block in audit
+    reporting:
+      mode: weighted
+    items:
+      - id: 5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a02
+        name: Inner block without override
+        reporting:
+          mode: weighted
+        items:
+          - id: 5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a03
+            name: Should resolve to audit
+            method: file_content
+            params:
+              path: /tmp/1
+              lines: foobar
+              enforce: 'true'
+    policy_mode_override: audit
