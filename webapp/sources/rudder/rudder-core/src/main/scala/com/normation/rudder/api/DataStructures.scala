@@ -639,3 +639,23 @@ final case class ApiAccount(
     case _: SystemToken  => creationDate
   }
 }
+
+object ApiAccount {
+  given transformer: Transformer[ApiAccount, ApiAccountNoToken] = {
+    Transformer
+      .define[ApiAccount, ApiAccountNoToken]
+      .buildTransformer
+  }
+}
+
+case class ApiAccountNoToken(
+    id:                 ApiAccountId,
+    kind:               ApiAccountKind, // Authentication token. It is a mandatory value, and can't be ""
+    // If a token should be revoked, use isEnabled = false.
+    name:               ApiAccountName, // used in event log to know who did actions.
+    description:        String,
+    isEnabled:          Boolean,
+    creationDate:       Instant,
+    lastAuthentication: AccountLastAuthentication,
+    tenants:            TenantAccessGrant
+) {}
