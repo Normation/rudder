@@ -6,9 +6,8 @@ mod config;
 #[cfg(test)]
 mod tests;
 
-use std::sync::Arc;
+use std::{process::ExitCode, sync::Arc};
 
-use anyhow::{Context, Result};
 use clap::Parser;
 use rmcp::{
     ServerHandler,
@@ -18,6 +17,8 @@ use rmcp::{
         StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
     },
 };
+
+use tracing::{error, info};
 
 use crate::{cli::Cli, config::Config};
 
@@ -51,12 +52,54 @@ fn router() -> axum::Router {
     axum::Router::new().nest_service("/mcp", service)
 }
 
+/// Exit codes, as relayd: the unit does not restart on startup errors (`RestartPreventExitStatus`),
+/// as a restart would not fix them. Other failures exit with 1 and are restarted.
+const EXIT_CONFIG_ERROR: u8 = 2;
+const EXIT_START_ERROR: u8 = 3;
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
     let cli = Cli::parse();
-    let listen = Config::load(&cli.config)?.server.listen;
-    let listener = tokio::net::TcpListener::bind(listen)
-        .await
-        .with_context(|| format!("could not listen on {listen}"))?;
-    Ok(axum::serve(listener, router()).await?)
+    // As relayd: no timestamps as the journal adds them, only errors until the configuration is
+    // loaded
+    let logger = tracing_subscriber::fmt()
+        .without_time()
+        .with_env_filter("error")
+        .with_filter_reloading();
+    let log_filter = logger.reload_handle();
+    logger.init();
+
+    let config = match Config::load(&cli.config) {
+        Ok(config) => config,
+        Err(e) => return fail(&e, EXIT_CONFIG_ERROR),
+    };
+    if let Err(e) = log_filter.reload(config.logging.to_string()) {
+        return fail(&e.into(), EXIT_START_ERROR);
+    }
+    info!(
+        "Starting {} {}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
+    info!("Read configuration from {}", cli.config.display());
+
+    let listen = config.server.listen;
+    let listener = match tokio::net::TcpListener::bind(listen).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            let e = anyhow::Error::new(e).context(format!("could not listen on {listen}"));
+            return fail(&e, EXIT_START_ERROR);
+        }
+    };
+    info!("Listening on http://{listen}/mcp");
+    if let Err(e) = axum::serve(listener, router()).await {
+        return fail(&e.into(), 1);
+    }
+    ExitCode::SUCCESS
+}
+
+fn fail(error: &anyhow::Error, code: u8) -> ExitCode {
+    // `{:?}` shows the cause chain
+    error!("{error:?}");
+    ExitCode::from(code)
 }
