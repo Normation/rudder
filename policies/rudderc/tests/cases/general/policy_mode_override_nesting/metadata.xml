@@ -1,0 +1,37 @@
+<TECHNIQUE name="nested policy mode">
+  <DESCRIPTION>nested policy mode</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>nested_policy_mode</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Nested-Policy-Mode</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION id="5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a01" name="Outer block in audit" reporting="weighted" component="true" multivalued="true">
+      <SECTION id="5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a02" name="Inner block without override" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Should resolve to audit" id="5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a03" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="5e0d8a52-1c39-4c2f-9d3b-0a1f6c0b7a03">/tmp/1</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

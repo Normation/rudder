@@ -398,7 +398,7 @@ impl Windows {
                         calls.extend(resolve_module(
                             inner,
                             context.and(&r.condition),
-                            r.policy_mode_override,
+                            r.policy_mode_override.or(policy_mode_context),
                         )?);
                     }
                     Ok(calls)
