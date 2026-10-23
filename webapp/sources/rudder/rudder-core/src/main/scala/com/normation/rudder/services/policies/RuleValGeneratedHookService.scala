@@ -5,6 +5,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.facts.nodes.NodeFact.IterableToChunk
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.zio.*
+import java.util.concurrent.TimeUnit
 import zio.*
 import zio.syntax.ToZio
 
@@ -30,7 +31,10 @@ class RuleValGeneratedHookService {
                    .run(ruleVals.toChunk)
                    .timed
                    .flatMap { s =>
-                     PolicyGenerationLoggerPure.timing.info(s"hook '${hook.name}' has run in ${s._1.render}") *>
+                     val duration = if (s._1 < Duration(1, TimeUnit.MILLISECONDS)) { s"0 ms" }
+                     else { s._1.render }
+
+                     PolicyGenerationLoggerPure.timing.info(s"hook '${hook.name}' has run in ${duration}") *>
                      s._2.succeed
                    }
                    .catchAll(err => {
