@@ -284,9 +284,6 @@ object MergeNodeProperties {
                     parent          <- allGroupProps.get(firstParent)
                     // we assume that there is a single property value for the same name (upstream we have List and not a Map)
                     parentProp      <- parent.properties.find(_.name == nodeProp.name)
-                    // parentProps probably needs to be a NonEmptyChunk(VerticalPropTree[{node=(1),groups=(*),global=(1)}])
-                    // and what we want is a VerticalPropTree that has the parent group as its dominant group i.e. most prioritized groups, the last one
-                    // we probably want to have this natural subdivision, such that the Ordering[ParentProperty] will disappear, as it's explicitly : .node, .groups (already sorted), .global
                     parentHierarchy <- {
                       given GroupProp = parent
                       parentProps.collectFirst { case ParentGroup(hierarchy) => hierarchy }
