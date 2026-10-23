@@ -9,10 +9,16 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+anyhow = "1"
 axum = "0.8"
+clap = { version = "4", features = ["derive"] }
 rmcp = { version = "3.4.1", features = ["server", "transport-streamable-http-server"] }
+serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+toml = "0.9"
+url = "2"
 
 [dev-dependencies]
+pretty_assertions = "1"
 reqwest = { version = "0.13.1", default-features = false, features = ["json", "native-tls"] }
 serde_json = "1"

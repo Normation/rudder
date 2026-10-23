@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
+mod cli;
+mod config;
 #[cfg(test)]
 mod tests;
 
 use std::sync::Arc;
 
+use anyhow::{Context, Result};
+use clap::Parser;
 use rmcp::{
     ServerHandler,
     model::{ServerCapabilities, ServerConfig},
@@ -14,6 +18,8 @@ use rmcp::{
         StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
     },
 };
+
+use crate::{cli::Cli, config::Config};
 
 #[derive(Debug, Clone)]
 struct Rudder;
@@ -46,7 +52,11 @@ fn router() -> axum::Router {
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await?;
-    axum::serve(listener, router()).await
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+    let listen = Config::load(&cli.config)?.server.listen;
+    let listener = tokio::net::TcpListener::bind(listen)
+        .await
+        .with_context(|| format!("could not listen on {listen}"))?;
+    Ok(axum::serve(listener, router()).await?)
 }
