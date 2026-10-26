@@ -13,7 +13,11 @@ DocumentRoot /var/www
 
 # Common TLS config
 SSLEngine on
+{% if cert_validation %}
 SSLVerifyDepth 5
+{% else %}
+SSLVerifyDepth 0
+{% endif %}
 SSLVerifyClient optional_no_ca
 
 # TLS 1.3 only
