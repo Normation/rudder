@@ -16,7 +16,8 @@ fn main() {
     if cli_cfg.test {
         match check_configuration(Path::new(&cli_cfg.config)) {
             Err(e) => {
-                println!("{e}");
+                // `{:#}` to show the causes, e.g. the location of a syntax error
+                println!("{e:#}");
                 exit(ExitStatus::StartError(e).code());
             }
             Ok(warns) => {

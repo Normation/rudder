@@ -4,9 +4,7 @@
 #[macro_use]
 extern crate diesel;
 
-use std::{
-    collections::HashMap, fs, fs::create_dir_all, process::exit, string::ToString, sync::Arc,
-};
+use std::{collections::HashMap, fs, fs::create_dir_all, process::exit, sync::Arc};
 
 use anyhow::Error;
 use tokio::{
@@ -14,19 +12,12 @@ use tokio::{
     sync::RwLock,
 };
 use tracing::{debug, error, info, warn};
-use tracing_subscriber::{
-    filter::EnvFilter,
-    fmt::{
-        format::{DefaultFields, Format, Full},
-        Formatter, Subscriber,
-    },
-    reload::Handle,
-};
+
+use rudder_cli::logs::daemon::LogConfig;
 
 use crate::{
     configuration::{
         cli::CliConfiguration,
-        logging::LogConfig,
         main::{
             Configuration, InventoryOutputSelect, OutputSelect, PeerAuthentication,
             ReportingOutputSelect,
@@ -90,20 +81,7 @@ impl ExitStatus {
     }
 }
 
-type LogHandle =
-    Handle<EnvFilter, Formatter<DefaultFields, Format<Full, ()>, fn() -> std::io::Stdout>>;
-
-pub fn init_logger() -> Result<LogHandle, Error> {
-    let builder = Subscriber::builder()
-        .without_time()
-        // Until actual config load
-        .with_env_filter("error")
-        .with_filter_reloading();
-    let reload_handle = builder.reload_handle();
-    builder.init();
-
-    Ok(reload_handle)
-}
+pub use rudder_cli::logs::daemon::{init as init_logger, LogHandle};
 
 pub fn start(
     cli_cfg: CliConfiguration,
@@ -111,8 +89,8 @@ pub fn start(
     force_ports: Option<(u16, u16)>,
 ) -> Result<(), Error> {
     // Start by setting log config
-    let log_cfg = LogConfig::new(&cli_cfg.config)?;
-    reload_handle.reload(log_cfg.to_string())?;
+    let log_cfg = LogConfig::load(&cli_cfg.config)?;
+    reload_handle.reload(&log_cfg)?;
 
     info!("Starting {} {}", CRATE_NAME, CRATE_VERSION);
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
@@ -327,11 +305,7 @@ impl JobConfig {
     }
 
     fn reload_logging(&self) -> Result<(), Error> {
-        LogConfig::new(&self.cli_cfg.config).and_then(|log_cfg| {
-            self.handle
-                .reload(EnvFilter::try_new(log_cfg.to_string())?)
-                .map_err(|e| e.into())
-        })
+        LogConfig::load(&self.cli_cfg.config).and_then(|log_cfg| self.handle.reload(&log_cfg))
     }
 
     async fn reload_nodeslist(&self) -> Result<(), Error> {

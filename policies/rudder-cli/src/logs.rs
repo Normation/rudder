@@ -5,6 +5,8 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
+pub mod daemon;
+
 use anyhow::{Context, Error, Result, bail};
 use colored::Colorize;
 use std::{
