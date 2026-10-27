@@ -40,29 +40,31 @@ pipeline {
                         RUST_LOG = 'debug'
                     }
                     steps {
-                        sh script: './qa-test --methods', label: 'methods tests'
-                        dir("policies/module-types") {
-                            dir("template") {
-                                sh script: 'cargo build'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh script: './qa-test --methods', label: 'methods tests'
+                            dir("policies/module-types") {
+                                dir("template") {
+                                    sh script: 'cargo build'
+                                }
+                                dir("augeas") {
+                                    sh script: 'cargo build'
+                                }
+                                dir("commands") {
+                                    sh script: 'cargo build'
+                                }
                             }
-                            dir("augeas") {
-                                sh script: 'cargo build'
+                            sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
+                            sh script: ''
+                            dir('dsc') {
+                                git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                    branch: "branches/rudder/${version}",
+                                    credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                sh script: 'make ncf NCF_OUTPUT=$(pwd)/../policies/lib/ncf', label: 'install local Windows agent'
                             }
-                            dir("commands") {
-                                sh script: 'cargo build'
+                            dir("policies") {
+                                sh script: 'make check-methods-unix', label: 'methods tests'
+                                sh script: 'make check-methods-windows', label: 'methods tests'
                             }
-                        }
-                        sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
-                        sh script: ''
-                        dir('dsc') {
-                            git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                branch: "branches/rudder/${version}",
-                                credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                            sh script: 'make ncf NCF_OUTPUT=$(pwd)/../policies/lib/ncf', label: 'install local Windows agent'
-                        }
-                        dir("policies") {
-                            sh script: 'make check-methods-unix', label: 'methods tests'
-                            sh script: 'make check-methods-windows', label: 'methods tests'
                         }
                     }
                     post {
@@ -88,8 +90,10 @@ pipeline {
                         }
                     }
                     steps {
-                        dir("policies/lib") {
-                            sh script: '~/.local/bin/avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                          dir("policies/lib") {
+                                sh script: '~/.local/bin/avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                            }
                         }
                     }
                     post {
@@ -115,8 +119,10 @@ pipeline {
                     }
                     when { not { branch 'master' } }
                     steps {
-                        dir('relay/sources') {
-                            sh script: 'make man-source', label: 'build man page'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('relay/sources') {
+                                sh script: 'make man-source', label: 'build man page'
+                            }
                         }
                     }
                     post {
@@ -338,10 +344,6 @@ pipeline {
                         }
                     }
                     steps {
-
-                        script {
-                            updateSlack(errors, slackResponse, version, changeUrl, false)
-                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('relay/sources/rudder-package') {
                                 sh script: 'make check', label: 'rudder-package tests'
@@ -652,10 +654,12 @@ pipeline {
                     }
                     when { not { branch 'master' } }
                     steps {
-                        dir('relay/sources') {
-                            sh script: 'make man-source', label: 'build man page'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/man-source/rudder-relayd.1 ${KEY_USER}@${HOST_DOCS}:/var/www-docs/man/${RUDDER_VERSION}/', label: 'man page publication'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('relay/sources') {
+                                sh script: 'make man-source', label: 'build man page'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/man-source/rudder-relayd.1 ${KEY_USER}@${HOST_DOCS}:/var/www-docs/man/${RUDDER_VERSION}/', label: 'man page publication'
+                                }
                             }
                         }
                     }
@@ -832,15 +836,19 @@ pipeline {
                 }
             }
         }
-        stage('End') {
-            steps {
-                script {
-                    updateSlack(errors, slackResponse, version, changeUrl, true)
-                    if (failedBuild) {
-                        error 'End of build'
-                    } else {
-                        echo 'End of build'
-                    }
+    }
+    post {
+        always {
+            script {
+                // all stages catch their errors with buildResult: 'SUCCESS',
+                // so a non-SUCCESS result here means something escaped them (agent failure, abort, ...)
+                if (currentBuild.currentResult != 'SUCCESS') {
+                    errors.add("Build ended unexpectedly (${currentBuild.currentResult})")
+                    failedBuild = true
+                }
+                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, true)
+                if (failedBuild) {
+                    currentBuild.result = 'FAILURE'
                 }
             }
         }
@@ -892,9 +900,12 @@ def redirectApi() {
 def notifyError(errors, slackResponse, version, changeUrl, stageName, slackMessage) {
     failedBuild = true
     errors.add(stageName)
-    def updatedResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-    slackSend(channel: updatedResponse.threadId, message: "${slackMessage} - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-    return updatedResponse
+    if (changeUrl == null) {
+      slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+      slackSend(channel: slackResponse.threadId, message: "${slackMessage} - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+    }
+    return slackResponse
+    
 }
 
 def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
@@ -902,7 +913,7 @@ def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
 
   if (changeUrl == null) {
 
-      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE")
+      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild?.resultIsWorseOrEqualTo("UNSTABLE")
       if (errors.isEmpty() && isEnded && fixed) {
         msg +=  " => Build fixed! :white_check_mark:"
         def color = "good"
