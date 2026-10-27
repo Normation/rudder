@@ -248,7 +248,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   "When run are expired but we keep compliance, we keep compliance in repo" >> {
-    val grace                    = scala.concurrent.duration.Duration("1h")
+    val grace                    = 1.hour
     val (repo, finder, computer) = newServices(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(grace)))
 
     val longExpired = expired.minusMinutes(30)

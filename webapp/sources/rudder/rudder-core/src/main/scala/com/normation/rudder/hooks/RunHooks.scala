@@ -42,6 +42,7 @@ import com.normation.RudderLogger
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.rudder.hooks.RunNuCommand.SudoRun
+import com.normation.utils.DurationUtils
 import com.normation.zio.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -479,7 +480,7 @@ object RunHooks {
         line match {
           case pattern(timeout) =>
             try {
-              Some(Duration.fromScala(scala.concurrent.duration.Duration(timeout)))
+              Some(DurationUtils.parseUnsafe(timeout))
             } catch {
               case ex: NumberFormatException =>
                 HooksLogger.warn(
