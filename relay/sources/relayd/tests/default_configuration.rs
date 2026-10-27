@@ -3,7 +3,8 @@
 
 use std::fs::read_to_string;
 
-use rudder_relayd::configuration::{logging::LogConfig, main::Configuration};
+use rudder_cli::logs::daemon::LogConfig;
+use rudder_relayd::configuration::main::Configuration;
 
 #[test]
 fn default_configuration_is_valid() {
@@ -15,6 +16,6 @@ fn default_configuration_is_valid() {
         .parse::<Configuration>();
     assert!(dbg!(cfg).is_ok());
 
-    let log_cfg = LogConfig::new("tools/config");
+    let log_cfg = LogConfig::load("tools/config");
     assert!(log_cfg.is_ok());
 }
