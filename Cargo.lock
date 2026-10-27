@@ -3937,11 +3937,13 @@ dependencies = [
  "reqwest",
  "rmcp",
  "rudder_cli",
+ "secrecy",
  "serde",
  "serde_json",
  "tokio",
  "toml 0.9.12+spec-1.1.0",
  "tracing",
+ "tracing-subscriber",
  "url",
 ]
 

@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
+mod api;
+mod auth;
 mod cli;
 mod config;
 #[cfg(test)]
 mod tests;
 
-use std::{process::ExitCode, sync::Arc};
+use std::{net::SocketAddr, process::ExitCode, sync::Arc};
 
+use axum::{http::request::Parts, middleware};
 use clap::Parser;
 use rmcp::{
-    ServerHandler,
+    ErrorData, ServerHandler,
+    handler::server::tool::Extension,
     model::{ServerCapabilities, ServerConfig},
     tool, tool_handler, tool_router,
     transport::streamable_http_server::{
@@ -20,18 +24,36 @@ use rmcp::{
 
 use tracing::{error, info};
 
-use rudder_cli::logs::daemon::{self, LogConfig};
+use rudder_cli::logs::daemon;
 
-use crate::{cli::Cli, config::Config};
+use crate::{
+    api::RudderApi,
+    auth::{ApiAccount, require_token},
+    cli::Cli,
+    config::Config,
+};
 
 #[derive(Debug, Clone)]
 struct Rudder;
 
 #[tool_router]
 impl Rudder {
-    #[tool(description = "Check that the Rudder MCP server answers")]
-    fn hello(&self) -> String {
-        "Hello from the Rudder MCP server".to_owned()
+    #[tool(
+        description = "Who is calling: the Rudder API account behind the caller's token, and its rights",
+        annotations(read_only_hint = true)
+    )]
+    fn whoami(&self, Extension(parts): Extension<Parts>) -> Result<String, ErrorData> {
+        // Always inserted by `require_token`
+        let account = parts
+            .extensions
+            .get::<ApiAccount>()
+            .ok_or_else(|| ErrorData::internal_error("no account in request", None))?;
+        Ok(format!(
+            "Rudder API account: '{}' (id {})\nRights: {}",
+            account.name,
+            account.id,
+            account.authorization_type.describe()
+        ))
     }
 }
 
@@ -42,8 +64,9 @@ impl ServerHandler for Rudder {
     }
 }
 
-/// The MCP endpoint, stateless: a `Rudder` is built for each request
-fn router() -> axum::Router {
+/// The MCP endpoint, stateless: a `Rudder` is built for each request. Every request must carry a
+/// Rudder API token, checked with `api`.
+fn router(api: RudderApi) -> axum::Router {
     let service = StreamableHttpService::new(
         || Ok(Rudder),
         Arc::new(NeverSessionManager::default()),
@@ -51,7 +74,16 @@ fn router() -> axum::Router {
             .with_legacy_session_mode(false)
             .with_json_response(true),
     );
-    axum::Router::new().nest_service("/mcp", service)
+    axum::Router::new()
+        .nest_service("/mcp", service)
+        .layer(middleware::from_fn_with_state(api, require_token))
+}
+
+/// Serves the MCP endpoint until an error occurs
+async fn serve(listener: tokio::net::TcpListener, api: RudderApi) -> std::io::Result<()> {
+    // The client address is in the request logs
+    let service = router(api).into_make_service_with_connect_info::<SocketAddr>();
+    axum::serve(listener, service).await
 }
 
 /// Exit codes, as relayd: the unit does not restart on startup errors (`RestartPreventExitStatus`),
@@ -70,7 +102,7 @@ async fn main() -> ExitCode {
         }
     };
 
-    let log_config = match LogConfig::load(&cli.config) {
+    let log_config = match config::load_log_config(&cli.config) {
         Ok(log_config) => log_config,
         Err(e) => return fail(&e, EXIT_CONFIG_ERROR),
     };
@@ -88,6 +120,12 @@ async fn main() -> ExitCode {
     );
     info!("Read configuration from {}", cli.config.display());
 
+    let api = match RudderApi::new(&config.api) {
+        Ok(api) => api,
+        Err(e) => return fail(&e, EXIT_START_ERROR),
+    };
+    info!("Using Rudder API at {}", api.url());
+
     let listen = config.server.listen;
     let listener = match tokio::net::TcpListener::bind(listen).await {
         Ok(listener) => listener,
@@ -97,7 +135,7 @@ async fn main() -> ExitCode {
         }
     };
     info!("Listening on http://{listen}/mcp");
-    if let Err(e) = axum::serve(listener, router()).await {
+    if let Err(e) = serve(listener, api).await {
         return fail(&e.into(), 1);
     }
     ExitCode::SUCCESS
