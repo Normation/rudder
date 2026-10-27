@@ -16,8 +16,7 @@ use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
-    TMP_PLUGINS_FOLDER,
-    archive::{PackageScript, PackageScriptArg},
+    archive::{PackageScript, PackageScriptArg, PackageSource},
     plugin::{self, short_name},
     repo_index::RepoIndex,
     repository::Repository,
@@ -102,61 +101,38 @@ impl Database {
         webapp: &mut Webapp,
     ) -> Result<()> {
         info!("Installing {}", package);
-        // Local install detection
-        let rpkg_path = if package.ends_with(".rpkg") || package.contains('/') {
-            if Path::new(&package).exists() {
-                package.to_string()
-            } else {
-                bail!("The {} plugin file does not exist", package)
+        let source = PackageSource::from_str(package)?;
+        let rpkg = match (&source, &index) {
+            (PackageSource::Path(_), Some(i)) => {
+                let parsed_version = match version {
+                    Some(v) => Some(ArchiveVersion::from_str(v)?),
+                    None => None,
+                };
+                // Download the rpkg locally
+                Rpkg::from_repository(source, parsed_version, force, repository, i, webapp)
             }
-        } else {
-            let i = match index {
-                Some(i) => i,
-                None => bail!(
-                    "No index was found from remote repository. Try running 'rudder package update'."
-                ),
-            };
+            (PackageSource::Path(path), _) => Rpkg::try_from(path.to_path_buf()),
+            (_, _) => {
+                bail!("Unsupported package source {:?}", source)
+            }
+        }?;
+        // Find needed plugin dependencies and install them from the repository
+        // If anything fails, the dependencies already pulled and installed will stay installed
+        let plugin_dependencies = &rpkg
+            .clone()
+            .metadata
+            .depends
+            .and_then(|m| m.plugin)
+            .unwrap_or(vec![]);
+        for p in plugin_dependencies {
+            // If a dependency is already installed, assume the version is already correct
+            // as we are using strong patch version compatibility on the webapp and plugins
+            if !self.plugins.contains_key(p.as_ref()) {
+                info!("Installing dependency {} of {}", p.as_ref(), package);
+                self.install(false, p.as_ref(), None, repository, index, webapp).context(format!("Could not complete the install of the plugin dependency '{}' for plugin '{}'", p.as_ref(), package))?;
+            }
+        }
 
-            let to_dl_and_install = if let Some(v) = version {
-                let parsed_version = ArchiveVersion::from_str(v)?;
-                if force {
-                    i.any_matching_plugin(package, &parsed_version)
-                        .ok_or(anyhow!(
-                            "Could not find any plugin matching '{}:{}'",
-                            package,
-                            v,
-                        ))
-                } else {
-                    i.matching_compatible_plugin(&webapp.version, package, &parsed_version)
-                        .ok_or(anyhow!(
-                            "Could not find any compatible plugin matching '{}:{}'",
-                            package,
-                            v,
-                        ))
-                }
-            } else {
-                i.latest_compatible_plugin(&webapp.version, package)
-                    .ok_or(anyhow!(
-                        "Could not find any compatible '{}' plugin",
-                        package
-                    ))
-            }?;
-
-            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                Path::new(&to_dl_and_install.path)
-                    .file_name()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Could not retrieve filename from path '{}'",
-                            to_dl_and_install.path
-                        )
-                    })?,
-            );
-            // Download rpkg
-            repository.download(&to_dl_and_install.path, &dest)?;
-            dest.as_path().display().to_string()
-        };
-        let rpkg = Rpkg::from_path(&rpkg_path)?;
         if self.plugins.contains_key(&rpkg.metadata.name.to_string()) {
             info!(
                 "Plugin {} already installed, upgrading",

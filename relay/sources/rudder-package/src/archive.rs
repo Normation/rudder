@@ -16,11 +16,34 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
-    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE,
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, RepoIndex, Repository, TMP_PLUGINS_FOLDER,
     database::{Database, InstalledPlugin, UninstallMode},
     plugin::Metadata,
+    versions::ArchiveVersion,
     webapp::Webapp,
 };
+
+#[derive(Clone, Debug)]
+pub enum PackageSource {
+    Path(PathBuf),
+    Name(String),
+}
+
+impl str::FromStr for PackageSource {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, anyhow::Error> {
+        if s.ends_with(".rpkg") || s.contains('/') {
+            let p = PathBuf::from(s);
+            if !p.exists() {
+                bail!("The {} plugin file does not exist", s)
+            }
+            Ok(PackageSource::Path(p))
+        } else {
+            Ok(PackageSource::Name(s.to_owned()))
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PackageType {
@@ -95,12 +118,64 @@ pub struct Rpkg {
     pub metadata: Metadata,
 }
 
-impl Rpkg {
-    pub fn from_path(path: &str) -> Result<Rpkg> {
+impl TryFrom<PathBuf> for Rpkg {
+    type Error = anyhow::Error;
+
+    fn try_from(path: PathBuf) -> Result<Self, anyhow::Error> {
         Ok(Self {
-            path: PathBuf::from(path),
-            metadata: read_metadata(path)?,
+            metadata: read_metadata(&path.to_string_lossy())?,
+            path,
         })
+    }
+}
+
+impl Rpkg {
+    #[allow(dead_code)]
+    pub fn from_path(path: &str) -> Result<Rpkg> {
+        Rpkg::try_from(PathBuf::from(path))
+    }
+
+    pub fn from_repository(
+        source: PackageSource,
+        version: Option<ArchiveVersion>,
+        force: bool,
+        repository: &Repository,
+        index: &RepoIndex,
+        webapp: &Webapp,
+    ) -> Result<Rpkg, anyhow::Error> {
+        let plugin = match (&source, &version, force) {
+            (PackageSource::Name(name), Some(v), true) => {
+                index.any_matching_plugin(name, v).ok_or(anyhow!(
+                    "Could not find any plugin matching '{}:{}'",
+                    name,
+                    v,
+                ))
+            }
+            (PackageSource::Name(name), Some(v), false) => index
+                .matching_compatible_plugin(&webapp.version, name, v)
+                .ok_or(anyhow!(
+                    "Could not find any compatible plugin matching '{}:{}'",
+                    name,
+                    v,
+                )),
+            (PackageSource::Name(name), None, _) => index
+                .latest_compatible_plugin(&webapp.version, name)
+                .ok_or(anyhow!("Could not find any compatible '{}' plugin", name)),
+            (_, _, _) => {
+                bail!(
+                    "Invalid package source type {:?}\nThe currently only supported source is the plugins repository.",
+                    source
+                )
+            }
+        }?;
+        let dest =
+            Path::new(TMP_PLUGINS_FOLDER).join(Path::new(&plugin.path).file_name().ok_or_else(
+                || anyhow!("Could not retrieve filename from path '{}'", plugin.path),
+            )?);
+
+        // Download target rpkg
+        repository.download(&plugin.path, &dest)?;
+        Rpkg::try_from(dest)
     }
 
     fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {
@@ -244,7 +319,7 @@ impl Rpkg {
         }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends
-            && !(force || d.are_installed())
+            && !(force || d.are_installed(db))
         {
             bail!(
                 "Some dependencies are missing, install them before trying to install the plugin."
