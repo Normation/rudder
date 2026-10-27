@@ -7,12 +7,12 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-const DEFAULT_CONFIG: &str = "/opt/rudder/etc/rudder-mcp.conf";
+const DEFAULT_CONFIG: &str = "/opt/rudder/etc/rudder-mcp";
 
 #[derive(Debug, Parser)]
 #[command(version, about = "Rudder MCP server")]
 pub struct Cli {
-    /// Configuration file
+    /// Configuration directory
     #[arg(short, long, default_value = DEFAULT_CONFIG)]
     pub config: PathBuf,
 }

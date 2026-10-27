@@ -13,9 +13,12 @@ anyhow = "1"
 axum = "0.8"
 clap = { version = "4", features = ["derive"] }
 rmcp = { version = "3.4.1", features = ["server", "transport-streamable-http-server"] }
+rudder_cli = { path = "../policies/rudder-cli" }
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
 toml = "0.9"
+# Compile dev and release with trace logs enabled
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 url = "2"
 
 [dev-dependencies]
