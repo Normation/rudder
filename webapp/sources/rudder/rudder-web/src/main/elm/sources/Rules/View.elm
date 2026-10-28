@@ -252,9 +252,9 @@ view model =
                         ]
                     , if model.ui.hasWriteRights then
                         div [ class "header-buttons" ]
-                            [ Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
+                            [ button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
                             , button [ class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s)) ] [ text "Add category" ]
-                            , button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
+                            , Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
                             ]
 
                       else

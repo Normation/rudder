@@ -165,8 +165,8 @@ view model =
                             --[ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add category"]
                             --, button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewGroup (GroupId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
                             --]
-                            [ Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
-                            , button [ id "newItem", class "btn btn-success", type_ "button", onClick OpenModal ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
+                            [ button [ id "newItem", class "btn btn-success", type_ "button", onClick OpenModal ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
+                            , Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
                             ]
 
                       else
