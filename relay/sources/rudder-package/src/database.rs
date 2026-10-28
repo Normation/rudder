@@ -16,12 +16,7 @@ use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
-    archive::{PackageScript, PackageScriptArg, PackageSource},
-    plugin::{self, short_name},
-    repo_index::RepoIndex,
-    repository::Repository,
-    versions::ArchiveVersion,
-    webapp::Webapp,
+    archive::{PackageScript, PackageScriptArg, PackageSource, PlannedPackage}, plugin::{self, short_name}, repo_index::RepoIndex, repository::Repository, versions::ArchiveVersion, webapp::Webapp,
 };
 
 #[derive(PartialEq)]
@@ -91,55 +86,35 @@ impl Database {
             .find(|p| p.metadata.jar_files.contains(jar))
     }
 
+    pub fn resolve_plugins_to_install(&self, targets: Vec<(&str, Option<&str>)>, force: bool, index: &RepoIndex, webapp: &Webapp) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let resolved = targets.into_iter().map(|(name, raw_version)| {
+            let source = PackageSource::from_str(name)?;
+            let parsed_version = match raw_version {
+                Some(v) => Some(ArchiveVersion::from_str(v)?),
+                None => None,
+            };
+            let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
+            let mut packages = pp.get_plugin_dependencies(index, webapp)?;
+            packages.push(pp);
+            Ok(packages)
+        }).collect::<anyhow::Result<Vec<_>>>()?;
+        Ok(resolved.into_iter().flatten().collect())
+    }
+
     pub fn install(
         &mut self,
         force: bool,
-        package: &str,
-        version: Option<&str>,
-        repository: &Repository,
-        index: Option<&RepoIndex>,
+        candidate: &Rpkg,
         webapp: &mut Webapp,
     ) -> Result<()> {
-        info!("Installing {}", package);
-        let source = PackageSource::from_str(package)?;
-        let rpkg = match (&source, &index) {
-            (PackageSource::Path(_), Some(i)) => {
-                let parsed_version = match version {
-                    Some(v) => Some(ArchiveVersion::from_str(v)?),
-                    None => None,
-                };
-                // Download the rpkg locally
-                Rpkg::from_repository(source, parsed_version, force, repository, i, webapp)
-            }
-            (PackageSource::Path(path), _) => Rpkg::try_from(path.to_path_buf()),
-            (_, _) => {
-                bail!("Unsupported package source {:?}", source)
-            }
-        }?;
-        // Find needed plugin dependencies and install them from the repository
-        // If anything fails, the dependencies already pulled and installed will stay installed
-        let plugin_dependencies = &rpkg
-            .clone()
-            .metadata
-            .depends
-            .and_then(|m| m.plugin)
-            .unwrap_or(vec![]);
-        for p in plugin_dependencies {
-            // If a dependency is already installed, assume the version is already correct
-            // as we are using strong patch version compatibility on the webapp and plugins
-            if !self.plugins.contains_key(p.as_ref()) {
-                info!("Installing dependency {} of {}", p.as_ref(), package);
-                self.install(false, p.as_ref(), None, repository, index, webapp).context(format!("Could not complete the install of the plugin dependency '{}' for plugin '{}'", p.as_ref(), package))?;
-            }
-        }
-
-        if self.plugins.contains_key(&rpkg.metadata.name.to_string()) {
+        info!("Installing {}", candidate.metadata.name);
+        if self.plugins.contains_key(&candidate.metadata.name.to_string()) {
             info!(
                 "Plugin {} already installed, upgrading",
-                rpkg.metadata.short_name()
+                candidate.metadata.short_name()
             );
         }
-        rpkg.install(force, self, webapp)?;
+        candidate.install(force, self, webapp)?;
         Ok(())
     }
 

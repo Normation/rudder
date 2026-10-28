@@ -3,15 +3,12 @@
 
 use core::fmt;
 use std::{
-    env,
-    fs::{self, *},
-    io::{Cursor, Read},
-    path::{Component, Path, PathBuf},
-    str,
+    env, fs::{self, *}, io::{Cursor, Read}, path::{Component, Path, PathBuf}, str::{self, FromStr},
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
 use ar::Archive;
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
@@ -21,6 +18,7 @@ use crate::{
     plugin::Metadata,
     versions::ArchiveVersion,
     webapp::Webapp,
+    repo_index::Plugin
 };
 
 #[derive(Clone, Debug)]
@@ -41,6 +39,80 @@ impl str::FromStr for PackageSource {
             Ok(PackageSource::Path(p))
         } else {
             Ok(PackageSource::Name(s.to_owned()))
+        }
+    }
+}
+
+pub enum PlannedPackage {
+    Local(Rpkg),
+    Remote(Plugin)
+}
+
+impl PlannedPackage {
+    pub fn new(source: PackageSource, version: Option<ArchiveVersion>, force: bool, index: &RepoIndex, webapp: &Webapp) -> Result<Self, anyhow::Error> {
+        match &source {
+            PackageSource::Name(name) => {
+                let plugin = match (&version, force) {
+                    (Some(v), true) => {
+                        index.any_matching_plugin(name, v).ok_or(anyhow!(
+                            "Could not find any plugin matching '{}:{}'",
+                            name,
+                            v,
+                        ))
+                    }
+                    (Some(v), false) => index
+                        .matching_compatible_plugin(&webapp.version, name, v)
+                        .ok_or(anyhow!(
+                            "Could not find any compatible plugin matching '{}:{}'",
+                            name,
+                            v,
+                        )),
+                    (None, _) => index
+                        .latest_compatible_plugin(&webapp.version, name)
+                        .ok_or(anyhow!("Could not find any compatible '{}' plugin", name)),
+                }?;
+                Ok(PlannedPackage::Remote(plugin.to_owned()))
+            },
+            PackageSource::Path(p) => {
+                let rpkg = Rpkg::try_from(p.to_owned())?;
+                Ok(PlannedPackage::Local(rpkg))
+            }
+        }
+    }
+
+    pub fn get_metadata(&self) -> &Metadata {
+        match self {
+            Self::Local(l) => &l.metadata,
+            Self::Remote(r) => &r.metadata
+        }
+    }
+
+    // version and force are not needed as we do not handle versions in the dependencies.
+    pub fn get_plugin_dependencies(&self, index: &RepoIndex, webapp: &Webapp) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let mut r = vec![];
+        let depends = self.get_metadata().depends.clone();
+        let deps = depends.and_then(|d| d.plugin).unwrap_or(vec![]);
+        for i in deps {
+            let source = PackageSource::Name(i.as_ref().to_owned());
+            let pp = PlannedPackage::new(source, None, false, index, webapp)?;
+            r.push(pp);
+        }
+        Ok(r)
+    }
+
+    pub fn fetch(self, repository: &Repository) -> Result<Rpkg> {
+        match self {
+            PlannedPackage::Local(l) => Ok(l),
+            PlannedPackage::Remote(r) => {
+                let dest =
+                    Path::new(TMP_PLUGINS_FOLDER).join(Path::new(&r.path).file_name().ok_or_else(
+                        || anyhow!("Could not retrieve filename from path '{}'", r.path),
+                    )?);
+
+                // Download target rpkg
+                repository.download(&r.path, &dest)?;
+                Rpkg::try_from(dest)
+            }
         }
     }
 }
@@ -133,49 +205,6 @@ impl Rpkg {
     #[allow(dead_code)]
     pub fn from_path(path: &str) -> Result<Rpkg> {
         Rpkg::try_from(PathBuf::from(path))
-    }
-
-    pub fn from_repository(
-        source: PackageSource,
-        version: Option<ArchiveVersion>,
-        force: bool,
-        repository: &Repository,
-        index: &RepoIndex,
-        webapp: &Webapp,
-    ) -> Result<Rpkg, anyhow::Error> {
-        let plugin = match (&source, &version, force) {
-            (PackageSource::Name(name), Some(v), true) => {
-                index.any_matching_plugin(name, v).ok_or(anyhow!(
-                    "Could not find any plugin matching '{}:{}'",
-                    name,
-                    v,
-                ))
-            }
-            (PackageSource::Name(name), Some(v), false) => index
-                .matching_compatible_plugin(&webapp.version, name, v)
-                .ok_or(anyhow!(
-                    "Could not find any compatible plugin matching '{}:{}'",
-                    name,
-                    v,
-                )),
-            (PackageSource::Name(name), None, _) => index
-                .latest_compatible_plugin(&webapp.version, name)
-                .ok_or(anyhow!("Could not find any compatible '{}' plugin", name)),
-            (_, _, _) => {
-                bail!(
-                    "Invalid package source type {:?}\nThe currently only supported source is the plugins repository.",
-                    source
-                )
-            }
-        }?;
-        let dest =
-            Path::new(TMP_PLUGINS_FOLDER).join(Path::new(&plugin.path).file_name().ok_or_else(
-                || anyhow!("Could not retrieve filename from path '{}'", plugin.path),
-            )?);
-
-        // Download target rpkg
-        repository.download(&plugin.path, &dest)?;
-        Rpkg::try_from(dest)
     }
 
     fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {

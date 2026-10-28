@@ -149,14 +149,30 @@ pub fn run_inner(args: Args) -> Result<()> {
                 bail!("No plugin name provided");
             }
 
+            let (licenses, raw_plugins): (Vec<String>, Vec<String>) = to_install.into_iter().partition(|p| p.ends_with("-license.tar.gz"));
+            // Install licenses first
+            for l in licenses {
+                if let Err(e) =
+                    Licenses::update_from_archive(Path::new(&l), Path::new(LICENSES_FOLDER))
+                {
+                    errors = true;
+                    error!("Installation of licenses from {} failed: {e:?}", l);
+                }
+            }
+
+            // Parse the versions if any
+            let parsed_plugins = raw_plugins.into_iter().map(|x| {
+                match x.split_once(':') {
+                    None => (x.as_str(), None),
+                    Some((p, v)) => (p, Some(v)),
+                }
+            }).collect::<Vec<(&str, Option<&str>)>>();
+            // Resolve the plugins to install
+            let resolved_plugins = db.resolve_plugins_to_install(parsed_plugins, force, index.as_ref(), &webapp);
+            // Install the plugins next
+
             for full_p in &to_install {
                 if full_p.ends_with("-license.tar.gz") {
-                    if let Err(e) =
-                        Licenses::update_from_archive(Path::new(full_p), Path::new(LICENSES_FOLDER))
-                    {
-                        errors = true;
-                        error!("Installation of licenses from {} failed: {e:?}", full_p);
-                    }
                 } else {
                     // Extract version numbers
                     let (p, v) = match full_p.split_once(':') {
