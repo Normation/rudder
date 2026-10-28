@@ -114,14 +114,14 @@ class SearchNodeComponent(
   )
   private def queryline: NodeSeq = {
     <tr class="error"></tr>
-  <tr class="query_line">
-    <td class="first objectType"></td>
-    <td class="attributeName"></td>
-    <td class="comparator"></td>
-    <td class="inputValue d-flex"></td>
-    <td class="removeLine"></td>
-    <td class="last addLine"></td>
-  </tr>
+    <tr class="query_line">
+      <td class="addLine"></td>
+      <td class="removeLine"></td>
+      <td class="objectType"></td>
+      <td class="attributeName"></td>
+      <td class="comparator"></td>
+      <td class="inputValue"></td>
+    </tr>
   }
   private def content = {
     val select = ("content-query ^*" #> "not relevant for ^* operator")
