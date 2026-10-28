@@ -112,8 +112,8 @@ const csvButton = (filename, additionalCls) => ({
 
 const csvDropdownButton = (filename, additionalCls) => ({
   extend: 'collection',
-  className: 'btn btn-primary ' + (additionalCls ?? ''),
-  text: '<span class="me-2 fa fa-file-download"></span>Export CSV',
+  className: 'btn btn-primary export-dropdown-toggle dropdown-toggle' + (additionalCls ?? ''),
+  text: '<span class="me-2 fa fa-file-download"></span><span class="me-2">Export CSV</span>',
   buttons : [csvButton(filename, additionalCls)],
   action: function (e, dt, node, config, cb) {
     DataTable.ext.buttons.collection.action.call(this, e, dt, node, config, cb);
