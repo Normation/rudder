@@ -75,14 +75,14 @@ trait DeleteEditorTechnique {
   )(implicit changeContext: ChangeContext): IOResult[Unit]
 
   def deleteResource(
-                      techniqueName: String,
-                      techniqueVersion: String,
-                      resourceName: String
-                    )(implicit changeContext: ChangeContext): IOResult[Unit]
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
 class DeleteEditorTechniqueImpl(
-                                 archiver: TechniqueArchiver,
+    archiver:             TechniqueArchiver,
     techLibUpdate:        UpdateTechniqueLibrary,
     readDirectives:       RoDirectiveRepository,
     writeDirectives:      WoDirectiveRepository,
