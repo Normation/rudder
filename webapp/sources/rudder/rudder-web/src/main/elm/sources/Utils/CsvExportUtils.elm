@@ -15,9 +15,7 @@ csvExportDropdownAllEntries onClickAction btnClass =
             , class "btn btn-primary export-dropdown-toggle dropdown-toggle"
             ]
             [ span [ class "me-2 fa fa-file-download" ] []
-            , text "Export CSV"
-            , i [ class "ms-2 fa fa-dl" ] []
-            , i [ class "caret" ] []
+            , span [ class "me-2" ] [ text "Export CSV" ]
             ]
         , ul
             [ class "dropdown-menu" ]
@@ -43,9 +41,7 @@ csvExportDropdownFilteredEntries onClickAction =
             , class "btn btn-primary export-dropdown-toggle dropdown-toggle"
             ]
             [ text "Export CSV"
-            , span [ class "ms-2 fa fa-file-download" ] []
-            , i [ class "me-2 fa fa-dl" ] []
-            , i [ class "caret" ] []
+            , span [ class "me-2 fa fa-file-download" ] []
             ]
         , ul
             [ class "dropdown-menu" ]
