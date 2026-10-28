@@ -157,13 +157,13 @@ techniqueList model techniques =
                     ]
                 , div [ class "header-buttons", hidden (not model.hasWriteRights) ]
                     [ -- Need to add technique-write rights
-                      label [ class "btn btn-primary", onClick StartImport ]
-                        [ text "Import "
-                        , i [ class "fa fa-upload" ] []
-                        ]
-                    , button [ class "btn btn-success", onClick (GenerateId (\s -> NewTechnique (TechniqueId s))) ]
+                      button [ class "btn btn-success", onClick (GenerateId (\s -> NewTechnique (TechniqueId s))) ]
                         [ text "Create "
                         , i [ class "fa fa-plus-circle" ] []
+                        ]
+                    , label [ class "btn btn-primary", onClick StartImport ]
+                        [ text "Import "
+                        , i [ class "fa fa-upload" ] []
                         ]
                     ]
                 ]
