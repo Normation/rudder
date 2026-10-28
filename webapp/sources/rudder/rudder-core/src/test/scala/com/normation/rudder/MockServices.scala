@@ -446,6 +446,14 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         modId:            ModificationId,
         committer:        QueryContext
     ): IOResult[Unit] = ZIO.unit
+
+    override def deleteResource(
+        techniqueName:    String,
+        techniqueVersion: String,
+        resourceName:     String,
+        modId:            ModificationId,
+        committer:        QueryContext
+    ): IOResult[Unit] = ZIO.unit
   }
 
   val techniqueActiveStatusService: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {

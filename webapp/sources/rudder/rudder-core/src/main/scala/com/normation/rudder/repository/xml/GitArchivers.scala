@@ -245,6 +245,14 @@ trait TechniqueArchiver {
       msg:         String
   ): IOResult[Unit]
 
+  def deleteResource(
+      techniqueId: TechniqueId,
+      categories:  Seq[String],
+      modId:       ModificationId,
+      committer:   EventActor,
+      msg:         String
+  ): IOResult[Unit]
+
   /*
    * Delete a category with all files and techniques it contains.
    * WARNING: you should probably not do that.
@@ -376,6 +384,29 @@ class TechniqueArchiverImpl(
     } yield {
       s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
+  }
+
+  def deleteResource(
+      techniqueId:  TechniqueId,
+      categories:   Seq[String],
+      resourceName: String,
+      modId:        ModificationId,
+      committer:    EventActor,
+      msg:          String
+  ): IOResult[Unit] = {
+    (for {
+      ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
+      rm           <- IOResult.attempt(
+                        gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}/${resourceName}").call()
+                      ) // FIXME check the id to serialize the technique is correct
+
+      commit <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield {
+      s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
+    }).chainError(s"error when deleting and committing Resource '${techniqueId.serialize}/${resourceName}")
+      .unit // FIXME check the error message is correct
   }
 
   def deleteCategoryRecursively(
@@ -544,6 +575,14 @@ class TechniqueArchiverImpl(
       _           <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when adding/updating and committing category '${categoryId.toString}").unit
   }
+
+  override def deleteResource(
+      techniqueId: TechniqueId,
+      categories:  Seq[String],
+      modId:       ModificationId,
+      committer:   EventActor,
+      msg:         String
+  ): IOResult[Unit] = ???
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

@@ -75,6 +75,14 @@ trait TechniqueWriter {
       committer:        QueryContext
   ): IOResult[Unit]
 
+  def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String,
+      modId:            ModificationId,
+      committer:        QueryContext
+  ): IOResult[Unit]
+
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
       modId:     ModificationId,
@@ -118,6 +126,24 @@ class TechniqueWriterImpl(
   ): IOResult[Unit] = {
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
   }
+
+  override def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String,
+      modId:            ModificationId,
+      committer:        QueryContext
+  ): IOResult[Unit] = for {
+    _ <- deleteService.deleteResource(techniqueName, techniqueVersion, resourceName, modId, committer)
+    _ <- techLibUpdate
+           .update(
+             modId,
+             committer.actor,
+             Some(s"Update Technique library after deleting resource for ncf Technique ${techniqueName}")
+           )
+           .toIO
+           .chainError(s"An error occurred during technique update after files were deleted for ncf Technique ${techniqueName}")
+  } yield ()
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
@@ -208,6 +234,7 @@ class TechniqueWriterImpl(
       (techniqueWithResourceUpdated, compilationResult)
     }
   }
+
 }
 
 object TechniqueWriterImpl {
