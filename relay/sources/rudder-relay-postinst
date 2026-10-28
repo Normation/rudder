@@ -13,6 +13,9 @@ BACKUP_DIR="/var/backups/rudder/"
 LOG_FILE="/var/log/rudder/install/rudder-relay-$(date +%Y%m%d%H%M%S).log"
 
 echo "$(date) - Starting rudder-relay post installation script" >> ${LOG_FILE}
+if [ -f "/opt/rudder/etc/disable-agent" ]; then
+  echo "WARNING: Agent is disabled! Enabling the agent is required for the server to function correctly." | tee -a ${LOG_FILE}
+fi
 
 # Cleanup misplaced and useless backup files
 # created between 7.2 and <8.3
