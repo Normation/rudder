@@ -33,7 +33,6 @@ pipeline {
             steps {
                 script {
                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                        try {
                             dir('webapp/sources/') {
                                 sh script: 'mvn --batch-mode --update-snapshots -Djansi.passthrough=true -Dstyle.color=always dependency:resolve', label: "load webapp dependencies"
                             }
@@ -41,12 +40,18 @@ pipeline {
                                 sh script: "npm_config_loglevel=error npm ci --no-audit", label: "load npm dependencies"
                             }
                             sh script: "trivy fs --skip-version-check --no-progress .", label: "scanning dependencies for vulnerabilities"
-                        } catch (exc) {
-                            errors.add("deps")
-                            failedBuild = true
-                            slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                            slackSend(channel: slackResponse.threadId, message: "Dependency check error - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                        }
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        slackResponse = notifyError(errors, slackResponse, version, changeUrl, "deps", "Dependency check error")
+                    }
+                }
+                cleanup {
+                    script {
+                        cleanWs(deleteDirs: true, notFailBuild: true)
                     }
                 }
             }
@@ -64,35 +69,56 @@ pipeline {
             steps {
                 script {
                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                        try {
-                            sh script: 'mkdir -p target', label: 'create target directory'
-                            sh script: 'cargo deny check licenses sources bans', label: 'check rust dependencies'
-                        } catch (exc) {
-                            errors.add("rust")
-                            failedBuild = true
-                            // we only report to Slack for branches, PR errors are visible in the PR itself
-                            if (changeUrl == null) {
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                            }
-                        }
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check licenses sources bans', label: 'check rust dependencies'
                     }
                 }
             }
-        }
-        stage('End') {
-            steps {
-                script {
-                    updateSlack(errors, slackResponse, version, changeUrl, true)
-                    if (failedBuild) {
-                        error 'End of build'
-                    } else {
-                        echo 'End of build '
+            post {
+                failure {
+                    script {
+                        // Will not send a slack message, but wwe use it to keep it like other stages
+                        slackResponse = notifyError(errors, slackResponse, version, changeUrl, "deps-rust-pr", "Dependency check error")
                     }
+                }
+                cleanup {
+                    script {
+                        cleanWs(deleteDirs: true, notFailBuild: true)
+                    }
+                }
+            }
+
+        }
+    }
+    post {
+        always {
+            script {
+                // all stages catch their errors with buildResult: 'SUCCESS',
+                // so a non-SUCCESS result here means something escaped them (agent failure, abort, ...)
+                if (currentBuild.currentResult != 'SUCCESS') {
+                    errors.add("Build ended unexpectedly (${currentBuild.currentResult})")
+                    failedBuild = true
+                }
+                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, true)
+                if (failedBuild) {
+                    currentBuild.result = 'FAILURE'
                 }
             }
         }
     }
+}
+
+
+
+def notifyError(errors, slackResponse, version, changeUrl, stageName, slackMessage) {
+    failedBuild = true
+    errors.add(stageName)
+    if (changeUrl == null) {
+      slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+      slackSend(channel: slackResponse.threadId, message: "${slackMessage} - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+    }
+    return slackResponse
+
 }
 
 def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {

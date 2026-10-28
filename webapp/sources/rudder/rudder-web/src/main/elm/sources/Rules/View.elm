@@ -253,9 +253,9 @@ view model =
                         ]
                     , if model.ui.hasWriteRights then
                         div [ class "header-buttons" ]
-                            [ csvExportDropdownFilteredEntries RequestCsvExportAllRules
+                            [ button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
                             , button [ class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s)) ] [ text "Add category" ]
-                            , button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
+                            , csvExportDropdownFilteredEntries RequestCsvExportAllRules
                             ]
 
                       else
