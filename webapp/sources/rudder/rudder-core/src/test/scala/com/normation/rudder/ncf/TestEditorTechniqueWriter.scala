@@ -48,6 +48,7 @@ import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesInfo
@@ -172,6 +173,15 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
       Unexpected("parseTechnique is not implemented").fail
     }
+
+    override def deleteResource(
+        techniqueId: TechniqueId,
+        resourceId:  TechniqueResourceIdByName,
+        categories:  Seq[String],
+        modId:       ModificationId,
+        committer:   EventActor,
+        msg:         String
+    ): IOResult[Unit] = ???
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {

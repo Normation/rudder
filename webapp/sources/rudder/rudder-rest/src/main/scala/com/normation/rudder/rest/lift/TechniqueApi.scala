@@ -52,6 +52,7 @@ import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.rest
 import com.normation.rudder.rest.{TechniqueApi as API, *}
 import com.normation.rudder.rest.lift.TechniqueApi.JsonDeletedTechniqueCategory
 import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategory
@@ -201,6 +202,7 @@ class TechniqueApi(
       case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteResource            => DeleteResource
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -283,6 +285,48 @@ class TechniqueApi(
       } yield {
         "ok"
       }).toLiftResponseOne(params, schema, _ => Some(draftInfo._1))
+    }
+  }
+
+  object DeleteResource extends LiftApiModule {
+
+    val schema: ThreeParam = API.DeleteResource
+
+    override def process(
+        version:      ApiVersion,
+        path:         ApiPath,
+        resourceInfo: (String, String, String),
+        req:          Req,
+        params:       DefaultParams,
+        authzToken:   AuthzToken
+    ): LiftResponse = {
+
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        val file       = File(configRepoPath)
+        val categories = List("ncf_techniques")
+        for {
+          // FIXME : check path traversal value on the 3 resourceInfo
+          file <- FileUtils.sanitizePath(file, ("techniques" :: categories) :+ resourceInfo._1 :+ resourceInfo._2 :+ "resources")
+          _    <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
+        } yield {
+          Json.Obj(
+            (
+              "resources",
+              Json.Arr(
+                Chunk(
+                  Json.Obj(
+                    ("techniqueName", Json.Str(resourceInfo._1)),
+                    ("techniqueVersion" -> Json.Str(resourceInfo._2)),
+                    ("resourceName"     -> Json.Str(resourceInfo._3))
+                  )
+                )
+              )
+            )
+          )
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(s"${resourceInfo._1}/${resourceInfo._2}/${resourceInfo._3}"))
     }
   }
 
