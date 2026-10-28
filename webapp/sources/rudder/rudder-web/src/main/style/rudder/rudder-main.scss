@@ -413,15 +413,43 @@ pre.json-beautify code.elmsh {
 }
 
 /* --- SEARCH NODES --- */
-.searchNodes .query_line .form-control.input-sm {
-  height: auto;
-  padding: 6px 2px 4px 2px;
-  vertical-align: middle;
-  display: inline-block;
-}
+table.searchNodes {
+  table-layout: auto;
+  width: 100%;
 
-.searchNodes tr > td:first-child {
-  padding-left: 0;
+  tr {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+
+    & > td {
+      &:first-child {
+        padding-left: 0;
+      }
+      &:has(.form-select) {
+        flex: 0 0 auto;
+        .form-select {
+          width: auto;
+          max-width: 100%;
+        }
+      }
+      &:has(.form-control) {
+        flex: 1 1 0;
+        min-width: 0;
+        .form-control {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+#queryParameters{
+  // + and - buttons
+  input.btn{
+    min-width: 28px;
+    font-size: 1rem;
+    line-height: 18px;
+  }
 }
 /* --- ACCEPT NEW NODES --- */
 .action-btns{
