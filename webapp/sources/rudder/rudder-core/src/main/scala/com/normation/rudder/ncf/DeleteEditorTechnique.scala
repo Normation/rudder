@@ -73,14 +73,21 @@ trait DeleteEditorTechnique {
       techniqueVersion: String,
       deleteDirective:  Boolean
   )(implicit changeContext: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+                      techniqueName: String,
+                      techniqueVersion: String,
+                      resourceName: String
+                    )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
 class DeleteEditorTechniqueImpl(
-    archiver:             TechniqueArchiver,
+                                 archiver: TechniqueArchiver,
     techLibUpdate:        UpdateTechniqueLibrary,
     readDirectives:       RoDirectiveRepository,
     writeDirectives:      WoDirectiveRepository,
     techniqueRepository:  TechniqueRepository,
+    // resourceRepository: ResourceRepository,
     workflowLevelService: WorkflowLevelService,
     syncService:          TechniqueCheckSyncService,
     techniqueReader:      EditorTechniqueReader,
@@ -238,4 +245,38 @@ class DeleteEditorTechniqueImpl(
            ) // to delete the status of the technique
     } yield ()
   }
+
+  override def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit changeContext: ChangeContext): IOResult[Unit] = {
+
+    /* def removeResource(path: String) = {
+      import java.nio.file.{Files, Paths}
+
+      // Files.deleteIfExists(Paths.get(Paths.get(path)))
+
+      true
+    }*/
+
+    /*for {
+      // techVersion <- TechniqueVersion.parse(techniqueVersion).toIO
+      // techniqueId = TechniqueId(TechniqueName(techniqueName), techVersion)
+      _ <- removeResource(resourceName)
+      - <- archiver.deleteResource(
+             techniqueId,
+             categories.map(_.id.name.value),
+             modId,
+             committer.actor,
+             s"Deleting technique '${techniqueId}'"
+           )
+      _ <- syncService.unsyncOne(
+             BundleName(techniqueName) -> new Version(techniqueVersion)
+           ) // to delete the status of the technique
+    } yield ()*/
+
+    ZIO.succeed(())
+  }
+
 }

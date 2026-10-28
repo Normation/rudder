@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
@@ -52,6 +53,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.Charset
@@ -72,6 +74,12 @@ trait TechniqueWriter {
       techniqueName:    String,
       techniqueVersion: String,
       deleteDirective:  Boolean
+  )(implicit cc: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
   )(implicit cc: ChangeContext): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
@@ -111,6 +119,18 @@ class TechniqueWriterImpl(
   )(implicit cc: ChangeContext): IOResult[Unit] = {
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective)
   }
+
+  override def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit cc: ChangeContext): IOResult[Unit] = for {
+    _ <- deleteService.deleteResource(techniqueName, techniqueVersion, resourceName)
+    _ <- techLibUpdate
+           .update()
+           .toIO
+           .chainError(s"An error occurred during technique update after files were deleted for ncf Technique ${techniqueName}")
+  } yield ()
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
@@ -215,6 +235,7 @@ class TechniqueWriterImpl(
       (techniqueWithResourceUpdated, compilationResult)
     }
   }
+
 }
 
 object TechniqueWriterImpl {

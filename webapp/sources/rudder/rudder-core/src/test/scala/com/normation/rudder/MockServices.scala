@@ -470,9 +470,16 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         techniqueVersion: String,
         deleteDirective:  Boolean
     )(implicit cc: ChangeContext): IOResult[Unit] = ZIO.unit
+
+    override def deleteResource(
+                                 techniqueName: String,
+                                 techniqueVersion: String,
+                                 resourceName: String
+                               )(implicit cc: ChangeContext): IOResult[Unit] = ZIO.unit
   }
 
   val techniqueActiveStatusService: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
+
     import com.normation.rudder.ncf.BundleName as BN
     override def getActiveStatus(id: BN): IOResult[Option[TechniqueActiveStatus]] = None.succeed
     override def getActiveStatuses(): IOResult[Map[BN, TechniqueActiveStatus]] = Map.empty.succeed

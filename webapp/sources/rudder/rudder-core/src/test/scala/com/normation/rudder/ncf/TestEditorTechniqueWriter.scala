@@ -172,6 +172,14 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
       Unexpected("parseTechnique is not implemented").fail
     }
+
+    override def deleteResource(
+        techniqueId: TechniqueId,
+        categories:  Seq[String],
+        modId:       ModificationId,
+        committer:   EventActor,
+        msg:         String
+    ): IOResult[Unit] = ???
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {

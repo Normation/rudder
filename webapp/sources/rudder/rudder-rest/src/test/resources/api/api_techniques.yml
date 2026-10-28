@@ -854,4 +854,19 @@ response:
         "techniques":[ {"id":"test_delete","version":"1.0" } ]
       }
     }
+---
+description: Delete a resource of a technique (api version from 22 - rudder 9.0)
+method: DELETE
+url: /api/latest/techniques/plip/1.0/resources/plop.txt
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteResource",
+      "id" : "plip/1.0/plop.txt",
+      "result":"success",
+      "data":{
+        "resources":[ {"techniqueName":"plip","version":"1.0", "resourceName":"plop.txt" } ]
+      }
+    }
  
