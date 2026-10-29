@@ -1015,9 +1015,11 @@ class EventLogDetailsGenerator(
                       "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
                       "#token" #> {
                         apiAccountDiff.modToken match {
-                          case Some(_) =>
+                          case Some(SimpleDiff("", _)) =>
+                            <ul class="evlogviewpad"><li><b>Token created</b></li></ul>
+                          case Some(_)                 =>
                             <ul class="evlogviewpad"><li><b>Token regenerated</b></li></ul>
-                          case None    =>
+                          case None                    =>
                             <ul class="evlogviewpad"><li><b>Token value unchanged</b></li></ul>
                         }
                       } &

@@ -911,7 +911,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                     }
       tenants    <- TenantAccessGrant.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
-      val kind         = accountType match {
+      val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi.apply(authz, expirationDate)
@@ -921,6 +921,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
+        tokenGenDate.toJavaInstant,
         description,
         isEnabled,
         creationDate,

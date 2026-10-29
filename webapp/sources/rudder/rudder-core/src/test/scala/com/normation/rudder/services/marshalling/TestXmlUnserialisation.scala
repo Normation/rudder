@@ -16,9 +16,7 @@ import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.AccountLastAuthentication
-import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.AclPath
-import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountName
@@ -360,6 +358,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
@@ -414,6 +413,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
@@ -469,6 +469,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),

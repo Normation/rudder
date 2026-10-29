@@ -630,8 +630,8 @@ class LDAPDiffMapper(
                                   d.copy(modToken = {
                                     Some(
                                       SimpleDiff(
-                                        (oldAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse("").substring(0, 6) ++ "******"),
-                                        (value.substring(0, 6) ++ "******")
+                                        (oldAccount.accountToken.flatMap(_.hash).map(_.toString).getOrElse("")),
+                                        (ApiTokenHash.fromHashValue(value).toString)
                                       )
                                     )
                                   })
