@@ -39,6 +39,13 @@ pub struct RpmDependency(String);
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct PluginDependency(String);
 
+impl PluginDependency {
+    #[cfg(test)]
+    pub(crate) fn new(s: &str) -> Self {
+        Self(s.to_owned())
+    }
+}
+
 impl AsRef<str> for PluginDependency {
     fn as_ref(&self) -> &str {
         &self.0

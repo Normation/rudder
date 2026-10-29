@@ -25,7 +25,7 @@ use crate::{
     webapp::Webapp,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PackageSource {
     Path(PathBuf),
     Name(String),
@@ -47,6 +47,7 @@ impl FromStr for PackageSource {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlannedPackage {
     Local(Rpkg),
     Remote(Plugin),
@@ -229,7 +230,7 @@ fn safe_join(prefix: &Path, relative: &str) -> Result<PathBuf> {
     Ok(prefix.join(relative))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rpkg {
     pub path: PathBuf,
     pub metadata: Metadata,
