@@ -55,8 +55,8 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.zio.*
-import java.time.Instant
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import zio.*
 import zio.syntax.*
 
