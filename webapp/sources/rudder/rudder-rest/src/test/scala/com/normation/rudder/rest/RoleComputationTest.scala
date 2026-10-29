@@ -11,7 +11,7 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RoleComputationTest extends Specification {
-  def parseRoles(roles: List[String]) = RudderRoles.parseRoles(roles).runNow.toSet
+  def parseRoles(roles: List[String]) = RudderRoles.parseRoles(roles, "test").runNow.toSet
 
   "Computation of Role Coverage over Rights" should {
 

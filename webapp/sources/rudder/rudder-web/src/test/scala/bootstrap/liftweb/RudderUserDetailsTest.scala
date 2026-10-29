@@ -240,7 +240,7 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
       /// role specific  unit tests
       test("Unknown roles in user list are ignored but don't lead to no_right") {
         for {
-          res <- RudderRoles.parseRoles(List("configuration", "non-existing-role", "inventory"))
+          res <- RudderRoles.parseRoles(List("configuration", "non-existing-role", "inventory"), "non-existing-role error")
         } yield assert(res)(
           equalTo(
             List(
@@ -253,13 +253,13 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
 
       test("if one role leads to NoRights, parseRoles is only one NoRights") {
         for {
-          res <- RudderRoles.parseRoles(List("configuration", "no_rights", "inventory"))
+          res <- RudderRoles.parseRoles(List("configuration", "no_rights", "inventory"), "test error")
         } yield assert(res)(equalTo(List(Role.NoRights)))
       }
 
       test("Administrator does not gibe additional roles but it give the special right 'any-rights'") {
         for {
-          res <- RudderRoles.parseRoles(List("administrator"))
+          res <- RudderRoles.parseRoles(List("administrator"), "test error")
         } yield {
 
           val roles = Role.Administrator.rights.authorizationTypes.collect {

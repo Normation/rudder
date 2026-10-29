@@ -37,6 +37,8 @@
 
 package com.normation.rudder.users
 
+import cats.syntax.either.*
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
@@ -55,13 +57,17 @@ import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
-case class User(username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
-  def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.mkString(",")} tenants={
+case class User(username: String, password: StorableUserPassword, permissions: UserPermissions, tenants: Option[String]) {
+  def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.serialize} tenants={
     tenants.orNull
   }/>
 }
-object User                                                                                                          {
-  def make(username: String, password: StorableUserPassword, permissions: Set[String], tenants: String): User = {
+
+object User {
+  def make(username: String, password: StorableUserPassword, permissions: Set[String], tenants: String):     User = {
+    make(username, password, UserPermissions.Unparsed(permissions), tenants)
+  }
+  def make(username: String, password: StorableUserPassword, permissions: UserPermissions, tenants: String): User = {
     User(username, password, permissions, if (tenants.isEmpty) None else Some(tenants))
   }
 }
@@ -76,8 +82,57 @@ object UserManagementLogger extends Logger {
 final case class UpdateUserFile(
     username:    String,
     password:    UserPassword,
-    permissions: Option[Set[String]]
+    permissions: Option[UserPermissions.Parsed]
 )
+
+/**
+ * State of user permissions, [[Unparsed]] from API, or [[Parsed]] into merged representation of users permissions with:
+ * - a set of roles that were parseable from the permissions
+ * - a minimal set of authorization types that are complementary to roles and not present yet in the set of roles
+ * - a set of unknown permissions that could neither parsed as roles nor authorization types
+ */
+enum UserPermissions   {
+  case Unparsed(permissions: Set[String])
+  case Parsed(roles: Set[Role], authz: Set[AuthorizationType], unknown: Set[String])
+}
+object UserPermissions {
+  extension (unparsed: Unparsed) {
+    def parsed(using allKnownRoles: Set[Role]): Parsed = {
+      // Everything that is not a role is an authz and remaining authz are put into custom role
+      val allRolesByName           = allKnownRoles.map(r => r.name -> r).toMap
+      val (remaining, parsedRoles) = unparsed.permissions.partitionMap(r => allRolesByName.get(r).toRight(r))
+
+      // no_rights is sent back by the UI along with added roles, we need to filter it to avoid it superseding them,
+      // an empty set of permissions already means no rights
+      // see https://issues.rudder.io/issues/27211
+      val roles             = parsedRoles - Role.NoRights
+      val allRoleAuthz      = roles.flatMap(_.rights.authorizationTypes)
+      val (unknowns, authz) = remaining.partitionMap(a => {
+        AuthorizationType
+          .parseRight(a)
+          .map(_.filter(!allRoleAuthz.contains(_)))
+          .leftMap(_ => a)
+      })
+
+      // any_rights is not a valid right not authz, we need to filter it  to avoid redundancy with the administrator role
+      // see https://issues.rudder.io/issues/29924
+      val unknown = unknowns.filterNot(_ == AuthorizationType.AnyRights.id)
+      Parsed(roles, authz.flatten, unknown)
+    }
+  }
+
+  extension (self: UserPermissions) {
+    def serialize: String = {
+      val all = {
+        self match {
+          case Parsed(roles, authz, unknown) => roles.map(_.name) ++ authz.map(_.id) ++ unknown
+          case Unparsed(p)                   => p
+        }
+      }
+      all.mkString(",")
+    }
+  }
+}
 
 final case class UpdateUserInfo(
     name:      Option[String],
@@ -466,6 +521,8 @@ object JsonUserFormData {
    */
   private def isPasswordUnchanged(json: JsonUserFormData): Boolean = StringUtils.isBlank(json.password)
 
+  // used to create a user directly, bypassing permissions parsing, hashing password directly
+  // consequence is that permissions are not parsed and normalized as in update, and file users get exact same permissions as passed
   given transformer(using passwordEncoder: UserPasswordEncoder[SecretUserPassword]): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
@@ -477,11 +534,14 @@ object JsonUserFormData {
           else UserPassword.fromSecret(json.password).transformInto[HashedUserPassword]
         }
       )
-      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
+      .withFieldComputed(
+        _.permissions,
+        _.permissions.map(p => UserPermissions.Unparsed(p.toSet)).getOrElse(UserPermissions.Unparsed(Set.empty))
+      )
       .withFieldConst(_.tenants, None)
       .buildTransformer
   }
-  given transformerUpdateUser:                                                       Transformer[JsonUserFormData, UpdateUserFile] = {
+  given transformerUpdateUser(using allRoles: Set[Role]):                            Transformer[JsonUserFormData, UpdateUserFile] = {
     Transformer
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(
@@ -491,6 +551,12 @@ object JsonUserFormData {
           else if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
           else UserPassword.fromSecret(json.password)
         }
+      )
+      .withFieldComputed(
+        _.permissions,
+        _.permissions
+          .map[UserPermissions.Unparsed](p => UserPermissions.Unparsed(p.toSet))
+          .map(_.parsed)
       )
       .buildTransformer
   }

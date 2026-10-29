@@ -812,6 +812,64 @@ response:
       }
     }
 ---
+description: Update a user without permissions with only no_rights
+comment: The UI sends back the no_rights role of the file provider, an empty set of permissions already means no rights, see https://issues.rudder.io/issues/27211
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "",
+    "permissions" : ["no_rights"],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "",
+          "permissions" : []
+        }
+      }
+    }
+---
+description: Update a user with no_rights by adding a role
+comment: The UI sends back the no_rights role of the file provider, which must not supersede the added role, see https://issues.rudder.io/issues/27211
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "",
+    "permissions" : ["no_rights","user"],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "",
+          "permissions" : [
+            "user"
+          ]
+        }
+      }
+    }
+---
 description: Delete a user from the system
 method: DELETE
 url: /api/latest/usermanagement/test_user
@@ -844,7 +902,7 @@ response:
       }
     }
 ---
-description: Update user's admninistrative information
+description: Update user's administrative information
 method: POST
 url: /api/latest/usermanagement/update/user1
 headers:
@@ -853,7 +911,7 @@ body: >-
   {
     "username" : "user1",
     "password" : "password1234",
-    "permissions" : ["any_rights"],
+    "permissions" : ["administration"],
     "isPreHashed" : true
   }
 response:
@@ -867,13 +925,44 @@ response:
           "username" : "user1",
           "password" : "password1234",
           "permissions" : [
-            "any_rights"
+            "administration"
           ]
         }
       }
     }
 ---
-description: Update user's admninistrative information with non-existing username
+description: Update administrator with additional role
+comment: The role administrator is already represented as any_rights, which should not be in API, see https://issues.rudder.io/issues/29924
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "password1234",
+    "permissions" : ["administration","compliance","any_rights"],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "password1234",
+          "permissions" : [
+            "compliance",
+            "administration"
+          ]
+        }
+      }
+    }
+---
+description: Update user's administrative information with non-existing username
 method: POST
 url: /api/latest/usermanagement/update/hello%20world
 headers:

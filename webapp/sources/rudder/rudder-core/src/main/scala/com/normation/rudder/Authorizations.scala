@@ -245,15 +245,23 @@ object AuthorizationType {
 
   def parseRight(right: String): PureResult[Set[AuthorizationType]] = {
     checkSyntax(right) match {
-      case None                          =>
+      // any_rights was serialized along with administrator but is not a valid right per-se,
+      // see https://issues.rudder.io/issues/29924
+      case _ if right.equalsIgnoreCase(AuthorizationType.AnyRights.id) =>
+        Left(
+          Inconsistency(
+            s"'${AuthorizationType.AnyRights.id}' is not a valid right, replace it with the '${Role.Administrator.name}' role if all rights are intended"
+          )
+        )
+      case None                                                        =>
         Left(
           Inconsistency(
             s"String '${right}' is not recognized as a right string. It should be either 'any' or structured 'object_[edit|write|read]'"
           )
         )
-      case Some(Left(_))                 =>
+      case Some(Left(_))                                               =>
         Right(AuthorizationType.allKind)
-      case Some(Right((obj, operation))) =>
+      case Some(Right((obj, operation)))                               =>
         for {
           ops <- if (operation == "all") {
                    Right(ActionType.VALUE.all)
@@ -376,16 +384,16 @@ object Role       extends Enum[Role] {
 
   // a special account, with all rights, present and future, even if declared at runtime.
   case object Administrator extends Role {
-    val name = "administrator";
+    val name = "administrator"
 
-    def rights = Rights.AnyRights
+    def rights: Rights = Rights.AnyRights
   }
 
   // a special Role that means that a user has no rights at all. That role must super-seed any other right given by other roles
   case object NoRights extends Role {
-    val name = "no_rights";
+    val name = "no_rights"
 
-    def rights: Rights = Rights(Set(A.NoRights))
+    def rights: Rights = Rights.NoRights
   }
 
   // standard predefined built-in roles
@@ -574,7 +582,9 @@ object RudderRoles {
         case None    => // check if we have a custom roles based on authorization (ie anonymous)
           AuthorizationType.parseRight(role) match {
             case Left(err) =>
-              Inconsistency(s"Role '${role}' can not be resolved to a named role nor it matches a valid authorization").fail
+              Inconsistency(
+                s"Role '${role}' can not be resolved to a named role nor it matches a valid authorization: ${err.fullMsg}"
+              ).fail
             case Right(x)  => Role.Custom(Rights(x)).succeed
           }
       }
@@ -585,12 +595,12 @@ object RudderRoles {
   // No consistency enforcement other than if at least on "NoRight" exists, then only NoRight is returned.
   // Role are always trimmed.
   // Unknown roles are filtered out (with log), empty string are ignored.
-  def parseRoles(roles: List[String]): UIO[List[Role]] = {
+  def parseRoles(roles: List[String], errorHint: => String): UIO[List[Role]] = {
     val nonEmptyRoles = roles.map(_.trim).filter(_.nonEmpty)
     ZIO
       .foreach(nonEmptyRoles) { role =>
         parseRole(role).foldZIO(
-          err => logger.warn(err.fullMsg) *> Nil.succeed,
+          err => logger.warn(s"${errorHint}: ${err.fullMsg}") *> Nil.succeed,
           r => List(r).succeed
         )
       }
