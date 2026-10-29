@@ -10,6 +10,7 @@
 use std::{net::SocketAddr, path::Path};
 
 use anyhow::{Context, Result};
+use rudder_cli::logs::daemon::{LogConfig, LogFilter};
 use serde::{Deserialize, de::DeserializeOwned};
 use url::{Host, Url};
 
@@ -19,6 +20,20 @@ fn load<T: DeserializeOwned>(path: &Path) -> Result<T> {
         .with_context(|| format!("could not read configuration file {}", path.display()))?;
     toml::from_str(&content)
         .with_context(|| format!("invalid configuration file {}", path.display()))
+}
+
+/// Log filter when `logging.conf` sets none. rmcp's `info` logs on each request bury the request
+/// log.
+const DEFAULT_LOG_FILTER: &str = "rmcp=warn";
+
+/// Reads `logging.conf`
+pub fn load_log_config(dir: &Path) -> Result<LogConfig> {
+    let mut config = LogConfig::load(dir)?;
+    if config.general.filter == LogFilter::default() {
+        config.general.filter = LogFilter::try_from(DEFAULT_LOG_FILTER.to_owned())
+            .expect("the default log filter is valid");
+    }
+    Ok(config)
 }
 
 /// Content of `main.conf`
@@ -57,15 +72,27 @@ pub struct ApiConfig {
     pub url: ServerUrl,
 }
 
-/// Rudder server URL, without trailing `/`. Plain http only to the local server, as API tokens are
-/// sent to it.
+/// Rudder server URL, possibly with a path prefix (reverse proxy) or a query. Plain http only to the
+/// local server, as API tokens are sent to it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "String")]
-pub struct ServerUrl(String);
+pub struct ServerUrl(Url);
+
+impl ServerUrl {
+    /// Base URL of the Rudder API on this server
+    pub fn api_url(&self) -> Url {
+        let mut url = self.0.clone();
+        url.path_segments_mut()
+            .expect("http(s) URLs have a path")
+            .pop_if_empty()
+            .extend(["rudder", "api", "latest"]);
+        url
+    }
+}
 
 impl Default for ServerUrl {
     fn default() -> Self {
-        Self("http://127.0.0.1:8080".to_owned())
+        Self(Url::parse("http://127.0.0.1:8080").expect("the default URL is valid"))
     }
 }
 
@@ -90,14 +117,17 @@ impl TryFrom<String> for ServerUrl {
             }
             _ => return Err(format!("must be an http(s) URL, got '{url}'")),
         }
-        Ok(Self(parsed.as_str().trim_end_matches('/').to_owned()))
+        // The configuration is world-readable, and the URL is logged
+        if !parsed.username().is_empty() || parsed.password().is_some() {
+            return Err(format!("must not contain credentials, got '{url}'"));
+        }
+        Ok(Self(parsed))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
-    use rudder_cli::logs::daemon::LogConfig;
 
     use super::*;
 
@@ -105,13 +135,17 @@ mod tests {
         toml::from_str(content).map_err(|e| e.to_string())
     }
 
+    fn api_url(server_url: &str) -> Result<String, String> {
+        ServerUrl::try_from(server_url.to_owned()).map(|url| url.api_url().to_string())
+    }
+
     #[test]
     fn empty_file_gives_defaults() {
         let config = parse("").unwrap();
         assert_eq!(config.server.listen, "127.0.0.1:3031".parse().unwrap());
         assert_eq!(
-            config.api.url,
-            ServerUrl("http://127.0.0.1:8080".to_owned())
+            config.api.url.api_url().as_str(),
+            "http://127.0.0.1:8080/rudder/api/latest"
         );
     }
 
@@ -127,10 +161,9 @@ mod tests {
         )
         .unwrap();
         assert_eq!(config.server.listen, "0.0.0.0:9000".parse().unwrap());
-        // Trailing `/` removed, paths are appended with one
         assert_eq!(
-            config.api.url,
-            ServerUrl("https://rudder.example.com".to_owned())
+            config.api.url.api_url().as_str(),
+            "https://rudder.example.com/rudder/api/latest"
         );
     }
 
@@ -141,10 +174,7 @@ mod tests {
             "http://127.0.0.1:8080",
             "http://[::1]:8080",
         ] {
-            assert_eq!(
-                ServerUrl::try_from(url.to_owned()).unwrap(),
-                ServerUrl(url.to_owned())
-            );
+            assert!(api_url(url).is_ok(), "{url}");
         }
         let error = parse("[api]\nurl = \"http://rudder.example.com\"\n").unwrap_err();
         assert!(error.contains("must be an https URL"), "{error}");
@@ -155,10 +185,50 @@ mod tests {
     }
 
     #[test]
+    fn api_url_keeps_path_prefix_and_query() {
+        for (server_url, expected) in [
+            (
+                "https://rudder.example.com:8443",
+                "https://rudder.example.com:8443/rudder/api/latest",
+            ),
+            (
+                "https://proxy.example.com/prefix/",
+                "https://proxy.example.com/prefix/rudder/api/latest",
+            ),
+            (
+                "https://proxy.example.com/prefix?site=paris",
+                "https://proxy.example.com/prefix/rudder/api/latest?site=paris",
+            ),
+        ] {
+            assert_eq!(api_url(server_url).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn rejects_credentials_in_server_url() {
+        for url in [
+            "https://user:password@rudder.example.com",
+            "https://user@rudder.example.com",
+        ] {
+            let error = api_url(url).unwrap_err();
+            assert!(
+                error.contains("must not contain credentials"),
+                "{url}: {error}"
+            );
+        }
+    }
+
+    #[test]
     fn sample_files_are_valid() {
         let dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/config"));
         Config::load(dir).unwrap();
-        LogConfig::load(dir).unwrap();
+        load_log_config(dir).unwrap();
+    }
+
+    #[test]
+    fn rmcp_logs_only_warnings_by_default() {
+        let dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/config"));
+        assert_eq!(load_log_config(dir).unwrap().to_string(), "info,rmcp=warn");
     }
 
     #[test]
