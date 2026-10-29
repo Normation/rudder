@@ -3,6 +3,7 @@
 
 use std::{
     collections::HashMap,
+    collections::hash_map::Entry,
     fs::{self, *},
     io::{BufRead, BufWriter, Write},
     path::{Path, PathBuf},
@@ -16,7 +17,12 @@ use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
-    archive::{PackageScript, PackageScriptArg, PackageSource, PlannedPackage}, plugin::{self, short_name}, repo_index::RepoIndex, repository::Repository, versions::ArchiveVersion, webapp::Webapp,
+    archive::{PackageScript, PackageScriptArg, PackageSource, PlannedPackage},
+    plugin::SafePackageName,
+    plugin::{self, short_name},
+    repo_index::RepoIndex,
+    versions::ArchiveVersion,
+    webapp::Webapp,
 };
 
 #[derive(PartialEq)]
@@ -86,29 +92,58 @@ impl Database {
             .find(|p| p.metadata.jar_files.contains(jar))
     }
 
-    pub fn resolve_plugins_to_install(&self, targets: Vec<(&str, Option<&str>)>, force: bool, index: &RepoIndex, webapp: &Webapp) -> Result<Vec<PlannedPackage>, anyhow::Error> {
-        let resolved = targets.into_iter().map(|(name, raw_version)| {
-            let source = PackageSource::from_str(name)?;
+    pub fn resolve_plugins_to_install(
+        &self,
+        targets: Vec<(&str, Option<&str>)>,
+        force: bool,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let mut order: Vec<SafePackageName> = Vec::new();
+        let mut packages_to_install: HashMap<SafePackageName, PlannedPackage> = HashMap::new();
+        for (raw_name, raw_version) in targets {
+            let source = PackageSource::from_str(raw_name)?;
             let parsed_version = match raw_version {
                 Some(v) => Some(ArchiveVersion::from_str(v)?),
                 None => None,
             };
             let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
-            let mut packages = pp.get_plugin_dependencies(index, webapp)?;
-            packages.push(pp);
-            Ok(packages)
-        }).collect::<anyhow::Result<Vec<_>>>()?;
-        Ok(resolved.into_iter().flatten().collect())
+            let packages = pp.get_plugin_dependencies(index, webapp)?;
+            // get_plugin_deopendencies returns an ordered dependency list, already resolved.
+            // insert the resolved dependency if not yet seen
+            for p in packages {
+                let pn = p.get_metadata().name.clone();
+                if !packages_to_install.contains_key(&pn) {
+                    order.push(pn.clone());
+                    packages_to_install.insert(pn, p);
+                }
+            }
+            // insert the target if not yet seen or if it is a local source package
+            let name = pp.get_metadata().name.clone();
+            match packages_to_install.entry(name.clone()) {
+                Entry::Vacant(_) => {
+                    order.push(name.clone());
+                    packages_to_install.insert(name, pp);
+                }
+                Entry::Occupied(_) => {
+                    if let PlannedPackage::Local(_) = pp {
+                        packages_to_install.insert(name, pp);
+                    }
+                }
+            }
+        }
+        Ok(order
+            .into_iter()
+            .filter_map(|x| packages_to_install.remove(&x))
+            .collect())
     }
 
-    pub fn install(
-        &mut self,
-        force: bool,
-        candidate: &Rpkg,
-        webapp: &mut Webapp,
-    ) -> Result<()> {
+    pub fn install(&mut self, force: bool, candidate: &Rpkg, webapp: &mut Webapp) -> Result<()> {
         info!("Installing {}", candidate.metadata.name);
-        if self.plugins.contains_key(&candidate.metadata.name.to_string()) {
+        if self
+            .plugins
+            .contains_key(&candidate.metadata.name.to_string())
+        {
             info!(
                 "Plugin {} already installed, upgrading",
                 candidate.metadata.short_name()

@@ -3,22 +3,26 @@
 
 use core::fmt;
 use std::{
-    env, fs::{self, *}, io::{Cursor, Read}, path::{Component, Path, PathBuf}, str::{self, FromStr},
+    collections::HashSet,
+    env,
+    fs::{self, *},
+    io::{Cursor, Read},
+    path::{Component, Path, PathBuf},
+    str::{self},
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
 use ar::Archive;
-use chrono::Local;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
     DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, RepoIndex, Repository, TMP_PLUGINS_FOLDER,
     database::{Database, InstalledPlugin, UninstallMode},
-    plugin::Metadata,
+    plugin::{Metadata, SafePackageName},
+    repo_index::Plugin,
     versions::ArchiveVersion,
     webapp::Webapp,
-    repo_index::Plugin
 };
 
 #[derive(Clone, Debug)]
@@ -45,21 +49,31 @@ impl str::FromStr for PackageSource {
 
 pub enum PlannedPackage {
     Local(Rpkg),
-    Remote(Plugin)
+    Remote(Plugin),
 }
 
 impl PlannedPackage {
-    pub fn new(source: PackageSource, version: Option<ArchiveVersion>, force: bool, index: &RepoIndex, webapp: &Webapp) -> Result<Self, anyhow::Error> {
+    pub fn new(
+        source: PackageSource,
+        version: Option<ArchiveVersion>,
+        force: bool,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<Self, anyhow::Error> {
         match &source {
             PackageSource::Name(name) => {
+                let index = match index {
+                    Some(i) => i,
+                    None => bail!(
+                        "Can not resolve non local packages without repository index. Run `rudder agent update` and retry"
+                    ),
+                };
                 let plugin = match (&version, force) {
-                    (Some(v), true) => {
-                        index.any_matching_plugin(name, v).ok_or(anyhow!(
-                            "Could not find any plugin matching '{}:{}'",
-                            name,
-                            v,
-                        ))
-                    }
+                    (Some(v), true) => index.any_matching_plugin(name, v).ok_or(anyhow!(
+                        "Could not find any plugin matching '{}:{}'",
+                        name,
+                        v,
+                    )),
                     (Some(v), false) => index
                         .matching_compatible_plugin(&webapp.version, name, v)
                         .ok_or(anyhow!(
@@ -72,7 +86,7 @@ impl PlannedPackage {
                         .ok_or(anyhow!("Could not find any compatible '{}' plugin", name)),
                 }?;
                 Ok(PlannedPackage::Remote(plugin.to_owned()))
-            },
+            }
             PackageSource::Path(p) => {
                 let rpkg = Rpkg::try_from(p.to_owned())?;
                 Ok(PlannedPackage::Local(rpkg))
@@ -83,26 +97,48 @@ impl PlannedPackage {
     pub fn get_metadata(&self) -> &Metadata {
         match self {
             Self::Local(l) => &l.metadata,
-            Self::Remote(r) => &r.metadata
+            Self::Remote(r) => &r.metadata,
         }
     }
 
     // version and force are not needed as we do not handle versions in the dependencies.
-    pub fn get_plugin_dependencies(&self, index: &RepoIndex, webapp: &Webapp) -> Result<Vec<PlannedPackage>, anyhow::Error> {
-        let mut r = vec![];
-        let depends = self.get_metadata().depends.clone();
-        let deps = depends.and_then(|d| d.plugin).unwrap_or(vec![]);
-        for i in deps {
-            let source = PackageSource::Name(i.as_ref().to_owned());
-            let pp = PlannedPackage::new(source, None, false, index, webapp)?;
-            r.push(pp);
-        }
+    pub fn get_plugin_dependencies(
+        &self,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let mut visited = HashSet::from([self.get_metadata().name.clone()]);
+        let mut r = Vec::new();
+        self.collect_dependencies(&mut visited, &mut r, index, webapp)?;
         Ok(r)
     }
 
-    pub fn fetch(self, repository: &Repository) -> Result<Rpkg> {
+    fn collect_dependencies(
+        &self,
+        visited: &mut HashSet<SafePackageName>,
+        out: &mut Vec<PlannedPackage>,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<(), anyhow::Error> {
+        let depends = self.get_metadata().depends.clone();
+        let deps = depends.and_then(|d| d.plugin).unwrap_or_default();
+        for i in deps {
+            // Skip already inserted packages
+            if !visited.insert(SafePackageName::try_from(i.as_ref())?) {
+                continue;
+            }
+            let source = PackageSource::Name(i.as_ref().to_owned());
+            let pp = PlannedPackage::new(source, None, false, index, webapp)?;
+            pp.collect_dependencies(visited, out, index, webapp)?;
+            // Add the main package at the end
+            out.push(pp);
+        }
+        Ok(())
+    }
+
+    pub fn fetch(&self, repository: &Repository) -> Result<Rpkg> {
         match self {
-            PlannedPackage::Local(l) => Ok(l),
+            PlannedPackage::Local(l) => Ok(l.clone()),
             PlannedPackage::Remote(r) => {
                 let dest =
                     Path::new(TMP_PLUGINS_FOLDER).join(Path::new(&r.path).file_name().ok_or_else(
