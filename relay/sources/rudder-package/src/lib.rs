@@ -175,6 +175,14 @@ pub fn run_inner(args: Args) -> Result<()> {
                 .resolve_plugins_to_install(parsed_plugins, force, index.as_ref(), &webapp)
                 .context("Could not resolve the plugins dependencies")?;
 
+            info!(
+                "The following plugins will be installed:\n{}",
+                resolved_plugins
+                    .iter()
+                    .map(|x| x.get_metadata().name.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            );
             for p in resolved_plugins {
                 let short_name = p.get_metadata().short_name();
                 match p.fetch(&repo) {
@@ -275,6 +283,14 @@ pub fn run_inner(args: Args) -> Result<()> {
                 let resolved_plugins = db
                     .resolve_plugins_to_install(to_upgrade, false, index.as_ref(), &webapp)
                     .context("Could not resolve the plugins dependencies")?;
+                info!(
+                    "The following plugins will be installed:\n{}",
+                    resolved_plugins
+                        .iter()
+                        .map(|x| x.get_metadata().name.to_string())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                );
                 for p in &resolved_plugins {
                     match p.fetch(&repo) {
                         Err(e) => {
