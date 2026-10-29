@@ -300,7 +300,6 @@ class TechniqueApi(
         params:       DefaultParams,
         authzToken:   AuthzToken
     ): LiftResponse = {
-      val modId = ModificationId(uuidGen.newUuid)
 
       // TODO :
       //  [ ] il faut mettre a jour le tableau de ressources dans la technique comme c'est fait dans le endpoint de CREATE technique
@@ -315,7 +314,7 @@ class TechniqueApi(
 
       val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
-          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3, modId, authzToken.qc)
+          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
           _ <- ZIO.succeed("") // update technique tab
         } yield {
           val res     = Json.Obj(

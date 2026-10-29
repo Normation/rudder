@@ -44,7 +44,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
@@ -53,7 +52,6 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.Charset
