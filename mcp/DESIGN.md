@@ -39,8 +39,21 @@ server. It is being built in small steps; this page describes what exists today.
 
 ## Tools
 
+Tools answer compact JSON, Rudder's data passed through where possible: new fields come through
+without a change here, and the field names carry the meaning. Plain text is kept for summaries
+of data too large to send whole (e.g. compliance), where size matters more than shape.
+
+Tools that read Rudder call its API with the caller's token, so Rudder applies the caller's
+rights. A Rudder error (e.g. 403 when the token lacks the right) is returned to the model as a
+failed tool call with Rudder's answer, so it can tell the user rather than retry.
+
 - `whoami`: the Rudder API account behind the caller's token and its rights. Built from the
   token check, no extra Rudder call. Doubles as the "does it work" check for clients.
+- `server_info` (`GET /system/info`, `GET /system/status` and `GET /compliance`, concurrently):
+  Rudder version, relays, OS, node counts, plugins, plus the webapp `status` and the global
+  `compliance` (percentage of each report status, empty without policies). Passed through as
+  JSON, without the JVM: its command line is most of the answer, noise for the model, and it
+  exposes the server's internal paths and settings. Fails as a whole if any call fails.
 
 ## Operations
 
