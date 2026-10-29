@@ -120,8 +120,8 @@ impl PlannedPackage {
         index: Option<&RepoIndex>,
         webapp: &Webapp,
     ) -> Result<(), anyhow::Error> {
-        let depends = self.get_metadata().depends.clone();
-        let deps = depends.and_then(|d| d.plugin).unwrap_or_default();
+        let depends = self.get_metadata().depends.as_ref();
+        let deps = depends.and_then(|d| d.plugin.as_deref()).unwrap_or_default();
         for i in deps {
             // Skip already inserted packages
             if !visited.insert(SafePackageName::try_from(i.as_ref())?) {
@@ -136,6 +136,7 @@ impl PlannedPackage {
         Ok(())
     }
 
+    // WARNING the dependencies are looked up from the local index which is not signed
     pub fn fetch(&self, repository: &Repository) -> Result<Rpkg> {
         match self {
             PlannedPackage::Local(l) => Ok(l.clone()),
@@ -238,7 +239,7 @@ impl TryFrom<PathBuf> for Rpkg {
 }
 
 impl Rpkg {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn from_path(path: &str) -> Result<Rpkg> {
         Rpkg::try_from(PathBuf::from(path))
     }

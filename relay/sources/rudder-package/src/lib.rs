@@ -175,13 +175,14 @@ pub fn run_inner(args: Args) -> Result<()> {
                 .resolve_plugins_to_install(parsed_plugins, force, index.as_ref(), &webapp)
                 .context("Could not resolve the plugins dependencies")?;
 
-            for p in &resolved_plugins {
+            for p in resolved_plugins {
+                let short_name = p.get_metadata().short_name();
                 match p.fetch(&repo) {
                     Err(e) => {
                         errors = true;
                         error!(
                             "Download of {} failed: {e:?}",
-                            p.get_metadata().short_name()
+                            short_name
                         );
                     }
                     Ok(r) => {

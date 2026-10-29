@@ -113,21 +113,24 @@ impl Database {
             // insert the resolved dependency if not yet seen
             for p in packages {
                 let pn = p.get_metadata().name.clone();
-                if !packages_to_install.contains_key(&pn) {
-                    order.push(pn.clone());
-                    packages_to_install.insert(pn, p);
+                match packages_to_install.entry(pn.clone()) {
+                    Entry::Vacant(e) => {
+                        order.push(pn.clone());
+                        e.insert(p);
+                    }
+                    Entry::Occupied(_) => ()
                 }
             }
             // insert the target if not yet seen or if it is a local source package
             let name = pp.get_metadata().name.clone();
             match packages_to_install.entry(name.clone()) {
-                Entry::Vacant(_) => {
+                Entry::Vacant(e) => {
                     order.push(name.clone());
-                    packages_to_install.insert(name, pp);
+                    e.insert(pp);
                 }
-                Entry::Occupied(_) => {
+                Entry::Occupied(mut e) => {
                     if let PlannedPackage::Local(_) = pp {
-                        packages_to_install.insert(name, pp);
+                        e.insert(pp);
                     }
                 }
             }
