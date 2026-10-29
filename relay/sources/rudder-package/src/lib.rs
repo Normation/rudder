@@ -149,26 +149,57 @@ pub fn run_inner(args: Args) -> Result<()> {
                 bail!("No plugin name provided");
             }
 
-            for full_p in &to_install {
-                if full_p.ends_with("-license.tar.gz") {
-                    if let Err(e) =
-                        Licenses::update_from_archive(Path::new(full_p), Path::new(LICENSES_FOLDER))
-                    {
-                        errors = true;
-                        error!("Installation of licenses from {} failed: {e:?}", full_p);
-                    }
-                } else {
-                    // Extract version numbers
-                    let (p, v) = match full_p.split_once(':') {
-                        None => (full_p.as_str(), None),
-                        Some((p, v)) => (p, Some(v)),
-                    };
-
-                    if let Err(e) = db.install(force, p, v, &repo, index.as_ref(), &mut webapp) {
-                        errors = true;
-                        error!("Installation of {} failed: {e:?}", short_name(p));
-                    }
+            let (licenses, raw_plugins): (Vec<String>, Vec<String>) = to_install
+                .into_iter()
+                .partition(|p| p.ends_with("-license.tar.gz"));
+            // Install licenses first
+            for l in licenses {
+                if let Err(e) =
+                    Licenses::update_from_archive(Path::new(&l), Path::new(LICENSES_FOLDER))
+                {
+                    errors = true;
+                    error!("Installation of licenses from {} failed: {e:?}", l);
                 }
+            }
+
+            // Parse the versions if any
+            let parsed_plugins = raw_plugins
+                .iter()
+                .map(|x| match x.split_once(':') {
+                    None => (x.as_str(), None),
+                    Some((p, v)) => (p, Some(v)),
+                })
+                .collect::<Vec<(&str, Option<&str>)>>();
+            // Resolve the plugins to install
+            let resolved_plugins = db
+                .resolve_plugins_to_install(parsed_plugins, force, index.as_ref(), &webapp)
+                .context("Could not resolve the plugins dependencies")?;
+
+            info!(
+                "The following plugins will be installed:\n{}",
+                resolved_plugins
+                    .iter()
+                    .map(|x| x.get_metadata().name.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            );
+            for p in resolved_plugins {
+                let short_name = p.get_metadata().short_name();
+                match p.fetch(&repo) {
+                    Err(e) => {
+                        errors = true;
+                        error!("Download of {} failed: {e:?}", short_name);
+                    }
+                    Ok(r) => {
+                        if let Err(e) = db.install(force, &r, &mut webapp) {
+                            errors = true;
+                            error!(
+                                "Installation of {} failed: {e:?}",
+                                p.get_metadata().short_name()
+                            );
+                        }
+                    }
+                };
             }
             if errors {
                 error!("Some plugin installation failed");
@@ -226,7 +257,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
             } else {
                 // Normal upgrades
-                let to_upgrade: Vec<String> = if all {
+                let names_to_upgrade: Vec<String> = if all {
                     db.plugins.keys().cloned().collect()
                 } else {
                     let packages = long_names(package);
@@ -243,11 +274,42 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                     packages
                 };
-                for p in &to_upgrade {
-                    if let Err(e) = db.install(false, p, None, &repo, index.as_ref(), &mut webapp) {
-                        errors = true;
-                        error!("Could not upgrade {}: {e:?}", short_name(p))
-                    }
+                let to_upgrade: Vec<(&str, Option<&str>)> = names_to_upgrade
+                    .iter()
+                    .map(|x| (x.as_str(), None))
+                    .collect();
+
+                // Resolve the plugins to install
+                let resolved_plugins = db
+                    .resolve_plugins_to_install(to_upgrade, false, index.as_ref(), &webapp)
+                    .context("Could not resolve the plugins dependencies")?;
+                info!(
+                    "The following plugins will be installed:\n{}",
+                    resolved_plugins
+                        .iter()
+                        .map(|x| x.get_metadata().name.to_string())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                );
+                for p in &resolved_plugins {
+                    match p.fetch(&repo) {
+                        Err(e) => {
+                            errors = true;
+                            error!(
+                                "Download of {} failed: {e:?}",
+                                p.get_metadata().short_name()
+                            );
+                        }
+                        Ok(r) => {
+                            if let Err(e) = db.install(false, &r, &mut webapp) {
+                                errors = true;
+                                error!(
+                                    "Upgrade of {} failed: {e:?}",
+                                    p.get_metadata().short_name()
+                                );
+                            }
+                        }
+                    };
                 }
                 if errors {
                     error!("Some plugins were not upgraded correctly");
