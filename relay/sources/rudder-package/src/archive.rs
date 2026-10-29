@@ -8,7 +8,7 @@ use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::{Component, Path, PathBuf},
-    str::{self},
+    str::FromStr,
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
@@ -31,7 +31,7 @@ pub enum PackageSource {
     Name(String),
 }
 
-impl str::FromStr for PackageSource {
+impl FromStr for PackageSource {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, anyhow::Error> {
@@ -121,7 +121,9 @@ impl PlannedPackage {
         webapp: &Webapp,
     ) -> Result<(), anyhow::Error> {
         let depends = self.get_metadata().depends.as_ref();
-        let deps = depends.and_then(|d| d.plugin.as_deref()).unwrap_or_default();
+        let deps = depends
+            .and_then(|d| d.plugin.as_deref())
+            .unwrap_or_default();
         for i in deps {
             // Skip already inserted packages
             if !visited.insert(SafePackageName::try_from(i.as_ref())?) {

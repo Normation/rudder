@@ -109,7 +109,7 @@ impl Database {
             };
             let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
             let packages = pp.get_plugin_dependencies(index, webapp)?;
-            // get_plugin_deopendencies returns an ordered dependency list, already resolved.
+            // get_plugin_dependencies returns an ordered dependency list, already resolved.
             // insert the resolved dependency if not yet seen
             for p in packages {
                 let pn = p.get_metadata().name.clone();
@@ -118,7 +118,7 @@ impl Database {
                         order.push(pn.clone());
                         e.insert(p);
                     }
-                    Entry::Occupied(_) => ()
+                    Entry::Occupied(_) => (),
                 }
             }
             // insert the target if not yet seen or if it is a local source package

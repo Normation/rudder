@@ -180,10 +180,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                 match p.fetch(&repo) {
                     Err(e) => {
                         errors = true;
-                        error!(
-                            "Download of {} failed: {e:?}",
-                            short_name
-                        );
+                        error!("Download of {} failed: {e:?}", short_name);
                     }
                     Ok(r) => {
                         if let Err(e) = db.install(force, &r, &mut webapp) {
@@ -299,7 +296,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                     };
                 }
                 if errors {
-                    error!("Some plugin were not upgraded correctly");
+                    error!("Some plugins were not upgraded correctly");
                 } else {
                     info!("All plugins were upgraded successfully");
                 }
