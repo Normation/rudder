@@ -1069,10 +1069,10 @@ callBody model ui techniqueUi call pid =
                                                         |> addInputHandler (\s -> MethodCallModified (Call pid { call | component = s }) Nothing)
                                                     , element "button"
                                                         |> addClass "btn btn-default ms-2"
+                                                        |> addActionStopAndPrevent ( "click", UIMethodAction call.id { ui | editName = False } )
                                                         |> addAttributeList
                                                             [ onFocus DisableDragDrop
                                                             , stopPropagationOn "mousedown" (Json.Decode.succeed ( DisableDragDrop, True ))
-                                                            , stopPropagationOn "mousedown" (Json.Decode.succeed ( UIMethodAction call.id { ui | editName = False }, True ))
                                                             ]
                                                         |> appendChild (element "i" |> addClass "fa fa-check")
                                                     ]
