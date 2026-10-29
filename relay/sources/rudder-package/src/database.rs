@@ -563,35 +563,35 @@ mod tests {
         assert_json_eq!(reference, generated);
     }
 
+    fn create_plugin(name: &str, deps: Option<Vec<PluginDependency>>) -> Plugin {
+        use crate::repo_index::Plugin;
+        use crate::plugin::Metadata;
+        Plugin {
+            path: "...".to_string(),
+            metadata: Metadata {
+                package_type: archive::PackageType::Plugin,
+                name: name.try_into().unwrap(),
+                version: ArchiveVersion::from_str("9.2.0-1.0").unwrap(),
+                description: None,
+                build_date: "".to_string(),
+                depends: Some(Dependencies {
+                    python: None,
+                    binary: None,
+                    apt: None,
+                    rpm: None,
+                    plugin: deps,
+                }),
+                build_commit: "".to_string(),
+                content: HashMap::new(),
+                jar_files: vec![],
+                requires_license: false,
+            },
+        }
+    }
+
     #[test]
     fn it_resolves_dependencies() {
         use crate::archive::PlannedPackage;
-        use crate::plugin::Metadata;
-        use crate::repo_index::Plugin;
-        fn create_plugin(name: &str, deps: Option<Vec<PluginDependency>>) -> Plugin {
-            Plugin {
-                path: "...".to_string(),
-                metadata: Metadata {
-                    package_type: archive::PackageType::Plugin,
-                    name: name.try_into().unwrap(),
-                    version: ArchiveVersion::from_str("9.2.0-1.0").unwrap(),
-                    description: None,
-                    build_date: "".to_string(),
-                    depends: Some(Dependencies {
-                        python: None,
-                        binary: None,
-                        apt: None,
-                        rpm: None,
-                        plugin: deps,
-                    }),
-                    build_commit: "".to_string(),
-                    content: HashMap::new(),
-                    jar_files: vec![],
-                    requires_license: false,
-                },
-            }
-        }
-
         let index = RepoIndex {
             latest_update: chrono::Utc::now(),
             index: vec![
@@ -600,6 +600,53 @@ mod tests {
                     Some(vec![PluginDependency::new("rudder-plugin-b")]),
                 ),
                 create_plugin("rudder-plugin-b", None),
+            ],
+        };
+        let webapp = Webapp::new(PathBuf::new(), RudderVersion::from_str("9.2.0").unwrap());
+        let db = Database::new(PathBuf::new(), HashMap::<String, InstalledPlugin>::new());
+        let resolved = db
+            .resolve_plugins_to_install(
+                vec![("rudder-plugin-a", None)],
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap();
+        let expected = vec![
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-b").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-a").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+        ];
+        assert!(resolved == expected);
+    }
+
+    #[test]
+    fn it_resolves_loop_dependencies() {
+        use crate::archive::PlannedPackage;
+        let index = RepoIndex {
+            latest_update: chrono::Utc::now(),
+            index: vec![
+                create_plugin(
+                    "rudder-plugin-a",
+                    Some(vec![PluginDependency::new("rudder-plugin-b")]),
+                ),
+                create_plugin(
+                    "rudder-plugin-b",
+                    Some(vec![PluginDependency::new("rudder-plugin-a")]),
+                ),
             ],
         };
         let webapp = Webapp::new(PathBuf::new(), RudderVersion::from_str("9.2.0").unwrap());
