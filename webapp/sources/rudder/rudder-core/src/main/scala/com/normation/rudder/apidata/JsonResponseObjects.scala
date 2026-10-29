@@ -1420,7 +1420,7 @@ object JsonResponseObjects {
                                                                 else identity[String])
                 .apply(g.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
           case ParentProperty.Global(v) =>
-            s"<p>from <b>Global parameter </b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
+            s"<p>from <b>Global property </b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
                 .apply(v.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil
         }
       }
