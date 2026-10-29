@@ -3,7 +3,7 @@
 
 use core::fmt;
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     env,
     fs::{self, *},
     io::{Cursor, Read},
@@ -65,7 +65,7 @@ impl PlannedPackage {
                 let index = match index {
                     Some(i) => i,
                     None => bail!(
-                        "Can not resolve non local packages without repository index. Run `rudder agent update` and retry"
+                        "Can not resolve non local packages without repository index. Run `rudder package update` and retry"
                     ),
                 };
                 let plugin = match (&version, force) {
@@ -104,17 +104,19 @@ impl PlannedPackage {
     // version and force are not needed as we do not handle versions in the dependencies.
     pub fn get_plugin_dependencies(
         &self,
+        installed: &HashMap<String, InstalledPlugin>,
         index: Option<&RepoIndex>,
         webapp: &Webapp,
     ) -> Result<Vec<PlannedPackage>, anyhow::Error> {
         let mut visited = HashSet::from([self.get_metadata().name.clone()]);
         let mut r = Vec::new();
-        self.collect_dependencies(&mut visited, &mut r, index, webapp)?;
+        self.collect_dependencies(installed, &mut visited, &mut r, index, webapp)?;
         Ok(r)
     }
 
     fn collect_dependencies(
         &self,
+        installed: &HashMap<String, InstalledPlugin>,
         visited: &mut HashSet<SafePackageName>,
         out: &mut Vec<PlannedPackage>,
         index: Option<&RepoIndex>,
@@ -125,13 +127,17 @@ impl PlannedPackage {
             .and_then(|d| d.plugin.as_deref())
             .unwrap_or_default();
         for i in deps {
+            // Skip already install packages
+            if installed.contains_key(i.as_ref()) {
+                continue;
+            }
             // Skip already inserted packages
             if !visited.insert(SafePackageName::try_from(i.as_ref())?) {
                 continue;
             }
             let source = PackageSource::Name(i.as_ref().to_owned());
             let pp = PlannedPackage::new(source, None, false, index, webapp)?;
-            pp.collect_dependencies(visited, out, index, webapp)?;
+            pp.collect_dependencies(installed, visited, out, index, webapp)?;
             // Add the main package at the end
             out.push(pp);
         }

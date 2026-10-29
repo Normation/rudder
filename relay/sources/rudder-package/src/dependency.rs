@@ -3,7 +3,6 @@
 
 use std::{process::Command, str};
 
-use anyhow::{Error, bail};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 use which::which;
@@ -43,17 +42,6 @@ pub struct PluginDependency(String);
 impl AsRef<str> for PluginDependency {
     fn as_ref(&self) -> &str {
         &self.0
-    }
-}
-
-impl TryFrom<String> for PluginDependency {
-    type Error = Error;
-
-    fn try_from(s: String) -> Result<Self, Error> {
-        if !s.starts_with("rudder-plugin-") {
-            bail!("Plugin dependency '{s}' must use the long plugin name 'rudder-plugin-{s}'");
-        }
-        Ok(Self(s))
     }
 }
 

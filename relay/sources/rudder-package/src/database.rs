@@ -108,7 +108,10 @@ impl Database {
                 None => None,
             };
             let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
-            let packages = match (force, pp.get_plugin_dependencies(index, webapp)) {
+            let packages = match (
+                force,
+                pp.get_plugin_dependencies(&self.plugins, index, webapp),
+            ) {
                 (_, Ok(d)) => d,
                 (true, Err(e)) => {
                     warn!(
