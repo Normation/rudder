@@ -1268,7 +1268,11 @@ object JsonApiAcl {
     PartialTransformer.apply[JsonApiAcl, List[ApiAclElement]] {
       case JsonApiAcl(acl) =>
         partial.Result
-          .traverse(acl.iterator, (x: JsonApiAuthz) => x.transformIntoPartial[ApiAclElement], failFast = false)
+          .traverse[List[ApiAclElement], JsonApiAuthz, ApiAclElement](
+            acl.iterator,
+            (x: JsonApiAuthz) => x.transformIntoPartial[ApiAclElement],
+            failFast = false
+          )
           .map(x => {
             x.groupMapReduce(_.path)(identity)((a, b) => a.modify(_.actions).setTo(a.actions ++ b.actions))
               .values
