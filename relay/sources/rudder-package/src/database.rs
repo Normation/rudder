@@ -108,7 +108,20 @@ impl Database {
                 None => None,
             };
             let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
-            let packages = pp.get_plugin_dependencies(index, webapp)?;
+            let packages = match (force, pp.get_plugin_dependencies(index, webapp)) {
+                (_, Ok(d)) => d,
+                (true, Err(e)) => {
+                    warn!(
+                        "Could not resolve the dependencies of {}, still continuing the install as --force was given: {e:?}",
+                        pp.get_metadata().name
+                    );
+                    vec![]
+                }
+                (false, Err(e)) => bail!(
+                    "Could not resolve the dependencies of {}.\n{e:?}",
+                    pp.get_metadata().name
+                ),
+            };
             // get_plugin_dependencies returns an ordered dependency list, already resolved.
             // insert the resolved dependency if not yet seen
             for p in packages {
