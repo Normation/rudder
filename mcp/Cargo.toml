@@ -12,8 +12,10 @@ license.workspace = true
 anyhow = "1"
 axum = "0.8"
 clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.13.1", default-features = false, features = ["json", "native-tls"] }
 rmcp = { version = "3.4.1", features = ["server", "transport-streamable-http-server"] }
 rudder_cli = { path = "../policies/rudder-cli" }
+secrecy = "0.10.3"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
 toml = "0.9"
@@ -23,5 +25,5 @@ url = "2"
 
 [dev-dependencies]
 pretty_assertions = "1"
-reqwest = { version = "0.13.1", default-features = false, features = ["json", "native-tls"] }
 serde_json = "1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
