@@ -124,10 +124,11 @@ class TechniqueWriterImpl(
       resourceName:     String
   )(implicit cc: ChangeContext): IOResult[Unit] = for {
     _ <- deleteService.deleteResource(techniqueName, techniqueVersion, resourceName)
-    _ <- techLibUpdate
+    // TODO
+    /*_ <- techLibUpdate
            .update()
            .toIO
-           .chainError(s"An error occurred during technique update after files were deleted for ncf Technique ${techniqueName}")
+           .chainError(s"An error occurred during technique update after files were deleted for ncf Technique ${techniqueName}")*/
   } yield ()
 
   def writeTechniqueAndUpdateLib(

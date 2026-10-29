@@ -309,13 +309,15 @@ class TechniqueApi(
       //  [ ] supprimer le fichier sur le file system
       //  [ ] impacts avec les tenants en 9.2
       //  [ ] faire les commit (il faut utiliser l'archiver : TechniqueArchiver)
+      //  [ ] faire un test avec une valeur de fichier avec / : directory/file.txt
+      //  [ ] faire un test de path traversal
 
       // FIXME : pb connu : on peut créer des dossiers même si on a pas les droits
 
       val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
           _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
-          _ <- ZIO.succeed("") // update technique tab
+          /*_ <- ZIO.succeed("") // update technique tab*/ // TODO
         } yield {
           val res     = Json.Obj(
             ("techniqueName", Json.Str(resourceInfo._1)),

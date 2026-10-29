@@ -38,14 +38,7 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.domain.RootTechniqueCategoryId
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.SubTechniqueCategoryId
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueCategoryId
-import com.normation.cfclerk.domain.TechniqueCategoryMetadata
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.{RootTechniqueCategoryId, SectionSpec, SubTechniqueCategoryId, Technique, TechniqueCategoryId, TechniqueCategoryMetadata, TechniqueId, TechniqueName, TechniqueResourceIdByName}
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
@@ -77,11 +70,13 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.XmlSafe
+
 import java.io.File
 import java.io.FileNotFoundException
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
+
 import scala.collection.mutable.Buffer
 import scala.xml.Source
 import zio.*
@@ -248,7 +243,7 @@ trait TechniqueArchiver {
   ): IOResult[Unit]
 
   def deleteResource(
-      techniqueId: TechniqueId,
+      techniqueId: TechniqueResourceIdByName,
       categories:  Seq[String],
       modId:       ModificationId,
       committer:   EventActor,
@@ -394,7 +389,7 @@ class TechniqueArchiverImpl(
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
   }
 
-  def deleteResource(
+  /*def deleteResource(
       techniqueId:  TechniqueId,
       categories:   Seq[String],
       resourceName: String,
@@ -415,7 +410,7 @@ class TechniqueArchiverImpl(
       s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     }).chainError(s"error when deleting and committing Resource '${techniqueId.serialize}/${resourceName}")
       .unit // FIXME check the error message is correct
-  }
+  }*/
 
   def deleteCategoryRecursively(
       categoryId: TechniqueCategoryId,
@@ -609,12 +604,14 @@ class TechniqueArchiverImpl(
   }
 
   override def deleteResource(
-      techniqueId: TechniqueId,
-      categories:  Seq[String],
-      modId:       ModificationId,
-      committer:   EventActor,
-      msg:         String
-  ): IOResult[Unit] = ???
+    techniqueId: TechniqueResourceIdByName,
+    categories:  Seq[String],
+    modId:       ModificationId,
+    committer:   EventActor,
+    msg:         String
+  ): IOResult[Unit] =
+    // TODO
+    ZIO.succeed(())
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
