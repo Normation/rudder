@@ -51,7 +51,7 @@ walkdir = "2"
 warp = { version = "0.4", default-features = false, features = ["server"] }
 # Use rust implementation. `deflate` would also pull zopfli, which is only used
 # for compression levels > 9 (we only read archives here).
-zip = { version = "8.0.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9.0.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 criterion = "0.8.0"
