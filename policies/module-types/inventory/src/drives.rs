@@ -63,8 +63,10 @@ pub fn inventory() -> Vec<Drive> {
 }
 
 fn collect() -> Vec<Drive> {
-    let disks = Disks::new_with_refreshed_list();
-    let mut res: Vec<Drive> = disks.list().iter().filter_map(Drive::new).collect();
+    let Ok(disks) = Disks::new_with_refreshed_list() else {
+        return vec![];
+    };
+    let mut res: Vec<Drive> = disks.iter().filter_map(Drive::new).collect();
     // `sysinfo` hands us the filesystems in mount order, and we want two inventories of an
     // unchanged machine to be identical.
     res.sort_by(|a, b| a.mount_point.cmp(&b.mount_point));

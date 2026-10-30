@@ -80,7 +80,7 @@ fn os_comments() -> Option<String> {
 /// This is how a virtual machine is told apart from a clone of itself. It is only readable by
 /// root, and absent on the platforms without DMI, in which case we report nothing.
 fn machine_uuid() -> Option<String> {
-    let uuid = Product::uuid().and_then(|u| dmi_value(&u));
+    let uuid = Product::uuid().ok().and_then(|u| dmi_value(&u));
     if uuid.is_none() {
         // Expected when we do not run as root, which is why this is not a warning.
         debug!("Could not read the DMI identifier of the machine");

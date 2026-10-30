@@ -88,7 +88,7 @@ impl Machine {
             manufacturer,
             name,
             logical: sys.cpus().len(),
-            physical_cores: System::physical_core_count(),
+            physical_cores: System::physical_core_count().ok(),
         })
     }
 }
