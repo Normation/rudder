@@ -13,7 +13,7 @@ anyhow = "1"
 ariadne = "0.6.0"
 colored = "3"
 serde = { version = "1", features = ["derive"] }
-toml = "0.9"
+toml = "1.1.8"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
