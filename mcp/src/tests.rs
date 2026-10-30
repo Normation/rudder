@@ -16,8 +16,9 @@ use serde_json::{Value, json};
 
 use crate::{api::RudderApi, config::ApiConfig, serve};
 
-/// Mock Rudder API, only the token check. Tokens: `ro` identifies a read-only account, `user` a
-/// user token (no `authorizationType`), `narrow` is valid but cannot read its own account,
+/// Mock Rudder API: the token check and the system endpoints. Tokens: `ro` identifies a read-only
+/// account, `user` a user token (no `authorizationType`), `acl` an account that can read its own
+/// account but not the system endpoints, `narrow` is valid but cannot read its own account,
 /// `anonymous` gets an answer without account, `future` an account with an unknown
 /// `authorizationType`, `audit` is an `rw` account only used to check the logs, anything else is
 /// unknown.
@@ -45,12 +46,48 @@ async fn mock_rudder() -> String {
             "audit" => (StatusCode::OK, account(Some("rw"))),
             "user" => (StatusCode::OK, account(None)),
             "future" => (StatusCode::OK, account(Some("admin"))),
+            "acl" => (StatusCode::OK, account(Some("acl"))),
             "anonymous" => (StatusCode::OK, accounts(json!([]))),
             "narrow" => (StatusCode::FORBIDDEN, "{}".to_owned()),
             _ => (StatusCode::UNAUTHORIZED, "Unauthorized".to_owned()),
         }
     }
-    let app = Router::new().route("/rudder/api/latest/apiaccounts/token", get(token_account));
+    /// Answers `body` to the tokens allowed to read the system endpoints
+    fn system(body: Value) -> axum::routing::MethodRouter {
+        get(move |headers: HeaderMap| async move {
+            if headers.get("X-API-Token").unwrap() == "acl" {
+                (
+                    StatusCode::FORBIDDEN,
+                    r#"{"result":"error","errorDetails":"Not authorized"}"#.to_owned(),
+                )
+            } else {
+                (StatusCode::OK, body.to_string())
+            }
+        })
+    }
+    let app = Router::new()
+        .route("/rudder/api/latest/apiaccounts/token", get(token_account))
+        .route(
+            "/rudder/api/latest/system/info",
+            system(
+                json!({"action": "getSystemInfo", "result": "success", "data": {
+                    "rudder": {"version": "9.1.0", "instanceId": "i-1", "relays": []},
+                    "system": {"jvm": {"version": "21", "cmd": "/usr/bin/java -Xmx1024m"}},
+                    "nodes": {"total": 3},
+                    "plugins": []
+                }}),
+            ),
+        )
+        .route(
+            "/rudder/api/latest/system/status",
+            system(json!({"action": "getStatus", "result": "success",
+                              "data": {"global": "OK"}})),
+        )
+        .route(
+            "/rudder/api/latest/compliance",
+            system(json!({"action": "getGlobalCompliance", "result": "success",
+                          "data": {"globalCompliance": {"compliance": -1}}})),
+        );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
@@ -95,29 +132,63 @@ async fn call_tool(url: &str, token: Option<&str>, name: &str) -> (StatusCode, S
     (status, response.text().await.unwrap())
 }
 
-/// Text answered by a tool that succeeds
-async fn tool_text(url: &str, token: &str, name: &str) -> String {
+/// Text answered by a tool, and whether it is an error
+async fn tool_result(url: &str, token: &str, name: &str) -> (bool, String) {
     let (status, body) = call_tool(url, Some(token), name).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     let response: Value = serde_json::from_str(&body).unwrap();
-    assert_eq!(response["result"]["isError"], false, "{body}");
-    response["result"]["content"][0]["text"]
+    let text = response["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
-        .to_owned()
+        .to_owned();
+    (response["result"]["isError"] == true, text)
+}
+
+/// Text answered by a tool that succeeds
+async fn tool_text(url: &str, token: &str, name: &str) -> String {
+    let (is_error, text) = tool_result(url, token, name).await;
+    assert!(!is_error, "{text}");
+    text
 }
 
 #[tokio::test]
 async fn whoami_describes_the_caller() {
     let url = mcp_server(&mock_rudder().await).await;
+    let whoami = async |token| -> Value {
+        serde_json::from_str(&tool_text(&url, token, "whoami").await).unwrap()
+    };
     assert_eq!(
-        tool_text(&url, "ro", "whoami").await,
-        "Rudder API account: 'Account ro' (id ro-id)\nRights: read-only: GET on all APIs"
+        whoami("ro").await,
+        json!({"id": "ro-id", "name": "Account ro", "rights": "ro",
+               "rightsDescription": "read-only: GET on all APIs"})
     );
     assert_eq!(
-        tool_text(&url, "user", "whoami").await,
-        "Rudder API account: 'Account user' (id user-id)\n\
-         Rights: those of the user owning the token (api-authorization plugin)"
+        whoami("user").await,
+        json!({"id": "user-id", "name": "Account user", "rights": "owner",
+               "rightsDescription": "those of the user owning the token (api-authorization plugin)"})
+    );
+}
+
+#[tokio::test]
+async fn server_info_with_status() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let info: Value = serde_json::from_str(&tool_text(&url, "ro", "server_info").await).unwrap();
+    assert_eq!(info["rudder"]["version"], "9.1.0");
+    assert_eq!(info["system"], json!({}));
+    assert_eq!(info["status"], "OK");
+    // No policies: no details
+    assert_eq!(info["compliance"], json!({}));
+}
+
+#[tokio::test]
+async fn api_errors_are_tool_errors() {
+    // The model sees why, so it can tell the user the token lacks the right
+    let url = mcp_server(&mock_rudder().await).await;
+    let (is_error, text) = tool_result(&url, "acl", "server_info").await;
+    assert!(is_error, "{text}");
+    assert_eq!(
+        text,
+        r#"Rudder API returned 403 Forbidden: {"result":"error","errorDetails":"Not authorized"}"#
     );
 }
 
