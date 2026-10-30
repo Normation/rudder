@@ -153,12 +153,24 @@ object FastparseTemplateParser {
    * an Array (list variable), a Boolean (conditions), or anything else rendered
    * with its toString. An absent variable renders as empty and is false in
    * conditions, like a null attribute in StringTemplate.
+   * Line endings are normalized to '\n' (see normalizeNewlines).
    */
   def render(parts: Seq[TemplateAst], scope: Map[String, Any]): String = {
     val sb = new java.lang.StringBuilder(1024)
     append(sb, parts, scope)
-    sb.toString
+    normalizeNewlines(sb.toString)
   }
+
+  /*
+   * ST3's AutoIndentWriter writes each '\r\n' or lone '\r' of the output (template
+   * text and variable values alike) as the platform line separator, i.e. '\n' on a
+   * Rudder server. Values can contain CRLF (for example a multi-line directive
+   * parameter), and keeping them corrupts the generated files (see #30084).
+   * One pass on the content, and no copy when there is no '\r' (the common case).
+   */
+  private val newlines = "\r\n?".r
+
+  private def normalizeNewlines(s: String): String = newlines.replaceAllIn(s, "\n")
 
   private val builtins = List("i", "i0")
 
