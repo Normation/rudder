@@ -587,6 +587,9 @@ techniqueTab model technique creation ui =
 
                                             EmptyName ->
                                                 li [ class "text-danger col-md-8" ] [ text "Technique name is required" ]
+
+                                            PristineName ->
+                                                text ""
                                     )
                                     errors
                                 )
