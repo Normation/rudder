@@ -1199,9 +1199,6 @@ name = "deranged"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e9de72ce2ad1f90dc62fa25f0f430ef85eb4b0d8fa0be4f30373bc40a21d28e"
-dependencies = [
- "serde_core",
-]
 
 [[package]]
 name = "derive_builder"
@@ -2720,12 +2717,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "memo-map"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5449c8c750f1a07ea702bbd212bd999fceece9b3d1508b17023b3e174583124b"
-
-[[package]]
 name = "memsec"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2749,26 +2740,23 @@ dependencies = [
 
 [[package]]
 name = "minijinja"
-version = "2.24.0"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86886cf6dbf4e614b19c9a1eec9775f021869d7eadde0fc73921a81b90c9b4c9"
+checksum = "00f5a04892e86ddb4fc254e9160835370b63a0d44042d3ab4725bc2dbcbab136"
 dependencies = [
  "indexmap",
- "memo-map",
  "percent-encoding",
  "serde",
- "serde_json",
 ]
 
 [[package]]
 name = "minijinja-contrib"
-version = "2.24.0"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd3e5f077bc2379f0f7d911e7cfdd921114ed99fc884533dca502944cb355b11"
+checksum = "f804cfd81c146ff898cbf3455071c417e8745907c77f3d5058bd9691b9ace3b8"
 dependencies = [
+ "jiff",
  "minijinja",
- "serde",
- "time",
  "unicode_categories",
 ]
 
