@@ -60,16 +60,16 @@ impl Bios {
     /// The identity of the machine, or nothing when DMI does not name its model.
     #[instrument(level = "debug", name = "bios")]
     pub fn inventory() -> Option<Self> {
-        let system_model = value(Product::name())?;
-        let board = Motherboard::new();
+        let system_model = value(Product::name().ok())?;
+        let board = Motherboard::new().ok();
         let bios = Self {
             date: dmi("bios_date"),
             manufacturer: dmi("bios_vendor"),
             version: dmi("bios_version"),
-            board_manufacturer: value(board.as_ref().and_then(Motherboard::vendor_name)),
-            system_manufacturer: value(Product::vendor_name()),
+            board_manufacturer: board.as_ref().and_then(|b| value(b.vendor_name())),
+            system_manufacturer: value(Product::vendor_name().ok()),
             system_model,
-            system_serial_number: value(Product::serial_number()),
+            system_serial_number: value(Product::serial_number().ok()),
         };
         debug!(
             "Machine is a '{}' from '{}'",
@@ -153,7 +153,8 @@ impl VmSystem {
 /// `sysinfo` trims the DMI values but hands us the ones the firmware said nothing about, which
 /// it leaves plenty of.
 fn value(read: Option<String>) -> Option<String> {
-    dmi_value(&read?)
+    let read = read?;
+    dmi_value(&read)
 }
 
 /// Reads one of the one-line DMI files.

@@ -14,7 +14,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # we want stable order in produced config files
 # json and urlencode provide built-in filters
-minijinja = { version = "2", features = ["debug", "preserve_order", "json", "urlencode", "builtins", "loader", "fuel", "loop_controls"] }
+minijinja = { version = "3.0.5", features = ["debug", "serde", "preserve_order", "json", "urlencode", "builtins", "fuel", "loop_controls"] }
 mustache = { version = "0.9.0", git = "https://github.com/Normation/rust-mustache.git" , features = ["CFEngine"] }
 rudder_module_type = { path = "../../rudder-module-type", features = ["diff"] }
 clap = { version = "4.5.32", features = ["derive"] }
@@ -26,7 +26,7 @@ sha1 = "0.11"
 base16ct = { version = "1", features = ["alloc"] }
 shlex = "2"
 regex = "1.11.1"
-minijinja-contrib = { version = "2.8.0", features = ["datetime", "rand", "wordcount", "pycompat"] }
+minijinja-contrib = { version = "3.0.5", features = ["datetime", "rand", "wordcount", "pycompat"] }
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }
