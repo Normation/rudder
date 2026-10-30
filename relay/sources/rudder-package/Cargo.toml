@@ -43,7 +43,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 
 [dev-dependencies]
-rstest = "0.26.0"
+rstest = "0.28.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"

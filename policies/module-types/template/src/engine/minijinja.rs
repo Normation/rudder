@@ -4,6 +4,8 @@
 use crate::engine::{Mode, TemplateEngine};
 use anyhow::{Context, Result, anyhow};
 use minijinja::UndefinedBehavior;
+use minijinja::syntax::SyntaxConfig;
+use minijinja::value::Serde;
 use rudder_module_type::cli::{FileError, FileRange};
 use rudder_module_type::encoding::unicode_file_to_string;
 use serde_json::Value;
@@ -69,8 +71,12 @@ impl TemplateEngine for MiniJinjaEngine {
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
         // Remove line breaks after blocks. Ansible's default.
-        env.set_trim_blocks(true);
-        env.set_keep_trailing_newline(true);
+        env.set_syntax(
+            SyntaxConfig::builder()
+                .trim_blocks(true)
+                .keep_trailing_newline(true)
+                .build()?,
+        );
         minijinja_contrib::add_to_environment(&mut env);
         // To get detailed error messages on template compilation
         env.set_debug(true);
@@ -113,7 +119,7 @@ impl TemplateEngine for MiniJinjaEngine {
             }
         }
         let tmpl = env.get_template(&template_name)?;
-        tmpl.render(data)
+        tmpl.render(Serde(data))
             .map_err(|e| Self::error_formatting(e, &template, &template_name))
     }
 }
