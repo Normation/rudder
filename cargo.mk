@@ -15,9 +15,9 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 # https://doc.rust-lang.org/nightly/cargo/guide/build-performance.html
 
-CARGO_AUDITABLE_VER := 0.7.5
+CARGO_AUDITABLE_VER := 0.7.7
 CARGO_CYCLONEDX_VER := 0.5.9
-CARGO_NEXTEST_VER   := 0.9.140
+CARGO_NEXTEST_VER   := 0.9.150
 
 # Specific CI behavior
 ifeq ($(CI),1)
