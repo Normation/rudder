@@ -147,6 +147,7 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
 
     ScriptModule(
       OnLoad(JsRaw(s"""
+   $$("#changeLogsTzId").text('${currentTimezone}')
    const refreshEventLogs = ${refresh.toJsCmd};
    initDatePickers(
      "#filterLogs",
