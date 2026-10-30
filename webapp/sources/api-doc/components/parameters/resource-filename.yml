@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: resourceFilename
+in: path
+description: Resource file name
+required: true
+schema:
+  type: string
+  example: "readme"
+  description: Resource file name

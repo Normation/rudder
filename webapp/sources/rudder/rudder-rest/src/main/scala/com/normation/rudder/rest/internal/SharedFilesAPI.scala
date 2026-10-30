@@ -246,6 +246,7 @@ class SharedFilesAPI(
     }
   }
 
+  // TODO extract the upload and download resource in a dedicated service
   def requestDispatch(basePath: File): PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
@@ -301,6 +302,7 @@ class SharedFilesAPI(
                 uploadedFiles match {
                   case Nil         => errorResponse(s"Missing file to copy to ${dest}")
                   case file :: Nil =>
+                    // TODO keep sanitizePath to avoid path traversal issues for instance
                     sanitizePath(basePath, dest.replaceFirst("/", "") + '/' + file.fileName).flatMap { path =>
                       IOResult
                         .attempt(s"Could not copy uploaded file to destination ${dest}")(for {
@@ -481,10 +483,12 @@ class SharedFilesAPI(
       def isDefinedAt(req: Req): Boolean                 = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
+            // TODO no draft in the new resource API
             val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf   = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
+            // TODO this is our use case
             val path = File(
               s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
             )
@@ -521,5 +525,6 @@ class SharedFilesAPI(
   }
   serve("secure" :: "api" :: "sharedfile" :: Nil prefix requestDispatch(File(sharedFolderPath)))
 
+  // TODO : this endpoint is the one that upload a file on the file system
   serve("secure" :: "api" :: "resourceExplorer" :: Nil prefix ncfRequestDispatch)
 }

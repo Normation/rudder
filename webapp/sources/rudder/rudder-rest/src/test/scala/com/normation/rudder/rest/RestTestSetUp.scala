@@ -865,6 +865,10 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
     override def writeTechniques(techniques: List[EditorTechnique])(implicit cc: ChangeContext): IOResult[List[EditorTechnique]] =
       techniques.succeed
+
+    override def deleteResource(techniqueName: String, techniqueVersion: String, resourceName: String)(implicit
+        cc: ChangeContext
+    ): IOResult[Unit] = ZIO.succeed(())
   }
 
   val resourceFileService: ResourceFileService = null

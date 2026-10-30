@@ -46,6 +46,7 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
@@ -241,6 +242,15 @@ trait BuildFilePaths[T] {
 trait TechniqueArchiver {
   def deleteTechnique(
       techniqueId: TechniqueId,
+      categories:  Seq[String],
+      modId:       ModificationId,
+      committer:   EventActor,
+      msg:         String
+  ): IOResult[Unit]
+
+  def deleteResource(
+      techniqueId: TechniqueId,
+      resourceId:  TechniqueResourceIdByName,
       categories:  Seq[String],
       modId:       ModificationId,
       committer:   EventActor,
@@ -576,6 +586,38 @@ class TechniqueArchiverImpl(
                      })
     } yield ()).chainError(s"error when adding/updating and committing category '${categoryId.toString}").unit
   }
+
+  override def deleteResource(
+      techniqueId: TechniqueId,
+      resourceId:  TechniqueResourceIdByName,
+      categories:  Seq[String],
+      modId:       ModificationId,
+      committer:   EventActor,
+      msg:         String
+  ): IOResult[Unit] =
+    // TODO
+    {
+      (for {
+        ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
+        // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+        categoryPath <- categories.filter(_ != "/").mkString("/").succeed
+
+        commit <-
+          gitRepo.semaphore.withPermit(for {
+            rm     <-
+              IOResult.attempt(
+                gitRepo.git.rm
+                  .addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}/resources/${resourceId.name}")
+                  .call()
+              )
+            rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+            commit <- IOResult.attempt(GitCommitId(rev.getName))
+          } yield commit)
+        _      <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        s"${relativePath}/${categoryPath}/${techniqueId.serialize}/resources/${resourceId.name}"
+      }).chainError(s"error when deleting and committing Resource '${techniqueId.serialize}/resources/${resourceId.name}").unit
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
