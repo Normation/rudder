@@ -316,6 +316,7 @@ class TechniqueApi(
 
       val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
+          // FIXME : check path traversal value on the 3 resourceInfo
           _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
           /*_ <- ZIO.succeed("") // update technique tab*/ // TODO
         } yield {

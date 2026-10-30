@@ -38,7 +38,15 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.domain.{RootTechniqueCategoryId, SectionSpec, SubTechniqueCategoryId, Technique, TechniqueCategoryId, TechniqueCategoryMetadata, TechniqueId, TechniqueName, TechniqueResourceIdByName}
+import com.normation.cfclerk.domain.RootTechniqueCategoryId
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SubTechniqueCategoryId
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
@@ -70,13 +78,11 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.XmlSafe
-
 import java.io.File
 import java.io.FileNotFoundException
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
-
 import scala.collection.mutable.Buffer
 import scala.xml.Source
 import zio.*
@@ -243,7 +249,8 @@ trait TechniqueArchiver {
   ): IOResult[Unit]
 
   def deleteResource(
-      techniqueId: TechniqueResourceIdByName,
+      techniqueId: TechniqueId,
+      resourceId:  TechniqueResourceIdByName,
       categories:  Seq[String],
       modId:       ModificationId,
       committer:   EventActor,
@@ -388,29 +395,6 @@ class TechniqueArchiverImpl(
       s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
   }
-
-  /*def deleteResource(
-      techniqueId:  TechniqueId,
-      categories:   Seq[String],
-      resourceName: String,
-      modId:        ModificationId,
-      committer:    EventActor,
-      msg:          String
-  ): IOResult[Unit] = {
-    (for {
-      ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
-      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
-      rm           <- IOResult.attempt(
-                        gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}/${resourceName}").call()
-                      ) // FIXME check the id to serialize the technique is correct
-
-      commit <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield {
-      s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
-    }).chainError(s"error when deleting and committing Resource '${techniqueId.serialize}/${resourceName}")
-      .unit // FIXME check the error message is correct
-  }*/
 
   def deleteCategoryRecursively(
       categoryId: TechniqueCategoryId,
@@ -604,14 +588,36 @@ class TechniqueArchiverImpl(
   }
 
   override def deleteResource(
-    techniqueId: TechniqueResourceIdByName,
-    categories:  Seq[String],
-    modId:       ModificationId,
-    committer:   EventActor,
-    msg:         String
+      techniqueId: TechniqueId,
+      resourceId:  TechniqueResourceIdByName,
+      categories:  Seq[String],
+      modId:       ModificationId,
+      committer:   EventActor,
+      msg:         String
   ): IOResult[Unit] =
     // TODO
-    ZIO.succeed(())
+    {
+      (for {
+        ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
+        // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+        categoryPath <- categories.filter(_ != "/").mkString("/").succeed
+
+        commit <-
+          gitRepo.semaphore.withPermit(for {
+            rm     <-
+              IOResult.attempt(
+                gitRepo.git.rm
+                  .addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}/resources/${resourceId.name}")
+                  .call()
+              )
+            rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+            commit <- IOResult.attempt(GitCommitId(rev.getName))
+          } yield commit)
+        _      <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        s"${relativePath}/${categoryPath}/${techniqueId.serialize}/resources/${resourceId.name}"
+      }).chainError(s"error when deleting and committing Resource '${techniqueId.serialize}/resources/${resourceId.name}").unit
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

@@ -39,12 +39,17 @@ package com.normation.rudder.ncf
 
 import better.files.File
 import com.normation.cfclerk.domain
-import com.normation.cfclerk.domain.{SectionSpec, TechniqueId, TechniqueName, TechniqueResourceIdByName, TechniqueVersion}
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.inventory.domain.Version
-import com.normation.rudder.domain.logger.{ApplicationLogger, DeleteEditorTechniqueLoggerPure}
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.DeleteEditorTechniqueLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
@@ -254,21 +259,23 @@ class DeleteEditorTechniqueImpl(
       ZIO.succeed(Files.deleteIfExists(Paths.get(path)))
     }
 
-    val path = s"/var/rudder/configuration-repository/techniques/$techniqueName/$techniqueVersion/resources/$resourceName"
+    val path =
+      s"/var/rudder/configuration-repository/techniques/ncf_techniques/$techniqueName/$techniqueVersion/resources/$resourceName"
     for {
-      isRemoved  <- removeResource(
-              path
-            ) // TODO see if there is a service to build the path of techniques from technique editor
-      _ <- ZIO.unless(isRemoved)(DeleteEditorTechniqueLoggerPure.debug(s"Could not delete resource $path"))
+      isRemoved   <- removeResource(
+                       path
+                     ) // TODO see if there is a service to build the path of techniques from technique editor
+      _           <- ZIO.unless(isRemoved)(DeleteEditorTechniqueLoggerPure.debug(s"Could not delete resource $path"))
       techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
-      resourceId = TechniqueResourceIdByName(techniqueId, resourceName)
-      -  <- archiver.deleteResource(
-              resourceId,
-              Seq(),
-              changeContext.modId,
-              changeContext.actor,
-              s"Deleting technique '${techniqueId}'"
-            )
+      resourceId   = TechniqueResourceIdByName(techniqueId, resourceName)
+      -           <- archiver.deleteResource(
+                       techniqueId,
+                       resourceId,
+                       Seq("ncf_techniques"), // FIXME handle categories
+                       changeContext.modId,
+                       changeContext.actor,
+                       s"Deleting resource '${techniqueId}/resources/${resourceId.name}'"
+                     )
       /*_  <- syncService.unsyncOne(
               BundleName(techniqueName) -> new Version(techniqueVersion)
             ) // to delete the status of the technique*/

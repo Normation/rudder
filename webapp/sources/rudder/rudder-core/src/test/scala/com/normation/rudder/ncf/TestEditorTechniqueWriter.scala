@@ -39,7 +39,17 @@ package com.normation.rudder.ncf
 
 import better.files.File
 import com.normation.cfclerk.domain
-import com.normation.cfclerk.domain.{ReportingLogic, RootTechniqueCategory, Technique, TechniqueCategory, TechniqueCategoryId, TechniqueCategoryMetadata, TechniqueId, TechniqueName, TechniqueResourceId, TechniqueResourceIdByName, TechniqueVersion}
+import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
@@ -81,7 +91,6 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.zio.*
-
 import java.io.File as JFile
 import java.io.InputStream
 import java.time.Instant
@@ -96,7 +105,6 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import zio.*
@@ -167,7 +175,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     override def deleteResource(
-        techniqueId: TechniqueResourceIdByName,
+        techniqueId: TechniqueId,
+        resourceId:  TechniqueResourceIdByName,
         categories:  Seq[String],
         modId:       ModificationId,
         committer:   EventActor,
