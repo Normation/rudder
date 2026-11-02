@@ -185,8 +185,8 @@ object RudderProperties {
 
   // extension used in overriding files. Syntax is chosen by typesafe-config from the extension:
   // `.properties` is java properties, `.json` is JSON, `.conf` is HOCON.
-  // We used to (<9.1.5) have `.prop` and `.config`, but they don't seem to be supported by HOCON anymore.
-  val configFileExtensions: Set[String] = Set("properties", "conf", "json")
+  // We used to (<9.1.5) have `.prop` and `.config`, they were used for properties and do not work for HOCON.
+  val configFileExtensions: Set[String] = Set("properties", "prop", "config", "conf", "json")
 
   // by default, used and configured to /opt/rudder/etc/rudder-web.properties
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
