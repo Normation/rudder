@@ -864,6 +864,15 @@ response:
     {
       "action":"deleteResource",
       "id" : "plip/1.0/plop.txt",
-      "result":"success"
+      "result":"success",
+      "data" : {
+        "resources" : [
+          {
+            "techniqueName" : "plip",
+            "techniqueVersion" : "1.0",
+            "resourceName" : "plop.txt"
+          }
+        ]
+      }
     }
  
