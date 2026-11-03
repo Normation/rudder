@@ -49,6 +49,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.api.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
@@ -544,6 +545,8 @@ class EventLogDetailsServiceImpl(
         getFromTo[Option[PolicyMode]]((directive \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
       tags             <-
         getFromTo[Tags]((directive \ "tags").headOption, extractTags(entryType = "directive"))
+      scheduleId       <-
+        getFromToOption[CampaignId]((directive \ "scheduleId").headOption, x => CampaignId.parse(x.text).toBox)
     } yield {
       ModifyDirectiveDiff(
         techniqueName = TechniqueName(ptName),
@@ -558,7 +561,8 @@ class EventLogDetailsServiceImpl(
         isEnabled,
         isSystem,
         policyMode,
-        tags
+        tags,
+        modScheduleId = scheduleId
       )
     }
   }

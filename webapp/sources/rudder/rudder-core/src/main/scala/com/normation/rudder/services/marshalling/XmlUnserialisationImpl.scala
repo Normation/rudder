@@ -58,6 +58,7 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -158,6 +159,9 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toOption)
       tags              = TagsXml.getTags(directive \ "tags")
       security          = SecurityXml.getSecurity(directive)
+      // absent for directives without schedule (and for files written before schedules existed)
+      scheduleId       <-
+        (directive \ "scheduleId").headOption.traverse(s => CampaignId.parse(s.text).leftMap(errMsg => Inconsistency(errMsg)))
     } yield {
       (
         TechniqueName(ptName),
@@ -173,7 +177,8 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
           _isEnabled = isEnabled,
           isSystem = isSystem,
           tags = tags,
-          security = security
+          security = security,
+          scheduleId = scheduleId
         ),
         sectionVal
       )
