@@ -236,6 +236,7 @@ class DirectiveSerialisationImpl(xmlVersion: String) extends DirectiveSerialisat
       :: <policyMode>{directive.policyMode.map(_.name).getOrElse("default")}</policyMode>
       :: TagsXml.toXml(directive.tags)
       :: Nil) ++ SecurityXml.toXml(directive)
+      ++ directive.scheduleId.map(id => <scheduleId>{id.serialize}</scheduleId>)
     )
   }
 }

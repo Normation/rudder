@@ -40,6 +40,7 @@ package com.normation.rudder.domain.policies
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.tenants.SecurityTag
 
 /**
@@ -86,12 +87,13 @@ final case class ModifyDirectiveDiff(
     modIsSystem:         Option[SimpleDiff[Boolean]],
     modPolicyMode:       Option[SimpleDiff[Option[PolicyMode]]],
     modTags:             Option[SimpleDiff[Tags]],
-    modSecurityTag:      Option[SimpleDiff[Option[SecurityTag]]] = None
+    modSecurityTag:      Option[SimpleDiff[Option[SecurityTag]]] = None,
+    modScheduleId:       Option[SimpleDiff[Option[CampaignId]]] = None
 ) extends DirectiveSaveDiff {
   def needDeployment: Boolean = {
     modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined ||
     modIsActivated.isDefined || modName.isDefined || modPolicyMode.isDefined ||
-    modSecurityTag.isDefined
+    modSecurityTag.isDefined || modScheduleId.isDefined
   }
 }
 
