@@ -727,11 +727,6 @@ showTechnique model technique origin ui editInfo =
                     ]
                 , li [ class "nav-item" ]
                     [ button
-                        [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeTabClass History), onClick (SwitchTab History) ]
-                        [ text "History" ]
-                    ]
-                , li [ class "nav-item" ]
-                    [ button
                         [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeTabClass Directives), onClick (SwitchTab Directives) ]
                         [ text "Directives "
                         , span
@@ -748,6 +743,11 @@ showTechnique model technique origin ui editInfo =
                             [ span [] [ text (String.fromInt (List.length (getDirectivesBaseOnTechnique technique.id model.directives))) ]
                             ]
                         ]
+                    ]
+                , li [ class "nav-item" ]
+                    [ button
+                        [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeTabClass History), onClick (SwitchTab History) ]
+                        [ text "History" ]
                     ]
                 , if Maybe.Extra.isJust technique.output then
                     li [ class "nav-item" ]
