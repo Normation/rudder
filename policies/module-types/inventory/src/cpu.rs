@@ -88,7 +88,7 @@ impl Machine {
             manufacturer,
             name,
             logical: sys.cpus().len(),
-            physical_cores: System::physical_core_count(),
+            physical_cores: System::physical_core_count().ok(),
         })
     }
 }
@@ -552,6 +552,7 @@ Processor Information
         let logical = System::new_with_specifics(
             sysinfo::RefreshKind::nothing().with_cpu(sysinfo::CpuRefreshKind::nothing()),
         )
+        .unwrap()
         .cpus()
         .len();
         if sockets.is_empty() {
@@ -1031,7 +1032,7 @@ Processor Information
     #[test]
     fn it_reports_the_processors_of_this_machine() {
         let _guard = crate::util::no_concurrent_fork();
-        let mut sys = System::new();
+        let mut sys = System::new().unwrap();
         sys.refresh_cpu_all();
         let cpus = inventory(&sys);
         assert!(!cpus.is_empty(), "no processor reported");
@@ -1207,8 +1208,8 @@ Processor Information
     #[test]
     fn it_reads_no_machine_without_a_processor() {
         // A `System` whose CPUs were never refreshed, which knows of no processor.
-        assert_eq!(Machine::read(&System::new()), None);
-        assert!(inventory(&System::new()).is_empty());
+        assert_eq!(Machine::read(&System::new().unwrap()), None);
+        assert!(inventory(&System::new().unwrap()).is_empty());
     }
 
     /// Every element but the name is optional, and an element we have no value for is left out

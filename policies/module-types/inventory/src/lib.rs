@@ -147,9 +147,9 @@ impl Inventory {
         let hostname = hostname()?;
         let os_release = os::os_release()?;
 
-        let users_src = Users::new_with_refreshed_list();
+        let users_src = Users::new_with_refreshed_list()?;
 
-        let mut sys = System::new();
+        let mut sys = System::new()?;
         sys.refresh_memory();
         sys.refresh_cpu_all();
 

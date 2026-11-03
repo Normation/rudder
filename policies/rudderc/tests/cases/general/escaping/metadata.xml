@@ -1,6 +1,5 @@
-<TECHNIQUE name="Test various escaping cases ${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
-	">
-  <DESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
+<TECHNIQUE name="Test various escaping cases ${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;&#10;&#9;">
+  <DESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;
 	</DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <MULTIINSTANCE>true</MULTIINSTANCE>
@@ -31,24 +30,22 @@
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
         <VARIABLENAME>server</VARIABLENAME>
         <DESCRIPTION>server</DESCRIPTION>
-        <LONGDESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
+        <LONGDESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;
 	</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
     </SECTION>
-    <SECTION name="${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
-	" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966" component="true" multivalued="true">
+    <SECTION name="${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;&#10;&#9;" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966">${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
+        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966">${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;
 	</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION name="${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
-	" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d977" component="true" multivalued="true">
+    <SECTION name="${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;&#10;&#9;" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d977" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d977">${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
+        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d977">${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3&#13;
 	</VALUE>
       </REPORTKEYS>
     </SECTION>

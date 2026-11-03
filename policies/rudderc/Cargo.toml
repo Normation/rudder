@@ -15,7 +15,7 @@ askama = "0.16.0"
 boon = "0.6.0"
 colored = "3"
 clap = { version = "4", features = ["derive"] }
-quick-xml = { version = "0.41.0", features = ["serialize"] }
+quick-xml = { version = "0.42.0", features = ["serialize"] }
 regex = "1"
 mdbook-driver = { version = "0.5.2", default-features = false, features = ["search"] }
 nom = "8"
