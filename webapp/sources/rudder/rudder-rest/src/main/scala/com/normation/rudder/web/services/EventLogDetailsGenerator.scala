@@ -44,6 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.*
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.nodes.*
@@ -457,6 +458,7 @@ class EventLogDetailsGenerator(
                         modDiff.modPolicyMode,
                         _.fold(PolicyMode.defaultValue)(_.name)
                       ) &
+                      "#scheduleId *" #> mapSimpleDiffT[Option[CampaignId]](modDiff.modScheduleId, _.fold("none")(_.serialize)) &
                       "#tags" #> tagsDiff(modDiff.modTags) &
                       "#parameters" #> <div id={s"linesdiff-${x.id.getOrElse("unknown")}"}></div>
                     )(piModDirectiveDetailsXML)
@@ -1585,6 +1587,7 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("longDescription", "Details")}
       {liModDetailsXML("ptVersion", "Target")}
       {liModDetailsXML("policyMode", "Policy mode")}
+      {liModDetailsXML("scheduleId", "Schedule")}
       {liModDetailsXML("tags", "Tags")}
       {liModDirectiveDetailsXML("parameters", "Policy parameters")}
       {liModDetailsXML("priority", "Priority")}

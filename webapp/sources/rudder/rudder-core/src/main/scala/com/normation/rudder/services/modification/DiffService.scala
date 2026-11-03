@@ -111,6 +111,7 @@ class DiffServiceImpl extends DiffService {
     val diffEnable           = toDirectiveDiff(_.isEnabled)
     val diffPolicyMode       = toDirectiveDiff(_.policyMode)
     val diffTags             = toDirectiveDiff(_.tags)
+    val diffScheduleId       = toDirectiveDiff(_.scheduleId)
     ModifyDirectiveDiff(
       techniqueName,
       reference.id,
@@ -124,7 +125,8 @@ class DiffServiceImpl extends DiffService {
       diffEnable,
       diffSystem,
       diffPolicyMode,
-      diffTags
+      diffTags,
+      modScheduleId = diffScheduleId
     )
   }
 

@@ -604,7 +604,8 @@ class EventLogFactoryImpl(
           }) ++
           modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x)) ++
           modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x)) ++
-          modifyDiff.modTags.map(x => SimpleDiff.toXml[Tags](<tags/>, x)(tags => TagsXml.toXml(tags)))
+          modifyDiff.modTags.map(x => SimpleDiff.toXml[Tags](<tags/>, x)(tags => TagsXml.toXml(tags))) ++
+          modifyDiff.modScheduleId.map(x => SimpleDiff.optionToXml(<scheduleId/>, x)(id => Text(id.serialize)))
         }
         </directive>
       )

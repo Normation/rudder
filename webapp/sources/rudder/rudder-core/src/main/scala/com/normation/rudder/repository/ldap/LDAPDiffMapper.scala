@@ -47,6 +47,7 @@ import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.*
 import com.normation.rudder.api.*
 import com.normation.rudder.api.ApiAccountKind.PublicApi
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.*
@@ -363,6 +364,14 @@ class LDAPDiffMapper(
                            case A_SECURITY_TAG        =>
                              updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
                                d.copy(modSecurityTag = Some(SimpleDiff(oldPi.security, t)))
+                             }
+                           case A_SCHEDULE_ID         =>
+                             for {
+                               d          <- diff
+                               // no value: the schedule was removed from the directive
+                               scheduleId <- mod.getOptValue().traverse(id => CampaignId.parse(id).leftMap(Inconsistency.apply))
+                             } yield {
+                               d.copy(modScheduleId = Some(SimpleDiff(oldPi.scheduleId, scheduleId)))
                              }
                            case x                     => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                          }

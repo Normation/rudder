@@ -25,6 +25,7 @@ import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.HttpAction
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -269,6 +270,19 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       val expected           = (TechniqueName(techniqueName), directive, expectedSectionVal)
 
       actual must beRight(expected)
+    }
+
+    "keep the schedule of a directive through serialisation" in {
+      val scheduled = directive.copy(scheduleId = Some(CampaignId("daily-schedule")))
+      val xml       = new DirectiveSerialisationImpl("6").serialise(TechniqueName(techniqueName), Some(directiveSectionSpec), scheduled)
+
+      directiveUnserialisation.unserialise(xml).map(_._2.scheduleId) must beRight(scheduled.scheduleId)
+    }
+
+    "refuse a directive with an invalid schedule id" in {
+      val xml = directiveXML.copy(child = directiveXML.child :+ <scheduleId>../etc</scheduleId>)
+
+      directiveUnserialisation.unserialise(xml) must beLeft
     }
 
     "be able to correctly unserialize a change request" in {

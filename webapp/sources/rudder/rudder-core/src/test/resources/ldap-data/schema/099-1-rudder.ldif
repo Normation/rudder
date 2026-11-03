@@ -73,6 +73,10 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.111
   NAME 'ruleCategoryId'
   DESC 'Unique identifier for a Rule category'
   SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.112
+  NAME 'scheduleId'
+  DESC 'Unique identifier for a schedule'
+  SUP uuid )
 #######################################################################
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.201
   NAME 'techniqueLibraryVersion'
@@ -419,7 +423,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
-  directivePriority $ directiveVariable $ policyMode $ serializedTags $ securityTag) )
+  directivePriority $ directiveVariable $ policyMode $ serializedTags $ securityTag $ scheduleId) )
 ### rules ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   NAME 'rule'
