@@ -5,7 +5,7 @@ import Accounts.DataTypes exposing (..)
 import Accounts.JsonDecoder exposing (decodePortAcl)
 import Dict
 import Json.Decode exposing (..)
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
+import SingleDatePicker
 import Task
 import Time exposing (Month(..), Posix, Zone)
 import TimeZone

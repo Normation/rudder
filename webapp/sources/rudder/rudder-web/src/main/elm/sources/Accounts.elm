@@ -12,7 +12,7 @@ import Http.Detailed as Detailed
 import Maybe.Extra
 import Random
 import Result
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
+import SingleDatePicker
 import Time.Extra exposing (Interval(..), add)
 import UUID
 import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
@@ -250,8 +250,11 @@ update msg model =
 
                 datePicker =
                     ui.datePickerInfo
+
+                ( newPicker, cmd ) =
+                    SingleDatePicker.openPicker "account-expiration-datepicker" (userDefinedDatePickerSettings { zone = datePicker.zone, today = datePicker.currentTime, focusedDate = posix }) posix (Just posix) datePicker.picker
             in
-            ( { model | ui = { ui | datePickerInfo = { datePicker | picker = SingleDatePicker.openPicker (userDefinedDatePickerSettings { zone = datePicker.zone, today = datePicker.currentTime, focusedDate = posix }) posix (Just posix) datePicker.picker } } }, Cmd.none )
+            ( { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker } } }, cmd )
 
         UpdatePicker subMsg ->
             let
@@ -269,7 +272,7 @@ update msg model =
                         Just d ->
                             d
 
-                ( newPicker, maybeNewTime ) =
+                ( ( newPicker, maybeNewTime ), cmd ) =
                     SingleDatePicker.update (userDefinedDatePickerSettings { zone = datePicker.zone, today = datePicker.currentTime, focusedDate = selectedDate }) subMsg datePicker.picker
 
                 newModel =
@@ -289,7 +292,7 @@ update msg model =
                             in
                             { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker, pickedTime = newTime } }, editAccount = Just newAccount }
             in
-            ( newModel, Cmd.none )
+            ( newModel, cmd )
 
         Tick newTime ->
             let

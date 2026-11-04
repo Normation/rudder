@@ -3,7 +3,7 @@ module Accounts.DataTypes exposing (..)
 import Http exposing (Error)
 import Http.Detailed
 import Json.Decode as D exposing (..)
-import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..))
+import SingleDatePicker exposing (DatePicker)
 import Time exposing (Posix, Zone)
 import Ui.Datatable exposing (TableFilters)
 import Utils.DateUtils exposing (isBefore)
