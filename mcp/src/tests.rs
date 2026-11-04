@@ -182,13 +182,24 @@ async fn server_info_with_status() {
 
 #[tokio::test]
 async fn api_errors_are_tool_errors() {
-    // The model sees why, so it can tell the user the token lacks the right
+    // The model sees every failed call and the right it needs, so it can tell the user
     let url = mcp_server(&mock_rudder().await).await;
     let (is_error, text) = tool_result(&url, "acl", "server_info").await;
     assert!(is_error, "{text}");
+    let refused = |path, right| {
+        format!(
+            "Rudder API refused GET {path} (403 Forbidden): requires the {right} right, or this \
+             path in the token's ACL: {{\"result\":\"error\",\"errorDetails\":\"Not authorized\"}}"
+        )
+    };
     assert_eq!(
         text,
-        r#"Rudder API returned 403 Forbidden: {"result":"error","errorDetails":"Not authorized"}"#
+        [
+            refused("system/info", "administration_read"),
+            refused("system/status", "administration_read"),
+            refused("compliance", "compliance_read"),
+        ]
+        .join("\n")
     );
 }
 
