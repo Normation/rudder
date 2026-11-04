@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use axum::http::{HeaderValue, Method};
 use secrecy::ExposeSecret;
 use url::Url;
@@ -18,6 +18,7 @@ use crate::{auth::ApiToken, config::ApiConfig};
 const API_TOKEN_HEADER: &str = "X-API-Token";
 const API_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Shared by all requests: holds the connection pool. Calls go through [`CallerApi`].
 #[derive(Debug, Clone)]
 pub struct RudderApi {
     client: reqwest::Client,
@@ -54,22 +55,36 @@ impl RudderApi {
         url
     }
 
-    /// Sends a request to an endpoint (see [`Self::endpoint`]). Errors are transport errors, the status is left to
-    /// the caller.
-    #[tracing::instrument(name = "rudder_api", level = "debug", skip(self, token))]
-    pub async fn send(
-        &self,
-        token: &ApiToken,
-        method: Method,
-        path: &str,
-    ) -> Result<reqwest::Response> {
-        let mut token = HeaderValue::from_str(token.0.expose_secret())
+    /// The API as seen by the caller holding `token`
+    pub fn for_caller(&self, token: ApiToken) -> CallerApi {
+        CallerApi {
+            api: self.clone(),
+            token,
+        }
+    }
+}
+
+/// The Rudder API called with one caller's token, so Rudder applies that caller's rights. Built
+/// for each request, and handed to the tools in the [`Caller`](crate::auth::Caller).
+#[derive(Debug, Clone)]
+pub struct CallerApi {
+    api: RudderApi,
+    token: ApiToken,
+}
+
+impl CallerApi {
+    /// Sends a request to an endpoint (see [`RudderApi::endpoint`]). Errors are transport errors,
+    /// the status is left to the caller.
+    #[tracing::instrument(name = "rudder_api", level = "debug", skip(self))]
+    pub async fn send(&self, method: Method, path: &str) -> Result<reqwest::Response> {
+        let mut token = HeaderValue::from_str(self.token.0.expose_secret())
             .context("API token is not a valid header value")?;
         token.set_sensitive(true);
         let start = Instant::now();
         let response = self
+            .api
             .client
-            .request(method, self.endpoint(path))
+            .request(method, self.api.endpoint(path))
             .header(API_TOKEN_HEADER, token)
             .send()
             .await
@@ -80,6 +95,22 @@ impl RudderApi {
             "Rudder API answered"
         );
         Ok(response)
+    }
+
+    /// Body of a `GET` on an endpoint. A non-success status is an error, with Rudder's answer: the
+    /// tools show it to the model, e.g. a 403 when the caller lacks the right.
+    pub async fn get(&self, path: &str) -> Result<String> {
+        let response = self.send(Method::GET, path).await?;
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .context("Rudder API response could not be read")?;
+        if status.is_success() {
+            Ok(body)
+        } else {
+            bail!("Rudder API returned {status}: {body}")
+        }
     }
 }
 
