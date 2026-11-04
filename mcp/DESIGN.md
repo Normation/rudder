@@ -44,8 +44,10 @@ without a change here, and the field names carry the meaning. Plain text is kept
 of data too large to send whole (e.g. compliance), where size matters more than shape.
 
 Tools that read Rudder call its API with the caller's token, so Rudder applies the caller's
-rights. A Rudder error (e.g. 403 when the token lacks the right) is returned to the model as a
-failed tool call with Rudder's answer, so it can tell the user rather than retry.
+rights. A Rudder error is returned to the model as a failed tool call with Rudder's answer, so
+it can tell the user rather than retry. On 403 it also names the right the endpoint requires
+(e.g. `compliance_read`), which Rudder's answer does not. A tool making several calls reports
+every failed one, as each can need a different right.
 
 - `whoami`: the Rudder API account behind the caller's token and its rights. Built from the
   token check, no extra Rudder call. Doubles as the "does it work" check for clients.
@@ -53,7 +55,28 @@ failed tool call with Rudder's answer, so it can tell the user rather than retry
   Rudder version, relays, OS, node counts, plugins, plus the webapp `status` and the global
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
-  exposes the server's internal paths and settings. Fails as a whole if any call fails.
+  exposes the server's internal paths and settings. Fails if any call fails.
+
+### Rudder rights
+
+Every tool only reads (`GET`). What the caller's token needs depends on its kind:
+
+- **`ro` or `rw` API account**: nothing more, every tool works.
+- **`acl` API account** (api-authorization plugin): `GET` on each path below, the token check's
+  included.
+- **User token** (api-authorization plugin): the owning user needs the rights below. Today
+  `administration_read` and `compliance_read` cover every tool.
+- **`none`**: refused at the token check.
+
+| Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
+|---|---|---|
+| Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
+| `whoami` | none | none |
+| `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
+
+The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
+(any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
+them on 403. Update this table with every tool.
 
 ## Operations
 
