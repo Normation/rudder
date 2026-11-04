@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! The MCP server and its tools, one module per tool
+//! The MCP server and its tools, one module per tool.
+//!
+//! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
+//! rights): update it with the tool.
 
 mod server_info;
 mod whoami;

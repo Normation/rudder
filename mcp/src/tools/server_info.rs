@@ -21,25 +21,32 @@ impl Rudder {
     )]
     async fn server_info(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
         let api = &caller(&parts)?.api;
-        let (info, status, compliance) = tokio::join!(
-            api.get("system/info"),
-            api.get("system/status"),
-            api.get("compliance")
+        let calls = tokio::join!(
+            api.get("system/info", "administration_read"),
+            api.get("system/status", "administration_read"),
+            api.get("compliance", "compliance_read")
         );
-        format_info(
-            &info.map_err(tool_error)?,
-            &status.map_err(tool_error)?,
-            &compliance.map_err(tool_error)?,
-        )
-        .map_err(tool_error)
+        // Every failure, not only the first: the calls can need different rights
+        let (info, status, compliance) = match calls {
+            (Ok(info), Ok(status), Ok(compliance)) => (info, status, compliance),
+            (info, status, compliance) => {
+                let errors: Vec<_> = [info.err(), status.err(), compliance.err()]
+                    .into_iter()
+                    .flatten()
+                    .map(tool_error)
+                    .collect();
+                return Err(errors.join("\n"));
+            }
+        };
+        format_info(&info, &status, &compliance).map_err(tool_error)
     }
 }
 
 /// Server information, from the bodies of `GET /system/info`, `GET /system/status` and
 /// `GET /compliance`: the info data, without the JVM, plus the webapp `status` and the global
-/// `compliance` details (percentage by report status, nothing without policies). The JVM's command line is most of the response,
-/// only noise for the model, and it exposes the server's internal paths and settings. Other fields
-/// are kept as is, so new ones come through.
+/// `compliance` details (percentage by report status, nothing without policies). The JVM's command
+/// line is most of the response, only noise for the model, and it exposes the server's internal
+/// paths and settings. Other fields are kept as is, so new ones come through.
 fn format_info(info_body: &str, status_body: &str, compliance_body: &str) -> Result<String> {
     #[derive(Deserialize)]
     struct Response<T> {
