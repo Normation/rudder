@@ -15,7 +15,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use tracing::{Instrument, Span, field};
 
-use crate::api::RudderApi;
+use crate::api::{CallerApi, RudderApi};
 
 /// Returns the account of the calling token. A valid token gets 403 when its ACL does not allow
 /// reading its own account: such tokens are refused, every request must be attributable.
@@ -61,7 +61,7 @@ pub enum AuthorizationType {
 }
 
 impl AuthorizationType {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::None => "none",
             Self::Ro => "ro",
@@ -82,8 +82,7 @@ impl AuthorizationType {
     }
 }
 
-/// The Rudder API account behind the caller's token. Every accepted request has one, in its
-/// extensions.
+/// The Rudder API account behind the caller's token
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiAccount {
@@ -91,6 +90,14 @@ pub struct ApiAccount {
     pub name: String,
     #[serde(default)]
     pub authorization_type: AuthorizationType,
+}
+
+/// Who is calling: what an accepted request hands to the tools, in its extensions
+#[derive(Debug, Clone)]
+pub struct Caller {
+    pub account: ApiAccount,
+    /// The Rudder API with the caller's token
+    pub api: CallerApi,
 }
 
 /// `GET /apiaccounts/token` response, only the fields used here
@@ -140,15 +147,12 @@ impl IntoResponse for TokenRejection {
 
 /// Checks the token with Rudder. Fails closed: a token that cannot be checked is refused.
 #[tracing::instrument(name = "token_check", skip_all)]
-async fn check_token(api: &RudderApi, token: &ApiToken) -> Result<ApiAccount, TokenRejection> {
-    let response = api
-        .send(token, Method::GET, TOKEN_CHECK_PATH)
-        .await
-        .map_err(|e| {
-            // `{:#}` shows the cause chain, e.g. a refused connection
-            tracing::warn!("{e:#}");
-            TokenRejection::Unverifiable
-        })?;
+async fn check_token(api: &CallerApi) -> Result<ApiAccount, TokenRejection> {
+    let response = api.send(Method::GET, TOKEN_CHECK_PATH).await.map_err(|e| {
+        // `{:#}` shows the cause chain, e.g. a refused connection
+        tracing::warn!("{e:#}");
+        TokenRejection::Unverifiable
+    })?;
     match response.status() {
         status if status.is_success() => {
             // A 2xx without an account means the API changed: nobody to attribute the request to
@@ -180,7 +184,8 @@ fn header<'a>(request: &'a Request, name: &str) -> &'a str {
 }
 
 /// Rejects requests without a token Rudder accepts and attributes to an account, before they reach
-/// MCP, hands the account to the tools, and logs each request with its account.
+/// MCP, hands the [`Caller`] to the tools, and logs each request
+/// with its account.
 ///
 /// Every log line of the request, refusals included, is in a `mcp_request` span with the client
 /// address (the proxy's when behind one), the MCP method and target name, and once the token is
@@ -211,7 +216,8 @@ async fn authenticate(api: &RudderApi, mut request: Request, next: Next) -> Resp
         tracing::info!(rejection = ?TokenRejection::Missing, "MCP request refused");
         return TokenRejection::Missing.into_response();
     };
-    let account = match check_token(api, &token).await {
+    let api = api.for_caller(token);
+    let account = match check_token(&api).await {
         Ok(account) => account,
         Err(rejection) => {
             tracing::info!(?rejection, "MCP request refused");
@@ -223,7 +229,7 @@ async fn authenticate(api: &RudderApi, mut request: Request, next: Next) -> Resp
     span.record("account", account.id.as_str());
     span.record("rights", account.authorization_type.as_str());
     let account_name = account.name.clone();
-    request.extensions_mut().insert(account);
+    request.extensions_mut().insert(Caller { account, api });
     let response = next.run(request).await;
     tracing::info!(
         account_name,

@@ -7,62 +7,21 @@ mod cli;
 mod config;
 #[cfg(test)]
 mod tests;
+mod tools;
 
 use std::{net::SocketAddr, process::ExitCode, sync::Arc};
 
-use axum::{http::request::Parts, middleware};
+use axum::middleware;
 use clap::Parser;
-use rmcp::{
-    ErrorData, ServerHandler,
-    handler::server::tool::Extension,
-    model::{ServerCapabilities, ServerConfig},
-    tool, tool_handler, tool_router,
-    transport::streamable_http_server::{
-        StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
-    },
+use rmcp::transport::streamable_http_server::{
+    StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 
 use tracing::{error, info};
 
 use rudder_cli::logs::daemon;
 
-use crate::{
-    api::RudderApi,
-    auth::{ApiAccount, require_token},
-    cli::Cli,
-    config::Config,
-};
-
-#[derive(Debug, Clone)]
-struct Rudder;
-
-#[tool_router]
-impl Rudder {
-    #[tool(
-        description = "Who is calling: the Rudder API account behind the caller's token, and its rights",
-        annotations(read_only_hint = true)
-    )]
-    fn whoami(&self, Extension(parts): Extension<Parts>) -> Result<String, ErrorData> {
-        // Always inserted by `require_token`
-        let account = parts
-            .extensions
-            .get::<ApiAccount>()
-            .ok_or_else(|| ErrorData::internal_error("no account in request", None))?;
-        Ok(format!(
-            "Rudder API account: '{}' (id {})\nRights: {}",
-            account.name,
-            account.id,
-            account.authorization_type.describe()
-        ))
-    }
-}
-
-#[tool_handler]
-impl ServerHandler for Rudder {
-    fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
-    }
-}
+use crate::{api::RudderApi, auth::require_token, cli::Cli, config::Config, tools::Rudder};
 
 /// The MCP endpoint, stateless: a `Rudder` is built for each request. Every request must carry a
 /// Rudder API token, checked with `api`.
