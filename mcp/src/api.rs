@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use axum::http::{HeaderValue, Method};
+use axum::http::{HeaderValue, Method, StatusCode};
 use secrecy::ExposeSecret;
 use url::Url;
 
@@ -98,18 +98,22 @@ impl CallerApi {
     }
 
     /// Body of a `GET` on an endpoint. A non-success status is an error, with Rudder's answer: the
-    /// tools show it to the model, e.g. a 403 when the caller lacks the right.
-    pub async fn get(&self, path: &str) -> Result<String> {
+    /// tools show it to the model. `right` is the Rudder right the endpoint requires (e.g.
+    /// `administration_read`), named on 403 as Rudder's answer does not say it.
+    pub async fn get(&self, path: &str, right: &str) -> Result<String> {
         let response = self.send(Method::GET, path).await?;
         let status = response.status();
         let body = response
             .text()
             .await
             .context("Rudder API response could not be read")?;
-        if status.is_success() {
-            Ok(body)
-        } else {
-            bail!("Rudder API returned {status}: {body}")
+        match status {
+            status if status.is_success() => Ok(body),
+            // User tokens need the right, ACL tokens the path
+            StatusCode::FORBIDDEN => bail!(
+                "Rudder API refused GET {path} ({status}): requires the {right} right, or this path in the token's ACL: {body}"
+            ),
+            status => bail!("Rudder API returned {status} for GET {path}: {body}"),
         }
     }
 }
