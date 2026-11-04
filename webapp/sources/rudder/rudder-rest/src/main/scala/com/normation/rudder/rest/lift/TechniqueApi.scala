@@ -305,9 +305,7 @@ class TechniqueApi(
         val file       = File(configRepoPath)
         val categories = List("ncf_techniques")
         for {
-          // FIXME : check path traversal value on the 3 resourceInfo
-          file <- FileUtils.sanitizePath(file, ("techniques" :: categories) :+ resourceInfo._1 :+ resourceInfo._2 :+ "resources")
-          _    <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
+          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
         } yield {
           Json.Obj(
             (
