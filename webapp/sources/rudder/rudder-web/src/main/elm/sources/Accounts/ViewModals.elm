@@ -7,7 +7,7 @@ import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
+import SingleDatePicker
 import Time.Extra exposing (Interval(..), add)
 import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
 import Utils.DateUtils exposing (posixToString)
@@ -237,7 +237,7 @@ displayModal model =
                                         text ""
                                     ]
                                 , div [ class "elm-datepicker-container" ]
-                                    [ button [ type_ "button", class "form-control btn-datepicker", disabled (account.expirationPolicy == NeverExpire), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
+                                    [ button [ id "account-expiration-datepicker", type_ "button", class "form-control btn-datepicker", disabled (account.expirationPolicy == NeverExpire), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
                                         [ text expirationText
                                         ]
                                     , SingleDatePicker.view (userDefinedDatePickerSettings { zone = model.ui.datePickerInfo.zone, today = model.ui.datePickerInfo.currentTime, focusedDate = selectedDate }) model.ui.datePickerInfo.picker

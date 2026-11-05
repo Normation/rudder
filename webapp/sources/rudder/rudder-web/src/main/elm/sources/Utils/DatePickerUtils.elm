@@ -1,6 +1,6 @@
 module Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
 
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
+import DatePicker.Settings exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time exposing (Month(..), Posix, Zone)
 import Time.Extra exposing (Interval(..), Parts)
 import Utils.DateUtils exposing (isBefore, posixToDateString, posixToTimeString)
