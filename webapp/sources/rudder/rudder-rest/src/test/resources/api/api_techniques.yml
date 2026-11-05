@@ -875,4 +875,48 @@ response:
         ]
       }
     }
- 
+---
+description: Can create a resource
+method: PUT
+url: /api/latest/techniques/plip/1.0/resources/plop.txt
+body: >-
+  {
+    "resources":[{}]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createResource",
+      "result":"success",
+      "data": {
+        "resources":[
+          {
+            "id":"test_delete",
+            "version":"1.0",
+            "name":"test_delete",
+            "category":"ncf_techniques",
+            "calls":[
+              {
+                "type":"call",
+                "method":"command_execution",
+                "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+                "parameters":{"command":"/bin/true"},
+                "condition":"",
+                "component":"",
+                "disabledReporting":false
+              }
+              ],
+            "description":"",
+            "documentation":"",
+            "parameters":[],
+            "resources":[],
+            "tags":{},
+            "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+            "source":"editor"
+          }
+        ]
+      }
+    }
+---
+

@@ -203,6 +203,7 @@ class TechniqueApi(
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
       case API.DeleteResource            => DeleteResource
+      case API.CreateResources => CreateResources
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -285,6 +286,47 @@ class TechniqueApi(
       } yield {
         "ok"
       }).toLiftResponseOne(params, schema, _ => Some(draftInfo._1))
+    }
+  }
+
+  object CreateResources extends LiftApiModule {
+    val schema: TwoParam = API.DeleteResource
+
+    override def process(
+                          version: ApiVersion,
+                          path: ApiPath,
+                          resourceInfo: (String, String),
+                          req: Req,
+                          params: DefaultParams,
+                          authzToken: AuthzToken
+                        ): LiftResponse = {
+
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        val file = File(configRepoPath)
+        val categories = List("ncf_techniques")
+        for {
+          file <- FileUtils.sanitizePath(file, ("techniques" :: categories) :+ resourceInfo._1 :+ resourceInfo._2 :+ "resources")
+          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2)(using authzToken.qc.newCC())
+        } yield {
+          Json.Obj(
+            (
+              "resources",
+              Json.Arr(
+                Chunk(
+                  Json.Obj(
+                    ("techniqueName", Json.Str(resourceInfo._1)),
+                    ("techniqueVersion" -> Json.Str(resourceInfo._2)),
+                    ("resourceName" -> Json.Str(resourceInfo._3))
+                  )
+                )
+              )
+            )
+          )
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(s"${resourceInfo._1}/${resourceInfo._2}/${resourceInfo._3}"))
+
     }
   }
 
