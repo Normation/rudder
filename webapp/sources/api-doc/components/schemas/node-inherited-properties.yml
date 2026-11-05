@@ -35,33 +35,36 @@ properties:
           - overridden
           - plugin name like datasources
         hierarchy:
-          type: array
           description: A description of the inheritance hierarchy for that property, with most direct parent at head and oldest one at tail
-          items:
-            type: object
-            required:
-              - kind
-              - value
-            properties:
-              kind: 
-                type: string
-                enum:
-                  - global
-                  - group
-                description: The kind of object from which the property's value is inherited
-                example: global
-              value:
-                type: string
-                description: a string representation of the value. If it was a json value, it will be escaped.
-                example: "{\"array\":[1,2],\"object\":{\"parent\":\"value\"},\"string\":\"parent\"}"
-              id: 
-                type: string
-                description: in the case of a group, its identifier
-                example: 9180b869-08a3-4173-9dd4-ab68f227e76c
-              name: 
-                type: string
-                description: in the case of a group, its name
-                example: all centos7
+          oneOf:
+            - type: string
+              description: HTML hierarchy
+              example: "<p>from <b>Global property </b>:<pre>\"### Managed by Rudder, edit with care ###\"</pre></p>"
+            - type: object
+              description: JSON hierarchy
+              required:
+                - kind
+                - value
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - global
+                    - group
+                  description: The kind of object from which the property's value is inherited
+                  example: global
+                value:
+                  type: string
+                  description: a string representation of the value. If it was a json value, it will be escaped.
+                  example: "{\"array\":[1,2],\"object\":{\"parent\":\"value\"},\"string\":\"parent\"}"
+                id:
+                  type: string
+                  description: in the case of a group, its identifier
+                  example: 9180b869-08a3-4173-9dd4-ab68f227e76c
+                name:
+                  type: string
+                  description: in the case of a group, its name
+                  example: all centos7
         origval:
           format: string or JSON
           example: AMS2
