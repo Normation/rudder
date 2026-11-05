@@ -94,6 +94,7 @@ class DeleteEditorTechniqueImpl(
     syncService:          TechniqueCheckSyncService,
     techniqueReader:      EditorTechniqueReader,
     actionLogger:         EventLogRepository,
+    resourceWriter:       ResourceWriter,
     baseConfigRepoPath:   String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
@@ -254,25 +255,11 @@ class DeleteEditorTechniqueImpl(
       resourceName:     String
   )(implicit changeContext: ChangeContext): IOResult[Unit] = {
 
-    def removeResource(categories: Seq[String]): IOResult[Boolean] = {
-      import java.nio.file.Files
-
-      val configRepository = "/var/rudder/configuration-repository"
-      for {
-        sanitized <- FileUtils.sanitizePath(
-                       File(configRepository),
-                       ("techniques" :: categories.toList) :+ techniqueName :+ techniqueVersion :+ "resources" :+ resourceName
-                     )
-      } yield {
-        Files.deleteIfExists(sanitized.path)
-      }
-    }
-
     val resourcePath = s"$techniqueName/$techniqueVersion/resources/$resourceName"
     for {
       techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
       categories  <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
-      isRemoved   <- removeResource(categories.map(_.id.name.value))
+      isRemoved   <- resourceWriter.deleteResource(categories.map(_.id.name.value), techniqueName, techniqueVersion, resourceName)
       _           <-
         /*
          * The resource may already be absent, in this case `isRemoved=false`, this is not an error.

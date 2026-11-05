@@ -879,10 +879,10 @@ response:
 description: Can create a resource
 method: PUT
 url: /api/latest/techniques/plip/1.0/resources/plop.txt
-body: >-
-  {
-    "resources":[{}]
-  }
+body: !!binary |
+   R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+   OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+   +f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
 response:
   code: 200
   content: >-

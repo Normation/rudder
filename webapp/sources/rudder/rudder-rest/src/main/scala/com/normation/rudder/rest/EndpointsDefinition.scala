@@ -914,21 +914,22 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     override def dataContainer: Option[String]          = None
   }
 
-  case object CreateResources extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex {
+  case object GetResources extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Create new resource in a technique"
-    val (action, path) = PUT / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
-    val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
+    val description    = "Get currently deployed resources of a technique"
+    val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
+    val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
 
-    override def name:          String         = "techniqueResources"
+    override def name: String = "techniqueResources"
+
     override def dataContainer: Option[String] = Some("resources")
   }
 
-  case object GetResources extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex {
+  case object CreateResources extends TechniqueApiPub with ThreeParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description = "Get currently deployed resources of a technique"
-    val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
-    val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+    val description    = "Create new resource in a technique"
+    val (action, path) = PUT / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources" / "{filename}"
+    val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
 
     override def name: String = "techniqueResources"
 

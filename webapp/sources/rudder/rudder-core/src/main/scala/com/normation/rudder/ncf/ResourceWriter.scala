@@ -1,35 +1,68 @@
 package com.normation.rudder.ncf
 
 import better.files.File
-import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.IOResult
 import com.normation.utils.FileUtils
+import java.nio.file.Files
+import java.nio.file.Path
 
-trait ResourceFileSystemWriter {
+trait ResourceWriter {
 
-  def writeResource(categories: Seq[String]): IOResult[Boolean]
+  def writeResource(
+      bytes:            Array[Byte],
+      categories:       Seq[String],
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  ): IOResult[Path]
 
-  def deleteResource(categories: Seq[String]): IOResult[Boolean]
-
+  def deleteResource(
+      categories:       Seq[String],
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  ): IOResult[Boolean]
 }
 
-class ResourceFileSystemWriterImpl extends ResourceFileSystemWriter {
+class ResourceFileSystemWriter(configRepository: String) extends ResourceWriter {
 
-  override def writeResource(categories: Seq[String], techniqueName:String, techniqueVersion: TechniqueVersion, resourceName: String): IOResult[Boolean] = {
+  private def sanitize(
+      categories:       Seq[String],
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  ): IOResult[File] = {
+    FileUtils.sanitizePath(
+      File(configRepository),
+      ("techniques" :: categories.toList) :+ techniqueName :+ techniqueVersion :+ "resources" :+ resourceName
+    )
+  }
 
-    import java.nio.file.Files
+  override def writeResource(
+      bytes:            Array[Byte],
+      categories:       Seq[String],
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  ): IOResult[Path] = {
 
-    val configRepository = "/var/rudder/configuration-repository"
     for {
-      sanitized <- FileUtils.sanitizePath(
-        File(configRepository),
-        ("techniques" :: categories.toList) :+ techniqueName :+ techniqueVersion :+ "resources" :+ resourceName
-      )
+      sanitized <- sanitize(categories, techniqueName, techniqueVersion, resourceName)
+    } yield {
+      Files.write(sanitized.path, bytes)
+    }
+  }
+
+  override def deleteResource(
+      categories:       Seq[String],
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  ): IOResult[Boolean] = {
+    for {
+      sanitized <- sanitize(categories, techniqueName, techniqueVersion, resourceName)
     } yield {
       Files.deleteIfExists(sanitized.path)
     }
   }
-}
-
-  override def deleteResource(categories: Seq[String]): IOResult[Boolean] = ???
 }

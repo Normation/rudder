@@ -62,6 +62,7 @@ import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
+import com.normation.utils.FileUtils.sanitizePath
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
@@ -203,7 +204,7 @@ class TechniqueApi(
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
       case API.DeleteResource            => DeleteResource
-      case API.CreateResources => CreateResources
+      case API.CreateResources           => CreateResources
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -290,23 +291,71 @@ class TechniqueApi(
   }
 
   object CreateResources extends LiftApiModule {
-    val schema: TwoParam = API.DeleteResource
+    val schema: ThreeParam = API.DeleteResource
+
+    // TODO version application/form-data
+    /*import com.normation.zio.*
+
+                  // TODO
+                  req.params.get("destination") match {
+                    case Some(dest :: Nil) =>
+                      // process uploaded files as a side effect.
+                      // We check that we have only one file uploaded, else return an error to avoid that
+                      // the last as decided by the uploaded-files logic wins and overide others.
+
+                      req.uploadedFiles match {
+                        case Nil         => ZIO.fail(s"Missing file to copy to ${dest}")
+                        case file :: Nil =>
+                          import better.files._
+                          FileUtils.sanitizePath(File(configRepoPath), dest.replaceFirst("/", "") + '/' + file.fileName).flatMap { path =>
+                            IOResult
+                              .attempt(s"Could not copy uploaded file to destination ${dest}")(for {
+                                in  <- file.fileStream.autoClosed
+                                out <- path.newOutputStream.autoClosed
+                              } yield {
+                                in.pipeTo(out)
+                              })
+                              /*.either
+                              .map {
+                                case Left(err) => errorResponse(err.fullMsg)
+                                case Right(_)  => basicSuccessResponse
+                              }*/ // FIXME check how the error cases are handled with IOResult
+                          }.runNow
+                        case several     =>
+                          ZIO.fail(
+                            s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
+                          )
+                      }
+
+                    case _ => {
+                      ZIO.fail("Resource file name is missing.")
+                    }
+                  }*/
 
     override def process(
-                          version: ApiVersion,
-                          path: ApiPath,
-                          resourceInfo: (String, String),
-                          req: Req,
-                          params: DefaultParams,
-                          authzToken: AuthzToken
-                        ): LiftResponse = {
+        version:      ApiVersion,
+        path:         ApiPath,
+        resourceInfo: (String, String, String),
+        req:          Req,
+        params:       DefaultParams,
+        authzToken:   AuthzToken
+    ): LiftResponse = {
 
       val content: ZIO[Any, RudderError, Json.Obj] = {
-        val file = File(configRepoPath)
+        val file       = File(configRepoPath)
         val categories = List("ncf_techniques")
         for {
-          file <- FileUtils.sanitizePath(file, ("techniques" :: categories) :+ resourceInfo._1 :+ resourceInfo._2 :+ "resources")
-          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2)(using authzToken.qc.newCC())
+          byteArray <- req.body // TODO what happen with empty body
+          _         <- techniqueWriter.writeResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
+          /*
+          req.body match {
+              case Full(bytes) =>
+                java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/upload.bin"), bytes)
+                OkResponse()
+              case _ =>
+                ResponseWithReason(BadResponse(), "Body vide")
+            }
+           */
         } yield {
           Json.Obj(
             (
@@ -316,7 +365,7 @@ class TechniqueApi(
                   Json.Obj(
                     ("techniqueName", Json.Str(resourceInfo._1)),
                     ("techniqueVersion" -> Json.Str(resourceInfo._2)),
-                    ("resourceName" -> Json.Str(resourceInfo._3))
+                    ("resourceName"     -> Json.Str(resourceInfo._3))
                   )
                 )
               )
