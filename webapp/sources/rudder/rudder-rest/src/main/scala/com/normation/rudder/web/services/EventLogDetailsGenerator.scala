@@ -160,7 +160,7 @@ class EventLogDetailsGenerator(
 
     def globalParamDesc(x: EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "globalParameter" \ "name").text
-      Text(s"Global Parameter ${name} ${actionName}")
+      Text(s"Global property ${name} ${actionName}")
     }
 
     def changeRequestDesc(x: EventLog, actionName: NodeSeq) = {
@@ -908,7 +908,7 @@ class EventLogDetailsGenerator(
               }
             }
 
-          // Global parameters
+          // Global properties
 
           case x: AddGlobalParameter =>
             "*" #> {
@@ -948,10 +948,10 @@ class EventLogDetailsGenerator(
                 case Full(modDiff) =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h5>Global Parameter overview:</h5>
+                    {generatedByChangeRequest}<h5>Global property overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Global Parameter name: </b>{modDiff.name}
+                        <b>Global property name: </b>{modDiff.name}
                       </li>
                     </ul>{
                     (
@@ -1496,7 +1496,7 @@ class EventLogDetailsGenerator(
 
   private val globalParamDetailsXML = {
     <div>
-      <h5>Global Parameter overview:</h5>
+      <h5>Global property overview:</h5>
       <ul class="evlogviewpad">
         <li><b>Name:&nbsp;</b><value id="name"/></li>
         <li><b>Value:&nbsp;</b><value id="value"/></li>
