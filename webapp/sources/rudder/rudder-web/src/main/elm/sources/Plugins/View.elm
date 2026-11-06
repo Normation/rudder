@@ -16,11 +16,9 @@ import Plugins.PluginData exposing (..)
 import Plugins.Select exposing (Select(..), Selected, Selection(..), getSelection, isAllSelected, noSelected, selectedCount, selectedSet)
 import Set exposing (Set)
 import String.Extra
-import Time exposing (Posix)
-import Time.DateTime
-import Time.Iso8601
-import Time.TimeZones exposing (utc)
-import Time.ZonedDateTime as ZonedDateTime exposing (ZonedDateTime)
+import Time exposing (Posix, Zone)
+import Time.Extra exposing (Interval(..))
+import Utils.DateUtils exposing (posixToDateString)
 
 
 view : Model -> Html Msg
@@ -29,7 +27,7 @@ view model =
         [ div [ class "one-col w-100" ]
             [ div [ class "main-header" ]
                 [ div [ class "header-title d-flex justify-content-baseline" ]
-                    (displayMainHeader model.ui.view model.license model.now model.ui.loading model.contextPath)
+                    (displayMainHeader model.ui.view model.license model.zone model.now model.ui.loading model.contextPath)
                 ]
             , div [ class "one-col-main" ]
                 [ div [ class "template-main" ]
@@ -70,8 +68,8 @@ checkAll plugins =
 
 {-| PluginView is needed to display the error setting in the header, where it seems to be the most visible
 -}
-displayMainHeader : PluginsView -> Maybe LicenseGlobal -> Posix -> Bool -> ContextPath -> List (Html Msg)
-displayMainHeader v license now loading contextPath =
+displayMainHeader : PluginsView -> Maybe LicenseGlobal -> Zone -> Posix -> Bool -> ContextPath -> List (Html Msg)
+displayMainHeader v license zone now loading contextPath =
     let
         onSettingError c =
             case c of
@@ -96,7 +94,7 @@ displayMainHeader v license now loading contextPath =
                 []
 
             else
-                [ displayMainLicense license now contextPath ]
+                [ displayMainLicense license zone now contextPath ]
            )
 
 
@@ -390,17 +388,18 @@ displayPluginsSection totalCount pluginsModel =
         ]
 
 
-displayGlobalLicense : ZonedDateTime -> LicenseGlobal -> Html Msg
-displayGlobalLicense now license =
+displayGlobalLicense : Zone -> Posix -> LicenseGlobal -> Html Msg
+displayGlobalLicense zone now license =
     let
         licensees =
             license.licensees |> Maybe.map (String.join ", ") |> Maybe.withDefault "-"
 
+        -- license dates are compared and displayed as days in the user timezone
         dateOf =
-            ZonedDateTime.toDateTime >> Time.DateTime.date >> Time.Iso8601.fromDate
+            posixToDateString zone
 
         -- dates needs to be aggregated by date part of datetime
-        aggregateDates : List DateCount -> List ( ZonedDateTime, Int )
+        aggregateDates : List DateCount -> List ( Posix, Int )
         aggregateDates dates =
             dates
                 |> List.sortBy (.date >> dateOf)
@@ -411,7 +410,7 @@ displayGlobalLicense now license =
             Ordering.greaterThanBy (compareOn dateOf)
 
         isBeforeNextMonth zdt n =
-            isBeforeNow zdt (ZonedDateTime.addMonths 1 n)
+            isBeforeNow zdt (Time.Extra.add Month 1 zone n)
 
         cls d =
             if isBeforeNow d now then
@@ -475,8 +474,8 @@ displaySettingError contextPath message details =
         ]
 
 
-displayMainLicense : Maybe LicenseGlobal -> Posix -> ContextPath -> Html Msg
-displayMainLicense license now contextPath =
+displayMainLicense : Maybe LicenseGlobal -> Zone -> Posix -> ContextPath -> Html Msg
+displayMainLicense license zone now contextPath =
     case license of
         Nothing ->
             displaySettingError contextPath "No license found. Please contact Rudder to get license or configure your access" Nothing
@@ -486,7 +485,7 @@ displayMainLicense license now contextPath =
                 displaySettingError contextPath "Empty license found. Please contact Rudder to get license or configure your access" Nothing
 
             else
-                displayGlobalLicense (ZonedDateTime.fromPosix utc now) l
+                displayGlobalLicense zone now l
 
 
 pluginBadge : Plugin -> List (Html msg)

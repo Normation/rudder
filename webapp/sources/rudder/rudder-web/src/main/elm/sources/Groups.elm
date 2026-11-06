@@ -15,9 +15,8 @@ import Rudder.Filters as Filters
 import Rudder.Table exposing (OutMsg(..))
 import Task
 import Time
-import Time.DateTime
-import Time.Iso8601
 import Ui.Datatable exposing (getAllCats)
+import Utils.DateUtils exposing (posixToDateString)
 
 
 
@@ -302,13 +301,7 @@ update msg model =
         ExportCsvWithCurrentDate time ->
             let
                 timeStr =
-                    time
-                        |> Time.DateTime.fromPosix
-                        |> Time.Iso8601.fromDateTime
-                        -- remove millis
-                        |> String.toList
-                        |> List.take 10
-                        |> String.fromList
+                    posixToDateString Time.utc time
 
                 filename =
                     "rudder_groups_" ++ timeStr

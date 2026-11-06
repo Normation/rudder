@@ -68,6 +68,7 @@ init flags =
             , rulesTable = initTable
             , csvExportOptions = exportCsvOptions.csvExport
             , historyTable = EventLogs.Table.initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
+            , zone = zone
             }
 
         listCRActions =

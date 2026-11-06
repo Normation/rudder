@@ -11,7 +11,7 @@ import Plugins.Action exposing (..)
 import Plugins.PluginData exposing (..)
 import Plugins.Select exposing (..)
 import Set exposing (Set)
-import Time exposing (Posix)
+import Time exposing (Posix, Zone)
 
 
 type alias ContextPath =
@@ -87,6 +87,7 @@ type alias Model =
     , license : Maybe LicenseGlobal
     , plugins : Dict PluginId Plugin
     , now : Posix
+    , zone : Zone
     , ui : UI
     }
 
