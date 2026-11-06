@@ -420,7 +420,7 @@ After that, you can restart the apache2 and rudder-relayd services. Check their 
 >     check apache logs : 
 >     $ less -f /var/log/apache2/error.log
 >     check relayd logs : 
->     $ journalctl -u rudder-relayd | grep "Oct 20" | grep ERROR
+>     $ journalctl -u rudder-relayd
 
   - Fix certificate issues
 
