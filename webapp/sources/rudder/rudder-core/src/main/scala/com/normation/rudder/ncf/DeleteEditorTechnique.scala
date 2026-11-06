@@ -268,7 +268,7 @@ class DeleteEditorTechniqueImpl(
       }
     }
 
-    val resourcePath = s"$techniqueName/$techniqueVersion/resources/$resourceName"
+    val resourcePath = s"${techniqueName}/${techniqueVersion}/resources/${resourceName}"
     for {
       techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
       categories  <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
@@ -279,7 +279,7 @@ class DeleteEditorTechniqueImpl(
          * We only log it so that deleting the same resource twice still succeeds (idempotency).
          */
         ZIO.unless(isRemoved)(
-          DeleteEditorTechniqueLoggerPure.debug(s"Resource $resourcePath does not exist, nothing to delete")
+          DeleteEditorTechniqueLoggerPure.debug(s"Resource ${resourcePath} does not exist, nothing to delete")
         )
       resourceId   = TechniqueResourceIdByName(techniqueId, resourceName)
       -           <- archiver.deleteResource(
