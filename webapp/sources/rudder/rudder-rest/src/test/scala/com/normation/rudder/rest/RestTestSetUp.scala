@@ -197,7 +197,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
-import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.xml.Elem
@@ -448,7 +447,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     policyGeneration,
     eventLogger,
     deploymentStatusSerialisation,
-    () => Duration("0s").succeed,
+    () => 0.second.succeed,
     () => PolicyGenerationTrigger.All.succeed,
     bootGuard
   )

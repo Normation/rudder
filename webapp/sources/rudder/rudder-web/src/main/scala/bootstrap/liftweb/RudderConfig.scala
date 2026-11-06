@@ -77,21 +77,10 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.*
-import com.normation.rudder.git.GitConfigItemRepositoryWithoutModId
-import com.normation.rudder.git.GitItemRepository
-import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.git.GitRepositoryProviderImpl
-import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.git.*
 import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.hooks.RunNuCommand.SudoRun.*
-import com.normation.rudder.inventory.DefaultProcessInventoryService
-import com.normation.rudder.inventory.InventoryFailedHook
-import com.normation.rudder.inventory.InventoryFileWatcher
-import com.normation.rudder.inventory.InventoryMover
-import com.normation.rudder.inventory.InventoryProcessor
-import com.normation.rudder.inventory.NodeFactInventorySaver
-import com.normation.rudder.inventory.PostCommitInventoryHooks
-import com.normation.rudder.inventory.ProcessFile
+import com.normation.rudder.inventory.*
 import com.normation.rudder.metrics.*
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.*
@@ -113,8 +102,7 @@ import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
-import com.normation.rudder.services.eventlog.*
-import com.normation.rudder.services.eventlog.EventLogService as EventLogCoreService
+import com.normation.rudder.services.eventlog.{EventLogService as EventLogCoreService, *}
 import com.normation.rudder.services.healthcheck.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.modification.*
@@ -138,12 +126,9 @@ import com.normation.rudder.web.components.administration.PolicyBackup
 import com.normation.rudder.web.components.administration.RudderCompanyAccount
 import com.normation.rudder.web.model.*
 import com.normation.rudder.web.services.*
-import com.normation.templates.FastparsePolicyTemplateService
-import com.normation.templates.FillTemplatesService
-import com.normation.templates.PolicyTemplateEngine
-import com.normation.templates.PolicyTemplateService
-import com.normation.templates.StringTemplatePolicyTemplateService
+import com.normation.templates.*
 import com.normation.utils.CronParser.*
+import com.normation.utils.DurationUtils
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
@@ -162,7 +147,6 @@ import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import scala.collection.mutable.Buffer
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import zio.{Scheduler as _, System as _, *}
 import zio.syntax.*
@@ -458,8 +442,7 @@ object RudderParsedProperties {
   }
   val LDAP_MAX_WAIT_TIME:                     Duration = {
     try {
-      val age = config.getString("ldap.maxWaitTime")
-      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+      DurationUtils.parseUnsafe(config.getString("ldap.maxWaitTime"))
     } catch {
       case _: Exception =>
         ApplicationLogger.info(
@@ -470,8 +453,7 @@ object RudderParsedProperties {
   }
   val LDAP_MAX_CONNECTION_AGE:                Duration = {
     try {
-      val age = config.getString("ldap.maxConnectionAge")
-      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+      DurationUtils.parseUnsafe(config.getString("ldap.maxConnectionAge"))
     } catch {
       case _: ConfigException =>
         ApplicationLogger.info(
@@ -482,8 +464,7 @@ object RudderParsedProperties {
   }
   val LDAP_MIN_DISCONNECT_INTERVAL:           Duration = {
     try {
-      val age = config.getString("ldap.minDisconnectInterval")
-      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+      DurationUtils.parseUnsafe(config.getString("ldap.minDisconnectInterval"))
     } catch {
       case _: ConfigException =>
         ApplicationLogger.info(
@@ -687,12 +668,12 @@ object RudderParsedProperties {
   // `connectionTimeout` is the time hikari wait when there is no connection available or base down before telling
   // upward that there is no connection. It makes Rudder slow, and we prefer to be notified quickly that it was
   // impossible to get a connection. Must be >=250ms. Rudder knows how to handle that gracefully.
-  val MIN_JDBC_GET_CONNECTION_TIMEOUT = 250.millis
-  val JDBC_GET_CONNECTION_TIMEOUT: Duration = {
+  val MIN_JDBC_GET_CONNECTION_TIMEOUT: Duration = 250.millis
+  val JDBC_GET_CONNECTION_TIMEOUT:     Duration = {
     try {
       val age = config.getString("rudder.jdbc.getConnectionTimeout")
-      val a   = Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
-      if (a.toMillis < MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis) {
+      val a   = DurationUtils.parseUnsafe(age)
+      if (a < MIN_JDBC_GET_CONNECTION_TIMEOUT) {
         ApplicationLogger.info(
           s"Property 'rudder.jdbc.getConnectionTimeout' must be greater than ${MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis} ms in rudder.configFile. Default to ${MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis} ms."
         )
@@ -766,8 +747,7 @@ object RudderParsedProperties {
 
   val RUDDER_INVENTORIES_CLEAN_AGE: Duration = {
     try {
-      val age = config.getString("rudder.inventories.cleanup.old.files.age")
-      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+      DurationUtils.parseUnsafe(config.getString("rudder.inventories.cleanup.old.files.age"))
     } catch {
       case ex: Exception => 30.days
     }
@@ -959,7 +939,7 @@ object RudderParsedProperties {
 
   val RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL: Duration = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("rudder.batch.check.node.cache.interval")))
+      DurationUtils.parseUnsafe(config.getString("rudder.batch.check.node.cache.interval"))
     } catch {
       case ex: Exception =>
         ApplicationLogger.info(
@@ -1060,11 +1040,9 @@ object RudderParsedProperties {
 
   val INVENTORIES_MAX_BEFORE_NOW: Duration = {
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration.apply(
-          config.getString(
-            "inventories.reject.maxAgeBeforeNow"
-          )
+      DurationUtils.parseUnsafe(
+        config.getString(
+          "inventories.reject.maxAgeBeforeNow"
         )
       )
     } catch {
@@ -1078,12 +1056,8 @@ object RudderParsedProperties {
 
   val INVENTORIES_MAX_AFTER_NOW: Duration = {
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration.apply(
-          config.getString(
-            "inventories.reject.maxAgeAfterNow"
-          )
-        )
+      DurationUtils.parseUnsafe(
+        config.getString("inventories.reject.maxAgeAfterNow")
       )
     } catch {
       case ex: Exception =>
@@ -1147,11 +1121,9 @@ object RudderParsedProperties {
   }
   val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD: Duration = {
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration.apply(
-          config.getString(
-            "inventories.watcher.period.garbage.old"
-          )
+      DurationUtils.parseUnsafe(
+        config.getString(
+          "inventories.watcher.period.garbage.old"
         )
       )
     } catch {
@@ -1161,9 +1133,7 @@ object RudderParsedProperties {
 
   val WATCHER_DELETE_OLD_INVENTORIES_AGE: Duration = {
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.max.age.before.deletion"))
-      )
+      DurationUtils.parseUnsafe(config.getString("inventories.watcher.max.age.before.deletion"))
     } catch {
       case _: Exception => 3.days
     }
@@ -1173,7 +1143,7 @@ object RudderParsedProperties {
 
   val METRICS_NODES_MIN_PERIOD: Duration = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.min")))
+      DurationUtils.parseUnsafe(config.getString("metrics.node.scheduler.period.min"))
     } catch {
       case ex: ConfigException       => // default
         15.minutes
@@ -1186,7 +1156,7 @@ object RudderParsedProperties {
   }
   val METRICS_NODES_MAX_PERIOD: Duration = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.max")))
+      DurationUtils.parseUnsafe(config.getString("metrics.node.scheduler.period.max"))
     } catch {
       case ex: ConfigException       => // default
         4.hours
@@ -1206,7 +1176,7 @@ object RudderParsedProperties {
 
   val RUDDER_HEALTHCHECK_PERIOD: Duration = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.healthcheck.scheduler.period")))
+      DurationUtils.parseUnsafe(config.getString("metrics.healthcheck.scheduler.period"))
     } catch {
       case ex: ConfigException       =>
         ApplicationLogger.info(
@@ -1228,7 +1198,7 @@ object RudderParsedProperties {
       if (timeout.isEmpty) {
         Empty
       } else {
-        Full(Duration.fromScala(scala.concurrent.duration.Duration.apply(timeout)))
+        Full(DurationUtils.parseUnsafe(timeout))
       }
     } catch {
       case ex: Exception => Full(30.minutes)
@@ -1301,9 +1271,7 @@ object RudderParsedProperties {
   val KEEP_ACCEPTATION_NODE_FACT_DURATION: Duration = {
     val configKey = "rudder.inventories.pendingChoiceHistoryCleanupLatency.acceptedNode"
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration(config.getString(configKey))
-      )
+      DurationUtils.parseUnsafe(config.getString(configKey))
     } catch {
       case ex: ConfigException       => 0.days // forever
       case ex: NumberFormatException =>
@@ -1323,11 +1291,7 @@ object RudderParsedProperties {
   val KEEP_DELETED_NODE_FACT_DURATION: Duration = {
     val configKey = "rudder.inventories.pendingChoiceHistoryCleanupLatency.deletedNode"
     try {
-      Duration.fromScala(
-        scala.concurrent.duration.Duration(
-          config.getString(configKey)
-        )
-      )
+      DurationUtils.parseUnsafe(config.getString(configKey))
     } catch {
       case ex: ConfigException       => 30.days
       case ex: NumberFormatException =>
@@ -1415,7 +1379,7 @@ object RudderParsedProperties {
       val configValue = config.getString(propName)
       configValue.toLowerCase match {
         case "never" => Duration.Infinity
-        case _       => Duration.fromScala(scala.concurrent.duration.Duration(configValue))
+        case _       => DurationUtils.parseUnsafe(configValue)
       }
     } catch {
       case ex: ConfigException       => // default
@@ -3652,7 +3616,7 @@ object RudderConfigInit {
       RUDDER_JDBC_USERNAME,
       RUDDER_JDBC_PASSWORD,
       RUDDER_JDBC_MAX_POOL_SIZE,
-      JDBC_GET_CONNECTION_TIMEOUT.asScala
+      JDBC_GET_CONNECTION_TIMEOUT
     )
     lazy val doobie                = {
       // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
@@ -4168,7 +4132,7 @@ object RudderConfigInit {
       lazy val purgeUnreferencedSoftwares = {
         new PurgeUnreferencedSoftwares(
           softwareService,
-          FiniteDuration(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.toLong, "hours")
+          PurgeUnreferencedSoftwares.hours(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL)
         )
       }
 

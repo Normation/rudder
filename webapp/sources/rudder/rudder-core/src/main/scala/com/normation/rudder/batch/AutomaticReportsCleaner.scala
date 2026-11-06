@@ -41,6 +41,13 @@ import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.batch.AutomaticReportsCleaning.TTL.BadDuration
+import com.normation.rudder.batch.AutomaticReportsCleaning.TTL.BadNumberOfRun
+import com.normation.rudder.batch.AutomaticReportsCleaning.TTL.ParsedDuration
+import com.normation.rudder.batch.AutomaticReportsCleaning.TTL.ParsedNumberOfRun
+import com.normation.rudder.batch.AutomaticReportsCleaning.deleteLogReportPropertyName
+import com.normation.rudder.batch.AutomaticReportsCleaning.logger
+import com.normation.rudder.batch.AutomaticReportsCleaning.parseTTL
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
@@ -50,11 +57,17 @@ import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.services.system.DeleteCommand
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
+import java.time.Duration
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
-import org.joda.time.*
-import zio.*
+import org.joda.time.DateTime
+import org.joda.time.DateTimeConstants
+import org.joda.time.DateTimeZone
+import scala.math.Ordering.Implicits.infixOrderingOps
+import zio.Schedule
+import zio.ZIO
+import zio.durationInt
 import zio.json.*
 import zio.syntax.*
 
@@ -62,6 +75,9 @@ import zio.syntax.*
  *  An helper object designed to help building automatic reports cleaning
  */
 object AutomaticReportsCleaning {
+
+  private val logger              = ScheduledJobLogger
+  val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"
 
   /*
    *  Default parameters and properties name
@@ -172,6 +188,35 @@ object AutomaticReportsCleaning {
       .flatMap(_.fromJson[RunInterval].toOption)
       .getOrElse(RunInterval.default)
   }
+
+  enum TTL {
+    case BadNumberOfRun
+    case ParsedNumberOfRun(value: Int)
+    case BadDuration
+    case ParsedDuration(duration: Duration)
+  }
+
+  def parseTTL(input: String): TTL = {
+    val isNumberOfRun = input.endsWith("x")
+    try {
+      if (isNumberOfRun) {
+        ParsedNumberOfRun(input.dropRight(1).toInt)
+      } else {
+        ParsedDuration(input.toInt.minutes)
+      }
+    } catch {
+      case ex: NumberFormatException =>
+        logger.warn(
+          s"Impossible to read value for '${deleteLogReportPropertyName}': '${input}'. It should be either an integer (minutes) or a number of run (NNx , with NN an integer)."
+        )
+        if (isNumberOfRun) {
+          BadNumberOfRun
+        } else {
+          BadDuration
+        }
+    }
+  }
+
 }
 
 /**
@@ -325,7 +370,6 @@ class AutomaticReportsCleaning(
     val freq: CleanFrequency
 ) {
   val reportLogger = ReportLogger
-  val logger       = ScheduledJobLogger
 
   val deleter: DatabaseCleanerActor = if (deletettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
@@ -339,58 +383,42 @@ class AutomaticReportsCleaning(
   deleter ! CheckLaunch: @unchecked
 
   // cleaning log info is special, it's not a cron but an "every NN minutes"
-  val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"
-  val deleteLogttl: ZIO[Any, Nothing, Int] = {
-    def toInt(s: String, orig: String): Option[Int] = {
-      try {
-        Some(s.toInt)
-      } catch {
-        case ex: NumberFormatException =>
-          logger.warn(
-            s"Impossible to read value for '${deleteLogReportPropertyName}': '${orig}'. It should be either an integer (minutes) or a number of run (NNx , with NN an integer)."
-          )
-          None
-      }
-    }
+  val deleteLogttl: ZIO[Any, Nothing, Duration] = {
     // parse user string
-    if (deleteLogttlString.endsWith("x")) {
-      val r        = {
-        toInt(deleteLogttlString.substring(0, deleteLogttlString.size - 1), deleteLogttlString) match {
-          case None    =>
-            logger.info(s"Defaulting to 2 runs for log report cleaning")
-            2
-          case Some(r) =>
-            r
-        }
-      }
-      val interval = AutomaticReportsCleaning
-        .getMaxRunMinutes(ldap)
-        .foldZIO(
-          failure =>
-            ScheduledJobLoggerPure
-              .warn(s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ${failure.fullMsg}") *>
-            5.succeed,
-          x => {
-            ScheduledJobLoggerPure.trace(s"Found maximun run interval: ${x} minutes") *>
-            x.succeed
-          }
-        )
-      interval.map(_ * r)
-    } else {
-      toInt(deleteLogttlString, deleteLogttlString) match {
-        case None    =>
-          ScheduledJobLoggerPure.debug("Defaulting to 10 minutes for log reports cleaning") *>
-          10.succeed
-        case Some(x) =>
-          x.succeed
-      }
+    parseTTL(deleteLogttlString) match {
+      case ParsedNumberOfRun(numberOfRun) =>
+        val interval = AutomaticReportsCleaning
+          .getMaxRunMinutes(ldap)
+          .foldZIO(
+            failure =>
+              ScheduledJobLoggerPure
+                .warn(
+                  s"Error when trying to get maximum run interval, defaulting to 5 minutes. Error was: ${failure.fullMsg}"
+                ) *>
+              5.succeed,
+            x => {
+              ScheduledJobLoggerPure.trace(s"Found maximum run interval: $x minutes") *>
+              x.succeed
+            }
+          )
+        interval.map(numberOfRun.minutes.multipliedBy(_))
+
+      case ParsedDuration(duration) =>
+        duration.succeed
+
+      case BadDuration =>
+        ScheduledJobLoggerPure.debug("Defaulting to 10 minutes for log reports cleaning") *>
+        10.minutes.succeed
+
+      case BadNumberOfRun =>
+        logger.info(s"Defaulting to 2 runs for log report cleaning")
+        2.minutes.succeed
     }
   }
 
   (for {
     ttl <- deleteLogttl
-    dur  = ttl.toLong.minutes
-    _   <- if (ttl < 1) {
+    _   <- if (ttl < 1.minutes) {
              ScheduledJobLoggerPure
                .info(
                  s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative"
@@ -400,7 +428,7 @@ class AutomaticReportsCleaning(
                s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****"
              ) *>
              IOResult
-               .attempt(dbManager.deleteLogReports(dur.asScala) match {
+               .attempt(dbManager.deleteLogReports(ttl) match {
                  case Full(n) => logger.debug(s"Deleted ${n} log reports from report table.")
                  case eb: EmptyBox =>
                    val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
@@ -409,8 +437,8 @@ class AutomaticReportsCleaning(
                .catchAll(error =>
                  ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
                )
-               .delay(dur)
-               .repeat(Schedule.spaced(dur).forever)
+               .delay(ttl)
+               .repeat(Schedule.spaced(ttl).forever)
                .forkDaemon
 
            }

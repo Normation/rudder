@@ -98,7 +98,6 @@ import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
-import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
 import zio.syntax.*
 
@@ -163,7 +162,7 @@ case class FetchAllInfo(
     timeRuleVal:               Long,
     errors:                    Map[NodeId, String],
     maxParallelism:            Int,
-    jsTimeout:                 FiniteDuration,
+    jsTimeout:                 Duration,
     generationContinueOnError: Boolean,
     schedules:                 ScheduleData
 )
@@ -605,7 +604,7 @@ trait BuildNodeConfigurationService {
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
-      jsTimeout:                 FiniteDuration,
+      jsTimeout:                 Duration,
       generationContinueOnError: Boolean
   ): IOResult[NodeConfigurations]
 }
@@ -698,7 +697,7 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
-      jsTimeout:                 FiniteDuration,
+      jsTimeout:                 Duration,
       generationContinueOnError: Boolean
   ): IOResult[NodeConfigurations] = {
 

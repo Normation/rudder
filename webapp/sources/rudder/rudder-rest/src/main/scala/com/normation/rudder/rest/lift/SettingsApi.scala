@@ -70,11 +70,11 @@ import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.tenants.QueryContext
+import com.normation.utils.DurationUtils
 import com.normation.utils.StringUuidGenerator
 import enumeratum.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import scala.concurrent.duration.Duration
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -778,15 +778,16 @@ object SettingsApi {
     def set:                       (Duration, EventActor, Option[String]) => SetResult[Unit] = (value: Duration, _, _) =>
       updateConfig(_.set_rudder_generation_delay(value))
     def parseParam(param: String): PureResult[Duration]                                      = {
-      Either
-        .catchOnly[NumberFormatException](Duration(param))
-        .leftMap(err => Unexpected(err.getMessage))
+      DurationUtils
+        .parse(param)
+        .left
+        .map(msg => Unexpected(msg))
         .chainError(s"Could not extract a valid duration from ${param}")
     }
   }
   given JsonCodec[Duration] = JsonCodec(
     JsonEncoder[String].contramap(_.toString),
-    JsonDecoder[String].mapOrFail(s => Either.catchOnly[NumberFormatException](Duration(s)).leftMap(_.getMessage))
+    JsonDecoder[String].mapOrFail(DurationUtils.parse)
   )
 
   case object RudderGenerationPolicy extends RestSetting[PolicyGenerationTrigger] {

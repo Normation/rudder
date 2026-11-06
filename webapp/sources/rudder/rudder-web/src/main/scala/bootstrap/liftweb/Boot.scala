@@ -43,16 +43,7 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.plugins.AlwaysEnabledPluginStatus
-import com.normation.plugins.Plugin
-import com.normation.plugins.PluginLicense
-import com.normation.plugins.PluginName
-import com.normation.plugins.PluginsMetadata
-import com.normation.plugins.PluginStatus
-import com.normation.plugins.RudderPluginDef
-import com.normation.plugins.RudderPluginLicenseStatus
-import com.normation.plugins.RudderPluginModule
-import com.normation.plugins.RudderPluginVersion
+import com.normation.plugins.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.AuthorizationType as Authz
 import com.normation.rudder.domain.eventlog.ApplicationStarted
@@ -89,19 +80,18 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPRequest
 import net.liftweb.sitemap.*
 import net.liftweb.sitemap.Loc.*
-import net.liftweb.util.TimeHelpers.*
+import net.liftweb.util.TimeHelpers.millis
 import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
 import org.reflections.Reflections
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
-import scala.concurrent.duration.DAYS
-import scala.concurrent.duration.Duration
 import scala.util.chaining.*
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
 import zio.{System as _, *}
+import zio.durationInt
 import zio.syntax.*
 
 /*
@@ -562,8 +552,8 @@ class Boot extends Loggable {
     // Strict-Transport-Security (HSTS) header
     val hsts = if (RudderConfig.RUDDER_SERVER_HSTS) {
       // Include subdomains or not depending on setting
-      // Set for 1 year (standard value for "forever")
-      Some(HttpsRules(includeSubDomains = RudderConfig.RUDDER_SERVER_HSTS_SUBDOMAINS, requiredTime = Some(Duration(365, DAYS))))
+      // Set for 365 days (standard value for "forever")
+      Some(HttpsRules(includeSubDomains = RudderConfig.RUDDER_SERVER_HSTS_SUBDOMAINS, requiredTime = Some(365.days.asScala)))
     } else {
       None
     }
