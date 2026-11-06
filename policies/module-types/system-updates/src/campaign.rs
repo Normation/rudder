@@ -4,7 +4,7 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::output::ResultOutput;
-use crate::package_manager::{PackageId, PackageList};
+use crate::package_manager::PackageId;
 use crate::{
     CampaignType, PackageParameters, RebootBehavior, RebootType, Schedule,
     db::PackageDatabase,
@@ -254,15 +254,13 @@ fn update(
     // We consider failure to probe system state a blocking error
     let before = pm.list_installed();
     let before_list = match before.inner {
-        Ok(ref l) => Some(l.clone()),
-        _ => None,
+        Ok(ref l) => l.clone(),
+        Err(_) => {
+            report.step(before);
+            report.stderr("Failed to list installed packages, aborting upgrade");
+            return Ok((report, false));
+        }
     };
-    if report.is_err() {
-        report.step(before);
-        report.stderr("Failed to list installed packages, aborting upgrade");
-        return Ok((report, false));
-    }
-    let before_list = before_list.unwrap();
 
     // Update package cache
     //
@@ -279,18 +277,13 @@ fn update(
 
     let after = pm.list_installed();
     let after_list = match after.inner {
-        Ok(ref l) => Some(l.clone()),
-        _ => None,
+        Ok(ref l) => l.clone(),
+        Err(_) => {
+            report.step(after);
+            report.stderr("Failed to list post upgrade installed packages, aborting upgrade");
+            return Ok((report, false));
+        }
     };
-    let after_failed = after.inner.is_err();
-    // The report can be in error state, we only want to fail
-    // if the package listing failed.
-    if after_failed {
-        report.step(after);
-        report.stderr("Failed to list installed packages, aborting upgrade");
-        return Ok((report, false));
-    }
-    let after_list: PackageList = after_list.unwrap();
 
     // Compute package list diff
     report.diff(before_list.diff(after_list), update_details);
