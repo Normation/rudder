@@ -482,8 +482,9 @@ pub mod encoding {
 
 pub mod safe_fs {
     use std::{
-        fs::File,
+        fs::{File, Permissions},
         os::fd::{AsFd, OwnedFd},
+        path::Path,
     };
 
     use anyhow::{Result, bail};
@@ -521,7 +522,7 @@ pub mod safe_fs {
         Ok(fd)
     }
 
-    pub fn safe_open<P: Arg>(path: P) -> Result<File> {}
+    pub fn safe_open<P: AsRef<Path>>(path: P, perms: &Permissions) -> Result<File> {}
 
     #[cfg(test)]
     mod tests {
