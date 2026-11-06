@@ -18,8 +18,29 @@
 
 # @name Package state with options
 # @description Enforce the state of a package with options
-# @documentation See [package_state](#_package_state) for documentation.
-# 
+# @documentation See [package_state](#_package_state) for the general documentation about
+# package management methods, parameters and providers.
+#
+# This method adds an `options` parameter, which lets you pass options to the underlying
+# package manager.
+# Each space-separated option must be passed as a separate, space-separated value, and
+# the options are passed directly through to the package manager.
+#
+# #### Environment variables
+#
+# It is possible to add special `env` prefix to set environment variables for the
+# package manager. This allows customizing the behavior of some package managers, or setting
+# parameters used by some packaging scripts. For example, to set the `EXTERNAL_URL`
+# environment variable:
+#
+# ```
+# package_state_options("postgresql", "", "", "", "present", "env:EXTERNAL_URL=https://example.com");
+# ```
+#
+# With the *apt* provider, this can for example be used to modify the default behavior of
+# `needrestart`
+# ([documentation](https://manpages.ubuntu.com/manpages/focal/man1/needrestart.1.html)).
+#
 # @parameter name Name of the package, or path to a local package if state is present
 # @parameter version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
 # @parameter_constraint version "allow_empty_string" : true
