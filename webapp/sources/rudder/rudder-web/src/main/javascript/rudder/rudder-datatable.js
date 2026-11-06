@@ -40,11 +40,9 @@ var recentChanges = {};
 var recentChangesCount = {};
 var recentGraphs = {};
 
-$.extend(true, DataTable.defaults, {
-    oLanguage: {
-        sSearch: "",
-        sSearchPlaceholder: "Filter"
-    }
+$.extend(true, DataTable.defaults.language, {
+    search: "",
+    searchPlaceholder: "Filter"
 });
 
 $.extend(true, DataTable.ext.classes, {
@@ -148,7 +146,7 @@ $.fn.dataTable.ext.search.push(
 
             var result = true
             if (score !== undefined) {
-                var complianceCol = settings.aoColumns.find(a => a.data == "score.score");
+                var complianceCol = settings.columns.find(a => a.data == "score.score");
                 // here, we get the id of the row element by looking deep inside settings...
                 // maybe there exists something cleaner.
                 // we get a string, rather than an array
@@ -165,7 +163,7 @@ $.fn.dataTable.ext.search.push(
             if (scoreDetails !== undefined) {
             for (const [scoreId, value] of Object.entries(scoreDetails)) {
 
-                var complianceCol = settings.aoColumns.find(a => a.value == scoreId);
+                var complianceCol = settings.columns.find(a => a.value == scoreId);
                 // here, we get the id of the row element by looking deep inside settings...
                 // maybe there exists something cleaner.
                 // we get a string, rather than an array
@@ -188,7 +186,7 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
     var data =
       $.map(
           // All data of the table
-          oSettings.oApi._fnGetDataMaster(oSettings)
+          oSettings.api.rows().data()
         , function (elem, index) {
             if (elem.id in ruleCompliances) {
               var compliance = ruleCompliances[elem.id];
@@ -1625,8 +1623,7 @@ function refreshTable (gridId, data) {
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup) {
   var defaultParams = {
-    "asStripeClasses": [ 'color1', 'color2' ]
-    , "bAutoWidth": false
+    "bAutoWidth": false
     , "aoColumns": columns
     , "aaData": data
     , "bJQueryUI": false
@@ -1637,11 +1634,11 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   };
   if (storageId !== undefined) {
     var storageParams = {
-        "bStateSave" : true
-      , "fnStateSave": function (oSettings, oData) {
-          localStorage.setItem( 'DataTables_'+storageId, JSON.stringify(oData) );
+        "stateSave" : true
+      , "stateSaveCallback": function (settings, data) {
+          localStorage.setItem( 'DataTables_'+storageId, JSON.stringify(data) );
         }
-      , "fnStateLoad": function (oSettings) {
+      , "stateLoadCallback": function (settings) {
           return JSON.parse( localStorage.getItem('DataTables_'+storageId) );
         }
     }
