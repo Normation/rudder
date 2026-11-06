@@ -3,15 +3,14 @@ module Plugins.Tests.PluginsTests exposing (suite)
 import Dict
 import Expect exposing (..)
 import Fuzz exposing (..)
+import Iso8601
 import Plugins.Action exposing (..)
 import Plugins.DataTypes exposing (PluginsViewModel, pluginsFromList, setViewModelPlugins)
 import Plugins.Init exposing (initPluginsViewModel)
 import Plugins.PluginData exposing (..)
 import Plugins.Select exposing (..)
 import Test exposing (..)
-import Time.Iso8601
-import Time.TimeZones exposing (utc)
-import Time.ZonedDateTime
+import Time exposing (Posix)
 
 
 pluginFuzz : Fuzzer Plugin
@@ -46,7 +45,7 @@ licenseStatusFuzzer =
 
 pluginLicenseFuzzer : Fuzzer PluginLicense
 pluginLicenseFuzzer =
-    map2 PluginLicense zonedDateTimeFuzzer zonedDateTimeFuzzer
+    map2 PluginLicense posixFuzzer posixFuzzer
 
 
 installStatusFuzzer : Fuzzer InstallStatus
@@ -76,12 +75,12 @@ pluginStatusFuzzer =
 
 licenseInfoFuzzer : Fuzzer LicenseInfo
 licenseInfoFuzzer =
-    map5 LicenseInfo string int string zonedDateTimeFuzzer zonedDateTimeFuzzer
+    map5 LicenseInfo string int string posixFuzzer posixFuzzer
 
 
-zonedDateTimeFuzzer : Fuzzer Time.ZonedDateTime.ZonedDateTime
-zonedDateTimeFuzzer =
-    constant (Time.Iso8601.toZonedDateTime utc "2025-02-12T10:12:14Z")
+posixFuzzer : Fuzzer Posix
+posixFuzzer =
+    constant (Iso8601.toTime "2025-02-12T10:12:14Z")
         |> filterMap Result.toMaybe
 
 

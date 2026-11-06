@@ -4,14 +4,11 @@ import Compliance.DataTypes exposing (..)
 import Compliance.JsonDecoder exposing (decodeComplianceDetails, decodeSkippedDirectiveDetails)
 import Dict exposing (Dict)
 import Json.Decode exposing (..)
+import Json.Decode.Extra exposing (datetime)
 import Json.Decode.Field exposing (require)
 import Json.Decode.Pipeline exposing (..)
 import Rules.DataTypes exposing (..)
 import Tenants.SecurityTag exposing (decodeSecurityTag)
-import Time.Iso8601
-import Time.Iso8601ErrorMsg
-import Time.TimeZones exposing (utc)
-import Time.ZonedDateTime exposing (ZonedDateTime)
 import Tuple
 import Ui.Datatable exposing (Category, SubCategories(..))
 
@@ -248,23 +245,9 @@ decodeRuleChanges =
 decodeChanges : Decoder Changes
 decodeChanges =
     succeed Changes
-        |> required "start" decodeTime
-        |> required "end" decodeTime
+        |> required "start" datetime
+        |> required "end" datetime
         |> required "changes" float
-
-
-decodeTime : Decoder ZonedDateTime
-decodeTime =
-    andThen
-        (\d ->
-            case d of
-                Ok r ->
-                    succeed r
-
-                Err e ->
-                    fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "") e)
-        )
-        (map (Time.Iso8601.toZonedDateTime utc) string)
 
 
 decodeValues : Decoder (List ValueLine)
@@ -429,6 +412,6 @@ decodeRepairedReport =
         |> required "nodeId" (map NodeId string)
         |> required "component" string
         |> required "value" string
-        |> required "executionTimestamp" decodeTime
-        |> required "executionDate" decodeTime
+        |> required "executionTimestamp" datetime
+        |> required "executionDate" datetime
         |> required "message" string

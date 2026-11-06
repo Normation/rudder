@@ -8,7 +8,7 @@ import Http exposing (Error)
 import Rudder.Table
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
 import Tenants.SecurityTag exposing (SecurityTag)
-import Time.ZonedDateTime exposing (ZonedDateTime)
+import Time exposing (Posix, Zone)
 import Ui.Datatable exposing (Category, SortOrder, TableFilters, getAllCats, getAllElems, getSubElems)
 
 
@@ -228,8 +228,8 @@ type alias RepairedReport =
     , nodeId : NodeId
     , component : String
     , value : String
-    , executionTimeStamp : ZonedDateTime
-    , executionDate : ZonedDateTime
+    , executionTimeStamp : Posix
+    , executionDate : Posix
     , message : String
     }
 
@@ -309,8 +309,8 @@ type alias UI =
 
 
 type alias Changes =
-    { start : ZonedDateTime
-    , end : ZonedDateTime
+    { start : Posix
+    , end : Posix
     , changes : Float
     }
 
@@ -338,6 +338,7 @@ type alias Model =
     , rulesTable : Rudder.Table.Model RuleWithCompliance Msg
     , csvExportOptions : Rudder.Table.CsvExportOptions RuleWithCompliance Msg
     , historyTable : Rudder.Table.Model EventLog Msg
+    , zone : Zone
     }
 
 
@@ -372,7 +373,7 @@ type Msg
     | GetRulesResult (Result Error (Category Rule))
     | GetGroupsTreeResult (Result Error (Category Group))
     | GetRuleChanges (Result Error (Dict String (List Changes)))
-    | GetRepairedReportsResult RuleId ZonedDateTime ZonedDateTime (Result Error (List RepairedReport))
+    | GetRepairedReportsResult RuleId Posix Posix (Result Error (List RepairedReport))
     | GetTechniquesTreeResult (Result Error ( Category Technique, List Technique ))
     | DeleteRule (Result Error Rule)
     | DeleteCategory (Result Error ( String, String ))

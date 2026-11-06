@@ -1,13 +1,10 @@
 module Plugins.JsonDecoder exposing (decodeGetPluginMetadata)
 
 import Json.Decode as D exposing (..)
+import Json.Decode.Extra exposing (datetime)
 import Json.Decode.Pipeline exposing (optional, required)
 import Plugins.DataTypes exposing (..)
 import Plugins.PluginData exposing (..)
-import Time.Iso8601
-import Time.Iso8601ErrorMsg
-import Time.TimeZones exposing (utc)
-import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
 decodeGetPluginMetadata : Decoder PluginMetadata
@@ -38,7 +35,7 @@ decodeLicenseGlobal : Decoder LicenseGlobal
 decodeLicenseGlobal =
     D.succeed LicenseGlobal
         |> optional "licensees" (maybe (list string)) Nothing
-        |> optional "startDate" (maybe decodeDateTime) Nothing
+        |> optional "startDate" (maybe datetime) Nothing
         |> optional "endDates" (maybe (list decodeDateCount)) Nothing
         |> optional "maxNodes" (maybe int) Nothing
 
@@ -102,32 +99,14 @@ decodeLicenseInfo =
         |> required "licensee" string
         |> required "allowedNodesNumber" int
         |> required "supportedVersions" string
-        |> required "startDate" decodeDateTime
-        |> required "endDate" decodeDateTime
-
-
-
--- Defaults to UTC
-
-
-decodeDateTime : Decoder ZonedDateTime
-decodeDateTime =
-    map (Time.Iso8601.toZonedDateTime utc) string
-        |> andThen
-            (\d ->
-                case d of
-                    Ok r ->
-                        succeed r
-
-                    Err e ->
-                        fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "") e)
-            )
+        |> required "startDate" datetime
+        |> required "endDate" datetime
 
 
 decodeDateCount : Decoder DateCount
 decodeDateCount =
     D.succeed DateCount
-        |> required "date" decodeDateTime
+        |> required "date" datetime
         |> required "count" int
 
 

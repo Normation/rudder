@@ -1,5 +1,6 @@
 module Utils.DateUtils exposing
     ( isBefore
+    , offsetString
     , posixOrdering
     , posixToDateString
     , posixToString
