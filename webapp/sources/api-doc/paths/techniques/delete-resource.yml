@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+delete:
+  summary: Delete technique's resource
+  description: Delete a resource of a technique
+  operationId: deleteTechniqueResource
+  parameters:
+    - $ref: ../../components/parameters/technique-id.yml
+    - $ref: ../../components/parameters/technique-version.yml
+    - $ref: ../../components/parameters/resource-filename.yml
+  responses:
+    "200":
+      description: Resources information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - id
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteResource
+              id:
+                type: string
+                description: Id of the resource to delete
+                enum:
+                  - userManagement/6.0/readme
+              data:
+                type: object
+                required:
+                    - resources
+                properties:
+                  resources:
+                    $ref: ../../components/schemas/techniques-resources-info.yml
+  tags:
+    - Techniques
+    - Resource
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/delete-resource.sh
