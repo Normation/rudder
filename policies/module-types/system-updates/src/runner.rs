@@ -150,6 +150,7 @@ mod tests {
         runner::{Action, Runner},
         state::UpdateStatus,
     };
+    use anyhow::anyhow;
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rudder_module_type::Outcome;
@@ -158,11 +159,16 @@ mod tests {
     #[derive(Default, Clone, Copy)]
     struct MockPackageManager {
         reboot_needed: bool,
+        list_installed_fails: bool,
     }
 
     impl UpdateManager for MockPackageManager {
         fn list_installed(&mut self) -> ResultOutput<PackageList> {
-            ResultOutput::new(Ok(PackageList::new(HashMap::new())))
+            if self.list_installed_fails {
+                ResultOutput::new(Err(anyhow!("Search failed: 0x80244010")))
+            } else {
+                ResultOutput::new(Ok(PackageList::new(HashMap::new())))
+            }
         }
 
         fn upgrade(
@@ -190,7 +196,10 @@ mod tests {
     }
 
     fn mock_package_manager(reboot_needed: bool) -> MockPackageManager {
-        MockPackageManager { reboot_needed }
+        MockPackageManager {
+            reboot_needed,
+            list_installed_fails: false,
+        }
     }
 
     fn in_memory_package_db() -> PackageDatabase {
@@ -341,5 +350,24 @@ mod tests {
         scheduler.run().unwrap();
         let actual = scheduler.run().unwrap();
         assert_eq!(actual, Outcome::repaired("Update has run"));
+    }
+
+    #[test]
+    pub fn update_loop_with_failing_package_listing_should_error() {
+        let parameters = default_runner_parameters();
+        let mut runner = Runner::new(
+            in_memory_package_db(),
+            Box::new(MockPackageManager {
+                reboot_needed: false,
+                list_installed_fails: true,
+            }),
+            parameters.clone(),
+            0,
+        );
+        assert_eq!(runner.run().unwrap(), Outcome::repaired("Update has run"));
+        assert_eq!(
+            runner.db.get_status(&parameters.event_id).unwrap(),
+            Some(UpdateStatus::Completed)
+        );
     }
 }
