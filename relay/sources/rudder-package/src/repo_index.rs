@@ -15,7 +15,7 @@ use crate::{
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct RepoIndex {
-    index: Vec<Plugin>,
+    pub(crate) index: Vec<Plugin>,
     pub latest_update: DateTime<Utc>,
 }
 
