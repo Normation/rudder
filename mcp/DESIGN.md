@@ -56,6 +56,41 @@ every failed one, as each can need a different right.
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
+- `node_info` (`GET /nodes/{id}`, or `GET /nodes` searching the exact hostname): a node's
+  configuration and inventory, Rudder's default level (OS, IP addresses, RAM, policy server,
+  agent, policy mode, properties, state, dates), passed through minus what only costs context
+  (the internal machine id, the agent capabilities, the `Missing version` placeholder). Other
+  inventory sections on request (`details`), except `managementTechnologyDetails` (the agent's
+  certificate and user). The software only comes filtered by name (`software`, non-empty, with the matching updates, which Rudder only sends with the software),
+  as the full list is large; a filter matching more than 100 packages is an error asking for a
+  narrower one. `policyMode` is resolved to the mode that applies, with `policyModeSource`
+  (`node`, `global`, or `forced` when the global mode is not overridable), from the global
+  settings read alongside the node. Without them (no `administration_read`), the node is still
+  answered, with Rudder's raw `policyMode` and the reason in `policyModeUnresolved`: the mode is
+  one field, not worth failing the whole answer. Its runtime state (compliance, reports) is not
+  there.
+  The node is designated as below; the hostname search returns the node itself, so no extra call.
+
+### Designating a node
+
+Users name nodes by hostname, Rudder by id. Every tool working on a node takes a single `node`
+argument accepting either, resolved the same way:
+
+- **A UUID (any case) or `root`** (the Rudder server) is a node id, used as is in the API path.
+- **Anything else is a hostname**, matched exactly against the inventory hostname (usually fully
+  qualified) with a node search (`GET /nodes`, `nodeHostname` `eq`), which includes the Rudder
+  server and relays (`select=nodeAndPolicyServer`). Tools needing an id pay one extra call.
+- **No match, or several**, is a tool error telling the model what to give instead: the exact
+  hostname, or one of the matching nodes' ids.
+- **A hostname matching no node** gets a second search for the usual near misses: hostnames with
+  the same first label, in any case and domain (`regex` `(?i)<label>(\..*)?`, `include=minimal`),
+  e.g. `web1` for `web1.example.com`. The error lists up to 10 of them with their ids, for the
+  model to retry with. Only labels of hostname characters (`[A-Za-z0-9_-]`) are searched, so no
+  regex syntax from the caller reaches Rudder; a failed search only leaves the list out.
+
+Only ids of that shape reach the URL path; a hostname is always an encoded query value, so no
+input can reach another endpoint. The cost: a node with a non-UUID id (other than `root`) can
+only be designated by its hostname.
 
 ### Rudder rights
 
@@ -65,7 +100,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 - **`acl` API account** (api-authorization plugin): `GET` on each path below, the token check's
   included.
 - **User token** (api-authorization plugin): the owning user needs the rights below. Today
-  `administration_read` and `compliance_read` cover every tool.
+  `administration_read`, `compliance_read` and `node_read` cover every tool.
 - **`none`**: refused at the token check.
 
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
@@ -73,6 +108,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
+| `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read`; `administration_read` to resolve the policy mode |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports

@@ -22,9 +22,9 @@ impl Rudder {
     async fn server_info(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
         let api = &caller(&parts)?.api;
         let calls = tokio::join!(
-            api.get("system/info", "administration_read"),
-            api.get("system/status", "administration_read"),
-            api.get("compliance", "compliance_read")
+            api.get("system/info", &[], "administration_read"),
+            api.get("system/status", &[], "administration_read"),
+            api.get("compliance", &[], "compliance_read")
         );
         // Every failure, not only the first: the calls can need different rights
         let (info, status, compliance) = match calls {

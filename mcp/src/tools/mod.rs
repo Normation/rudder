@@ -6,6 +6,7 @@
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
 
+mod node_info;
 mod server_info;
 mod whoami;
 
@@ -26,7 +27,7 @@ pub struct Rudder;
 impl Rudder {
     /// Each tool module has its own router
     fn tool_router() -> ToolRouter<Self> {
-        Self::whoami_router() + Self::server_info_router()
+        Self::whoami_router() + Self::server_info_router() + Self::node_info_router()
     }
 }
 
