@@ -9,9 +9,7 @@ use rmcp::{handler::server::tool::Extension, tool, tool_router};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use super::{Rudder, caller, tool_error};
-
-const UNEXPECTED: &str = "unexpected Rudder API response";
+use super::{Rudder, UNEXPECTED, caller, tool_error};
 
 #[tool_router(router = server_info_router, vis = "pub(super)")]
 impl Rudder {

@@ -39,6 +39,12 @@ server. It is being built in small steps; this page describes what exists today.
 
 ## Tools
 
+**The tools are not a stable interface.** Their names, arguments and answers will change as we
+learn what serves the models and their users: tools may be added, merged, split or removed, and
+fields renamed or dropped, without deprecation. Their consumers are models reading the tool
+descriptions at each connection, not programs: nothing should be built on their exact shape.
+Scripts and integrations should use the Rudder API, which is the stable interface.
+
 Tools answer compact JSON, Rudder's data passed through where possible: new fields come through
 without a change here, and the field names carry the meaning. Plain text is kept for summaries
 of data too large to send whole (e.g. compliance), where size matters more than shape.
@@ -57,19 +63,22 @@ every failed one, as each can need a different right.
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
 - `node_info` (`GET /nodes/{id}`, or `GET /nodes` searching the exact hostname): a node's
-  configuration and inventory, Rudder's default level (OS, IP addresses, RAM, policy server,
-  agent, policy mode, properties, state, dates), passed through minus what only costs context
-  (the internal machine id, the agent capabilities, the `Missing version` placeholder). Other
-  inventory sections on request (`details`), except `managementTechnologyDetails` (the agent's
-  certificate and user). The software only comes filtered by name (`software`, non-empty, with the matching updates, which Rudder only sends with the software),
-  as the full list is large; a filter matching more than 100 packages is an error asking for a
-  narrower one. `policyMode` is resolved to the mode that applies, with `policyModeSource`
-  (`node`, `global`, or `forced` when the global mode is not overridable), from the global
-  settings read alongside the node. Without them (no `administration_read`), the node is still
-  answered, with Rudder's raw `policyMode` and the reason in `policyModeUnresolved`: the mode is
-  one field, not worth failing the whole answer. Its runtime state (compliance, reports) is not
-  there.
-  The node is designated as below; the hostname search returns the node itself, so no extra call.
+  configuration and inventory, Rudder's default level (OS, IP addresses, RAM, policy server, agent,
+  policy mode, properties, state, dates), passed through minus what only costs context (the internal
+  machine id, the agent capabilities, the `Missing version` placeholder). Other inventory sections
+  on request (`details`), by their Rudder API name and not from a closed list: they change with
+  Rudder versions, and Rudder ignores unknown names. Only plain names are accepted (a `,` would add
+  other `include` values), and neither the detail levels (`full` is every section) nor
+  `managementTechnologyDetails` (the agent's certificate and user). The software only comes filtered
+  by name (`software`, non-empty, with the matching updates, which Rudder only sends with the
+  software), as the full list is large; a filter matching more than 100 packages is an error asking
+  for a narrower one. `policyMode` is resolved to the mode that applies, with `policyModeSource`
+  (`node`, `global`, or `forced` when the global mode is not overridable), from the global settings
+  read alongside the node (`node_read` is enough for these two settings). Without them (e.g. an ACL
+  token without their paths), the node is still answered, with Rudder's raw `policyMode` and the
+  reason in `policyModeUnresolved`: the mode is one field, not worth failing the whole answer. Its
+  runtime state (compliance, reports) is not there. The node is designated as below; the hostname
+  search returns the node itself, so no extra call to resolve it.
 
 ### Designating a node
 
@@ -108,7 +117,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
-| `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read`; `administration_read` to resolve the policy mode |
+| `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports

@@ -10,23 +10,27 @@ use rmcp::{
     handler::server::{tool::Extension, wrapper::Parameters},
     schemars, tool, tool_router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::{Rudder, caller, tool_error};
+use super::{
+    Rudder, UNEXPECTED, caller,
+    policy_mode::{GlobalPolicyMode, PolicyMode},
+    tool_error,
+};
 use crate::api::CallerApi;
-
-const UNEXPECTED: &str = "unexpected Rudder API response";
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct NodeQuery {
     /// Node id (UUID, or `root` for the Rudder server), or hostname exactly as in the inventory
     node: String,
-    /// Inventory sections to add to the default information. Some can be large (processes):
-    /// only request what is needed.
+    /// Inventory sections to add to the default information, by their Rudder API name, e.g.
+    /// `fileSystems`, `networkInterfaces`, `processors`, `memories`, `storage`, `bios`,
+    /// `virtualMachines`, `environmentVariables`, `accounts`, `ports`, `processes`. Some can be
+    /// large (processes): only request what is needed. Rudder ignores the names it does not know.
     #[serde(default)]
-    details: Vec<InventorySection>,
+    details: Vec<String>,
     /// The installed software and available updates whose name contains this text
     /// (case-insensitive), e.g. `openssl`. The only way to get software: the whole list is too
     /// large.
@@ -58,37 +62,29 @@ impl<'a> NodeRef<'a> {
     }
 }
 
-/// Inventory sections beyond the default level: the API `include` values of the `full` level,
-/// except the software, only given filtered (see `NodeQuery::software`). Rudder sends the
-/// available updates (`softwareUpdate`) with it, so they are not a section either. Nor is
-/// `managementTechnologyDetails`: the agent's certificate and user, nothing to tell the user about.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
-enum InventorySection {
-    Accounts,
-    Bios,
-    Controllers,
-    EnvironmentVariables,
-    FileSystems,
-    InstanceId,
-    Memories,
-    NetworkInterfaces,
-    Ports,
-    Processes,
-    Processors,
-    Slots,
-    Sound,
-    Storage,
-    Videos,
-    VirtualMachines,
-}
+/// An inventory section beyond the default level, by its Rudder API name (an `include` value).
+/// Not a closed list: Rudder's sections change with its versions, and it ignores unknown names.
+/// Only refused: what is not a plain name (a `,` would add other `include` values), the detail
+/// levels (`full` is every section), and the sections given otherwise or not at all.
+#[derive(Debug, PartialEq, Eq)]
+struct InventorySection(String);
 
 impl InventorySection {
-    /// The API `include` value: the serialized name
-    fn api_name(self) -> String {
-        match serde_json::to_value(self) {
-            Ok(Value::String(name)) => name,
-            _ => unreachable!("unit variants serialize to strings"),
+    fn parse(name: &str) -> Result<Self> {
+        if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric()) {
+            bail!("'{name}' is not an inventory section name, e.g. `fileSystems`");
+        }
+        match name.to_lowercase().as_str() {
+            // Rudder sends the updates with the software
+            "software" | "softwareupdate" => {
+                bail!("the software is not a section: use the `software` filter")
+            }
+            // The agent's certificate and user, nothing to tell the user about
+            "managementtechnologydetails" => bail!("'{name}' is not available"),
+            "minimal" | "default" | "full" => {
+                bail!("'{name}' is a detail level, not a section: name the sections needed")
+            }
+            _ => Ok(Self(name.to_owned())),
         }
     }
 }
@@ -132,6 +128,11 @@ impl Rudder {
         }): Parameters<NodeQuery>,
     ) -> Result<String, String> {
         let api = &caller(&parts)?.api;
+        let details = details
+            .iter()
+            .map(|name| InventorySection::parse(name))
+            .collect::<Result<Vec<_>>>()
+            .map_err(tool_error)?;
         let software = software
             .as_deref()
             .map(SoftwareFilter::parse)
@@ -152,17 +153,7 @@ impl Rudder {
                 NodeRef::Hostname(hostname) => search_hostname(api, &include, "eq", hostname).await,
             }
         };
-        let (body, mode, overridable) = tokio::join!(
-            node_body,
-            api.get("settings/global_policy_mode", &[], "administration_read"),
-            api.get(
-                "settings/global_policy_mode_overridable",
-                &[],
-                "administration_read"
-            ),
-        );
-        // Both need the same right: the first failure says it all
-        let global = mode.and_then(|mode| GlobalPolicyMode::parse(&mode, &overridable?));
+        let (body, global) = tokio::join!(node_body, GlobalPolicyMode::fetch(api));
         let nodes = body.and_then(|body| nodes(&body)).map_err(tool_error)?;
         let found = match single_node(nodes, &node).map_err(tool_error)? {
             Some(found) => found,
@@ -271,7 +262,7 @@ fn include(details: &[InventorySection], software: bool) -> String {
     let mut include = "default".to_owned();
     for section in details {
         include.push(',');
-        include.push_str(&section.api_name());
+        include.push_str(&section.0);
     }
     if software {
         include.push_str(",software");
@@ -343,79 +334,9 @@ fn format_node(
     Ok(serde_json::to_string(&found)?)
 }
 
-/// A policy mode, as Rudder names it
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum PolicyMode {
-    Audit,
-    Enforce,
-}
-
-/// The global policy mode, and whether nodes may set their own
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct GlobalPolicyMode {
-    mode: PolicyMode,
-    overridable: bool,
-}
-
-impl GlobalPolicyMode {
-    /// From the bodies of `GET /settings/global_policy_mode` and
-    /// `GET /settings/global_policy_mode_overridable`
-    fn parse(mode_body: &str, overridable_body: &str) -> Result<Self> {
-        #[derive(Deserialize)]
-        struct Response<T> {
-            data: Data<T>,
-        }
-        #[derive(Deserialize)]
-        struct Data<T> {
-            settings: T,
-        }
-        #[derive(Deserialize)]
-        struct Mode {
-            global_policy_mode: PolicyMode,
-        }
-        #[derive(Deserialize)]
-        struct Overridable {
-            global_policy_mode_overridable: bool,
-        }
-        let mode = serde_json::from_str::<Response<Mode>>(mode_body)
-            .context(UNEXPECTED)?
-            .data
-            .settings
-            .global_policy_mode;
-        let overridable = serde_json::from_str::<Response<Overridable>>(overridable_body)
-            .context(UNEXPECTED)?
-            .data
-            .settings
-            .global_policy_mode_overridable;
-        Ok(Self { mode, overridable })
-    }
-
-    /// The mode that applies to a node with its own mode `node` (`None` for Rudder's `default`)
-    fn apply_to(self, node: Option<PolicyMode>) -> (PolicyMode, PolicyModeSource) {
-        match node {
-            _ if !self.overridable => (self.mode, PolicyModeSource::Forced),
-            Some(mode) => (mode, PolicyModeSource::Node),
-            None => (self.mode, PolicyModeSource::Global),
-        }
-    }
-}
-
-/// Where the policy mode that applies to a node comes from
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-enum PolicyModeSource {
-    /// The node's own setting
-    Node,
-    /// The global mode, the node having none of its own
-    Global,
-    /// The global mode, which nodes cannot override: the node's setting is ignored
-    Forced,
-}
-
 /// Replaces Rudder's `policyMode`, the node's own setting (`default` without one), by the mode
 /// that applies, and adds where it comes from (`policyModeSource`). Without the global mode (e.g.
-/// a token without `administration_read`), keeps Rudder's value and says why
+/// an ACL token without the settings paths), keeps Rudder's value and says why
 /// (`policyModeUnresolved`): the rest of the node is still worth answering.
 fn resolve_policy_mode(node: &mut Value, global: Result<GlobalPolicyMode>) {
     // Rudder always sends it at the default level: without it, nothing to resolve
@@ -425,13 +346,8 @@ fn resolve_policy_mode(node: &mut Value, global: Result<GlobalPolicyMode>) {
     else {
         return;
     };
-    let resolved = global.and_then(|global| {
-        let own = match &node["policyMode"] {
-            Value::String(mode) if mode == "default" => None,
-            mode => Some(PolicyMode::deserialize(mode).context(UNEXPECTED)?),
-        };
-        Ok(global.apply_to(own))
-    });
+    let resolved =
+        global.and_then(|global| Ok(global.apply_to(PolicyMode::parse_own(&node["policyMode"])?)));
     match resolved {
         Ok((mode, source)) => {
             node.insert("policyMode".to_owned(), json!(mode));
@@ -486,36 +402,6 @@ mod tests {
     }
 
     #[test]
-    fn global_policy_mode_from_settings() {
-        // Shaped as the `api_settings.yml` webapp test answers
-        let mode = r#"{"action":"getSetting","id":"global_policy_mode","result":"success","data":{"settings":{"global_policy_mode":"enforce"}}}"#;
-        let overridable = r#"{"action":"getSetting","id":"global_policy_mode_overridable","result":"success","data":{"settings":{"global_policy_mode_overridable":false}}}"#;
-        assert_eq!(
-            GlobalPolicyMode::parse(mode, overridable).unwrap(),
-            GlobalPolicyMode {
-                mode: PolicyMode::Enforce,
-                overridable: false
-            }
-        );
-        assert!(GlobalPolicyMode::parse(overridable, mode).is_err());
-    }
-
-    #[test]
-    fn policy_mode_that_applies() {
-        use PolicyMode::*;
-        use PolicyModeSource::*;
-        let global = |overridable| GlobalPolicyMode {
-            mode: Audit,
-            overridable,
-        };
-        assert_eq!(global(true).apply_to(Some(Enforce)), (Enforce, Node));
-        assert_eq!(global(true).apply_to(None), (Audit, Global));
-        // The node's own mode is ignored
-        assert_eq!(global(false).apply_to(Some(Enforce)), (Audit, Forced));
-        assert_eq!(global(false).apply_to(None), (Audit, Forced));
-    }
-
-    #[test]
     fn policy_mode_resolved_in_node() {
         let resolve = |mode: &str, global| {
             let mut node = json!({"id": "root", "policyMode": mode});
@@ -533,15 +419,12 @@ mod tests {
         // Without the global mode, Rudder's value and why
         let node = resolve(
             "default",
-            Err(anyhow::anyhow!("requires the administration_read right")),
+            Err(anyhow::anyhow!("requires the node_read right")),
         );
         assert_eq!(node["policyMode"], "default");
         assert!(node.get("policyModeSource").is_none());
         let reason = node["policyModeUnresolved"].as_str().unwrap();
-        assert!(
-            reason.ends_with("requires the administration_read right"),
-            "{reason}"
-        );
+        assert!(reason.ends_with("requires the node_read right"), "{reason}");
         // A mode this version does not know
         let node = resolve("strict", global());
         assert_eq!(node["policyMode"], "strict");
@@ -575,11 +458,43 @@ mod tests {
     }
 
     #[test]
+    fn inventory_sections() {
+        // Any plain name, Rudder ignoring those it does not know
+        for name in ["fileSystems", "newSectionOf2030"] {
+            assert_eq!(
+                InventorySection::parse(name).unwrap(),
+                InventorySection(name.to_owned())
+            );
+        }
+        let refused = |name| InventorySection::parse(name).unwrap_err().to_string();
+        // Nothing else reaches `include`
+        for name in ["", "fileSystems,software", "file systems", "processes;"] {
+            assert!(
+                refused(name).contains("not an inventory section name"),
+                "{name}"
+            );
+        }
+        for name in ["software", "SoftwareUpdate"] {
+            assert!(
+                refused(name).contains("use the `software` filter"),
+                "{name}"
+            );
+        }
+        assert!(refused("managementTechnologyDetails").contains("not available"));
+        for name in ["full", "Minimal", "default"] {
+            assert!(refused(name).contains("detail level"), "{name}");
+        }
+    }
+
+    #[test]
     fn include_sections() {
         assert_eq!(include(&[], false), "default");
         assert_eq!(
             include(
-                &[InventorySection::FileSystems, InventorySection::Processes],
+                &[
+                    InventorySection::parse("fileSystems").unwrap(),
+                    InventorySection::parse("processes").unwrap()
+                ],
                 true
             ),
             "default,fileSystems,processes,software"

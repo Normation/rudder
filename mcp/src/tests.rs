@@ -292,8 +292,7 @@ async fn node_info_without_the_global_policy_mode() {
     assert_eq!(node["policyMode"], "enforce");
     let reason = node["policyModeUnresolved"].as_str().unwrap();
     assert!(
-        reason.contains("GET settings/global_policy_mode")
-            && reason.contains("administration_read"),
+        reason.contains("GET settings/global_policy_mode") && reason.contains("node_read"),
         "{reason}"
     );
 }
