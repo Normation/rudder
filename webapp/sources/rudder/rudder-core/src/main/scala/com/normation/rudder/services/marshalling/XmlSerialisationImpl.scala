@@ -47,6 +47,7 @@ import com.normation.rudder.api.AccountLastAuthentication
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountNoToken
 import com.normation.rudder.api.ApiAuthorization
+import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
@@ -557,10 +558,13 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
       case AccountLastAuthentication.AtDate(date) => Some(date.toString)
     }).map(d => <lastAuthentication>{d}</lastAuthentication>).getOrElse(NodeSeq.Empty)
 
+    val tokenHash = if (account.hasToken) ApiTokenHash.fromHashValue("").toString else ""
+
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)(
       (
         <id>{account.id.value}</id>
        <name>{account.name.value}</name>
+       <token>{tokenHash}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString}</creationDate>

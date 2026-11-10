@@ -358,6 +358,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          hasToken = true,
           tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
@@ -369,13 +370,11 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     )
   }
 
-  "be able to correctly unserialize an ApiAccount " in {
+  "be able to correctly unserialize an ApiAccount that does not have a token" in {
     val serialized = <apiAccount fileFormat="6" changeType="add">
       <id>c331c718-db0e-429e-b800-20b055ca6a67</id>
       <name>Test account with some acl scala 3</name>
-      <token>
-        v2:449967a9c3a1cf25b6333fa531626e1a9375accf889dea3063b8707debde9f033535082a31de85c34c71d8be9b228f38e6cde467d6f3ba423d99437899bfb1d6
-      </token>
+      <token/>
       <description/>
       <isEnabled>true</isEnabled>
       <creationDate>2025-05-06T13:59:59.613+02:00</creationDate>
@@ -413,6 +412,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          hasToken = false,
           tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
@@ -469,6 +469,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(Instant.parse("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
+          hasToken = true,
           tokenGenerationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
           description = "",
           isEnabled = true,
