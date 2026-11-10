@@ -518,9 +518,11 @@ class RoTenantNodeGroupRepo(
 }
 
 class WoTenantNodeGroupRepo(
-    checkTenant: TenantCheckLogic,
-    underlying:  WoNodeGroupRepository,
-    roRepo:      RoNodeGroupRepository
+    checkTenant:  TenantCheckLogic,
+    underlying:   WoNodeGroupRepository,
+    roRepo:       RoNodeGroupRepository,
+    // the nodes an actor can see: a group update does not change the members the actor can not see
+    visibleNodes: QueryContext ?=> IOResult[NodeVisibility]
 ) extends RoNodeGroupRepository with WoNodeGroupRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -530,12 +532,22 @@ class WoTenantNodeGroupRepo(
     checkTenant.manageCreate(nodeGroup, roRepo.getGroupCategory(into))(ng => underlying.create(ng, into))
   }
 
+  // the submitted members replace the stored ones the actor can see, the others are kept
   override def update(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    checkTenant.manageUpdate(
-      nodeGroup,
-      roRepo.getNodeGroupOpt(nodeGroup.id).map(_.map(_._1)),
-      IfAbsent.fail(s"Cannot update group with id ${nodeGroup.id.serialize} : there is no group with that id")
-    )(ng => underlying.update(ng))
+    for {
+      stored  <- QueryContext.asSystem("the stored group is the ground truth for the law and for the members kept") {
+                   roRepo.getNodeGroupOpt(nodeGroup.id).map(_.map(_._1))
+                 }
+      visible <- visibleNodes(using cc.toQC)
+      merged   = stored.fold(nodeGroup)(g =>
+                   nodeGroup.modify(_.serverList).setTo(visible.replaceVisible(g.serverList, nodeGroup.serverList))
+                 )
+      res     <- checkTenant.manageUpdate(
+                   merged,
+                   stored.succeed,
+                   IfAbsent.fail(s"Cannot update group with id ${nodeGroup.id.serialize} : there is no group with that id")
+                 )(ng => underlying.update(ng))
+    } yield res
   }
 
   // a restore may put back a narrower tag: that exception is defined in `manageRestore`
@@ -565,16 +577,19 @@ class WoTenantNodeGroupRepo(
     )(ng => underlying.updateDynGroupNodes(ng))
   }
 
-  // the node list changes, not the group definition nor its tag: this is a `manageModify`
+  // the node list changes, not the group definition nor its tag: this is a `manageModify`.
+  // Only the members the actor can see may be removed.
   override def updateDiffNodes(
       nodeGroupId: NodeGroupId,
       add:         List[NodeId],
       delete:      List[NodeId]
   )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    checkTenant.manageModify(
-      roRepo.getNodeGroupOpt(nodeGroupId).map(_.map(_._1)),
-      IfAbsent.fail(s"Cannot update group with id ${nodeGroupId.serialize} : there is no group with that id")
-    )(_ => underlying.updateDiffNodes(nodeGroupId, add, delete))
+    visibleNodes(using cc.toQC).flatMap { visible =>
+      checkTenant.manageModify(
+        roRepo.getNodeGroupOpt(nodeGroupId).map(_.map(_._1)),
+        IfAbsent.fail(s"Cannot update group with id ${nodeGroupId.serialize} : there is no group with that id")
+      )(_ => underlying.updateDiffNodes(nodeGroupId, add, visible.restrict(delete.toSet).toList))
+    }
   }
 
   override def move(nodeGroupId: NodeGroupId, containerId: NodeGroupCategoryId)(implicit

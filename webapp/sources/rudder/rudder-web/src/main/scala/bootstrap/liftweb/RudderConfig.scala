@@ -3299,7 +3299,10 @@ object RudderConfigInit {
         personIdentServiceImpl,
         RUDDER_AUTOARCHIVEITEMS
       )
-      TenantScopedWrite(new WoTenantNodeGroupRepo(tenantCheckLogic, storage, groupRead.storage), storage)
+      TenantScopedWrite(
+        new WoTenantNodeGroupRepo(tenantCheckLogic, storage, groupRead.storage, nodeFactRepository.getVisibleNodes()),
+        storage
+      )
     }
 
     lazy val globalPropertyRead: TenantScopedRead[RoParameterRepository, RoLDAPParameterRepository] = {

@@ -3078,7 +3078,11 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
 
     override def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId])(implicit
         cc: ChangeContext
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+    ): IOResult[Option[ModifyNodeGroupDiff]] = {
+      getNodeGroupOpt(group)
+        .notOptional(s"Group '${group.serialize}' not found")
+        .flatMap { case (g, _) => update(g.modify(_.serverList).using(_ ++ add -- delete)) }
+    }
 
     override def updateSystemGroup(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
@@ -3169,7 +3173,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, moc
       extends WoTenantNodeGroupRepo(
         mockTenants.checkTenant,
         groupsRepoImpl,
-        new RoTenantNodeGroupRepo(mockTenants.checkTenant, groupsRepoImpl)
+        new RoTenantNodeGroupRepo(mockTenants.checkTenant, groupsRepoImpl),
+        mockNodes.nodeFactRepo.getVisibleNodes()
       ) {
     export groupsRepoImpl.categories
   }
