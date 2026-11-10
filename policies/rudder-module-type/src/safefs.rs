@@ -5,19 +5,18 @@ pub mod safe_fs {
         fmt::{self, Display},
         fs::{File, Permissions},
         os::fd::{AsFd, OwnedFd},
-        path::{Component, Path},
+        path::{Component, Path, PathBuf},
     };
 
     use rustix::{
         fs::{CWD, FileType, Mode, OFlags, fstat, openat},
-        path::Arg,
         process::geteuid,
     };
 
     #[derive(Debug)]
     pub enum SafeFsError {
         SymLinkNotOwned(u32, u32),
-        PathIsWorldWritable(u32),
+        PathIsWorldWritable(PathBuf, u32),
         Io(std::io::Error),
     }
 
@@ -30,8 +29,12 @@ pub mod safe_fs {
                         "symlink is owned by uid '{owned_by}', expected root (0) or the effective user (uid '{current_uid}')"
                     )
                 }
-                SafeFsError::PathIsWorldWritable(mode) => {
-                    write!(f, "Path is writable by others (mode {:o})", mode & 0o7777)
+                SafeFsError::PathIsWorldWritable(path, mode) => {
+                    write!(
+                        f,
+                        "path '{path:?}' is writable by others (mode {:o})",
+                        mode & 0o7777
+                    )
                 }
                 SafeFsError::Io(err) => write!(f, "{err}"),
             }
@@ -50,17 +53,17 @@ pub mod safe_fs {
         }
     }
 
-    fn open_at<P: Arg, Fd: AsFd>(
+    fn open_at<P: AsRef<Path>, Fd: AsFd>(
         dir: Fd,
         path: P,
         flags: OFlags,
         mode: Mode,
     ) -> Result<OwnedFd, SafeFsError> {
+        let path = path.as_ref();
         let fd = openat(dir, path, flags, mode)?;
         let stat = fstat(&fd)?;
-        let file_type = FileType::from_raw_mode(stat.st_mode);
 
-        if file_type.is_symlink() {
+        if FileType::from_raw_mode(stat.st_mode).is_symlink() {
             let current_uid = geteuid().as_raw();
             if stat.st_uid != 0 && stat.st_uid != current_uid {
                 return Err(SafeFsError::SymLinkNotOwned(stat.st_uid, current_uid));
@@ -70,7 +73,10 @@ pub mod safe_fs {
         }
 
         if stat.st_mode & 0o002 != 0 {
-            return Err(SafeFsError::PathIsWorldWritable(stat.st_mode));
+            return Err(SafeFsError::PathIsWorldWritable(
+                path.to_owned(),
+                stat.st_mode,
+            ));
         }
 
         Ok(fd)
