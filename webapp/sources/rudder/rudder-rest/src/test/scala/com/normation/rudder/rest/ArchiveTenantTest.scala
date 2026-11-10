@@ -35,7 +35,10 @@
 
 package com.normation.rudder.rest
 
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.rudder.MockNodes
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -55,6 +58,10 @@ import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
 import com.normation.rudder.rest.lift.SpecialExportAll
+import com.normation.rudder.rest.lift.TechniqueArchive
+import com.normation.rudder.rest.lift.TechniqueCategoryArchive
+import com.normation.rudder.rest.lift.TechniqueInfo
+import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.rudder.rest.lift.ZipArchiveBuilderService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
@@ -173,6 +180,7 @@ class ArchiveTenantTest extends ZIOSpecDefault {
   val saver: SaveArchiveServicebyRepo = new SaveArchiveServicebyRepo(
     null,
     null,
+    restTestSetUp.mockTechniques.techniqueRepo,
     restTestSetUp.mockDirectives.directiveRepo,
     restTestSetUp.mockDirectives.directiveRepo,
     restTestSetUp.mockNodeGroups.groupsRepo,
@@ -191,6 +199,32 @@ class ArchiveTenantTest extends ZIOSpecDefault {
   def withRules(rules: Rule*): PolicyArchive = PolicyArchive.empty("test").modify(_.rules).setTo(Chunk.fromIterable(rules))
 
   def stored(id: String): IO[Any, Option[Rule]] = restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid(id)))(using admin)
+
+  def techniqueCategory(path: String): IO[Any, TechniqueCategoryArchive] = {
+    for {
+      id  <- TechniqueCategoryId.parse(path).toIO
+      cat <- restTestSetUp.mockTechniques.techniqueRepo.getTechniqueCategory(id)
+    } yield TechniqueCategoryArchive(
+      TechniqueCategoryMetadata(cat.name, cat.description, cat.isSystem, cat.security),
+      NonEmptyChunk.fromIterableOption(path.split("/")).getOrElse(throw new IllegalArgumentException(path))
+    )
+  }
+
+  // a YAML technique with no tag, so administrator-only, as stored, plus one new file
+  val changedTechnique: TechniqueArchive = {
+    val dir   = restTestSetUp.mockGitRepo.configurationRepositoryRoot / "techniques" / "ncf_techniques" / "technique_any" / "1.0"
+    val files = Chunk.fromIterable(dir.collectChildren(!_.isDirectory).map(f => (dir.relativize(f).toString, f.byteArray)).toList)
+    TechniqueArchive(
+      TechniqueInfo(
+        TechniqueId.parse("technique_any/1.0").getOrElse(throw new IllegalArgumentException("id")),
+        "any",
+        TechniqueType.Yaml,
+        None
+      ),
+      Chunk("ncf_techniques"),
+      files :+ ("resources/new.txt", "new".getBytes(StandardCharsets.UTF_8))
+    )
+  }
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("archive export under a tenant query context")(
@@ -291,6 +325,33 @@ class ArchiveTenantTest extends ZIOSpecDefault {
           assertTrue(res.left.exists(_.fullMsg.contains("rule1"))) &&
           assertTrue(after.shortDescription == mine.shortDescription)
         }
+      },
+      test("a technique category the tenant reads is not written; a change to it is refused") {
+        for {
+          cat <- techniqueCategory("systemSettings/misc")
+          ok  <- saver
+                   .save(PolicyArchive.empty("t").modify(_.techniqueCats).setTo(Chunk(cat)), MergePolicy.OverrideAll)(using zoneA)
+                   .either
+          ko  <- saver
+                   .save(
+                     PolicyArchive
+                       .empty("t")
+                       .modify(_.techniqueCats)
+                       .setTo(Chunk(cat.modify(_.metadata.description).setTo("changed"))),
+                     MergePolicy.OverrideAll
+                   )(using zoneA)
+                   .either
+        } yield assertTrue(ok.isRight, ko.isLeft)
+      },
+      test("a technique the tenant can not write is refused before anything is written") {
+        for {
+          res <-
+            saver
+              .save(PolicyArchive.empty("t").modify(_.techniques).setTo(Chunk(changedTechnique)), MergePolicy.OverrideAll)(using
+                zoneA
+              )
+              .either
+        } yield assertTrue(res.left.exists(_.fullMsg.contains("technique_any")))
       },
       test("an unchanged object the tenant can not read is refused too") {
         for {

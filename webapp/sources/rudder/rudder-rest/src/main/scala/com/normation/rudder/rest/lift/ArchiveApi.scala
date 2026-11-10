@@ -40,6 +40,7 @@ package com.normation.rudder.rest.lift
 import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
@@ -88,6 +89,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.TenantScopedTechniqueWriter
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -118,6 +120,7 @@ import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantCheckLogic
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -945,7 +948,21 @@ final case class TechniqueCategoryArchive(
     category: NonEmptyChunk[String]
 )
 
-final case class TechniqueInfo(id: TechniqueId, name: String, kind: TechniqueType)
+// `security` is the tag the technique descriptor declares, the one the technique library will read
+final case class TechniqueInfo(id: TechniqueId, name: String, kind: TechniqueType, security: Option[SecurityTag])
+
+object TechniqueInfo       {
+  // an archive only holds base techniques: system ones are not exported
+  given HasSecurityTag[TechniqueInfo] with {
+    extension (a: TechniqueInfo) {
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = false
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.debugString
+      override def updateSecurityContext(security: Option[SecurityTag]): TechniqueInfo = a.modify(_.security).setTo(security)
+    }
+  }
+}
 
 final case class TechniqueArchive(
     technique: TechniqueInfo,
@@ -1184,7 +1201,7 @@ class ZipArchiveReaderImpl(
           for {
             tech <- yaml.fromYaml[YTechnique].toIO
             _    <- checkYamlIdMatchesPath(basePath, tech, id)
-            _    <- optTech.set(Some(TechniqueInfo(id, tech.name, TechniqueType.Yaml)))
+            _    <- optTech.set(Some(TechniqueInfo(id, tech.name, TechniqueType.Yaml, tech.security)))
           } yield (name, content)
 
         case TechniqueType.Metadata.name =>
@@ -1192,7 +1209,7 @@ class ZipArchiveReaderImpl(
             xml  <- IOResult.attempt(XmlSafe.load(new ByteArrayInputStream(content)))
             tech <- techniqueParser.parseXml(xml, id).toIO
             _    <- optTech.update {
-                      case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata))
+                      case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata, tech.security))
                       case Some(x) => Some(x) // ignore, we may already found a technique.yml
                     }
           } yield (name, content)
@@ -1556,6 +1573,7 @@ object SaveArchiveServicebyRepo {
 class SaveArchiveServicebyRepo(
     techniqueArchiver:   TechniqueArchiverImpl,
     techniqueReader:     TechniqueReader,
+    techniqueRepo:       TechniqueRepository,
     roDirectiveRepos:    RoDirectiveRepository,
     woDirectiveRepos:    WoDirectiveRepository,
     roGroupRepos:        RoNodeGroupRepository,
@@ -1597,12 +1615,17 @@ class SaveArchiveServicebyRepo(
    * - see if there's other file present - delete them
    * - commit
    */
-  def saveTechnique(eventMetadata: EventMetadata, t: TechniqueArchive): IOResult[Unit] = {
-    val techniqueDir = File(
+  // the directory of a technique version in the technique library
+  private def techniqueDirectory(t: TechniqueArchive): File = {
+    File(
       techniqueArchiver.gitRepo.rootDirectory.pathAsString + "/" + techniqueArchiver.relativePath + "/" + t.category.mkString(
         "/"
       ) + "/" + t.technique.id.serialize
     )
+  }
+
+  def saveTechnique(eventMetadata: EventMetadata, t: TechniqueArchive): IOResult[Unit] = {
+    val techniqueDir = techniqueDirectory(t)
 
     for {
       _    <- ApplicationLoggerPure.Archive.debug(
@@ -1844,12 +1867,16 @@ class SaveArchiveServicebyRepo(
     }).unit
   }
 
-  // the stored object as the actor sees it, which is what an export gives; None when the actor can not read it,
-  // so that an import can not tell the content of an object the actor can not see
-  private def asSeen[A: HasSecurityTag](a: A)(using cc: ChangeContext): Option[A] = {
-    checkTenant
-      .check(a)(using summon[HasSecurityTag[A]], cc.toQC)
-      .map(x => x.updateSecurityContext(cc.accessGrant.visibleSecurityTag(x.security)))
+  // only an object the actor can read may be found unchanged: an import must not tell the content of the others
+  private def readable[A: HasSecurityTag](a: A)(using cc: ChangeContext): Boolean = {
+    checkTenant.check(a)(using summon[HasSecurityTag[A]], cc.toQC).isDefined
+  }
+
+  // the archived object is the stored one as the actor sees it: tags are compared reduced to the tenants the actor
+  // sees, on both sides, as an export may or may not have reduced it
+  private def unchanged[A: HasSecurityTag](stored: A, archived: A)(using cc: ChangeContext): Boolean = {
+    def seen(a: A): A = a.updateSecurityContext(cc.accessGrant.visibleSecurityTag(a.security))
+    readable(stored) && seen(stored) == seen(archived)
   }
 
   private val storedReason = "the stored objects are the ground truth of the write law"
@@ -1877,9 +1904,9 @@ class SaveArchiveServicebyRepo(
                     ).fail
                 }
       res    <- stored match {
-                  case Some((_, s)) if (asSeen(s).contains(d.directive)) => None.succeed
+                  case Some((_, s)) if (unchanged(s, d.directive)) => None.succeed
                   // a directive stays under the active technique of its technique
-                  case _                                                 =>
+                  case _                                           =>
                     decide(d.directive, stored.map { case (at, s) => (s, at.techniqueName) }, d.technique, into)
                       .as(Some(d))
                 }
@@ -1912,8 +1939,7 @@ class SaveArchiveServicebyRepo(
                 }
       res    <- stored match {
                   case Some((s, p))
-                      if (asSeen(s)
-                        .exists(v => v.name == category.name && v.description == category.description && p == parentId)) =>
+                      if (readable(s) && s.name == category.name && s.description == category.description && p == parentId) =>
                     None.succeed
                   case _ =>
                     groupCategoryContainer(parentId).flatMap(decide(category, stored, parentId, _)).as(Some(cat))
@@ -1922,12 +1948,12 @@ class SaveArchiveServicebyRepo(
   }
 
   private def checkGroup(g: GroupArchive, visible: NodeVisibility)(using cc: ChangeContext): IOResult[Option[GroupArchive]] = {
-    def seen(s: NodeGroup): Option[NodeGroup] = asSeen(s).map(_.modify(_.serverList).setTo(visible.restrict(s.serverList)))
+    def members(g: NodeGroup): NodeGroup = g.modify(_.serverList).setTo(visible.restrict(g.serverList))
     for {
       stored <- QueryContext.asSystem(storedReason)(roGroupRepos.getNodeGroupOpt(g.group.id))
       res    <- stored match {
-                  case Some((s, c)) if (c == g.category && seen(s).contains(g.group)) => None.succeed
-                  case _                                                              =>
+                  case Some((s, c)) if (c == g.category && unchanged(members(s), members(g.group))) => None.succeed
+                  case _                                                                            =>
                     groupCategoryContainer(g.category).flatMap(decide(g.group, stored, g.category, _)).as(Some(g))
                 }
     } yield res
@@ -1964,8 +1990,8 @@ class SaveArchiveServicebyRepo(
       stored <- QueryContext.asSystem(storedReason)(roRuleRepos.getOpt(r.id))
       toSave  = ruleToSave(r, stored, mergePolicy)
       res    <- stored match {
-                  case Some(s) if (asSeen(s).contains(toSave)) => None.succeed
-                  case _                                       =>
+                  case Some(s) if (unchanged(s, toSave)) => None.succeed
+                  case _                                 =>
                     decide(
                       toSave,
                       stored.map(s => (s, s.categoryId)),
@@ -1977,9 +2003,73 @@ class SaveArchiveServicebyRepo(
     } yield res
   }
 
+  // the technique category at `path` as a container: stored, or created by the archive
+  private def techniqueCategoryContainer(path: String): IOResult[ArchiveContainer[TechniqueCategoryMetadata]] = {
+    TechniqueCategoryId.parse(path).toIO.flatMap { id =>
+      QueryContext.asSystem(storedReason)(TenantScopedTechniqueWriter.storedCategory(techniqueRepo, id)).map {
+        case Some(_) =>
+          ArchiveContainer.Stored(qc => TenantScopedTechniqueWriter.categoryContainer(techniqueRepo, path)(using qc))
+        case None    => ArchiveContainer.Imported()
+      }
+    }
+  }
+
+  // a technique category can not move: its id is its path
+  private def checkTechniqueCat(
+      a: TechniqueCategoryArchive
+  )(using cc: ChangeContext): IOResult[Option[TechniqueCategoryArchive]] = {
+    for {
+      id     <- TechniqueCategoryId.parse(a.category.mkString("/")).toIO
+      stored <- QueryContext.asSystem(storedReason)(TenantScopedTechniqueWriter.storedCategory(techniqueRepo, id))
+      res    <- stored match {
+                  case Some(s) if (unchanged(s, a.metadata)) => None.succeed
+                  case _                                     =>
+                    techniqueCategoryContainer(a.category.init.mkString("/"))
+                      .flatMap(decide(a.metadata, stored.map(s => (s, ())), (), _))
+                      .as(Some(a))
+                }
+    } yield res
+  }
+
+  /*
+   * The files of the archive are those of the technique library. The generated files of a YAML technique are not
+   * archived, so they do not make it changed.
+   */
+  private def sameFiles(t: TechniqueArchive): IOResult[Boolean] = {
+    val dir = techniqueDirectory(t)
+    SaveArchiveServicebyRepo.buildDiff(t, dir).flatMap { diff =>
+      val onlyGenerated = diff.forall {
+        case ResourceFile(path, ResourceFileState.Deleted) =>
+          t.technique.kind == TechniqueType.Yaml && TechniqueFiles.Generated.all.contains(path)
+        case ResourceFile(_, ResourceFileState.New)        => false
+        case _                                             => true
+      }
+      if (!onlyGenerated) false.succeed
+      else {
+        IOResult.attempt(t.files.forall {
+          case (p, bytes) => java.util.Arrays.equals(File(dir.pathAsString + "/" + p).byteArray, bytes)
+        })
+      }
+    }
+  }
+
+  // the versions of a technique name are one object for the law, see `TenantScopedTechniqueWriter.storedTechnique`
+  private def checkTechnique(t: TechniqueArchive)(using cc: ChangeContext): IOResult[Option[TechniqueArchive]] = {
+    for {
+      stored <-
+        QueryContext.asSystem(storedReason)(TenantScopedTechniqueWriter.storedTechnique(techniqueRepo, t.technique.id.name))
+      same   <- if (stored.exists(readable(_))) sameFiles(t) else false.succeed
+      res    <- if (same) None.succeed
+                else {
+                  techniqueCategoryContainer(t.category.mkString("/"))
+                    .flatMap(decide(t.technique, stored.map(s => (s, ())), (), _))
+                    .as(Some(t))
+                }
+    } yield res
+  }
+
   /*
    * Decide every object of the archive, and give back the archive restricted to the objects that are written.
-   * Techniques and their categories are not decided here.
    */
   private def authorize(archive: PolicyArchive, mergePolicy: MergePolicy)(using cc: ChangeContext): IOResult[PolicyArchive] = {
     val catMap = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
@@ -1987,12 +2077,16 @@ class SaveArchiveServicebyRepo(
       visible    <- if (archive.groups.isEmpty) NodeVisibility.Everything.succeed else visibleNodes(using cc.toQC)
       storedRoot <- if (archive.ruleCats.isEmpty && archive.rules.isEmpty) None.succeed
                     else QueryContext.asSystem(storedReason)(roRuleCategoryRepos.getRootCategory()).map(Some(_))
+      techCats   <- archive.techniqueCats.accumulateNEL(checkTechniqueCat(_)).either
+      techniques <- archive.techniques.accumulateNEL(checkTechnique(_)).either
       directives <- archive.directives.accumulateNEL(checkDirective(_, archive)).either
       groupCats  <- archive.groupCats.accumulateNEL(checkGroupCat(_, catMap)).either
       groups     <- archive.groups.accumulateNEL(checkGroup(_, visible)).either
       ruleCats   <- ZIO.foreach(storedRoot)(root => archive.ruleCats.accumulateNEL(checkRuleCategories(_, root))).either
       rules      <- ZIO.foreach(storedRoot)(root => archive.rules.accumulateNEL(checkRule(_, mergePolicy, root))).either
-      refusals    = List(directives, groupCats, groups, ruleCats, rules).flatMap(_.left.toOption.toList.flatMap(_.toList))
+      refusals    = List(techCats, techniques, directives, groupCats, groups, ruleCats, rules).flatMap(
+                      _.left.toOption.toList.flatMap(_.toList)
+                    )
       _          <- NonEmptyList.fromList(refusals) match {
                       case None      => ZIO.unit
                       case Some(nel) =>
@@ -2001,6 +2095,10 @@ class SaveArchiveServicebyRepo(
     } yield {
       def kept[A](r: Either[?, List[Option[A]]]): Chunk[A] = Chunk.fromIterable(r.toOption.toList.flatten.flatten)
       archive
+        .modify(_.techniqueCats)
+        .setTo(kept(techCats))
+        .modify(_.techniques)
+        .setTo(kept(techniques))
         .modify(_.directives)
         .setTo(kept(directives))
         .modify(_.groupCats)
@@ -2024,11 +2122,11 @@ class SaveArchiveServicebyRepo(
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
       toWrite <- authorize(archive, mergePolicy)
-      _       <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
-      _       <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
+      _       <- ZIO.foreach(toWrite.techniqueCats)(saveTechniqueCat(eventMetadata, _))
+      _       <- ZIO.foreach(toWrite.techniques)(saveTechnique(eventMetadata, _))
       // update technique lib, regenerate policies now since we need to have the possible new techniques available
       // for directives below
-      _       <- ZIO.when(archive.techniques.nonEmpty) {
+      _       <- ZIO.when(toWrite.techniques.nonEmpty) {
                    techLibUpdate
                      .update()
                      .toIO

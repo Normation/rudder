@@ -2508,6 +2508,7 @@ object RudderConfigInit {
           new SaveArchiveServicebyRepo(
             techniqueArchiver,
             techniqueReader,
+            techniqueRepository,
             directiveRead.repository,
             directiveWrite.repository,
             groupRead.repository,

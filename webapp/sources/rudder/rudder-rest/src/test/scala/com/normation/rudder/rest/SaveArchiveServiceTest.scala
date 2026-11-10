@@ -155,6 +155,9 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       mockGitConfigRepo.configurationRepositoryRoot / "techniques" / techniqueCategory.mkString("/") / techniqueId.serialize
     val files        = Chunk.fromIterable(
       techniqueDir.collectChildren(!_.isDirectory).map(f => (techniqueDir.relativize(f).toString, f.byteArray)).toList
+    ) :+ (
+      // a technique identical to the stored one is not written: the archive adds a file
+      ("resources/added-by-archive.txt", "added".getBytes(java.nio.charset.StandardCharsets.UTF_8))
     )
 
     PolicyArchive
@@ -168,7 +171,8 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
                 TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException("test"))
               ),
               "technique with blocks",
-              TechniqueType.Yaml
+              TechniqueType.Yaml,
+              None
             ),
             techniqueCategory,
             files
@@ -215,6 +219,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       null,
       null,
       null,
+      null,
       ruleCategoryRepo,
       ruleCategoryRepo,
       null,
@@ -235,6 +240,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
     val archiveSaver = new SaveArchiveServicebyRepo(
       mockTechniques.techniqueArchiver,
       mockTechniques.techniqueReader,
+      mockTechniques.techniqueRepo,
       null,
       null,
       null,

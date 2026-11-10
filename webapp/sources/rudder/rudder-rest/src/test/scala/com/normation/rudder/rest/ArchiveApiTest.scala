@@ -140,7 +140,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
           TechniqueVersion.parse("3.0").getOrElse(throw new IllegalArgumentException("test"))
         ),
         "clock configuration",
-        TechniqueType.Metadata
+        TechniqueType.Metadata,
+        None
       ),
       Chunk("systemSettings", "misc"),
       Chunk(("clockConfiguration.st", a), ("metadata.xml", a), ("resources/something.txt", a))
@@ -347,7 +348,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         .getOrElse(throw new IllegalArgumentException("test"))
 
       // during import, we are actually migrating to Yaml
-      val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Yaml)
+      val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Yaml, tech.security)
 
       val directive = restTestSetUp.mockDirectives.directiveRepo
         .getDirective(
@@ -811,7 +812,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         )
       )
       .getOrElse(throw new IllegalArgumentException("test"))
-    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata, tech.security)
 
     (p.techniques(0).technique must beEqualTo(techInfo))
     (p.directives(0).directive must beEqualTo(dir1))
@@ -851,7 +852,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .getOrElse(throw new IllegalArgumentException("test"))
       .copy(name = "Time settings updated")
 
-    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata, tech.security)
 
     val dir1 = restTestSetUp.mockDirectives.directiveRepo
       .getDirective(DirectiveUid("directive1"))
@@ -957,7 +958,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         )
       )
       .getOrElse(throw new IllegalArgumentException("test"))
-    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata, tech.security)
 
     val dir1  = restTestSetUp.mockDirectives.directiveRepo
       .getDirective(DirectiveUid("directive1"))
