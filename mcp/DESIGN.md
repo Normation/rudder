@@ -39,6 +39,12 @@ server. It is being built in small steps; this page describes what exists today.
 
 ## Tools
 
+**The tools are not a stable interface.** Their names, arguments and answers will change as we
+learn what serves the models and their users: tools may be added, merged, split or removed, and
+fields renamed or dropped, without deprecation. Their consumers are models reading the tool
+descriptions at each connection, not programs: nothing should be built on their exact shape.
+Scripts and integrations should use the Rudder API, which is the stable interface.
+
 Tools answer compact JSON, Rudder's data passed through where possible: new fields come through
 without a change here, and the field names carry the meaning. Plain text is kept for summaries
 of data too large to send whole (e.g. compliance), where size matters more than shape.
@@ -56,6 +62,49 @@ every failed one, as each can need a different right.
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
+- `node_info`: a node's configuration and inventory. Not its runtime state (compliance,
+  reports).
+  - **Lookup**: the node is designated as below. `GET /nodes/{id}` for an id, `GET /nodes`
+    searching the exact hostname otherwise. That search returns the node itself, so there is no
+    extra call to resolve it.
+  - **Default content**: Rudder's default level (OS, IP addresses, RAM, policy server, agent,
+    policy mode, properties, state, dates), passed through minus what only costs context: the
+    internal machine id, the agent capabilities, the `Missing version` placeholder.
+  - **Other sections** (`details`): on request, by their Rudder API name rather than from a
+    closed list, as they change with Rudder versions and Rudder ignores unknown names. Refused:
+    - names that are not plain (a `,` would add other `include` values);
+    - the detail levels (`full` is every section);
+    - `managementTechnologyDetails` (the agent's certificate and user).
+  - **Software** (`software`): only filtered by name, as the full list is large. The filter is
+    non-empty, and also brings the matching updates (Rudder only sends them with the software).
+    Matching more than 100 packages is an error asking for a narrower filter.
+  - **Policy mode**: `policyMode` is resolved to the mode that applies, with `policyModeSource`
+    (`node`, `global`, or `forced` when the global mode is not overridable). It comes from the
+    two global settings read alongside the node (`node_read` is enough for them). If they can't be
+    read (e.g. an ACL token without their paths), the node is still answered, with Rudder's raw
+    `policyMode` and the reason in `policyModeUnresolved`: one field is not worth failing the
+    whole answer.
+
+### Designating a node
+
+Users name nodes by hostname, Rudder by id. Every tool working on a node takes a single `node`
+argument accepting either, resolved the same way:
+
+- **A UUID (any case) or `root`** (the Rudder server) is a node id, used as is in the API path.
+- **Anything else is a hostname**, matched exactly against the inventory hostname (usually fully
+  qualified) with a node search (`GET /nodes`, `nodeHostname` `eq`), which includes the Rudder
+  server and relays (`select=nodeAndPolicyServer`). Tools needing an id pay one extra call.
+- **No match, or several**, is a tool error telling the model what to give instead: the exact
+  hostname, or one of the matching nodes' ids.
+- **A hostname matching no node** gets a second search for the usual near misses: hostnames with
+  the same first label, in any case and domain (`regex` `(?i)<label>(\..*)?`, `include=minimal`),
+  e.g. `web1` for `web1.example.com`. The error lists up to 10 of them with their ids, for the
+  model to retry with. Only labels of hostname characters (`[A-Za-z0-9_-]`) are searched, so no
+  regex syntax from the caller reaches Rudder; a failed search only leaves the list out.
+
+Only ids of that shape reach the URL path; a hostname is always an encoded query value, so no
+input can reach another endpoint. The cost: a node with a non-UUID id (other than `root`) can
+only be designated by its hostname.
 
 ### Rudder rights
 
@@ -65,7 +114,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 - **`acl` API account** (api-authorization plugin): `GET` on each path below, the token check's
   included.
 - **User token** (api-authorization plugin): the owning user needs the rights below. Today
-  `administration_read` and `compliance_read` cover every tool.
+  `administration_read`, `compliance_read` and `node_read` cover every tool.
 - **`none`**: refused at the token check.
 
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
@@ -73,6 +122,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
+| `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
