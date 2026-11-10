@@ -59,9 +59,9 @@ pub mod safe_fs {
         let fd = openat(dir, path, flags, mode)?;
         let stat = fstat(&fd)?;
         let file_type = FileType::from_raw_mode(stat.st_mode);
-        let current_uid = geteuid().as_raw();
 
         if file_type.is_symlink() {
+            let current_uid = geteuid().as_raw();
             if stat.st_uid != 0 && stat.st_uid != current_uid {
                 return Err(SafeFsError::SymLinkNotOwned(stat.st_uid, current_uid));
             }
