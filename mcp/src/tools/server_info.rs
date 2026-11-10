@@ -9,9 +9,7 @@ use rmcp::{handler::server::tool::Extension, tool, tool_router};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use super::{Rudder, caller, tool_error};
-
-const UNEXPECTED: &str = "unexpected Rudder API response";
+use super::{Rudder, UNEXPECTED, caller, tool_error};
 
 #[tool_router(router = server_info_router, vis = "pub(super)")]
 impl Rudder {
@@ -22,9 +20,9 @@ impl Rudder {
     async fn server_info(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
         let api = &caller(&parts)?.api;
         let calls = tokio::join!(
-            api.get("system/info", "administration_read"),
-            api.get("system/status", "administration_read"),
-            api.get("compliance", "compliance_read")
+            api.get("system/info", &[], "administration_read"),
+            api.get("system/status", &[], "administration_read"),
+            api.get("compliance", &[], "compliance_read")
         );
         // Every failure, not only the first: the calls can need different rights
         let (info, status, compliance) = match calls {
