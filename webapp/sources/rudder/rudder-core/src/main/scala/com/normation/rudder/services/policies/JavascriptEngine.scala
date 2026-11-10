@@ -54,7 +54,6 @@ import org.apache.commons.codec.digest.Sha2Crypt
 import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.io.IOAccess
 import org.graalvm.polyglot.proxy.ProxyObject
-import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.syntax.*
@@ -480,24 +479,6 @@ object JsEngine {
 
   final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
 
-    private trait KillingThread {
-
-      /**
-       * Force stop the thread, throws a the ThreadDeath error.
-       *
-       * As explained in Thread#stop(), that method has consequences and
-       * can cause random error in all the object interracting with it
-       * (because monitor released without any protection).
-       * So caller of that method should ensure to 1/ contains
-       * the thread to abort and 2/ clean as best as possible object
-       * which interrected with it.
-       *
-       */
-      @nowarn("msg=deprecated") def abortWithConsequences(): Unit = {
-        Thread.currentThread().stop()
-      }
-    }
-
     // If it's a password, we need to reconstruct the correct password structure
     def reconstructPassword(value: String, isPassword: Boolean): String = {
       if (isPassword) {
@@ -576,7 +557,7 @@ object JsEngine {
      */
     def safeExec[T](name: String)(block: => IOResult[T]): IOResult[T] = {
       // create the callable object
-      val scriptCallable = new Callable[IOResult[T]] with KillingThread() {
+      val scriptCallable = new Callable[IOResult[T]] {
         def call() = {
           try {
             block
@@ -596,33 +577,15 @@ object JsEngine {
             SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
 
           case ex: TimeoutException =>
-            // try to interrupt the thread
-            try {
-              // try to gently terminate the task
-              if (!task.isDone) {
-                task.cancel(true)
-              }
-              if (task.isCancelled || task.isDone) {
-                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
-              } else {
-                // not interrupted - force kill
-                scriptCallable.abortWithConsequences() // that throws TreadDead, the following is never reached
-                Unexpected(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls"
-                ).fail
-              }
-            } catch {
-              case ex: ThreadDeath =>
-                SystemError(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls",
-                  ex
-                ).fail
+            // Interrupting is only a request: a script spinning in pure JS ignores it. A thread can't
+            // be killed (Thread.stop() is unsupported since JDK 20); the script is actually stopped
+            // when its Graal context is closed with `cancelIfExecuting = true` (see `buildContext`).
+            task.cancel(true)
+            Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
 
-              case ex: InterruptedException =>
-                SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
-            }
+          case ex: InterruptedException =>
+            task.cancel(true)
+            SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
         }
       } catch {
         case ex: RejectedExecutionException =>
