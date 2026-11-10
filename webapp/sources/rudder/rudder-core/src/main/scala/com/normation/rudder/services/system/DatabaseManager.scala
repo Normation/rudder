@@ -41,10 +41,10 @@ import com.normation.box.*
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
+import java.time.Duration
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import scala.concurrent.duration.Duration
 
 sealed trait DeleteCommand {
   def date: DateTime

@@ -39,6 +39,7 @@ package com.normation.rudder.campaigns
 
 import com.normation.errors.*
 import com.normation.utils.DateFormaterService
+import java.time.Duration
 import org.joda.time.DateTime
 import zio.ZIO
 import zio.json.DecoderOps
@@ -118,7 +119,6 @@ object CampaignSerializer {
       case SecondLast => -2
     }
   })
-  import scala.concurrent.duration.*
   implicit val durationEncoder:         JsonEncoder[Duration]                = JsonEncoder[Long].contramap(_.toMillis)
   implicit val statusInfoEncoder:       JsonEncoder[CampaignStatus]          = DeriveJsonEncoder.gen
   implicit val time:                    JsonEncoder[Time]                    = DeriveJsonEncoder.gen
@@ -157,7 +157,7 @@ object CampaignSerializer {
     }
   })
 
-  implicit val durationDecoder:     JsonDecoder[Duration]         = JsonDecoder[Long].map(_.millis)
+  implicit val durationDecoder:     JsonDecoder[Duration]         = JsonDecoder[Long].map(Duration.ofMillis)
   implicit val statusInfoDecoder:   JsonDecoder[CampaignStatus]   = DeriveJsonDecoder.gen
   implicit val timeDecoder:         JsonDecoder[Time]             = DeriveJsonDecoder.gen
   implicit val dayTimeDecoder:      JsonDecoder[DayTime]          = DeriveJsonDecoder.gen

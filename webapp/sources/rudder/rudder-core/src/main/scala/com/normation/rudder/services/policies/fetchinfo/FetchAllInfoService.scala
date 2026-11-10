@@ -78,7 +78,6 @@ import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.utils.ParseMaxParallelism
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.syntax.*
 
@@ -231,7 +230,7 @@ class FetchAllInfoServiceImpl(
       maxParallelism             =
         ParseMaxParallelism(getMaxPar, 1, "rudder_generation_max_parallelism", (s: String) => PolicyGenerationLogger.warn(s))
       getJsTimeout              <- getJsTimeout().catchAll(_ => 5.succeed)
-      jsTimeout                  = FiniteDuration(Math.max(1L, getJsTimeout.toLong), TimeUnit.SECONDS)
+      jsTimeout                  = Math.max(1L, getJsTimeout.toLong).seconds
       generationContinueOnError <- getGenerationContinueOnError().catchAll(_ => false.succeed)
       _                         <-
         PolicyGenerationLoggerPure.debug(
@@ -239,7 +238,7 @@ class FetchAllInfoServiceImpl(
         )
       _                         <-
         PolicyGenerationLoggerPure.debug(
-          s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')"
+          s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout.toSeconds} s (change with REST API settings parameter 'rudder_generation_jsTimeout')"
         )
       _                         <-
         PolicyGenerationLoggerPure.debug(

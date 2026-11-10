@@ -61,9 +61,9 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowUpdate
+import com.normation.utils.DurationUtils
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import scala.concurrent.duration.Duration
 import zio.*
 import zio.syntax.*
 
@@ -490,13 +490,8 @@ class GenericConfigService(
     }
   }
 
-  implicit private def toDuration(p: RudderWebProperty): IOResult[Duration] = {
-    try {
-      Duration(p).succeed
-    } catch {
-      case ex: Exception => Inconsistency(ex.getMessage).fail
-    }
-  }
+  implicit private def toDuration(p: RudderWebProperty): IOResult[Duration] =
+    ZIO.fromEither(DurationUtils.parse(p)).mapError(msg => Inconsistency(msg))
 
   implicit private def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {
     PolicyGenerationTrigger.parse(p).toIO
