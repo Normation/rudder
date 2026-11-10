@@ -2,7 +2,9 @@
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
 post:
   summary: Import a ZIP archive of policies into Rudder
-  description: Import a ZIP archive of techniques, directives, groups and rules in a saved in a normalized format into Rudder
+  description: >-
+    Import a ZIP archive of techniques, directives, groups and rules in a saved in a normalized format into Rudder.
+    The archive is imported entirely or not at all: every object it changes must be writable by the account (see Multi-tenancy).
   operationId: import
   requestBody:
     content:

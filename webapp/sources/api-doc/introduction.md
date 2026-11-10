@@ -79,6 +79,12 @@ with no tenant can not create objects.
 A change request is visible only if every object it changes is visible, and acting on it (validate, deploy, decline...)
 requires write access on every object it changes. Restoring archives is reserved to accounts with access to all tenants.
 
+A ZIP archive export only contains what the account can see: an object requested by id that it can not see is a
+"not found" error, a dependency it can not see is left out, and a group lists only the nodes the account sees. A ZIP
+archive import is checked as a whole before anything is written: if one object of the archive can not be written by the
+account, the import is refused with the list of every refused object, and nothing is imported. An object identical to
+what the account sees is not written, so it needs no write access: an account can import back its own export.
+
 When the `multi-tenants` plugin is not enabled, an API account with a list of tenants is handled like an account with no
 tenant, and it only sees open objects.
 
