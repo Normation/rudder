@@ -148,11 +148,14 @@ impl IntoResponse for TokenRejection {
 /// Checks the token with Rudder. Fails closed: a token that cannot be checked is refused.
 #[tracing::instrument(name = "token_check", skip_all)]
 async fn check_token(api: &CallerApi) -> Result<ApiAccount, TokenRejection> {
-    let response = api.send(Method::GET, TOKEN_CHECK_PATH).await.map_err(|e| {
-        // `{:#}` shows the cause chain, e.g. a refused connection
-        tracing::warn!("{e:#}");
-        TokenRejection::Unverifiable
-    })?;
+    let response = api
+        .send(Method::GET, TOKEN_CHECK_PATH, &[])
+        .await
+        .map_err(|e| {
+            // `{:#}` shows the cause chain, e.g. a refused connection
+            tracing::warn!("{e:#}");
+            TokenRejection::Unverifiable
+        })?;
     match response.status() {
         status if status.is_success() => {
             // A 2xx without an account means the API changed: nobody to attribute the request to

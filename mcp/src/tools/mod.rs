@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! The MCP server and its tools, one module per tool.
+//! The MCP server and its tools, one module per tool, plus what several share (`policy_mode`).
 //!
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
 
+mod node_info;
+mod policy_mode;
 mod server_info;
 mod whoami;
 
@@ -26,7 +28,7 @@ pub struct Rudder;
 impl Rudder {
     /// Each tool module has its own router
     fn tool_router() -> ToolRouter<Self> {
-        Self::whoami_router() + Self::server_info_router()
+        Self::whoami_router() + Self::server_info_router() + Self::node_info_router()
     }
 }
 
@@ -44,6 +46,9 @@ fn caller(parts: &Parts) -> Result<&Caller, String> {
         .get::<Caller>()
         .ok_or_else(|| "no caller in request".to_owned())
 }
+
+/// Context of the errors on a Rudder answer that does not have the expected shape: the API changed
+const UNEXPECTED: &str = "unexpected Rudder API response";
 
 /// A failed tool call, shown to the model as the tool result: e.g. a 403 when the caller lacks
 /// the right, so it can tell the user
