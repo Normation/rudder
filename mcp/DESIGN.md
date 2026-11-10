@@ -62,23 +62,28 @@ every failed one, as each can need a different right.
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
-- `node_info` (`GET /nodes/{id}`, or `GET /nodes` searching the exact hostname): a node's
-  configuration and inventory, Rudder's default level (OS, IP addresses, RAM, policy server, agent,
-  policy mode, properties, state, dates), passed through minus what only costs context (the internal
-  machine id, the agent capabilities, the `Missing version` placeholder). Other inventory sections
-  on request (`details`), by their Rudder API name and not from a closed list: they change with
-  Rudder versions, and Rudder ignores unknown names. Only plain names are accepted (a `,` would add
-  other `include` values), and neither the detail levels (`full` is every section) nor
-  `managementTechnologyDetails` (the agent's certificate and user). The software only comes filtered
-  by name (`software`, non-empty, with the matching updates, which Rudder only sends with the
-  software), as the full list is large; a filter matching more than 100 packages is an error asking
-  for a narrower one. `policyMode` is resolved to the mode that applies, with `policyModeSource`
-  (`node`, `global`, or `forced` when the global mode is not overridable), from the global settings
-  read alongside the node (`node_read` is enough for these two settings). Without them (e.g. an ACL
-  token without their paths), the node is still answered, with Rudder's raw `policyMode` and the
-  reason in `policyModeUnresolved`: the mode is one field, not worth failing the whole answer. Its
-  runtime state (compliance, reports) is not there. The node is designated as below; the hostname
-  search returns the node itself, so no extra call to resolve it.
+- `node_info`: a node's configuration and inventory. Not its runtime state (compliance,
+  reports).
+  - **Lookup**: the node is designated as below. `GET /nodes/{id}` for an id, `GET /nodes`
+    searching the exact hostname otherwise. That search returns the node itself, so there is no
+    extra call to resolve it.
+  - **Default content**: Rudder's default level (OS, IP addresses, RAM, policy server, agent,
+    policy mode, properties, state, dates), passed through minus what only costs context: the
+    internal machine id, the agent capabilities, the `Missing version` placeholder.
+  - **Other sections** (`details`): on request, by their Rudder API name rather than from a
+    closed list, as they change with Rudder versions and Rudder ignores unknown names. Refused:
+    - names that are not plain (a `,` would add other `include` values);
+    - the detail levels (`full` is every section);
+    - `managementTechnologyDetails` (the agent's certificate and user).
+  - **Software** (`software`): only filtered by name, as the full list is large. The filter is
+    non-empty, and also brings the matching updates (Rudder only sends them with the software).
+    Matching more than 100 packages is an error asking for a narrower filter.
+  - **Policy mode**: `policyMode` is resolved to the mode that applies, with `policyModeSource`
+    (`node`, `global`, or `forced` when the global mode is not overridable). It comes from the
+    two global settings read alongside the node (`node_read` is enough for them). If they can't be
+    read (e.g. an ACL token without their paths), the node is still answered, with Rudder's raw
+    `policyMode` and the reason in `policyModeUnresolved`: one field is not worth failing the
+    whole answer.
 
 ### Designating a node
 
