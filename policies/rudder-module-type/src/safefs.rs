@@ -69,8 +69,7 @@ pub mod safe_fs {
             return Ok(fd);
         }
 
-        let mode = Mode::from_raw_mode(stat.st_mode);
-        if mode.contains(Mode::WOTH) {
+        if stat.st_mode & 0o002 != 0 {
             return Err(SafeFsError::PathIsWorldWritable(stat.st_mode));
         }
 
@@ -81,56 +80,6 @@ pub mod safe_fs {
         let fd = walk(path)?;
         Ok(File::from(fd))
     }
-
-    // fn walk<P: AsRef<Path>>(path: P) -> Result<OwnedFd, SafeFsError> {
-    //     let perms: Mode = 0o700.into();
-    //
-    //     let mut components = path.as_ref().components().peekable();
-    //     let mut dir: OwnedFd = if let Some(Component::RootDir) = components.peek() {
-    //         components.next();
-    //         open_at(CWD, "/", OFlags::PATH | OFlags::DIRECTORY, perms)?
-    //     } else {
-    //         open_at(CWD, ".", OFlags::PATH | OFlags::DIRECTORY, perms)?
-    //     };
-    //
-    //     // TODO: rewrite with a stack
-    //     while let Some(comp) = components.next() {
-    //         let name = match comp {
-    //             Component::Normal(n) => n,
-    //             Component::CurDir => continue,
-    //             Component::ParentDir => {
-    //                 panic!("'..' not allowed");
-    //             }
-    //             Component::RootDir | Component::Prefix(_) => {
-    //                 panic!("unexpected path component");
-    //             }
-    //         };
-    //
-    //         if components.peek().is_some() {
-    //             dir = open_at(&dir, name, OFlags::PATH | OFlags::NOFOLLOW, perms)?;
-    //         } else {
-    //             let fd = open_at(
-    //                 &dir,
-    //                 name,
-    //                 OFlags::RDWR
-    //                     | OFlags::NOFOLLOW
-    //                     | OFlags::NOCTTY
-    //                     | OFlags::NONBLOCK
-    //                     | OFlags::CLOEXEC,
-    //                 perms,
-    //             )?;
-    //
-    //             let stat = fstat(&fd)?;
-    //             let file_type = FileType::from_raw_mode(stat.st_mode);
-    //             if !file_type.is_file() {
-    //                 panic!("not a regular file");
-    //             }
-    //             return Ok(fd);
-    //         }
-    //     }
-    //
-    //     panic!("path has no file name");
-    // }
 
     fn walk<P: AsRef<Path>>(path: P) -> Result<OwnedFd, SafeFsError> {
         let path = path.as_ref();
