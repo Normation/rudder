@@ -1,3 +1,4 @@
+#[cfg(not(windows))]
 pub mod safe_fs {
     use std::{
         fmt::{self, Display},
