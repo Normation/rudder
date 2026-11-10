@@ -17,6 +17,9 @@ pub mod safe_fs {
     pub enum SafeFsError {
         SymLinkNotOwned(u32, u32),
         PathIsWorldWritable(PathBuf, u32),
+        PathHasNoFilename(PathBuf),
+        NotFile(PathBuf),
+        InvalidPathComponent(PathBuf),
         Io(std::io::Error),
     }
 
@@ -37,6 +40,15 @@ pub mod safe_fs {
                     )
                 }
                 SafeFsError::Io(err) => write!(f, "{err}"),
+                SafeFsError::PathHasNoFilename(path) => {
+                    write!(f, "path '{path:?}' has no filename")
+                }
+                SafeFsError::NotFile(path) => {
+                    write!(f, "'{path:?}' already exists and is not a regular file")
+                }
+                SafeFsError::InvalidPathComponent(path) => {
+                    write!(f, "invalid path component: '{path:?}'")
+                }
             }
         }
     }
@@ -90,18 +102,19 @@ pub mod safe_fs {
         let path = path.as_ref();
         let perms: Mode = 0o700.into();
 
-        let names: Vec<&OsStr> = path
+        let names = path
             .components()
             .filter_map(|comp| match comp {
-                Component::Normal(name) => Some(name),
+                Component::Normal(name) => Some(Ok(name)),
                 Component::CurDir | Component::RootDir => None,
-                Component::ParentDir => panic!("'..' not allowed"),
-                Component::Prefix(_) => panic!("unexpected path component"),
+                Component::ParentDir | Component::Prefix(_) => {
+                    Some(Err(SafeFsError::InvalidPathComponent(path.to_owned())))
+                }
             })
-            .collect();
+            .collect::<Result<Vec<&OsStr>, _>>()?;
 
         let Some((file_name, dir_names)) = names.split_last() else {
-            panic!("path has no file name");
+            return Err(SafeFsError::PathHasNoFilename(path.to_owned()));
         };
 
         let start = if path.has_root() { "/" } else { "." };
@@ -119,7 +132,7 @@ pub mod safe_fs {
         )?;
 
         if !FileType::from_raw_mode(fstat(&fd)?.st_mode).is_file() {
-            panic!("not a regular file");
+            return Err(SafeFsError::NotFile(path.to_owned()));
         }
         Ok(fd)
     }
