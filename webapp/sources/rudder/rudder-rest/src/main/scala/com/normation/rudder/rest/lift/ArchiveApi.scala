@@ -82,6 +82,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
@@ -109,9 +110,11 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -456,10 +459,15 @@ class ZipArchiveBuilderService(
     ruleRepo:               RoRuleRepository,
     ruleCategoryRepo:       RoRuleCategoryRepository,
     directiveRepo:          RoDirectiveRepository,
-    techniqueRepo:          TechniqueRepository
+    techniqueRepo:          TechniqueRepository,
+    nodeFactRepo:           NodeFactRepository,
+    checkTenant:            TenantCheckLogic
 ) {
 
   import ZipArchiveBuilderService.*
+
+  // utility to use in pattern matching
+  private def isReadable[A: HasSecurityTag](a: A)(using QueryContext): Boolean = checkTenant.check(a).isDefined
 
   /*
    * get the content of the JSON string in the format expected by Zippable
@@ -541,7 +549,7 @@ class ZipArchiveBuilderService(
   def getTechniqueCategoryZippable(
       techniquesDir: String,
       cats:          Seq[(Chunk[TechniqueCategoryName], TechniqueVersion)]
-  ): IOResult[Seq[Zippable]] = {
+  )(using QueryContext): IOResult[Seq[Zippable]] = {
     for {
       ref   <- Ref.Synchronized.make(Map[String, Zippable]())
       _     <- ZIO.foreachDiscard(cats.distinctBy(_._1)) {
@@ -564,12 +572,13 @@ class ZipArchiveBuilderService(
                        if (m.contains(filePathJson)) m.succeed // if category.json is here, by construction its parent dir is, too
                        else {
                          techniqueRevisionRepo.getTechniqueCategoryMetadata(p, v.rev).map {
-                           case None       => m
-                           case Some(data) =>
+                           case Some(data) if isReadable(data) =>
                              m + (dirPath -> Zippable(dirPath, None)) + (filePathJson -> Zippable(
                                filePathJson,
                                Some(getJsonZippableContent(data.toJsonPretty))
                              ))
+                           // absent, or not readable by the query context
+                           case _                              => m
                          }
                        }
                      }
@@ -624,13 +633,13 @@ class ZipArchiveBuilderService(
     }
   }
 
-  def getRuleCatZippable(ids: Set[RuleCategoryId], root: String): IOResult[Seq[Zippable]] = {
+  def getRuleCatZippable(ids: Set[RuleCategoryId], root: String)(using qc: QueryContext): IOResult[Seq[Zippable]] = {
     val path = root + "/" + RULE_CATS
     if (ids.isEmpty) {
       Seq().succeed
     } else {
       ruleCategoryRepo
-        .getRootCategory()(using QueryContext.systemQC)
+        .getRootCategory()
         .map(_.transformInto[JRuleCategories].keepInHierarchy(ids).toJsonPretty)
         .map(json => List(Zippable(path, Some(getJsonZippableContent(json)))))
     }
@@ -641,11 +650,12 @@ class ZipArchiveBuilderService(
    * (ie first categories from root to leaves, then groups)
    */
   def getGroupLibZippable(
-      ids:         Seq[NodeGroupId],
-      groupsDir:   String,
-      usedNames:   Ref[Map[String, Set[String]]],
-      rootDirName: String,
-      groupLib:    FullNodeGroupCategory
+      ids:          Seq[NodeGroupId],
+      groupsDir:    String,
+      usedNames:    Ref[Map[String, Set[String]]],
+      rootDirName:  String,
+      groupLib:     FullNodeGroupCategory,
+      visibleNodes: NodeVisibility
   )(using qc: QueryContext): IOResult[Seq[Zippable]] = {
 
     import com.softwaremill.quicklens.*
@@ -720,8 +730,7 @@ class ZipArchiveBuilderService(
         // we only archive non-system NodeGroups, other kind of special targets are ignored
         groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
-                   // archive export is an admin/system operation: no tenant node filtering
-                   val json = JRGroup.fromGroup(g, cat.id, None, NodeVisibility.Everything).toJsonPretty
+                   val json = JRGroup.fromGroup(g, cat.id, None, visibleNodes).toJsonPretty
                    for {
                      name <- findName(g.name, ".json", usedNames, basePath)
                      path  = basePath + "/" + name
@@ -742,7 +751,7 @@ class ZipArchiveBuilderService(
     recFilter(allIds, groupLib) match {
       case None      => if (ids.isEmpty) Nil.succeed else missingGroups(ids)
       case Some(cat) =>
-        val missing = cat.allGroups.keySet -- ids
+        val missing = allIds.toSet -- cat.allGroups.keySet
         if (missing.nonEmpty) missingGroups(missing)
         else {
           recMapToZippable(groupsDir, cat, GROUP_CAT_WITHOUT_EXT, usedNames)
@@ -753,6 +762,10 @@ class ZipArchiveBuilderService(
   /*
    * Prepare the archive.
    * `rootDirName` is supposed to be normalized, no change will be done with it.
+   * We archive only what the query context can read:
+   *  - an object requested by id that it can not read is an error,
+   *  - a missing one is an error,
+   *  - a dependency that can not be read is ignored.
    * Any missing object will lead to an error.
    * For each element, a human-readable name derived from the object name is used when possible.
    *
@@ -821,12 +834,16 @@ class ZipArchiveBuilderService(
       groupsDir        = root + "/" + GROUPS_DIR
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
-      allGroupIDs     <- if (groupIds.contains(SpecialExportAll.allGroups))
-                           groupRepo.getAll().map(_.collect { case g if !g.isSystem => g.id })
-                         else (if (includeDepGroups) depGroupIds.get else Nil.succeed).map(_ ++ groupIds)
       groupLib        <- groupRepo.getFullGroupLibrary()
+      allGroupIDs     <- if (groupIds.contains(SpecialExportAll.allGroups)) {
+                           groupRepo.getAll().map(_.collect { case g if !g.isSystem => g.id })
+                         } else {
+                           (if (includeDepGroups) depGroupIds.get else Nil.succeed)
+                             .map(deps => deps.filter(groupLib.allGroups.contains) ++ groupIds)
+                         }
+      visibleNodes    <- nodeFactRepo.getVisibleNodes()
       groupDir         = root + "/" + GROUPS_DIR
-      groupsZip       <- getGroupLibZippable(allGroupIDs, groupDir, usedNames, rootDirName, groupLib)
+      groupsZip       <- getGroupLibZippable(allGroupIDs, groupDir, usedNames, rootDirName, groupLib, visibleNodes)
       // directives need access to technique, but we don't want to look up several time the same one
       techniques      <- Ref.Synchronized.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
 
@@ -841,12 +858,14 @@ class ZipArchiveBuilderService(
                                case (_, (fat, d)) if !d.isSystem => ActiveDirective(fat.toActiveTechnique(), d)
                              })
                          } else {
-                           ZIO
-                             .foreach(directiveIds ++ depDirectives) { directiveId =>
-                               configRepo
-                                 .getDirective(directiveId)
-                                 .notOptional(s"Directive with id ${directiveId.serialize} was not found in Rudder")
-                             }
+                           for {
+                             requested <- ZIO.foreach(directiveIds) { directiveId =>
+                                            configRepo
+                                              .getDirective(directiveId)
+                                              .notOptional(s"Directive with id ${directiveId.serialize} was not found in Rudder")
+                                          }
+                             deps      <- ZIO.foreach(depDirectives)(configRepo.getDirective(_))
+                           } yield requested ++ deps.flatten
                          }
       directivesZip   <- ZIO
                            .foreach(directives) { ad =>
@@ -869,10 +888,23 @@ class ZipArchiveBuilderService(
       // Techniques don't need name normalization, their name is already normalized
       techniquesDir    = root + "/" + TECHNIQUES_DIR
       techniquesDirZip = Zippable(techniquesDir, None)
-      allTechIds      <- if (techniqueIds.contains(SpecialExportAll.allTechniques))
-                           techniqueRepo.getAll().collect { case (id, t) if (t.policyTypes == PolicyTypes.rudderBase) => id }.succeed
-                         else (if (includeDepTechniques) techniques.get.map(_.keys) else Nil.succeed).map(_ ++ techniqueIds)
-      allTech         <- ZIO.foreach(allTechIds)(techniqueId => getTechnique(techniqueId, techniques))
+      // directives were serialized with their technique even when it is not readable, only the archived
+      // techniques are filtered
+      allTech         <- if (techniqueIds.contains(SpecialExportAll.allTechniques)) {
+                           ZIO.foreach(techniqueRepo.getAll().collect {
+                             case (id, t) if (t.policyTypes == PolicyTypes.rudderBase && isReadable(t)) => id
+                           })(getTechnique(_, techniques))
+                         } else {
+                           for {
+                             deps      <- if (includeDepTechniques) techniques.get.map(_.values.filter(t => isReadable(t._2)))
+                                          else Nil.succeed
+                             requested <- ZIO.foreach(techniqueIds) { id =>
+                                            getTechnique(id, techniques).filterOrElse(t => isReadable(t._2))(
+                                              Inconsistency(s"Technique with id ${id.serialize} was not found in Rudder").fail
+                                            )
+                                          }
+                           } yield deps ++ requested
+                         }
       // start by zipping categories after having dedup them
       techCats         = allTech.collect { case (c, t) => (c, t.id.version) }.toSeq
       techCatsZip     <- getTechniqueCategoryZippable(techniquesDir, techCats)
