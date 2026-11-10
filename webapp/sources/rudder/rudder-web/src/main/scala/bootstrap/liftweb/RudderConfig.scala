@@ -2518,7 +2518,9 @@ object RudderConfigInit {
             ruleCategoryWrite.repository,
             updateTechniqueLibrary,
             asyncDeploymentAgent,
-            stringUuidGenerator
+            stringUuidGenerator,
+            tenantCheckLogic,
+            nodeFactRepository.getVisibleNodes()
           ),
           new CheckArchiveServiceImpl(techniqueRepository)
         )

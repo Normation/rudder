@@ -70,6 +70,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeVisibility
+import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -110,7 +111,9 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.Container
 import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.NoContainer
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccessGrant
@@ -118,6 +121,7 @@ import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import enumeratum.*
 import io.scalaland.chimney.Iso
 import io.scalaland.chimney.Transformer
@@ -658,8 +662,6 @@ class ZipArchiveBuilderService(
       visibleNodes: NodeVisibility
   )(using qc: QueryContext): IOResult[Seq[Zippable]] = {
 
-    import com.softwaremill.quicklens.*
-
     // filter the group category, keeping only groups from list, then non-empty cat, recursively
     def recFilter(ids: Seq[NodeGroupId], cat: FullNodeGroupCategory): Option[FullNodeGroupCategory] = {
       if (ids.isEmpty) None
@@ -984,8 +986,8 @@ final case class RuleCategoryArchive(
   }
 
   def toRuleCategory: RuleCategory = {
-    // Root RuleCategory is system, so upon transformation the root is system
-    this.transformInto[RuleCategory].copy(isSystem = true)
+    // only the root rule category is system: a category the archive creates or moves is not
+    this.transformInto[RuleCategory].modify(_.isSystem).setTo(id == Constants.ROOT_RULE_CATEGORY)
   }
 }
 object RuleCategoryArchive {
@@ -1086,7 +1088,6 @@ class ZipArchiveReaderImpl(
     cmdbQueryParser: CmdbQueryParser,
     techniqueParser: TechniqueParser
 ) extends ZipArchiveReader {
-  import com.softwaremill.quicklens.*
 
   // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
   val techniqueCatsRegex: Regex = """(.*/|)techniques/(.+category.json)""".r
@@ -1565,7 +1566,10 @@ class SaveArchiveServicebyRepo(
     woRuleCategoryRepos: WoRuleCategoryRepository,
     techLibUpdate:       UpdateTechniqueLibrary,
     asyncDeploy:         SimpleActor[AutomaticStartDeployment],
-    uuidGen:             StringUuidGenerator
+    uuidGen:             StringUuidGenerator,
+    checkTenant:         TenantCheckLogic,
+    // the nodes an actor can see, to compare a stored group with the one of the archive
+    visibleNodes:        QueryContext ?=> IOResult[NodeVisibility]
 ) extends SaveArchiveService {
 
   val GroupRootId = Constants.ROOT_GROUP_CATEGORY
@@ -1649,10 +1653,7 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
 
-  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
-    // archive import is a system-level operation, see all tenants
-    given cc: ChangeContext =
-      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
+  def saveDirective(d: DirectiveArchive)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       at <-
         roDirectiveRepos
@@ -1663,10 +1664,31 @@ class SaveArchiveServicebyRepo(
       _  <- woDirectiveRepos.saveDirective(at.id, d.directive)
     } yield ()
   }
+
+  // the category of a group category of the archive is the one of its parent directory, the root if none
+  private def parentOf(cat: GroupCategoryArchive, catMap: Map[String, NodeGroupCategoryId]): NodeGroupCategoryId = {
+    catMap.get(File(cat.catPath).parent.pathAsString) match {
+      case Some(p) => p
+      case None    => GroupRootId
+    }
+  }
+
+  // the archive does not hold the tag of a group category: an update keeps it, a creation gets the actor's one
+  private def toGroupCategory(cat: GroupCategoryArchive)(using cc: ChangeContext): NodeGroupCategory = {
+    NodeGroupCategory(
+      NodeGroupCategoryId(cat.category.id),
+      cat.category.name,
+      cat.category.description,
+      Nil,
+      Nil,
+      isSystem = false,
+      security = cc.accessGrant.restrictToWrite.toSecurityTag
+    )
+  }
+
   def saveGroupCat(
-      eventMetadata: EventMetadata,
-      cat:           GroupCategoryArchive,
-      catMap:        Map[String, NodeGroupCategoryId]
+      cat:    GroupCategoryArchive,
+      catMap: Map[String, NodeGroupCategoryId]
   )(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
       _       <- ApplicationLoggerPure.Archive.debug(s"Adding group category from archive: '${cat.category.name}' (${cat.category.id})")
@@ -1674,21 +1696,9 @@ class SaveArchiveServicebyRepo(
        * Categories are sorted by parents-first in the archive, so we are sure at that
        * point that at least all parents exists. But perhaps not that one.
        */
-      id       = NodeGroupCategoryId(cat.category.id)
-      exists  <- roGroupRepos.categoryExists(id)(using cc.toQC)
-      parentId = catMap.get(File(cat.catPath).parent.pathAsString) match {
-                   case Some(p) => p
-                   case None    => GroupRootId
-                 }
-      category = NodeGroupCategory(
-                   id,
-                   cat.category.name,
-                   cat.category.description,
-                   Nil,
-                   Nil,
-                   isSystem = false,
-                   security = cc.accessGrant.restrictToWrite.toSecurityTag
-                 )
+      category = toGroupCategory(cat)
+      exists  <- roGroupRepos.categoryExists(category.id)(using cc.toQC)
+      parentId = parentOf(cat, catMap)
       _       <- if (exists) {
                    woGroupRepos.saveGroupCategory(category, parentId)
                  } else {
@@ -1697,7 +1707,7 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
 
-  def saveGroup(g: GroupArchive)(implicit cc: ChangeContext):                    IOResult[Unit] = {
+  def saveGroup(g: GroupArchive)(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       // normally, at that point the category of the group exists because we took care to create them before.
@@ -1733,19 +1743,21 @@ class SaveArchiveServicebyRepo(
            }
     } yield ()
   }
-  def saveRuleCategory(eventMetadata: EventMetadata, r: RuleCategoryArchive):    IOResult[Unit] = {
-    // archive import is a system-level operation, see all tenants
-    given cc: ChangeContext =
-      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
+
+  // a category of the archive is written when it is new or when its parents changed
+  private def hasSameParents(stored: RuleCategory, archived: RuleCategory, id: RuleCategoryId): Boolean = {
+    stored.findParents(id).map(_.map(_.id)) == archived.findParents(id).map(_.map(_.id))
+  }
+
+  def saveRuleCategory(r: RuleCategoryArchive)(using cc: ChangeContext): IOResult[Unit] = {
     roRuleCategoryRepos.getRootCategory()(using cc.toQC).flatMap { root =>
       val newRoot  = r.toRuleCategory
       val parents  = r.parentCategories
       val children = r.childCategories
       def recSave(c: RuleCategoryArchive, created: Ref[Set[RuleCategoryId]]): IOResult[Unit] = {
-        def needsCreate    = !root.contains(c.id) && newRoot.contains(c.id)
-        val hasSameParents = root.findParents(c.id).map(_.map(_.id)) == newRoot.findParents(c.id).map(_.map(_.id))
-        def alreadyExists  = (id: RuleCategoryId) => created.get.map(_.contains(id))
-        if (c.id == root.id || hasSameParents) {
+        def needsCreate   = !root.contains(c.id) && newRoot.contains(c.id)
+        def alreadyExists = (id: RuleCategoryId) => created.get.map(_.contains(id))
+        if (c.id == root.id || hasSameParents(root, newRoot, c.id)) {
           ZIO.unit
         } else {
           // create starting from the greatest parent
@@ -1776,62 +1788,262 @@ class SaveArchiveServicebyRepo(
       } yield ()
     }
   }
-  def saveRule(eventMetadata: EventMetadata, mergePolicy: MergePolicy, r: Rule): IOResult[Unit] = {
-    // archive import is a system-level operation, see all tenants
-    given cc: ChangeContext =
-      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
+
+  // if merge policy asks for that, the rule keeps the stored targets, so that it uses the groups meaning
+  // something in that instance
+  private def ruleToSave(r: Rule, stored: Option[Rule], mergePolicy: MergePolicy): Rule = {
+    stored match {
+      case Some(s) if (mergePolicy == MergePolicy.KeepRuleTargets || mergePolicy == MergePolicy.IgnoreSourceTargets) =>
+        r.modify(_.targets).setTo(s.targets)
+      case None if (mergePolicy == MergePolicy.IgnoreSourceTargets)                                                  =>
+        r.modify(_.targets).setTo(Set())
+      case _                                                                                                         => r
+    }
+  }
+
+  def saveRule(mergePolicy: MergePolicy, r: Rule)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
       x <- roRuleRepos.getOpt(r.id)(using cc.toQC)
       _ <- x match {
-             case Some(value) =>
-               // if merge policy asks for that, update rule from archive with existing groups before saving so
-               // that the rules use the actual groups meaning something in that instance.
-               val ruleToSave = {
-                 if (mergePolicy == MergePolicy.KeepRuleTargets || mergePolicy == MergePolicy.IgnoreSourceTargets) {
-                   r.copy(targets = value.targets)
-                 } else r
-               }
-               woRuleRepos.update(ruleToSave)
-             case None        =>
-               val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceTargets) {
-                 r.copy(targets = Set())
-               } else r
-               woRuleRepos.create(ruleToSave)
+             case Some(value) => woRuleRepos.update(ruleToSave(r, Some(value), mergePolicy))
+             case None        => woRuleRepos.create(ruleToSave(r, None, mergePolicy))
            }
     } yield ()
+  }
+
+  /*
+   * ----- authorization of a whole archive, before the first write -----
+   *
+   * An archive is imported entirely or not at all: every object it writes is decided by the write law before
+   * anything is written, and the import is refused with every refusal at once.
+   * An object identical to the stored one, as the actor sees it (what an export would give it), is not a
+   * write: it is left out, so that it needs no write right.
+   * The stored objects are the ground truth of the law, so they are read with the system context.
+   */
+
+  // the container an object of the archive goes into
+  private enum ArchiveContainer[C] {
+    // it is stored, and the law checks it
+    case Stored(container: QueryContext => IOResult[C])
+    // it is created by the same archive: that creation is decided on its own, and gives it the actor's tenants
+    case Imported()
+  }
+
+  private def decide[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag, K](
+      saved:  B,
+      stored: Option[(A, K)],
+      key:    K,
+      into:   ArchiveContainer[C]
+  )(using cc: ChangeContext): IOResult[Unit] = {
+    (into match {
+      case ArchiveContainer.Stored(c)  =>
+        checkTenant.decideSaveAndMove[A, B, C, K](saved, stored.succeed, key, c(summon[QueryContext]))
+      case ArchiveContainer.Imported() =>
+        checkTenant.decideSaveAndMove[A, B, NoContainer, K](saved, stored.succeed, key, Container.none)
+    }).unit
+  }
+
+  // the stored object as the actor sees it, which is what an export gives; None when the actor can not read it,
+  // so that an import can not tell the content of an object the actor can not see
+  private def asSeen[A: HasSecurityTag](a: A)(using cc: ChangeContext): Option[A] = {
+    checkTenant
+      .check(a)(using summon[HasSecurityTag[A]], cc.toQC)
+      .map(x => x.updateSecurityContext(cc.accessGrant.visibleSecurityTag(x.security)))
+  }
+
+  private val storedReason = "the stored objects are the ground truth of the write law"
+
+  private def checkDirective(d: DirectiveArchive, archive: PolicyArchive)(using
+      cc: ChangeContext
+  ): IOResult[Option[DirectiveArchive]] = {
+    val inArchive = archive.techniques.exists(_.technique.id.name == d.technique)
+    for {
+      stored <- QueryContext.asSystem(storedReason)(roDirectiveRepos.getActiveTechniqueAndDirective(d.directive.id))
+      at     <- QueryContext.asSystem(storedReason)(roDirectiveRepos.getActiveTechnique(d.technique))
+      into   <- (at, inArchive) match {
+                  case (Some(_), _)  =>
+                    ArchiveContainer
+                      .Stored[ActiveTechnique](qc => {
+                        roDirectiveRepos
+                          .getActiveTechnique(d.technique)(using qc)
+                          .notOptional(s"Technique '${d.technique.value}' of directive '${d.directive.name}' was not found")
+                      })
+                      .succeed
+                  case (None, true)  => ArchiveContainer.Imported[ActiveTechnique]().succeed
+                  case (None, false) =>
+                    Inconsistency(
+                      s"Technique '${d.technique.value}' is used in imported directive ${d.directive.name} but is not in Rudder"
+                    ).fail
+                }
+      res    <- stored match {
+                  case Some((_, s)) if (asSeen(s).contains(d.directive)) => None.succeed
+                  // a directive stays under the active technique of its technique
+                  case _                                                 =>
+                    decide(d.directive, stored.map { case (at, s) => (s, at.techniqueName) }, d.technique, into)
+                      .as(Some(d))
+                }
+    } yield res
+  }
+
+  // the category `id` as a container: stored, or created by the archive
+  private def groupCategoryContainer(id: NodeGroupCategoryId): IOResult[ArchiveContainer[NodeGroupCategory]] = {
+    QueryContext.asSystem(storedReason)(roGroupRepos.categoryExists(id)).map {
+      case true  => ArchiveContainer.Stored[NodeGroupCategory](qc => roGroupRepos.getGroupCategory(id)(using qc))
+      case false => ArchiveContainer.Imported()
+    }
+  }
+
+  private def checkGroupCat(cat: GroupCategoryArchive, catMap: Map[String, NodeGroupCategoryId])(using
+      cc: ChangeContext
+  ): IOResult[Option[GroupCategoryArchive]] = {
+    val category = toGroupCategory(cat)
+    val parentId = parentOf(cat, catMap)
+    for {
+      stored <- QueryContext.asSystem(storedReason) {
+                  roGroupRepos.categoryExists(category.id).flatMap {
+                    case false => None.succeed
+                    case true  =>
+                      roGroupRepos
+                        .getGroupCategory(category.id)
+                        .zip(roGroupRepos.getParentGroupCategory(category.id).map(_.id))
+                        .map(Some(_))
+                  }
+                }
+      res    <- stored match {
+                  case Some((s, p))
+                      if (asSeen(s)
+                        .exists(v => v.name == category.name && v.description == category.description && p == parentId)) =>
+                    None.succeed
+                  case _ =>
+                    groupCategoryContainer(parentId).flatMap(decide(category, stored, parentId, _)).as(Some(cat))
+                }
+    } yield res
+  }
+
+  private def checkGroup(g: GroupArchive, visible: NodeVisibility)(using cc: ChangeContext): IOResult[Option[GroupArchive]] = {
+    def seen(s: NodeGroup): Option[NodeGroup] = asSeen(s).map(_.modify(_.serverList).setTo(visible.restrict(s.serverList)))
+    for {
+      stored <- QueryContext.asSystem(storedReason)(roGroupRepos.getNodeGroupOpt(g.group.id))
+      res    <- stored match {
+                  case Some((s, c)) if (c == g.category && seen(s).contains(g.group)) => None.succeed
+                  case _                                                              =>
+                    groupCategoryContainer(g.category).flatMap(decide(g.group, stored, g.category, _)).as(Some(g))
+                }
+    } yield res
+  }
+
+  // the rule category `id` as a container: stored, or created by the archive
+  private def ruleCategoryContainer(id: RuleCategoryId, storedRoot: RuleCategory): ArchiveContainer[RuleCategory] = {
+    if (storedRoot.contains(id)) {
+      ArchiveContainer.Stored[RuleCategory](qc =>
+        roRuleCategoryRepos.get(id)(using qc).notOptional(s"Rule category '${id.value}' was not found")
+      )
+    } else ArchiveContainer.Imported()
+  }
+
+  private def checkRuleCategories(r: RuleCategoryArchive, storedRoot: RuleCategory)(using
+      cc: ChangeContext
+  ): IOResult[Unit] = {
+    val newRoot = r.toRuleCategory
+    val parents = r.parentCategories
+    r.childCategories.values
+      .filter(c => c.id != storedRoot.id && !hasSameParents(storedRoot, newRoot, c.id))
+      .accumulate { c =>
+        val parentId = parents.get(c).fold(newRoot.id)(_.id)
+        val stored   = storedRoot.find(c.id).toOption.filter(_._1.id != storedRoot.id)
+        decide(c.toRuleCategory, stored, parentId, ruleCategoryContainer(parentId, storedRoot))
+      }
+      .unit
+  }
+
+  private def checkRule(r: Rule, mergePolicy: MergePolicy, storedRoot: RuleCategory)(using
+      cc: ChangeContext
+  ): IOResult[Option[Rule]] = {
+    for {
+      stored <- QueryContext.asSystem(storedReason)(roRuleRepos.getOpt(r.id))
+      toSave  = ruleToSave(r, stored, mergePolicy)
+      res    <- stored match {
+                  case Some(s) if (asSeen(s).contains(toSave)) => None.succeed
+                  case _                                       =>
+                    decide(
+                      toSave,
+                      stored.map(s => (s, s.categoryId)),
+                      toSave.categoryId,
+                      ruleCategoryContainer(r.categoryId, storedRoot)
+                    )
+                      .as(Some(r))
+                }
+    } yield res
+  }
+
+  /*
+   * Decide every object of the archive, and give back the archive restricted to the objects that are written.
+   * Techniques and their categories are not decided here.
+   */
+  private def authorize(archive: PolicyArchive, mergePolicy: MergePolicy)(using cc: ChangeContext): IOResult[PolicyArchive] = {
+    val catMap = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
+    for {
+      visible    <- if (archive.groups.isEmpty) NodeVisibility.Everything.succeed else visibleNodes(using cc.toQC)
+      storedRoot <- if (archive.ruleCats.isEmpty && archive.rules.isEmpty) None.succeed
+                    else QueryContext.asSystem(storedReason)(roRuleCategoryRepos.getRootCategory()).map(Some(_))
+      directives <- archive.directives.accumulateNEL(checkDirective(_, archive)).either
+      groupCats  <- archive.groupCats.accumulateNEL(checkGroupCat(_, catMap)).either
+      groups     <- archive.groups.accumulateNEL(checkGroup(_, visible)).either
+      ruleCats   <- ZIO.foreach(storedRoot)(root => archive.ruleCats.accumulateNEL(checkRuleCategories(_, root))).either
+      rules      <- ZIO.foreach(storedRoot)(root => archive.rules.accumulateNEL(checkRule(_, mergePolicy, root))).either
+      refusals    = List(directives, groupCats, groups, ruleCats, rules).flatMap(_.left.toOption.toList.flatMap(_.toList))
+      _          <- NonEmptyList.fromList(refusals) match {
+                      case None      => ZIO.unit
+                      case Some(nel) =>
+                        Chained(s"Archive '${archive.metadata.filename}' can not be imported, nothing was written", Accumulated(nel)).fail
+                    }
+    } yield {
+      def kept[A](r: Either[?, List[Option[A]]]): Chunk[A] = Chunk.fromIterable(r.toOption.toList.flatten.flatten)
+      archive
+        .modify(_.directives)
+        .setTo(kept(directives))
+        .modify(_.groupCats)
+        .setTo(kept(groupCats))
+        .modify(_.groups)
+        .setTo(kept(groups))
+        .modify(_.rules)
+        .setTo(kept(rules.map(_.toList.flatten)))
+    }
   }
 
   /*
    * For rules/directives/groups, we build a change request & commit it.
    * For techniques, we just write them in fs, commit, reload tech lib.
    * Starts with techniques then other things.
+   * Everything is written in the actor's change context, once the whole archive is authorized.
    */
   override def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit] = {
     implicit val cc: ChangeContext =
       qc.newCC(Some(s"Importing archive '${archive.metadata.filename}'"), Some(ModificationId(uuidGen.newUuid)))
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
-      _ <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
-      _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
+      toWrite <- authorize(archive, mergePolicy)
+      _       <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
+      _       <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
       // update technique lib, regenerate policies now since we need to have the possible new techniques available
       // for directives below
-      _ <- ZIO.when(archive.techniques.nonEmpty) {
-             techLibUpdate
-               .update()
-               .toIO
-               .chainError(
-                 s"An error occurred during technique update after import of archive"
-               )
-           }
-      _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
+      _       <- ZIO.when(archive.techniques.nonEmpty) {
+                   techLibUpdate
+                     .update()
+                     .toIO
+                     .chainError(
+                       s"An error occurred during technique update after import of archive"
+                     )
+                 }
+      _       <- ZIO.foreach(toWrite.directives)(saveDirective(_))
       // we need the map of all (categoryPath -> id) in the archive
-      m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
-      _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
-      _ <- ZIO.foreach(archive.groups)(saveGroup(_))
-      _ <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(eventMetadata, _))
-      _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
-      _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
+      m        = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
+      _       <- ZIO.foreach(toWrite.groupCats)(saveGroupCat(_, m))
+      _       <- ZIO.foreach(toWrite.groups)(saveGroup(_))
+      _       <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(_))
+      _       <- ZIO.foreach(toWrite.rules)(saveRule(mergePolicy, _))
+      _       <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
     } yield ()
   }
 }

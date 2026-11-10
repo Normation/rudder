@@ -48,6 +48,7 @@ import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -80,7 +81,8 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
 
   implicit val qc: QueryContext = QueryContext.testQC
 
-  val mockRules         = MockRules(new MockTenants)
+  val mockTenants       = new MockTenants
+  val mockRules         = MockRules(mockTenants)
   val mockGitConfigRepo = MockGitConfigRepo()
   val mockTechniques    = MockTechniques(mockGitConfigRepo)
 
@@ -217,7 +219,9 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       ruleCategoryRepo,
       null,
       mockActor,
-      stubUuidGen
+      stubUuidGen,
+      mockTenants.checkTenant,
+      zio.ZIO.succeed(NodeVisibility.Everything)
     )
     for {
       _    <- save(archiveSaver)
@@ -241,7 +245,9 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       null,
       dummyTechLibUpdate,
       mockActor,
-      stubUuidGen
+      stubUuidGen,
+      mockTenants.checkTenant,
+      zio.ZIO.succeed(NodeVisibility.Everything)
     )
     save(archiveSaver)
   }

@@ -50,6 +50,10 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.rest.lift.ArchiveScope
+import com.normation.rudder.rest.lift.GroupArchive
+import com.normation.rudder.rest.lift.MergePolicy
+import com.normation.rudder.rest.lift.PolicyArchive
+import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
 import com.normation.rudder.rest.lift.SpecialExportAll
 import com.normation.rudder.rest.lift.ZipArchiveBuilderService
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -59,10 +63,13 @@ import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccess
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.TenantPermission
+import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import net.liftweb.actor.MockLiftActor
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
@@ -78,9 +85,13 @@ class ArchiveTenantTest extends ZIOSpecDefault {
   val restTestSetUp: RestTestSetUp            = RestTestSetUp.newEnv
   val builder:       ZipArchiveBuilderService = restTestSetUp.archiveAPIModule.archiveBuilderService
 
-  val zoneA: QueryContext =
+  val zoneA:   QueryContext =
     QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
-  val admin: QueryContext = QueryContext.testQC
+  val zoneAro: QueryContext = QueryContext(
+    EventActor("zoneA read-only user"),
+    TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.Read)))
+  )
+  val admin:   QueryContext = QueryContext.testQC
 
   val zoneATag: SecurityTag = SecurityTag.ByTenants(Chunk(TenantId("zoneA")))
 
@@ -134,8 +145,20 @@ class ArchiveTenantTest extends ZIOSpecDefault {
     }
   }
 
+  // the import tests each work on their own zoneA rule, in the open root category
+  def importRule(id: String): Rule       = zoneARule
+    .modify(_.id)
+    .setTo(RuleId(RuleUid(id)))
+    .modify(_.name)
+    .setTo(id)
+    .modify(_.categoryId)
+    .setTo(com.normation.rudder.domain.Constants.ROOT_RULE_CATEGORY)
+  val importRules:            List[Rule] = List("imp-unchanged", "imp-update", "imp-refused").map(importRule)
+
   // seeded once: tests run in parallel
   (for {
+    _ <- restTestSetUp.mockTenants.tenantRepo.setTenantEnabled(true)
+    _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ ++ importRules.map(r => (r.id, r)))
     _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (zoneARule.id -> zoneARule))
     e <- restTestSetUp.mockNodeGroups.groupsRepoImpl.categories.get.map(_.allGroups.contains(zoneAGroup.id))
     _ <- ZIO.unless(e) {
@@ -145,6 +168,29 @@ class ArchiveTenantTest extends ZIOSpecDefault {
              )
          }
   } yield ()).runNow
+
+  // the import service on the tenant-filtering mock repositories; the archives of these tests hold no technique
+  val saver: SaveArchiveServicebyRepo = new SaveArchiveServicebyRepo(
+    null,
+    null,
+    restTestSetUp.mockDirectives.directiveRepo,
+    restTestSetUp.mockDirectives.directiveRepo,
+    restTestSetUp.mockNodeGroups.groupsRepo,
+    restTestSetUp.mockNodeGroups.groupsRepo,
+    restTestSetUp.mockRules.ruleRepo,
+    restTestSetUp.mockRules.ruleRepo,
+    restTestSetUp.mockRules.ruleCategoryRepo,
+    restTestSetUp.mockRules.ruleCategoryRepo,
+    null,
+    new MockLiftActor,
+    new StringUuidGeneratorImpl(),
+    restTestSetUp.mockTenants.checkTenant,
+    restTestSetUp.mockNodes.nodeFactRepo.getVisibleNodes()
+  )
+
+  def withRules(rules: Rule*): PolicyArchive = PolicyArchive.empty("test").modify(_.rules).setTo(Chunk.fromIterable(rules))
+
+  def stored(id: String): IO[Any, Option[Rule]] = restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid(id)))(using admin)
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("archive export under a tenant query context")(
@@ -208,6 +254,49 @@ class ArchiveTenantTest extends ZIOSpecDefault {
           assertTrue(!ofZ.exists(_.contains("/technique_any/"))) &&
           assertTrue(ofZ.subsetOf(ofA))
         }
+      },
+      test("what a tenant reads is not a write: a read-only tenant reimports it") {
+        for {
+          r  <- stored("imp-unchanged").someOrFail("seed")
+          // what a zoneA export gives: the tag reduced to zoneA, and the group without the nodes zoneA can not see
+          g   = zoneAGroup.modify(_.serverList).setTo(Set())
+          gc <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(zoneAGroup.id)(using admin).someOrFail("seed").map(_._2)
+          a   = withRules(r).modify(_.groups).setTo(Chunk(GroupArchive(g, gc)))
+          _  <- saver.save(a, MergePolicy.OverrideAll)(using zoneAro)
+          g2 <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(zoneAGroup.id)(using admin).someOrFail("seed")
+          ch <-
+            saver.save(withRules(r.modify(_.shortDescription).setTo("changed")), MergePolicy.OverrideAll)(using zoneAro).either
+        } yield assertTrue(g2._1.serverList == zoneAGroup.serverList) && assertTrue(ch.isLeft)
+      },
+      test("a tenant imports what it may write") {
+        for {
+          r <- stored("imp-update").someOrFail("seed")
+          _ <- saver.save(withRules(r.modify(_.shortDescription).setTo("updated")), MergePolicy.OverrideAll)(using zoneA)
+          u <- stored("imp-update").someOrFail("updated")
+        } yield assertTrue(u.shortDescription == "updated")
+      },
+      test("an archive holding an object the tenant can not write is refused, and nothing is written") {
+        for {
+          mine  <- stored("imp-refused").someOrFail("seed")
+          other <- stored("rule1").someOrFail("seed")
+          res   <-
+            saver
+              .save(
+                withRules(mine.modify(_.shortDescription).setTo("changed"), other.modify(_.shortDescription).setTo("changed")),
+                MergePolicy.OverrideAll
+              )(using zoneA)
+              .either
+          after <- stored("imp-refused").someOrFail("seed")
+        } yield {
+          assertTrue(res.left.exists(_.fullMsg.contains("rule1"))) &&
+          assertTrue(after.shortDescription == mine.shortDescription)
+        }
+      },
+      test("an unchanged object the tenant can not read is refused too") {
+        for {
+          other <- stored("rule1").someOrFail("seed")
+          res   <- saver.save(withRules(other), MergePolicy.OverrideAll)(using zoneA).either
+        } yield assertTrue(res.left.exists(_.fullMsg.contains("rule1")))
       }
     )
   }
