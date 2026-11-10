@@ -1,6 +1,7 @@
 #[cfg(not(windows))]
 pub mod safe_fs {
     use std::{
+        ffi::OsStr,
         fmt::{self, Display},
         fs::{File, Permissions},
         os::fd::{AsFd, OwnedFd},
@@ -81,54 +82,92 @@ pub mod safe_fs {
         Ok(File::from(fd))
     }
 
+    // fn walk<P: AsRef<Path>>(path: P) -> Result<OwnedFd, SafeFsError> {
+    //     let perms: Mode = 0o700.into();
+    //
+    //     let mut components = path.as_ref().components().peekable();
+    //     let mut dir: OwnedFd = if let Some(Component::RootDir) = components.peek() {
+    //         components.next();
+    //         open_at(CWD, "/", OFlags::PATH | OFlags::DIRECTORY, perms)?
+    //     } else {
+    //         open_at(CWD, ".", OFlags::PATH | OFlags::DIRECTORY, perms)?
+    //     };
+    //
+    //     // TODO: rewrite with a stack
+    //     while let Some(comp) = components.next() {
+    //         let name = match comp {
+    //             Component::Normal(n) => n,
+    //             Component::CurDir => continue,
+    //             Component::ParentDir => {
+    //                 panic!("'..' not allowed");
+    //             }
+    //             Component::RootDir | Component::Prefix(_) => {
+    //                 panic!("unexpected path component");
+    //             }
+    //         };
+    //
+    //         if components.peek().is_some() {
+    //             dir = open_at(&dir, name, OFlags::PATH | OFlags::NOFOLLOW, perms)?;
+    //         } else {
+    //             let fd = open_at(
+    //                 &dir,
+    //                 name,
+    //                 OFlags::RDWR
+    //                     | OFlags::NOFOLLOW
+    //                     | OFlags::NOCTTY
+    //                     | OFlags::NONBLOCK
+    //                     | OFlags::CLOEXEC,
+    //                 perms,
+    //             )?;
+    //
+    //             let stat = fstat(&fd)?;
+    //             let file_type = FileType::from_raw_mode(stat.st_mode);
+    //             if !file_type.is_file() {
+    //                 panic!("not a regular file");
+    //             }
+    //             return Ok(fd);
+    //         }
+    //     }
+    //
+    //     panic!("path has no file name");
+    // }
+
     fn walk<P: AsRef<Path>>(path: P) -> Result<OwnedFd, SafeFsError> {
+        let path = path.as_ref();
         let perms: Mode = 0o700.into();
 
-        let mut components = path.as_ref().components().peekable();
-        let mut dir: OwnedFd = if let Some(Component::RootDir) = components.peek() {
-            components.next();
-            open_at(CWD, "/", OFlags::PATH | OFlags::DIRECTORY, perms)?
-        } else {
-            open_at(CWD, ".", OFlags::PATH | OFlags::DIRECTORY, perms)?
+        let names: Vec<&OsStr> = path
+            .components()
+            .filter_map(|comp| match comp {
+                Component::Normal(name) => Some(name),
+                Component::CurDir | Component::RootDir => None,
+                Component::ParentDir => panic!("'..' not allowed"),
+                Component::Prefix(_) => panic!("unexpected path component"),
+            })
+            .collect();
+
+        let Some((file_name, dir_names)) = names.split_last() else {
+            panic!("path has no file name");
         };
 
-        // TODO: rewrite with a stack
-        while let Some(comp) = components.next() {
-            let name = match comp {
-                Component::Normal(n) => n,
-                Component::CurDir => continue,
-                Component::ParentDir => {
-                    panic!("'..' not allowed");
-                }
-                Component::RootDir | Component::Prefix(_) => {
-                    panic!("unexpected path component");
-                }
-            };
+        let start = if path.has_root() { "/" } else { "." };
+        let mut dir = open_at(CWD, start, OFlags::PATH | OFlags::DIRECTORY, perms)?;
 
-            if components.peek().is_some() {
-                dir = open_at(&dir, name, OFlags::PATH | OFlags::NOFOLLOW, perms)?;
-            } else {
-                let fd = open_at(
-                    &dir,
-                    name,
-                    OFlags::RDWR
-                        | OFlags::NOFOLLOW
-                        | OFlags::NOCTTY
-                        | OFlags::NONBLOCK
-                        | OFlags::CLOEXEC,
-                    perms,
-                )?;
-
-                let stat = fstat(&fd)?;
-                let file_type = FileType::from_raw_mode(stat.st_mode);
-                if !file_type.is_file() {
-                    panic!("not a regular file");
-                }
-                return Ok(fd);
-            }
+        for name in dir_names {
+            dir = open_at(&dir, *name, OFlags::PATH | OFlags::NOFOLLOW, perms)?;
         }
 
-        panic!("path has no file name");
+        let fd = open_at(
+            &dir,
+            *file_name,
+            OFlags::RDWR | OFlags::NOFOLLOW | OFlags::NOCTTY | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            perms,
+        )?;
+
+        if !FileType::from_raw_mode(fstat(&fd)?.st_mode).is_file() {
+            panic!("not a regular file");
+        }
+        Ok(fd)
     }
 
     #[cfg(test)]
