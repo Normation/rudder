@@ -77,8 +77,7 @@ pub mod safe_fs {
     }
 
     pub fn safe_open<P: AsRef<Path>>(path: P, _perms: &Permissions) -> Result<File, SafeFsError> {
-        let fd = walk(path)?;
-        Ok(File::from(fd))
+        walk(path).map(File::from)
     }
 
     fn walk<P: AsRef<Path>>(path: P) -> Result<OwnedFd, SafeFsError> {
