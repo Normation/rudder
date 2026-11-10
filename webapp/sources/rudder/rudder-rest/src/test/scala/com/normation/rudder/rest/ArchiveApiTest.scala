@@ -51,6 +51,7 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroupV21
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -1042,7 +1043,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       // hidden properties are not copied in archive
       .map((g, id) => (g.copy(properties = g.properties.filter(_.visibility == Displayed)), id))
       .runNow
-    val serializedGroup     = JRGroup.fromGroup(group, categoryId, None, None).transformInto[JRGroupV21]
+    val serializedGroup     = JRGroup.fromGroup(group, categoryId, None, NodeVisibility.Everything).transformInto[JRGroupV21]
     (dest / "groups" / "category_1" / (group.name + ".json")).overwrite(serializedGroup.toJsonPretty)
 
     // now zip it

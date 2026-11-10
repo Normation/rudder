@@ -44,6 +44,7 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -143,6 +144,15 @@ trait NodeFactRepository {
    */
   def getNodeAndServerIds()(implicit qc: QueryContext): IOResult[NodeAndServerIds] = {
     getAll()(using qc, SelectNodeStatus.Accepted).map(NodeAndServerIds.fromFacts(_))
+  }
+
+  /*
+   * The accepted nodes visible in the query context, without building the fleet's id set for an unrestricted
+   * reader.
+   */
+  def getVisibleNodes()(implicit qc: QueryContext): IOResult[NodeVisibility] = {
+    if (qc.accessGrant.toReaderScope.isUnrestricted) NodeVisibility.Everything.succeed
+    else getNodeAndServerIds().map(ids => NodeVisibility.Only(ids.nodeIds))
   }
 
   /*

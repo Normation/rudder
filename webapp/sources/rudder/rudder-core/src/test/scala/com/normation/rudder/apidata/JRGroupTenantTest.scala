@@ -42,6 +42,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.tenants.QueryContext
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -74,16 +75,16 @@ class JRGroupTenantTest extends Specification {
 
   "JRGroup.fromGroup nodeIds filtering" should {
 
-    "return every member id when there is no visible-node restriction (admin / None)" in {
-      JRGroup.fromGroup(group, cat, None, None).nodeIds === List("nA", "nB")
+    "return every member id to an unrestricted reader, nodes not accepted included" in {
+      JRGroup.fromGroup(group, cat, None, NodeVisibility.Everything).nodeIds === List("nA", "nB")
     }
 
-    "return only the visible member ids when a restriction is given (tenant caller)" in {
-      JRGroup.fromGroup(group, cat, None, Some(Set(nA))).nodeIds === List("nA")
+    "return only the visible member ids" in {
+      JRGroup.fromGroup(group, cat, None, NodeVisibility.Only(Set(nA))).nodeIds === List("nA")
     }
 
     "return no member id when none of the members is visible" in {
-      JRGroup.fromGroup(group, cat, None, Some(Set.empty)).nodeIds === Nil
+      JRGroup.fromGroup(group, cat, None, NodeVisibility.Only(Set.empty)).nodeIds === Nil
     }
   }
 }
