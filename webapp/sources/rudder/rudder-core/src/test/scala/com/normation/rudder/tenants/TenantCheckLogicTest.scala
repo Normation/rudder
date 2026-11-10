@@ -434,4 +434,32 @@ class TenantCheckLogicTest extends Specification {
       res must beRight("zoneA")
     }
   }
+
+  "[save and move] the destination container" should {
+    // an object of zoneA, stored in container "c1"; the destination "c2" is a zoneB container
+    val stored:    Lookup[(Obj, String)] = Some((obj("o", tenantTag("zoneA")), "c1")).succeed
+    val zoneBCont: Container[Obj]        = container(obj("c2", tenantTag("zoneB")))
+    def decided(look: Lookup[(Obj, String)], key: String) = {
+      // the context bounds take the first `using` clause, the change context comes after them
+      given ChangeContext = zoneA
+      written(logic().decideSaveAndMove(obj("o", tenantTag("zoneA")), look, key, zoneBCont).map(_.value))
+    }
+
+    "not be checked when the object stays in its container" in {
+      decided(stored, "c1") must beRight
+    }
+
+    "be checked when the object moves" in {
+      decided(stored, "c2") must beLeft(contain("can't be created or moved under 'c2'"))
+    }
+
+    "be checked when the object is created" in {
+      decided(None.succeed, "c2") must beLeft(contain("can't be created or moved under 'c2'"))
+    }
+
+    "not replace the update law: an object the actor can not write is refused even if it stays" in {
+      val zoneBObj: Lookup[(Obj, String)] = Some((obj("o", tenantTag("zoneB")), "c1")).succeed
+      decided(zoneBObj, "c1") must beLeft(contain("can't be modified"))
+    }
+  }
 }
