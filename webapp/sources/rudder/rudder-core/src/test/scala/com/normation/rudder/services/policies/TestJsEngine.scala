@@ -313,6 +313,44 @@ class TestJsEngine extends Specification {
     }
   }
 
+  "Waiting for evaluations" should {
+
+    /*
+     * Twice as many parallel evaluations as cores, each one waiting 300 ms without using CPU.
+     * If waiting for them holds ZIO scheduler threads, a fiber that wakes up every 10 ms is
+     * delayed by about 300 ms.
+     */
+    "not starve the ZIO scheduler" in {
+      val n = java.lang.Runtime.getRuntime.availableProcessors() * 2
+
+      val worstLatenessMs = JsEngine.SandboxedJsEngine
+        .sandboxed(n, FiniteDuration(5, TimeUnit.SECONDS)) { box =>
+          for {
+            engine <- JsEngine.SandboxedJsEngine.getJsEngine(1)
+            ticker <- ZIO
+                        .foldLeft(1 to 30)(0L) { (worst, _) =>
+                          for {
+                            start <- ZIO.succeed(java.lang.System.nanoTime())
+                            _     <- ZIO.sleep(10.millis)
+                            end   <- ZIO.succeed(java.lang.System.nanoTime())
+                          } yield math.max(worst, (end - start) / 1_000_000 - 10)
+                        }
+                        .fork
+            _      <- ZIO.foreachPar((1 to n).toList) { _ =>
+                        ZIO.scoped(engine.buildContext.flatMap { context =>
+                          // building the context ends on a blocking thread: yield to call safeExec from a scheduler thread
+                          ZIO.yieldNow *> box.safeExec("wait", context) { Thread.sleep(300); ZIO.unit }
+                        })
+                      }
+            worst  <- ticker.join
+          } yield worst
+        }
+        .runNow
+
+      worstLatenessMs must beLessThan(150L)
+    }
+  }
+
   "When feature is enabled, one " should {
 
     "have an identical results without eval" in {
