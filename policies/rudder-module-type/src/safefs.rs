@@ -127,7 +127,12 @@ pub mod safe_fs {
         let fd = open_at(
             &dir,
             *file_name,
-            OFlags::RDWR | OFlags::NOFOLLOW | OFlags::NOCTTY | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            OFlags::RDWR
+                | OFlags::NOFOLLOW
+                | OFlags::NOCTTY
+                | OFlags::NONBLOCK
+                | OFlags::CLOEXEC
+                | OFlags::CREATE,
             perms,
         )?;
 
@@ -183,7 +188,20 @@ pub mod safe_fs {
             let (tmp, dir) = setup();
             create_file(&tmp, "file", 0o644);
 
-            let res = open_at(&dir, "file", read_flags(), Mode::empty());
+            let res = open_at(&dir, "file", read_flags() | OFlags::CREATE, Mode::empty());
+            assert!(res.is_ok(), "{:?}", res.err());
+        }
+
+        #[test]
+        fn opens_non_existing_regular_file() {
+            let (_tmp, dir) = setup();
+
+            let res = open_at(
+                &dir,
+                "file",
+                OFlags::RDWR | OFlags::CLOEXEC | OFlags::CREATE,
+                Mode::empty(),
+            );
             assert!(res.is_ok(), "{:?}", res.err());
         }
 
