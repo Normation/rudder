@@ -53,8 +53,8 @@ import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.io.IOAccess
+import org.graalvm.polyglot.proxy.ProxyArray
 import org.graalvm.polyglot.proxy.ProxyObject
-import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.syntax.*
@@ -254,7 +254,8 @@ final class JsRudderLibImpl(
 
   override def getMember(key: String): AnyRef =
     members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
-  override def getMemberKeys:          AnyRef = members.keys.toArray
+  // JS only enumerates a polyglot array: a plain Java array is rejected under HostAccess.EXPLICIT
+  override def getMemberKeys:          AnyRef = ProxyArray.fromArray(members.keys.toSeq*)
   override def hasMember(key: String): Boolean = members.isDefinedAt(key)
   // do not allow modification of lib content at runtime
   override def putMember(key: String, value: Value): Unit = ()
@@ -442,16 +443,12 @@ object JsEngine {
           }
         })
       ) { managedJsEnv =>
-        IOResult.attempt {
-          // clear everything
-          managedJsEnv.pool.shutdownNow()
-          // check & clear interruption of the calling thread
-          Thread.currentThread().isInterrupted()
-          // restore the "none" security manager
-        }.foldZIO(
-          err => JsDirectiveParamLoggerPure.error(err.fullMsg),
-          ok => ok.succeed
-        )
+        IOResult
+          .attempt(managedJsEnv.pool.shutdownNow())
+          .foldZIO(
+            err => JsDirectiveParamLoggerPure.error(err.fullMsg),
+            _ => ZIO.unit
+          )
       }
 
       ZIO.scoped(managedJsEngine.flatMap(managedJsEnv => script(managedJsEnv.engine)))
@@ -471,32 +468,12 @@ object JsEngine {
   }
 
   /*
-   * The whole idea is to give a throwable Sandox class whose only
-   * goal is to run a thread in a contained environment.
-   * Notice that using the sandox HAS a global effect, because it
-   * changes the security manager.
-   * So generally, you want to manage that in a contained scope.
+   * Evaluates scripts on a dedicated pool, in a new context for each evaluation, within
+   * `maxTime`. Only built by `SandboxedJsEngine.sandboxed`, which owns the pool and the
+   * engine and releases them at the end of its scope.
    */
 
   final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
-
-    private trait KillingThread {
-
-      /**
-       * Force stop the thread, throws a the ThreadDeath error.
-       *
-       * As explained in Thread#stop(), that method has consequences and
-       * can cause random error in all the object interracting with it
-       * (because monitor released without any protection).
-       * So caller of that method should ensure to 1/ contains
-       * the thread to abort and 2/ clean as best as possible object
-       * which interrected with it.
-       *
-       */
-      @nowarn("msg=deprecated") def abortWithConsequences(): Unit = {
-        Thread.currentThread().stop()
-      }
-    }
 
     // If it's a password, we need to reconstruct the correct password structure
     def reconstructPassword(value: String, isPassword: Boolean): String = {
@@ -541,16 +518,14 @@ object JsEngine {
     }
 
     /**
-     * The single eval method encapsulate the evaluation in a dedicated thread.
-     * We check that the evaluation doesn't take to much time, and if so, we
-     * kill the thread (gently, and then with a force stop).
-     * The thread is also restricted, and can't do dangerous things (access
-     * to FS, Network, System (jvm), class loader, etc).
+     * Evaluate a script in a new context, so that nothing survives from one evaluation
+     * to the next one. The context denies host access, IO, threads, processes and native
+     * access; the only host object reachable from the script is `rudder`.
      */
     def singleEval(value: String, jsRudderLib: JsRudderLibImpl): IOResult[String] = {
       ZIO.scoped(
         jsEngine.buildContext.flatMap(context => {
-          (safeExec(value) {
+          (safeExec(value, context) {
             try {
               context.getBindings("js").putMember("rudder", jsRudderLib)
               val res = context.eval("js", value) match { // returned Value object is never null, it has a method to check that!
@@ -567,16 +542,13 @@ object JsEngine {
     }
 
     /**
-     * The safe eval method encapsulate the evaluation of a block of code
-     * in a dedicated thread.
-     * We check that the evaluation doesn't take to much time, and if so, we
-     * kill the thread (gently, and then with a force stop).
-     * The thread is also restricted, and can't do dangerous things (access
-     * to FS, Network, System (jvm), class loader, etc).
+     * Run `block`, which evaluates code in `context` only, on the pool, for at most `maxTime`.
+     * On timeout the evaluation is stopped with `Context.interrupt`: guest code cannot catch it,
+     * and the call returns once the pool thread has left the context. It fails after a second
+     * `maxTime` when the thread is stuck in a host call, which then keeps its pool thread.
      */
-    def safeExec[T](name: String)(block: => IOResult[T]): IOResult[T] = {
-      // create the callable object
-      val scriptCallable = new Callable[IOResult[T]] with KillingThread() {
+    def safeExec[T](name: String, context: Context)(block: => IOResult[T]): IOResult[T] = {
+      val scriptCallable = new Callable[IOResult[T]] {
         def call() = {
           try {
             block
@@ -589,39 +561,22 @@ object JsEngine {
       (try {
         val task = pool.submit(scriptCallable)
         try {
-          // submit to the pool and synchroniously retrieve the value with a timeout
           task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
         } catch {
           case ex: ExecutionException => // this can happen when jsengine get security exception... Yeah...
             SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
 
           case ex: TimeoutException =>
-            // try to interrupt the thread
             try {
-              // try to gently terminate the task
-              if (!task.isDone) {
-                task.cancel(true)
-              }
-              if (task.isCancelled || task.isDone) {
-                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
-              } else {
-                // not interrupted - force kill
-                scriptCallable.abortWithConsequences() // that throws TreadDead, the following is never reached
-                Unexpected(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls"
-                ).fail
-              }
+              context.interrupt(java.time.Duration.ofMillis(maxTime.toMillis))
+              Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
             } catch {
-              case ex: ThreadDeath =>
+              case ex: TimeoutException =>
                 SystemError(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls",
+                  s"Evaluating script '${name}' took more than ${maxTime.toString()} and could not be interrupted: " +
+                  "its evaluation thread is still busy. Check for uninterruptible host calls",
                   ex
                 ).fail
-
-              case ex: InterruptedException =>
-                SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
             }
         }
       } catch {
@@ -630,6 +585,9 @@ object JsEngine {
             s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?",
             ex
           ).fail
+
+        case ex: InterruptedException =>
+          SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
       }).uninterruptible
     }
   }
