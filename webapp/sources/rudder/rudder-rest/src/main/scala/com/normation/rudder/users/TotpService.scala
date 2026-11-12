@@ -115,17 +115,51 @@ trait TotpSecretGenerator {
   def generate: IOResult[TotpSecret]
 }
 
-sealed private trait TotpVerificator {
-  def verify(secret: TotpSecret, at: Instant, code: String): PureResult[Instant]
+/**
+ * Verifies secrets with OTP crypto implementation with parameters.
+ *
+ * It does additional mandatory verification too for replay resistance,
+ * as per the spec: [[https://www.rfc-editor.org/rfc/rfc6238#section-5.2]].
+ * It is implemented in-memory, provided that period and window are small and
+ * code validity expires before the duration of a webapp restart.
+ */
+trait TotpVerificator(val period: Duration, val delayWindow: Int)(
+    usedCodes: Ref[Map[UserId, Chunk[(String, Instant)]]]
+) {
+  // a code is accepted for the previous, current and next steps
+  private val codeLifetime: Duration = period.multipliedBy(2L * delayWindow + 1)
+
+  def verify(secret: TotpSecret, userId: UserId, at: Instant, code: String): IOResult[Unit] = {
+    for {
+      _        <- verifyImpl(secret, at, code).toIO
+      replayed <- usedCodes.modify { m =>
+                    val used = m.getOrElse(userId, Chunk.empty).filter((_, end) => at.isBefore(end))
+                    if (used.exists((c, _) => c == code)) {
+                      (true, m.updated(userId, used))
+                    } else {
+                      (false, m.updated(userId, used.appended(code, at.plus(codeLifetime))))
+                    }
+                  }
+      _        <- ZIO.when(replayed) {
+                    ApplicationLoggerPure.Auth.warn(s"User '${userId.value}' submitted an already used TOTP code") *>
+                    Inconsistency(
+                      s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}, retry with another code"
+                    ).fail
+                  }
+    } yield ()
+  }
+
+  protected def verifyImpl(secret: TotpSecret, at: Instant, code: String): PureResult[Instant]
 }
 
 /**
  * Verifies in-memory secrets that have been created upon "request new OTP" from user interface.
+ * Generated OTP secrets are not stored in repository until they are verified:
+ * - they are lost on reboot
+ * - newly generated code for a user replaces previously generated one
  *
- * These OTP secrets are not stored until they are verified, since they are not verified, and lost on reboot.
- *
- * It could be expired to avoid risking a user having the secret displayed for too long,
- * therefore the use of a Caffeine cache could be more secure.
+ * Generated ones could be expired to avoid risking a user having the secret displayed for too long.
+ * It could also be used to rate-limit failures.
  */
 class InMemoryVerificationTotpService(
     enabledOtp:     Boolean,
@@ -154,7 +188,7 @@ class InMemoryVerificationTotpService(
       opt  = map.get(userId)
       s   <- opt.notOptional("User has no known generated TOTP")
       now <- Clock.instant
-      _   <- verificator.verify(s, now, code).toIO
+      _   <- verificator.verify(s, userId, now, code)
       totp = Totp(s, now)
       _   <-
         totpRepository
@@ -174,7 +208,9 @@ class InMemoryVerificationTotpService(
       s   <- t.notOptional(s"User '${userId.value}' OTP was not found")
       now <- Clock.instant
       _   <-
-        verificator.verify(s, now, code).toIO.chainError(s"TOTP secret for user '${userId.value}' does not match provided code")
+        verificator
+          .verify(s, userId, now, code)
+          .chainError(s"TOTP secret for user '${userId.value}' does not match provided code")
     } yield ()
   }
 
@@ -213,12 +249,6 @@ class InMemoryVerificationTotpService(
 
 object OtpJavaTotpService {
 
-  /** Default TOTP period: 30 seconds */
-  private val DEFAULT_PERIOD: Duration = 30.seconds
-
-  /** Verification delay window: accept codes valid for 1 previous/next window (±30s tolerance) */
-  private val DEFAULT_DELAY_WINDOW: Int = 1
-
   /** Generates a cryptographically secure base32-encoded TOTP secret using otp-java */
   private class OtpJavaSecretGenerator extends TotpSecretGenerator {
     override def generate: IOResult[TotpSecret] = {
@@ -228,15 +258,23 @@ object OtpJavaTotpService {
   }
 
   /** Verifies TOTP codes using otp-java TOTPGenerator with configurable delay window */
-  private class OtpJavaTotpVerificator extends TotpVerificator {
-    override def verify(secret: TotpSecret, at: Instant, code: String): PureResult[Instant] = {
+  abstract private[users] class OtpJavaTotpVerificator(
+      period:      zio.Duration,
+      delayWindow: Int
+  )(usedCodes: Ref[Map[UserId, Chunk[(String, Instant)]]])
+      extends TotpVerificator(period, delayWindow)(usedCodes) {
+    protected def verifyImpl(
+        secret: TotpSecret,
+        at:     Instant,
+        code:   String
+    ): PureResult[Instant] = {
       val totp = TOTPGenerator
         .Builder(secret.exposeSecret())
         .withClock(java.time.Clock.fixed(at, ZoneId.systemDefault()))
-        .withPeriod(DEFAULT_PERIOD)
+        .withPeriod(period)
         .build
 
-      val valid = totp.verify(code, DEFAULT_DELAY_WINDOW)
+      val valid = totp.verify(code, delayWindow)
 
       if (valid) Right(at)
       else {
@@ -249,22 +287,33 @@ object OtpJavaTotpService {
     }
   }
 
+  private[users] object OtpJavaTotpVerificator {
+    def make(
+        /** Default TOTP period: 30 seconds */
+        period:      Duration = 30.seconds,
+        /** Verification delay window: accept codes valid for 1 previous/next window period */
+        delayWindow: Int = 1
+    ): UIO[OtpJavaTotpVerificator] =
+      Ref.make(Map.empty[UserId, Chunk[(String, Instant)]]).map(c => new OtpJavaTotpVerificator(period, delayWindow)(c) {})
+  }
+
   def make(
       enabledOtp:     Boolean,
       validator:      UserTotpValidator,
       totpRepository: TotpRepository
   ): UIO[InMemoryVerificationTotpService] = {
-    Ref
-      .make(Map.empty[UserId, TotpSecret])
-      .map(
-        InMemoryVerificationTotpService(
-          enabledOtp,
-          _,
-          OtpJavaSecretGenerator(),
-          validator,
-          totpRepository,
-          OtpJavaTotpVerificator()
-        )
+    for {
+      generatedSecrets <- Ref.make(Map.empty[UserId, TotpSecret])
+      verificator      <- OtpJavaTotpVerificator.make()
+    } yield {
+      InMemoryVerificationTotpService(
+        enabledOtp,
+        generatedSecrets,
+        OtpJavaSecretGenerator(),
+        validator,
+        totpRepository,
+        verificator
       )
+    }
   }
 }
