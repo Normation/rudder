@@ -2163,7 +2163,7 @@ object RudderConfigInit {
     }
 
     lazy val inventoryWatcher = {
-      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING).runNow
+      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING, INVENTORY_DIR_UPDATE).runNow
 
       new InventoryFileWatcher(
         fileProcessor,
