@@ -96,13 +96,19 @@ trait NodeChangesService {
   /*
    * Max number of days to look back for changes.
    */
-  def changesMaxAge: Int
+  def changesMaxAge:       Int
+  def latestChangesMaxAge: Int
 
   /**
-   * Get all changes for the last "changesMaxAge" and
+   * Count changes for the last "changesMaxAge" and
    * regroup them by rule, and by interval of 6 hours.
    */
   def countChangesByRuleByInterval(): IOResult[(Long, ChangesByRule)]
+
+  /**
+   * Count changes on all rules over the last "latestChangesMaxAge" hours
+   */
+  def countLatestChangesByRule(): IOResult[Option[LatestChanges]]
 
   /**
    * Get the changes for the given interval, which must be one of the
@@ -169,8 +175,9 @@ trait NodeChangesService {
 }
 
 class NodeChangesServiceImpl(
-    val reportsRepository:      ReportsRepository,
-    override val changesMaxAge: Int = 3 // in days
+    val reportsRepository:            ReportsRepository,
+    override val changesMaxAge:       Int = 3, // in days
+    override val latestChangesMaxAge: Int = 6  // in hours
 ) extends NodeChangesService with Loggable {
 
   /**
@@ -198,7 +205,17 @@ class NodeChangesServiceImpl(
   )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]] = {
     reportsRepository.getChangeReportsByRuleOnInterval(ruleId, interval, limit)
   }
+
+  override def countLatestChangesByRule(): IOResult[Option[LatestChanges]] = {
+    val now      = DateTime.now(DateTimeZone.UTC)
+    val interval = Interval(now.minusHours(latestChangesMaxAge), now)
+    reportsRepository
+      .countChangeReportsByBatch(interval :: Nil)
+      .map { case (_, byRule) => Some(LatestChanges(interval, byRule.map((id, counts) => (id, counts.values.sum)))) }
+  }
 }
+
+final case class LatestChanges(interval: Interval, changes: Map[RuleId, Int])
 
 sealed trait ChangesUpdate
 object ChangesUpdate {
@@ -223,8 +240,11 @@ class CachedNodeChangesServiceImpl(
 ) extends NodeChangesService with CachedRepository {
 
   override val changesMaxAge = changeService.changesMaxAge
+  override val latestChangesMaxAge: Int = changeService.latestChangesMaxAge
 
   private val cache = Ref.make[Option[ChangesCache]](None).runNow // this is a bug if it does not work
+
+  private val cacheLatestChange: Ref[Option[LatestChanges]] = Ref.make[Option[LatestChanges]](None).runNow
 
   // when the class is instanciated, ask for a cache init
   ZioRuntime.runNow((for {
@@ -491,6 +511,23 @@ class CachedNodeChangesServiceImpl(
     changeService.getChangesForInterval(ruleId, interval, limit)
   }
 
+  override def countLatestChangesByRule(): IOResult[Option[LatestChanges]] = {
+    cacheLatestChange.get
+  }
+
+  private def updateLastChangeCache: UIO[Unit] = {
+    (for {
+      changes <- changeService.countLatestChangesByRule()
+      _       <- cacheLatestChange.set(changes)
+    } yield ())
+      .whenZIO(IOResult.attempt(computeChangeEnabled().getOrElse(true)))
+      .unit
+      .catchAll(err =>
+        ReportLoggerPure.Changes.error(s"Error when updating last ${latestChangesMaxAge}h changes cache: ${err.fullMsg}")
+      )
+  }
+
+  updateLastChangeCache.repeat(Schedule.spaced(1.minute)).delay(20.seconds).forkDaemon.runNow
 }
 
 opaque type PeriodJson = Interval

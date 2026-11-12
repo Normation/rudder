@@ -51,6 +51,7 @@ import com.normation.rudder.rest.ChangesApi as API
 import com.normation.rudder.rest.RudderJsonResponse.syntax.*
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.tenants.QueryContext
+import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
@@ -58,6 +59,9 @@ import net.liftweb.http.Req
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import zio.ZIO
+import zio.json.DeriveJsonEncoder
+import zio.json.JsonEncoder
+import zio.json.JsonFieldEncoder
 import zio.syntax.ToZio
 
 class RecentChangesAPI(
@@ -71,6 +75,8 @@ class RecentChangesAPI(
     API.endpoints.map {
       case API.GetRecentChanges       => GetRecentChanges
       case API.GetRuleRepairedReports => GetRuleRepairedReports
+      case API.GetLatestChanges       => GetLatestChanges
+      case API.GetIntervals           => GetRecentChangesIntervals
     }
   }
 
@@ -93,6 +99,51 @@ class RecentChangesAPI(
           .toMap
       })
         .chainError(s"Could not get recent changes for all rules")
+        .toLiftResponseOne(params, schema, None)
+    }
+  }
+
+  case class IntervalSerialized(start: String, end: String)
+
+  implicit val intervalSerializedEncoder: JsonEncoder[IntervalSerialized] = DeriveJsonEncoder.gen[IntervalSerialized]
+  implicit val intervalEncoder:           JsonEncoder[Interval]           = intervalSerializedEncoder.contramap[Interval](x =>
+    IntervalSerialized(DateFormaterService.serialize(x.getStart), DateFormaterService.serialize(x.getEnd))
+  )
+
+  object GetRecentChangesIntervals extends LiftApiModule0 {
+
+    case class IntervalResponse(latest: Interval, all: List[Interval])
+
+    implicit val intervalResponseEncoder: JsonEncoder[IntervalResponse] = DeriveJsonEncoder.gen[IntervalResponse]
+    val schema:                           ChangesApi.GetIntervals.type  = API.GetIntervals
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val intervals = nodeChangesService.getCurrentValidIntervals(None)
+      val latest    = intervals.maxBy(_.getEnd.getMillis)
+      IntervalResponse(latest, intervals).succeed.toLiftResponseOne(params, schema, None)
+    }
+  }
+
+  object GetLatestChanges extends LiftApiModule0 {
+    val schema: ChangesApi.GetLatestChanges.type = API.GetLatestChanges
+
+    case class LatestChangesResponse(interval: Option[Interval], changes: Map[RuleId, Int])
+
+    implicit val ruleIdFieldEncoder:           JsonFieldEncoder[RuleId]           = JsonFieldEncoder.string.contramap(_.serialize)
+    implicit val latestChangesResponseEncoder: JsonEncoder[LatestChangesResponse] = DeriveJsonEncoder.gen[LatestChangesResponse]
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+      (for {
+        visibleRules  <- roRuleRepository.getIds()
+        latestChanges <- nodeChangesService.countLatestChangesByRule()
+      } yield {
+        LatestChangesResponse(
+          latestChanges.map(_.interval),
+          latestChanges.map(_.changes.view.filterKeys(visibleRules.contains).toMap).getOrElse(Map.empty)
+        )
+      })
+        .chainError("Could not get latest changes for all rules")
         .toLiftResponseOne(params, schema, None)
     }
   }

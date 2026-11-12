@@ -315,6 +315,24 @@ type alias Changes =
     }
 
 
+type alias Interval =
+    { start : ZonedDateTime
+    , end : ZonedDateTime
+    }
+
+
+type alias IntervalList =
+    { latest : Interval
+    , all : List Interval
+    }
+
+
+type alias LatestChanges =
+    { interval : Maybe Interval
+    , changes : Dict String Float
+    }
+
+
 
 -- this is the Id used by the API to group missing categories with their rules
 
@@ -332,6 +350,8 @@ type alias Model =
     , techniquesTree : Category Technique
     , rulesCompliance : Dict String RuleComplianceGlobal
     , changes : Dict String (List Changes)
+    , latest : LatestChanges
+    , intervals : Maybe IntervalList
     , directives : Dict String Directive
     , nodes : Dict String NodeInfo
     , ui : UI
@@ -352,7 +372,7 @@ type Msg
     | UpdateCategoryForm CategoryDetails
     | NewRule RuleId
     | NewCategory String
-    | GetRepairedReport RuleId Int
+    | GetRepairedReport RuleId (Maybe Int)
     | CallApi Bool (Model -> Cmd Msg)
     | GetRuleDetailsResult (Result Error Rule)
     | GetPolicyModeResult (Result Error String)
@@ -372,6 +392,8 @@ type Msg
     | GetRulesResult (Result Error (Category Rule))
     | GetGroupsTreeResult (Result Error (Category Group))
     | GetRuleChanges (Result Error (Dict String (List Changes)))
+    | GetInterval (Result Error IntervalList)
+    | GetLatestChanges (Result Error LatestChanges)
     | GetRepairedReportsResult RuleId ZonedDateTime ZonedDateTime (Result Error (List RepairedReport))
     | GetTechniquesTreeResult (Result Error ( Category Technique, List Technique ))
     | DeleteRule (Result Error Rule)

@@ -240,9 +240,34 @@ decodeDirectiveCompliance elem decoder =
         |> required "components" (list (decodeComponentCompliance elem decoder))
 
 
+decodeIntervalList : Decoder IntervalList
+decodeIntervalList =
+    at [ "data" ]
+        (succeed IntervalList
+            |> required "latest" decodeInterval
+            |> required "all" (list decodeInterval)
+        )
+
+
+decodeInterval : Decoder Interval
+decodeInterval =
+    succeed Interval
+        |> required "start" decodeTime
+        |> required "end" decodeTime
+
+
 decodeRuleChanges : Decoder (Dict String (List Changes))
 decodeRuleChanges =
     at [ "data" ] (dict (list decodeChanges))
+
+
+decodeRuleLatestChanges : Decoder LatestChanges
+decodeRuleLatestChanges =
+    at [ "data" ]
+        (succeed LatestChanges
+            |> optional "interval" (map Just decodeInterval) Nothing
+            |> required "changes" (dict float)
+        )
 
 
 decodeChanges : Decoder Changes

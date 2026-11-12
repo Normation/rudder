@@ -331,17 +331,12 @@ update msg model =
                                         Cmd.none
 
                         getChanges =
-                            case Dict.get r.id.value model.changes of
+                            case model.latest.interval of
                                 Nothing ->
                                     []
 
-                                Just changes ->
-                                    case List.Extra.last changes of
-                                        Nothing ->
-                                            []
-
-                                        Just lastChanges ->
-                                            [ getRepairedReports newModel r.id lastChanges.start lastChanges.end ]
+                                Just interval ->
+                                    [ getRepairedReports newModel r.id interval.start interval.end ]
                     in
                     ( newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getRuleNodesDirectives r.id newModel :: getPendingCR :: getChanges) )
 
@@ -392,6 +387,26 @@ update msg model =
 
                 Err err ->
                     processApiError "Getting compliance" err model
+
+        GetLatestChanges res ->
+            case res of
+                Ok r ->
+                    ( { model | latest = r } |> updateRulesTableData
+                    , initTooltips ""
+                    )
+
+                Err err ->
+                    processApiError "Getting changes" err model
+
+        GetInterval res ->
+            case res of
+                Ok r ->
+                    ( { model | intervals = Just r }
+                    , initTooltips ""
+                    )
+
+                Err err ->
+                    processApiError "Getting changes intervals" err model
 
         GetRuleChanges res ->
             case res of
@@ -1008,18 +1023,22 @@ update msg model =
                 _ ->
                     ( model, initTooltips "" )
 
-        GetRepairedReport ruleId idChange ->
-            case Dict.get ruleId.value model.changes of
+        GetRepairedReport ruleId selection ->
+            let
+                interval =
+                    case selection of
+                        Nothing ->
+                            model.latest.interval
+
+                        Just idChange ->
+                            model.intervals |> Maybe.map .all |> Maybe.andThen (List.Extra.getAt idChange)
+            in
+            case interval of
                 Nothing ->
                     ( model, Cmd.none )
 
-                Just changes ->
-                    case List.Extra.getAt idChange changes of
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                        Just c ->
-                            ( model, getRepairedReports model ruleId c.start c.end )
+                Just i ->
+                    ( model, getRepairedReports model ruleId i.start i.end )
 
         ToggleRowSort rowId sortId order ->
             case model.mode of
@@ -1051,17 +1070,12 @@ update msg model =
         RefreshReportsTable ruleId ->
             let
                 getChanges =
-                    case Dict.get ruleId.value model.changes of
+                    case model.latest.interval of
                         Nothing ->
                             []
 
-                        Just changes ->
-                            case List.Extra.last changes of
-                                Nothing ->
-                                    []
-
-                                Just lastChanges ->
-                                    [ getRepairedReports model ruleId lastChanges.start lastChanges.end ]
+                        Just interval ->
+                            [ getRepairedReports model ruleId interval.start interval.end ]
             in
             ( model, Cmd.batch getChanges )
 
@@ -1182,7 +1196,7 @@ toRuleWithCompliance model rule =
     , categoryName = getCategoryName model rule.categoryId
     , status = rule.status
     , compliance = getRuleCompliance model rule.id
-    , changes = countRecentChanges rule.id model.changes
+    , changes = countRecentChanges rule.id model.latest.changes
     , tags = rule.tags
     , security = rule.security
     }
