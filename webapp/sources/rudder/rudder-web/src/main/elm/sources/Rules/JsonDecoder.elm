@@ -8,10 +8,11 @@ import Json.Decode.Field exposing (require)
 import Json.Decode.Pipeline exposing (..)
 import Rules.DataTypes exposing (..)
 import Tenants.SecurityTag exposing (decodeSecurityTag)
+import Time exposing (millisToPosix)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
 import Time.TimeZones exposing (utc)
-import Time.ZonedDateTime exposing (ZonedDateTime)
+import Time.ZonedDateTime exposing (ZonedDateTime, fromPosix)
 import Tuple
 import Ui.Datatable exposing (Category, SubCategories(..))
 
@@ -240,9 +241,34 @@ decodeDirectiveCompliance elem decoder =
         |> required "components" (list (decodeComponentCompliance elem decoder))
 
 
+decodeIntervalList : Decoder IntervalList
+decodeIntervalList =
+    at [ "data" ]
+        (succeed IntervalList
+            |> required "latest" decodeInterval
+            |> required "all" (list decodeInterval)
+        )
+
+
+decodeInterval : Decoder Interval
+decodeInterval =
+    succeed Interval
+        |> required "start" decodeTimeMillis
+        |> required "end" decodeTimeMillis
+
+
 decodeRuleChanges : Decoder (Dict String (List Changes))
 decodeRuleChanges =
     at [ "data" ] (dict (list decodeChanges))
+
+
+decodeRuleLatestChanges : Decoder LatestChanges
+decodeRuleLatestChanges =
+    at [ "data" ]
+        (succeed LatestChanges
+            |> optional "interval" (map Just decodeInterval) Nothing
+            |> required "changes" (dict float)
+        )
 
 
 decodeChanges : Decoder Changes
@@ -251,6 +277,11 @@ decodeChanges =
         |> required "start" decodeTime
         |> required "end" decodeTime
         |> required "changes" float
+
+
+decodeTimeMillis : Decoder ZonedDateTime
+decodeTimeMillis =
+    map (millisToPosix >> fromPosix utc) int
 
 
 decodeTime : Decoder ZonedDateTime

@@ -148,6 +148,7 @@ import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports.ChangesByRule
+import com.normation.rudder.services.reports.LatestChanges
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
@@ -1090,6 +1091,18 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         ).succeed
       } else Seq.empty[ResultRepairedReport].succeed
     }
+
+    def countLatestChangesByRule(): IOResult[Option[LatestChanges]] = Some(
+      LatestChanges(
+        new Interval(0L, 1_000L),
+        Map(
+          mockRules.rules.clockRule.id -> 1,
+          tenantRuleId                 -> 3
+        )
+      )
+    ).succeed
+
+    def latestChangesMaxAge: Int = 0
   }
   val otpService = new TotpService {
     override def getAllTotpUser(users: List[UserInfo]): IOResult[Map[UserId, TotpUser]] = Map.empty.succeed
