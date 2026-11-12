@@ -46,12 +46,14 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine.DEFAULT_MAX_EVAL_DURATION
 import com.normation.zio.*
+import java.util.concurrent.TimeUnit
 import org.junit.runner.*
 import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.annotation.nowarn
+import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
 import zio.*
 import zio.syntax.*
@@ -108,13 +110,9 @@ class TestJsEngine extends Specification {
   def contextDisabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] =
     JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, DEFAULT_MAX_EVAL_DURATION)(script).either.runNow
 
-  /**
-   * This is needed, because we set the security manager and then
-   * remove it. So we don't want two thread to do it concurrently.
-   *
-   * Also not that any safe use of that method mustn't be done in
-   * a concurrent env where several thread create (and destroy)
-   * sandboxed env.
+  /*
+   * Several examples assert on evaluation timeouts: running them concurrently would make
+   * the measured durations depend on CPU contention.
    */
   sequential
 
@@ -205,6 +203,114 @@ class TestJsEngine extends Specification {
       )
     }
 
+  }
+
+  /*
+   * Isolation guarantees of the sandbox. All evaluations of a test share one engine and a
+   * one-thread pool, so they run on the same thread, in sequence, like several directive
+   * parameters of a generation.
+   */
+  "The sandbox isolation" should {
+    val lib = JsRudderLibBinding.Crypt.jsRudderLib
+
+    def twoEvals(first: String, second: String): Either[RudderError, String] = {
+      runSandboxed()(box => box.singleEval(first, lib).either *> box.singleEval(second, lib))
+    }
+
+    "not leak an implicit global to the next evaluation" in {
+      twoEvals("leaked = 'secret'; 'set'", "typeof leaked") must beEqualTo(Right("undefined"))
+    }
+
+    "not leak a globalThis property to the next evaluation" in {
+      twoEvals("globalThis.leaked = 'secret'; 'set'", "typeof globalThis.leaked") must beEqualTo(Right("undefined"))
+    }
+
+    "not leak a modified Object.prototype to the next evaluation" in {
+      twoEvals("Object.prototype.leaked = 'secret'; 'set'", "typeof ({}).leaked") must beEqualTo(Right("undefined"))
+    }
+
+    "not leak a redefined builtin to the next evaluation" in {
+      twoEvals("String.prototype.toUpperCase = function() { return 'pwned' }; 'set'", "'a'.toUpperCase()") must beEqualTo(
+        Right("A")
+      )
+    }
+
+    "not let a script modify the shared rudder library" in {
+      val expected = twoEvals("'noop'", "rudder.hash.md5('a')")
+      (expected must beEqualTo(Right("0cc175b9c0f1b6a831c399e269772661"))) and
+      (twoEvals("rudder.hash.md5 = function() { return 'pwned' }; 'set'", "rudder.hash.md5('a')") must beEqualTo(expected)) and
+      (twoEvals("rudder.hash = { md5: function() { return 'pwned' } }; 'set'", "rudder.hash.md5('a')") must beEqualTo(expected))
+    }
+
+    "deny host class lookup" in {
+      runSandboxed()(_.singleEval("Java.type('java.lang.System').exit(0)", lib)) must beLeft
+    }
+
+    "deny polyglot access" in {
+      runSandboxed()(_.singleEval("Polyglot.eval('js', '1 + 1')", lib)) must beLeft
+    }
+
+    "deny file loading" in {
+      runSandboxed()(_.singleEval("load('/etc/passwd')", lib)) must beLeft
+    }
+
+    "deny node-style module loading" in {
+      runSandboxed()(_.singleEval("require('fs')", lib)) must beLeft
+    }
+
+    "expose only the hash and password members of the rudder library" in {
+      runSandboxed()(_.singleEval("Object.keys(rudder).sort().join(',')", lib)) must beEqualTo(Right("hash,password"))
+    }
+
+    "expose only exported methods of the rudder library objects" in {
+      val probes = List(
+        "rudder.hash.getClass",
+        "rudder.password.getClass",
+        "rudder.hash.getBytes",
+        "rudder.password.getBytes",
+        "rudder.hash.hashCode",
+        "rudder.password.wait"
+      )
+      val script = probes.map(p => s"typeof ${p}").mkString("[", ",", "].join(',')")
+      (runSandboxed()(_.singleEval(script, lib)) must beEqualTo(Right(probes.map(_ => "undefined").mkString(",")))) and
+      (runSandboxed()(_.singleEval("[typeof rudder.hash.md5, typeof rudder.password.unix].join(',')", lib)) must beEqualTo(
+        Right("function,function")
+      ))
+    }
+
+    "not reach java.lang.Class through the rudder library" in {
+      runSandboxed()(_.singleEval("rudder.hash.getClass().forName('java.lang.Runtime')", lib)) must beLeft
+    }
+
+    /*
+     * The pool has one thread: if the looping script still runs after the timeout, the second
+     * evaluation waits behind it and times out too.
+     */
+    def evalAfterTimeout(looping: String): (Either[RudderError, String], Either[RudderError, String]) = {
+      JsEngine.SandboxedJsEngine
+        .sandboxed(1, FiniteDuration(2, TimeUnit.SECONDS)) { box =>
+          for {
+            looped <- box.singleEval(looping, lib).either
+            after  <- box.singleEval("'after'", lib).either
+          } yield (looped, after)
+        }
+        .runNow
+    }
+
+    "free the evaluation thread when a loop times out" in {
+      val (looped, after) = evalAfterTimeout("while(true){}")
+      (looped must beFailure("(?s).*took more than.*".r)) and (after must beEqualTo(Right("after")))
+    }
+
+    "free the evaluation thread when a loop catches the interruption" in {
+      val (looped, after) = evalAfterTimeout("while(true){ try { while(true){} } catch(e) {} }")
+      (looped must beFailure("(?s).*took more than.*".r)) and (after must beEqualTo(Right("after")))
+    }
+
+    "free the evaluation thread when a loop runs in a finally block" in {
+      val (looped, after) = evalAfterTimeout("try { while(true){} } finally { while(true){} }")
+      (looped must beFailure("(?s).*took more than.*".r)) and (after must beEqualTo(Right("after")))
+    }
   }
 
   "When feature is enabled, one " should {

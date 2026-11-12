@@ -206,7 +206,6 @@ trait AbstractScheduler {
           } catch {
             case e: Throwable =>
               e match {
-                case x: ThreadDeath          => throw x
                 case x: InterruptedException => throw x
                 case e =>
                   logger.error(e)
