@@ -43,15 +43,11 @@ import com.normation.errors.*
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.rudder.ports.InventoryFileWatcherPort
 import com.normation.zio.*
-import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.StandardWatchEventKinds
-import java.time.Instant
 import java.util.concurrent.TimeUnit
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.TrueFileFilter
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import zio.*
@@ -90,9 +86,10 @@ object InventoryProcessingUtils {
     }
   }
 
-  def hasValidInventoryExtension(file: File): Boolean = {
-    val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
-    inventoryExtensions.contains(ext)
+  // Check the name only: better-files `extension` stats the file, which costs too much on large dirs.
+  def hasValidInventoryExtension(fileName: String): Boolean = {
+    val dot = fileName.lastIndexOf('.')
+    dot >= 0 && inventoryExtensions.contains(fileName.substring(dot + 1).toLowerCase)
   }
 
   def makeManagedStream(file: File, kind: String = "inventory"): IOManaged[InputStream] = IOManaged.makeM[InputStream] {
@@ -105,15 +102,12 @@ object InventoryProcessingUtils {
  * That class holds the different bits of inventory processing
  */
 class InventoryFileWatcher(
-    fileProcessor:         HandleIncomingInventoryFile,
-    incomingInventoryPath: String,
-    updatedInventoryPath:  String,
-    maxOldInventoryAge:    Duration, // when do we delete old inventories still there
-
+    fileProcessor:                  HandleIncomingInventoryFile,
+    incomingInventoryPath:          String,
+    updatedInventoryPath:           String,
+    ageLimits:                      InventoryAgeLimits,
     collectOldInventoriesFrequency: Duration // how often you check for old inventories
 ) extends InventoryFileWatcherPort {
-
-  private val takeCareOfUnprocessedFileAfter: Duration = 3.minutes
 
   private val incoming: File = File(incomingInventoryPath)
   InventoryProcessingUtils.logDirPerm(incoming, "Incoming")
@@ -124,23 +118,43 @@ class InventoryFileWatcher(
   private val cleaner       = new CheckExistingInventoryFilesImpl(
     fileProcessor,
     incoming :: updated :: Nil,
-    maxOldInventoryAge,
-    takeCareOfUnprocessedFileAfter,
-    InventoryProcessingUtils.hasValidInventoryExtension
+    ageLimits
   )
-  // the cron that look for old files (or existing ones on startup/watcher restart)
+  // periodic look-up of inventories missed by the watcher
   private val cronForMissed = new SchedulerMissedNotify(cleaner, collectOldInventoriesFrequency)
 
   def startGarbageCollection: Unit = {
     (for {
-      // start scheduler for old file, it will take care of inventories
       _ <- cronForMissed.schedule
-      _ <- InventoryProcessingLogger.info(s"Incoming inventory garbage collection started - process existing inventories")
+      _ <- InventoryProcessingLogger.info(s"Incoming inventory garbage collection started")
     } yield ()).runNow
+  }
+
+  // called at boot and on each watcher (re)start: files may have arrived while the watcher was not running
+  def processExistingFiles(): UIO[Unit] = {
+    InventoryProcessingLogger.info(s"Processing existing incoming inventories") *>
+    cleaner.checkFilesOlderThan(Duration.Zero).forkDaemon.unit
   }
 
   // That reference holds watcher instance to be able to stop them if asked
   val ref: Ref.Synchronized[Option[Watchers]] = Ref.Synchronized.make(Option.empty[Watchers]).runNow
+
+  // A closed watcher can't restart so we need to always build new ones.
+  // Scan after the watch starts, so no file slips between the two.
+  private def startNewWatchers(action: String): IOResult[Option[Watchers]] = {
+    (for {
+      w <- IOResult.attempt(s"Error when creating incoming inventories file watcher")(
+             Watchers(incoming, updated, fileProcessor, cleaner)
+           )
+      _ <- w.start()
+      _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher ${action}")
+      _ <- processExistingFiles()
+    } yield Some(w)).tapError { err =>
+      InventoryProcessingLogger.error(
+        s"Incoming inventories file watcher could not be ${action}. Reported exception was: ${err.fullMsg}"
+      )
+    }
+  }
 
   def startWatcher(): IOResult[Unit] = ref.updateZIO {
     case opt @ Some(_) => // does nothing
@@ -148,40 +162,19 @@ class InventoryFileWatcher(
       opt.succeed
 
     case None =>
-      val w = Watchers(incoming, updated, fileProcessor, cleaner)
-      (for {
-        _ <- w.start() // start scheduler for old file, it will take care of inventories
-        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started")
-      } yield Some(w)).tapError { err =>
-        InventoryProcessingLogger.error(
-          s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
-        )
-      }
+      startNewWatchers("started")
   }
 
   def restartWatcher(): IOResult[Unit] = ref.updateZIO {
     case None =>
-      val w = Watchers(incoming, updated, fileProcessor, cleaner)
-      (for {
-        _ <- w.start() // start scheduler for old file, it will take care of inventories
-        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher restarted")
-      } yield Some(w)).tapError { err =>
-        InventoryProcessingLogger.error(
-          s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
-        )
-      }
+      startNewWatchers("restarted")
 
     case Some(w) =>
-      (for {
-        _ <- w.stop()
-        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
-        _ <- w.start() // start scheduler for old file, it will take care of inventories
-        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher restarted")
-      } yield None).tapError(err => {
+      (w.stop() *> InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")).tapError(err => {
         InventoryProcessingLogger.error(
-          s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
+          s"Error when trying to stop incoming inventories file watcher for restart. Reported exception was: ${err.fullMsg}."
         )
-      })
+      }) *> startNewWatchers("restarted")
   }
 
   override def stopWatcher(): IOResult[Unit] = ref.updateZIO {
@@ -263,7 +256,7 @@ object Watchers                                                   {
         override def onCreate(file: File, count: Int): Unit = onModify(file, count)
         override def onModify(file: File, count: Int): Unit = {
           // we want to avoid processing some file
-          if (InventoryProcessingUtils.hasValidInventoryExtension(file)) {
+          if (InventoryProcessingUtils.hasValidInventoryExtension(file.name)) {
             checkNew.addFile(file)
           } else {
             val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
@@ -340,13 +333,6 @@ trait HandleIncomingInventoryFile {
  * The garbage collection
  */
 
-final case class ToClean(file: File, why: String)
-final case class FilteredFiles(
-    toIgnore: List[File],
-    toClean:  List[ToClean],
-    toKeep:   List[File]
-)
-
 // A class that filter and add back inventory files
 trait CheckExistingInventoryFiles {
   def checkFilesOlderThan(d: Duration): UIO[Unit]
@@ -355,19 +341,16 @@ trait CheckExistingInventoryFiles {
 class CheckExistingInventoryFilesImpl(
     fileProcessor: HandleIncomingInventoryFile,
     directories:   List[File],
-    purgeAfter:    Duration, // time after which old inventories are deleted
-
-    waitingSignatureTime: Duration,
-    hasValidExtension:    File => Boolean
+    ageLimits:     InventoryAgeLimits
 ) extends CheckExistingInventoryFiles {
 
-  def processOldFiles(files: List[File]): UIO[Unit] = {
-    val now           = Instant.now
-    val purgeTime     = now.minus(purgeAfter)
-    val orphanTime    = now.minus(waitingSignatureTime)
-    val filteredFiles = filterFiles(purgeTime, orphanTime, files)
-
-    deleteFiles(filteredFiles.toClean) *> addFiles(filteredFiles.toKeep)
+  def processOldFiles(files: List[InventoryFileInfo]): UIO[Unit] = {
+    for {
+      now  <- Clock.instant
+      nodes = NodeInventoryFiles.byNode(files, now.minus(ageLimits.purgeAfter), now.minus(ageLimits.waitForSignature))
+      _    <- InventoryFiles.delete(nodes.flatMap(_.toClean))
+      _    <- addFiles(nodes.flatMap(_.toResubmit))
+    } yield ()
   }
 
   def addFiles(files: List[File]): UIO[Unit] = {
@@ -380,145 +363,38 @@ class CheckExistingInventoryFilesImpl(
     })
   }
 
-  def deleteFiles(files: List[ToClean]): UIO[Unit] = {
-    ZIO.foreachDiscard(files) { f =>
-      (ZIO.attempt(f.file.delete()) *> InventoryProcessingLogger.info(s"Deleting file '${f.file.name}': ${f.why}")).catchAll(
-        err => {
-          InventoryProcessingLogger.error(
-            s"Error when trying to delete inventory file '${f.file.name}' (${f.why}): ${err.getMessage}"
-          )
-        }
-      )
-    }
-  }
-
-  // we only want to keep:
-  // - file without supported extensions
-  // - then, we delete all inventories files older than our threshold
-  // - and the one that are not in pair (if older than waitingSignatureTime
-  def filterFiles(maxAgeGlobal: Instant, maxAgeOrphan: Instant, files: List[File]): FilteredFiles = {
-    import com.softwaremill.quicklens.*
-    val (filtered, pairs) = files.foldLeft((FilteredFiles(Nil, Nil, Nil), Map[String, List[File]]())) {
-      case ((filteredFiles, pairs), file) =>
-        if (hasValidExtension(file)) {
-          val fileLastModTime = file.lastModifiedTime
-          // if file is very recent, just ignore, it can still be processed
-          if (maxAgeOrphan.isBefore(fileLastModTime)) { // too yound, ignore
-            (filteredFiles.modify(_.toIgnore).using(file :: _), pairs)
-          } else {
-            // is file to old ?
-            if (maxAgeGlobal.isAfter(fileLastModTime)) { // too old
-              (
-                filteredFiles
-                  .modify(_.toClean)
-                  .using(ToClean(file, s"Inventory file '${file.name}' is older than max duration before cleaning") :: _),
-                pairs
-              )
-            } else {
-              // add the file to file that need pairing. key is filename without extension
-              val key     = file.nameWithoutExtension(true)
-              val exiting = pairs.get(key) match {
-                case None    => Nil
-                case Some(l) => l
-              }
-              (filteredFiles, pairs + ((key, file :: exiting)))
-            }
-          }
-        } else (filteredFiles.modify(_.toIgnore).using(file :: _), pairs)
-    }
-
-    // now, try to group potential pairs into actual pairs and remove orphans
-    pairs.foldLeft(filtered) {
-      case (filteredFinal, (filename, files)) =>
-        files match {
-          case Nil         => filteredFinal // should not happens
-          case file :: Nil =>               // it's an old orphans, delete it
-            filteredFinal
-              .modify(_.toClean)
-              .using(ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
-          case files       =>
-            // count signature files, it should have at least one and less than all
-            val sigs = files.filter(_.name.contains(".sign"))
-            val n    = sigs.length
-            if (n > 0 && n < files.length) { // ok
-              filteredFinal.modify(_.toKeep).using(files ::: _)
-            } else { // we only have signatures or inventories, deleting
-              files.foldLeft(filteredFinal) {
-                case (c, file) =>
-                  c.modify(_.toClean)
-                    .using(ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
-              }
-            }
-        }
-    }
-  }
-
-  /*
-   * List all files that need to be added again - simply all files older than period.
-   * Be careful that files can disappear in the middle of a java.nio.Files.walk, so just
-   * don't use that (or better files methods that use that)
-   * See: https://issues.rudder.io/issues/19268
-   */
-  def listFiles(d: Duration): UIO[List[File]] = {
-    import scala.jdk.CollectionConverters.*
-    (for {
-      // if that fails, just exit
-      now      <- Clock.instant
-      ageLimit <- IOResult.attempt(now.minus(d))
-      filter    = (f: File) => {
-                    if (
-                      f.exists && InventoryProcessingUtils
-                        .hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime))
-                    ) Some(f)
-                    else None
-                  }
-      // if the listing fails, just exit
-      children <- ZIO.foreach(directories)(d =>
-                    IOResult.attempt(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala)
-                  )
-      // filter file by file. In case of error, just skip it. Specifically ignore FileNotFound (davfs temp files disapear)
-      filtered <- ZIO.foreach(children.flatten) { file =>
-                    ZIO.attempt(filter(File(file.toPath))).catchAll {
-                      case _:  FileNotFoundException => // just ignore
-                        InventoryProcessingLogger.trace(
-                          s"Ignoring file '${file.toString}' when processing old inventories: " +
-                          s"FileNotFoundException (likely it disappeared between directory listing and filtering)"
-                        ) *> ZIO.succeed(None)
-                      case ex: Throwable             => // log and switch to the next
-                        InventoryProcessingLogger
-                          .warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
-                        ZIO.succeed(None)
-                    }
-                  }
-    } yield (filtered.flatten)).catchAll(err => {
-      InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}") *>
-      Nil.succeed
-    })
+  // list inventory files last modified more than `d` ago
+  def listFiles(d: Duration): UIO[List[InventoryFileInfo]] = {
+    for {
+      now   <- Clock.instant
+      limit  = now.minus(d)
+      files <- InventoryFiles.listAll(directories)
+    } yield files.filter(_.lastModified.isBefore(limit))
   }
 
   def checkFilesOlderThan(d: Duration): UIO[Unit] = for {
     files <- listFiles(d)
     _     <- ZIO.when(files.nonEmpty) {
-               InventoryProcessingLogger.debug(s"Found old inventories: ${files.map(_.pathAsString).mkString(", ")}")
+               InventoryProcessingLogger.debug(s"Found old inventories: ${files.map(_.file.pathAsString).mkString(", ")}")
              }
-    _     <- addFiles(files)
+    _     <- processOldFiles(files)
   } yield ()
 }
 
 /*
- * A class that periodically add inventories that we likely missed by inotify
+ * Periodically re-submits inventories likely missed by inotify.
+ * For existing files at start, the watcher start scans them, see `InventoryFileWatcher`.
  */
 class SchedulerMissedNotify(
     checker: CheckExistingInventoryFiles,
     period:  Duration
 ) {
   val schedule: URIO[Any, Fiber.Runtime[Nothing, Nothing]] = {
-    def loop(d: Duration) = for {
-      _ <- checker.checkFilesOlderThan(d)
-      _ <- ZIO.clockWith(_.sleep(period))
-    } yield ()
-
-    (loop(Duration.Zero) *> loop(period).forever).forkDaemon
+    // log defects and go on: otherwise GC stops until the app restarts
+    val loop = ZIO.clockWith(_.sleep(period)) *> checker.checkFilesOlderThan(period).catchAllDefect { ex =>
+      InventoryProcessingLogger.error(s"Error when looking for old inventories: ${ex.getClass.getName}: ${ex.getMessage}")
+    }
+    loop.forever.forkDaemon
   }
 }
 
@@ -536,7 +412,12 @@ object ProcessFile {
   // time after the last mod event after which we consider that a file is written
   private val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
 
-  def start(inventoryProcessor: ProcessInventoryService, prioIncomingDirPath: String): UIO[ProcessFile] = {
+  def start(
+      inventoryProcessor:  ProcessInventoryService,
+      prioIncomingDirPath: String,
+      updatesDirPath:      String,
+      ageLimits:           InventoryAgeLimits
+  ): UIO[ProcessFile] = {
 
     for {
       /*
@@ -580,6 +461,8 @@ object ProcessFile {
       processFile     = new ProcessFile(
                           inventoryProcessor = inventoryProcessor,
                           prioIncomingDir = prioIncomingDir,
+                          directories = List(prioIncomingDir, File(updatesDirPath)),
+                          ageLimits = ageLimits,
                           sign = sign,
                           watchEventQueue = watchEventQueue,
                           toBeProcessed = toBeProcessed,
@@ -599,6 +482,8 @@ object ProcessFile {
 class ProcessFile(
     inventoryProcessor:  ProcessInventoryService,
     prioIncomingDir:     File,
+    directories:         List[File],
+    ageLimits:           InventoryAgeLimits,
     sign:                String,
     watchEventQueue:     Queue[WatchEvent],
     toBeProcessed:       Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]],
@@ -739,20 +624,50 @@ class ProcessFile(
   private def saveInventoryBufferProcessing(): ZIO[Any, Nothing, Unit] = {
     import com.normation.rudder.inventory.StatusLog.*
     for {
-      fst  <- saveInventoryBuffer.take
+      fst    <- saveInventoryBuffer.take
       // deduplicate and prioritize file in 'incoming', which are new inventories. TakeAll is not blocking
-      all  <- saveInventoryBuffer.takeAll
-      inv   = all.prepended(fst).find(_.inventory.parent == prioIncomingDir).getOrElse(fst)
-      // process
-      _    <-
-        InventoryProcessingLogger.info(s"Received new inventory file '${inv.inventory.name}' with signature available: process.")
-      res  <- inventoryProcessor.saveInventoryBlocking(inv)
-      _    <- res match {
-                case r: InventoryProcessStatus.Saved => InventoryProcessingLogger.debug(r.msg)
-                case r => InventoryProcessingLogger.error(r.msg)
-              }
-      all2 <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
-      _    <- saveInventoryBuffer.offerAll((all ++ all2).filterNot(inv.inventory.name == _.inventory.name))
+      all    <- saveInventoryBuffer.takeAll
+      inv     = all.prepended(fst).find(_.inventory.parent == prioIncomingDir).getOrElse(fst)
+      node   <- cleanNodeInventories(inv)
+      _      <- node.readyToProcessOne match {
+                  case None    =>
+                    InventoryProcessingLogger.info(
+                      s"Inventory file '${inv.inventory.name}' skipped: no complete inventory ready to process for node '${node.nodeKey}' (youngest still gzipped, or none left)."
+                    )
+                  case Some(p) =>
+                    for {
+                      _   <- InventoryProcessingLogger.info(
+                               s"Received new inventory file '${p.inventory.name}' with signature available: process."
+                             )
+                      res <- inventoryProcessor.saveInventoryBlocking(p)
+                      _   <- res match {
+                               case r: InventoryProcessStatus.Saved => InventoryProcessingLogger.debug(r.msg)
+                               case r => InventoryProcessingLogger.error(r.msg)
+                             }
+                    } yield ()
+                }
+      all2   <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
+      handled = node.handledNames + inv.inventory.name
+      _      <- saveInventoryBuffer.offerAll((all ++ all2).filterNot(p => handled.contains(p.inventory.name)))
     } yield ()
+  }
+
+  /*
+   * Classify the inventory files of the node of `inv` with the same rules as the periodic scan, and delete
+   * the ones to clean (superseded, too old, orphans).
+   */
+  private def cleanNodeInventories(inv: InventoryPair): UIO[NodeInventoryFiles] = {
+    val key = InventoryFileName.nodeKey(inv.inventory.name)
+    for {
+      now    <- Clock.instant
+      onDisk <- InventoryFiles.listNode(directories, key)
+      node    = NodeInventoryFiles.forNode(
+                  key,
+                  onDisk,
+                  now.minus(ageLimits.purgeAfter),
+                  now.minus(ageLimits.waitForSignature)
+                )
+      _      <- InventoryFiles.delete(node.toClean)
+    } yield node
   }
 }

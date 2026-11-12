@@ -82,6 +82,7 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.inventory.DefaultProcessInventoryService
+import com.normation.rudder.inventory.InventoryAgeLimits
 import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryMover
@@ -2163,13 +2164,14 @@ object RudderConfigInit {
     }
 
     lazy val inventoryWatcher = {
-      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING).runNow
+      val ageLimits     = InventoryAgeLimits(purgeAfter = WATCHER_DELETE_OLD_INVENTORIES_AGE, waitForSignature = 3.minutes)
+      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING, INVENTORY_DIR_UPDATE, ageLimits).runNow
 
       new InventoryFileWatcher(
         fileProcessor,
         INVENTORY_DIR_INCOMING,
         INVENTORY_DIR_UPDATE,
-        WATCHER_DELETE_OLD_INVENTORIES_AGE,
+        ageLimits,
         WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD
       )
     }
