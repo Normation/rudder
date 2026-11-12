@@ -248,25 +248,19 @@ object MergeNodeProperties {
 
       // Hierarchy whose topmost group is the given parent, with the global parameter as root
       // (conflicting hierarchies don't have it yet, see https://issues.rudder.io/issues/30006)
-      object ParentGroup {
-        def unapply(p: ParentProperty[?])(using parent: GroupProp): Option[ParentProperty.Group] = {
-          p match {
-            case n: ParentProperty.Node   =>
-              n.parentProperty match {
-                case Some(ParentGroup(hierarchy)) => Some(hierarchy)
-                case _                            => None
-              }
-            case g: ParentProperty.Group  =>
-              g.parentProperty match {
-                case None | Some(_: ParentProperty.Global) if g.groupId == parent.groupId =>
-                  Some(g.copy(parentProperty = globalParams.get(g.value.name).map(ParentProperty.Global(_))))
-                case Some(ParentGroup(hierarchy))                                         =>
-                  Some(g.copy(parentProperty = Some(hierarchy)))
-                case _                                                                    =>
-                  None
-              }
-            case _: ParentProperty.Global => None
-          }
+      def parentGroup(p: ParentProperty[?], parent: GroupProp): Option[ParentProperty.Group] = {
+        p match {
+          case n: ParentProperty.Node   => n.parentProperty.flatMap(parentGroup(_, parent))
+          case g: ParentProperty.Group  =>
+            g.parentProperty match {
+              case None                           =>
+                Option.when(g.groupId == parent.groupId)(
+                  g.copy(parentProperty = globalParams.get(g.value.name).map(ParentProperty.Global(_)))
+                )
+              case Some(_: ParentProperty.Global) => Option.when(g.groupId == parent.groupId)(g)
+              case Some(p)                        => parentGroup(p, parent).map(h => g.copy(parentProperty = Some(h)))
+            }
+          case _: ParentProperty.Global => None
         }
       }
 
@@ -284,10 +278,7 @@ object MergeNodeProperties {
                     parent          <- allGroupProps.get(firstParent)
                     // we assume that there is a single property value for the same name (upstream we have List and not a Map)
                     parentProp      <- parent.properties.find(_.name == nodeProp.name)
-                    parentHierarchy <- {
-                      given GroupProp = parent
-                      parentProps.collectFirst { case ParentGroup(hierarchy) => hierarchy }
-                    }
+                    parentHierarchy <- parentProps.view.flatMap(parentGroup(_, parent)).headOption
                   } yield {
                     parentProp -> parentHierarchy
                   }
