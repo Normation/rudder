@@ -322,7 +322,9 @@ displayModal model =
                     , div []
                         [ div [ class "alert alert-info" ]
                             [ i [ class "fa fa-exclamation-triangle" ] []
-                            , text "This account doesn't have a token. You can create one with the refresh action"
+                            , text "This account doesn't have a token. You can create one with the "
+                            , span [ class "fa fa-plus-circle" ] []
+                            , text " action in the Actions column."
                             ]
                         ]
                     , text ""
