@@ -247,7 +247,7 @@ object MergeNodeProperties {
     ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
 
       // Hierarchy whose topmost group is the given parent, with the global parameter as root
-      // (conflicting hierarchies don't have it yet, see)
+      // (conflicting hierarchies don't have it yet, see https://issues.rudder.io/issues/30006)
       object ParentGroup {
         def unapply(p: ParentProperty[?])(using parent: GroupProp): Option[ParentProperty.Group] = {
           p match {
