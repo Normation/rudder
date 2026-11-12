@@ -66,6 +66,40 @@ getRuleChanges model =
     req
 
 
+getChangesInterval : Model -> Cmd Msg
+getChangesInterval model =
+    let
+        req =
+            request
+                { method = "GET"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model [ "changes", "intervals" ] []
+                , body = emptyBody
+                , expect = expectJson GetInterval decodeIntervalList
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
+getLatestChanges : Model -> Cmd Msg
+getLatestChanges model =
+    let
+        req =
+            request
+                { method = "GET"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model [ "changes", "latest" ] []
+                , body = emptyBody
+                , expect = expectJson GetLatestChanges decodeRuleLatestChanges
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
 getRepairedReports : Model -> RuleId -> ZonedDateTime -> ZonedDateTime -> Cmd Msg
 getRepairedReports model ruleId start end =
     let

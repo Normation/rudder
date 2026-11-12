@@ -50,6 +50,7 @@ import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.zio.*
 import doobie.*
 import doobie.implicits.*
@@ -248,6 +249,36 @@ class ReportsTest extends DBCommon {
       res._1 must contain(exactly(expected*))
     }
 
+  }
+
+  "Latest changes" should {
+    val now     = DateTime.now(DateTimeZone.UTC)
+    val reports = (
+      Map[String, Seq[Reports]]() +
+        node("n1")(
+          ("r1", "d1", "report_id0", "c1", "cv1", now.minusHours(1), "result_repaired", "in window"),
+          ("r1", "d1", "report_id0", "c2", "cv2", now.minusHours(3), "result_repaired", "in window"),
+          ("r1", "d1", "report_id0", "c1", "cv1", now.minusHours(7), "result_repaired", "too old"),
+          ("r1", "d1", "report_id0", "c1", "cv1", now.minusHours(1), "result_success", "not a change")
+        ) +
+        node("n2")(
+          ("r2", "d1", "report_id0", "c1", "cv1", now.minusHours(2), "result_repaired", "in window"),
+          ("r3", "d1", "report_id0", "c1", "cv1", now.minusHours(8), "result_repaired", "too old")
+        )
+    )
+    val service = new NodeChangesServiceImpl(repostsRepo)
+
+    step {
+      cleanTables()
+      transacRun(xa => insertReports(reports.values.toList.flatten).transact(xa))
+    }
+
+    "only count repaired reports of the last 6 hours, by rule" in {
+      val res = service.countLatestChangesByRule().open
+
+      (res.map(_.changes) must beSome(Map(RuleId(RuleUid("r1")) -> 2, RuleId(RuleUid("r2")) -> 1))) and
+      (res.map(_.interval.toDurationMillis) must beSome(6L * 3600 * 1000))
+    }
   }
 
 }
