@@ -35,7 +35,9 @@
  */
 package com.normation.rudder.users
 
+import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.rudder.users.TotpError.EnrollmentError
 import com.normation.utils.DateFormaterService
 import enumeratum.*
 import java.time.Instant
@@ -147,6 +149,179 @@ object TotpUser {
 
   def default(userInfo: UserInfo, enforcement: TotpEnforcementLevel): TotpUser = {
     apply(userInfo, TotpEnrollmentStatus.default(enforcement))
+  }
+}
+
+/**
+ * Known errors that happen to be retried/issued from OTP spec implementation
+ */
+enum TotpError {
+  // from otp implementations: invalid code
+  case CodeError(msg: String, at: Instant, userId: UserId)
+
+  // security case that is explicitly handled: https://issues.rudder.io/issues/30145
+  case ReplayError(msg: String, from: Instant, userId: UserId) extends TotpError with SecurityError
+}
+
+object TotpError {
+  import EnrollmentError.*
+  import VerifyError.*
+
+  /**
+   * Our business logic errors
+   */
+  sealed trait ValidationError
+
+  enum EnrollmentError extends ValidationError {
+    case NoEnrolledSecret(msg: String, userId: UserId)
+    case Database(details: RudderError, userId: UserId)
+  }
+
+  enum VerifyError extends ValidationError {
+    case UnknownUser(databaseError: Option[RudderError], userId: UserId)
+  }
+
+  /**
+   * Error-handling outcome that determines what is:
+   * - logged by the system
+   * - returned as a displayable and human-friendly error to a user
+   * Both messages can be different for some OTP validation cases
+   * (e.g. user already known their ID, database error are system and hidden in user error, ...).
+   * 
+   * The outcome should be independent of the evaluation context such as
+   * error recovery, so that the declared outcome are as truthful as possible.
+   */
+  case class RudderOutcome[A](log: NamedZioLogger => UIO[Unit], error: RudderError) {
+    def fail(using logger: NamedZioLogger): IOResult[Nothing] = log(logger) *> ZIO.fail(error)
+  }
+
+  sealed trait ToRudderErrorOutcome[A] {
+    extension (a: A) def toRudderError: RudderOutcome[A]
+  }
+
+  given ToRudderErrorOutcome[ReplayError] with             {
+    extension (e: ReplayError)
+      def toRudderError: RudderOutcome[ReplayError] = {
+        RudderOutcome(
+          _.warn(s"${e.fullMsg} since ${e.from} by user '${e.userId.value}'"),
+          Inconsistency(
+            s"${e.msg}.\nIf it was not by you, it might be a security problem, you " +
+            s"should notify your Rudder administrator. Otherwise, please retry with the next TOTP code"
+          )
+        )
+      }
+  }
+  given ToRudderErrorOutcome[CodeError] with               {
+    extension (e: CodeError)
+      def toRudderError: RudderOutcome[CodeError] = {
+        // plain invalid code:
+        // only log at debug (we should rate limit to avoid verbose logs in case of brute force)
+        RudderOutcome(
+          _.debug(s"TOTP secret for user '${e.userId.value}' submitted at ${e.at.toString} could not be verified: ${e.msg}"),
+          Inconsistency(s"${e.msg}.\nAsk your Rudder administrator to reset your TOTP if you lost it")
+        )
+      }
+  }
+  given ToRudderErrorOutcome[VerifyError.UnknownUser] with {
+    extension (e: UnknownUser)
+      def toRudderError: RudderOutcome[UnknownUser] = {
+        RudderOutcome(
+          _.error(s"User '${e.userId.value}' OTP was not found" + e.databaseError.map(m => s": ${m.fullMsg}").getOrElse("")),
+          Unexpected("TOTP could not be verified. Please contact your Rudder administrator")
+        )
+      }
+  }
+
+  given ToRudderErrorOutcome[EnrollmentError.Database] with {
+    extension (e: Database)
+      def toRudderError: RudderOutcome[Database] = {
+        RudderOutcome(
+          _.error(
+            s"User '${e.userId.value}' TOTP registration failed: could not store user TOTP in database: ${e.details.fullMsg}"
+          ),
+          Unexpected(s"TOTP registration failed. Please retry, or contact your Rudder administrator")
+        )
+      }
+  }
+
+  // This one can be a database error upon verify for already enrolled user.
+  // If it's not database, that is a potential security error that needs to be logged:
+  // a user not known in database makes an API request to verify without even having enrolled a secret.
+  given ToRudderErrorOutcome[(UnknownUser, NoEnrolledSecret)] with {
+    extension (e: (UnknownUser, NoEnrolledSecret))
+      def toRudderError: RudderOutcome[(UnknownUser, NoEnrolledSecret)] = {
+        e match {
+          case (UnknownUser(Some(error), _), _)                      =>
+            RudderOutcome(
+              _.error(error.fullMsg),
+              Unexpected("TOTP could not be verified. Please contact your Rudder administrator")
+            )
+          case (UnknownUser(None, _), NoEnrolledSecret(msg, userId)) =>
+            RudderOutcome(
+              _.warn(
+                s"TOTP verification occurred for unknown user '${userId.value}', this may be a security problem: ${msg}"
+              ),
+              // generic message to not give any hints
+              Unexpected("TOTP could not be found")
+            )
+        }
+      }
+  }
+
+}
+
+object TotpVerifyError {
+  import TotpError.*
+
+  private def fail[E](err: E)(using ToRudderErrorOutcome[E], NamedZioLogger): IOResult[Nothing] = {
+    err.toRudderError.fail
+  }
+
+  extension [T](using NamedZioLogger)(
+      a: ZIO[Any, TotpError | EnrollmentError, T]
+  ) {
+    /*
+     * Verification endpoint has two entry-points:
+     * - first, attempt to verify the code as a generated code for enrollment
+     * - second, if the former failed, attempt to verify it for a known user
+     *
+     * It's done in this order, because the generated code check is cheaper (in-memory)
+     * than existing user check (which requires database access that we want to avoid).
+     *
+     * Having 2 dedicated endpoints/filters would change the error-handling logic
+     */
+    def handleVerify(b: ZIO[Any, TotpError | VerifyError, Unit]): UIO[PureResult[Unit]] = (for {
+      first  <- a.either
+      _      <-
+        // fail-fast upon database error: there may be a database problem (users table just purged, ...)
+        first match {
+          case Left(dbError: EnrollmentError.Database) =>
+            fail(dbError)
+          case _                                       =>
+            ZIO.unit
+        }
+      // no need to run second if first is right
+      second <- ZIO.unless(first.isRight)(b.either).someOrElse(Right(()))
+      _      <- (first, second) match {
+                  case (Right(_), _)                                                                 =>
+                    ZIO.unit
+                  case (_, Right(_))                                                                 =>
+                    ZIO.unit
+                  case (Left(e: ReplayError), _)                                                     =>
+                    fail(e)
+                  case (_, Left(e: ReplayError))                                                     =>
+                    fail(e)
+                  case (Left(e: CodeError), _)                                                       =>
+                    fail(e)
+                  case (_, Left(e: CodeError))                                                       =>
+                    fail(e)
+                  case (Left(e: EnrollmentError.NoEnrolledSecret), Left(u: VerifyError.UnknownUser)) =>
+                    fail((u, e))
+                  case (Left(e: EnrollmentError.Database), Left(u: VerifyError.UnknownUser))         =>
+                    // this one is handled above and shouldn't happen
+                    fail(u)
+                }
+    } yield ()).either
   }
 }
 

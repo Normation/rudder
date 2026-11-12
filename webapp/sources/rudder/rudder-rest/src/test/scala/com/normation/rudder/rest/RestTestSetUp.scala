@@ -158,6 +158,7 @@ import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
 import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
+import com.normation.rudder.users.TotpError.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
@@ -1097,9 +1098,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getGlobalStatus(): IOResult[TotpEnforcementLevel] = TotpEnforcementLevel.Enforced.succeed
     override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = TotpSecretData.make(userId, TotpSecret("secret"))
 
-    override def verifyGenerated(userId: UserId, code: String): IOResult[Totp] = ???
+    override def verifyGenerated(userId: UserId, code: String): ZIO[Any, TotpError | EnrollmentError, Totp] = ???
     override def reset(userId:           UserId): IOResult[Unit] = ???
-    override def verify(userId:          UserId, code: String): IOResult[Unit] = ???
+    override def verify(userId:          UserId, code: String): ZIO[Any, TotpError | VerifyError, Unit]     = ???
   }
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
