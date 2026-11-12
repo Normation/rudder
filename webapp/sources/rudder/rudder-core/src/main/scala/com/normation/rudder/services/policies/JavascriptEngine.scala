@@ -546,6 +546,8 @@ object JsEngine {
      * On timeout the evaluation is stopped with `Context.interrupt`: guest code cannot catch it,
      * and the call returns once the pool thread has left the context. It fails after a second
      * `maxTime` when the thread is stuck in a host call, which then keeps its pool thread.
+     * Waiting holds the calling thread up to twice `maxTime`, so it runs on the ZIO blocking pool
+     * whatever the thread of the caller.
      */
     def safeExec[T](name: String, context: Context)(block: => IOResult[T]): IOResult[T] = {
       val scriptCallable = new Callable[IOResult[T]] {
@@ -558,37 +560,40 @@ object JsEngine {
         }
       }
 
-      (try {
-        val task = pool.submit(scriptCallable)
-        try {
-          task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
+      IOResult
+        .attempt(s"Error when waiting for the evaluation of script '${name}'")(try {
+          val task = pool.submit(scriptCallable)
+          try {
+            task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
+          } catch {
+            case ex: ExecutionException => // this can happen when jsengine get security exception... Yeah...
+              SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
+
+            case ex: TimeoutException =>
+              try {
+                context.interrupt(java.time.Duration.ofMillis(maxTime.toMillis))
+                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
+              } catch {
+                case ex: TimeoutException =>
+                  SystemError(
+                    s"Evaluating script '${name}' took more than ${maxTime.toString()} and could not be interrupted: " +
+                    "its evaluation thread is still busy. Check for uninterruptible host calls",
+                    ex
+                  ).fail
+              }
+          }
         } catch {
-          case ex: ExecutionException => // this can happen when jsengine get security exception... Yeah...
-            SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
+          case ex: RejectedExecutionException =>
+            SystemError(
+              s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?",
+              ex
+            ).fail
 
-          case ex: TimeoutException =>
-            try {
-              context.interrupt(java.time.Duration.ofMillis(maxTime.toMillis))
-              Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
-            } catch {
-              case ex: TimeoutException =>
-                SystemError(
-                  s"Evaluating script '${name}' took more than ${maxTime.toString()} and could not be interrupted: " +
-                  "its evaluation thread is still busy. Check for uninterruptible host calls",
-                  ex
-                ).fail
-            }
-        }
-      } catch {
-        case ex: RejectedExecutionException =>
-          SystemError(
-            s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?",
-            ex
-          ).fail
-
-        case ex: InterruptedException =>
-          SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
-      }).uninterruptible
+          case ex: InterruptedException =>
+            SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
+        })
+        .flatten
+        .uninterruptible
     }
   }
 }
