@@ -390,7 +390,7 @@ limitations under the License.
     <!-- keep M4 because https://issues.rudder.io/issues/28527 -->
     <commons-fileupload>2.0.0-M5</commons-fileupload>
     <commons-csv-version>1.14.1</commons-csv-version>
-    <jgit-version>7.8.0.202609011348-r</jgit-version>
+    <jgit-version>7.8.1.202611041320-r</jgit-version>
     <spring-version>7.0.10</spring-version>
     <spring-security-version>7.1.2</spring-security-version>
     <asm-version>9.11.1</asm-version>
@@ -407,16 +407,15 @@ limitations under the License.
     <nuprocess-version>3.0.0</nuprocess-version>
     <postgresql-version>42.7.14</postgresql-version>
     <json-path-version>3.0.0</json-path-version>
-    <json-smart-version>2.6.0</json-smart-version>
-    <unboundid-version>7.0.5</unboundid-version>
+    <json-smart-version>2.6.1</json-smart-version>
+    <unboundid-version>7.0.6</unboundid-version>
     <fastparse-version>3.1.1</fastparse-version>
-    <config-version>1.4.9</config-version>
-    <caffeine-version>3.2.4</caffeine-version>
+    <config-version>1.4.10</config-version>
+    <caffeine-version>3.3.1</caffeine-version>
     <jgrapht-version>1.5.3</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
-    <graalvm-version>25.0.3</graalvm-version>
+    <graalvm-version>25.5.5.0.3</graalvm-version>
     <chimney-version>2.1.0</chimney-version>
-    <chimney-macro-version>2.1.0</chimney-macro-version>
     <cron4s-version>0.8.2</cron4s-version>
     <ipaddress-version>5.6.2</ipaddress-version>
     <snakeyaml-version>2.7</snakeyaml-version>
@@ -436,7 +435,7 @@ limitations under the License.
     <cats-effect-version>3.7.1</cats-effect-version>
     <dev-zio-version>2.1.27</dev-zio-version>
     <zio-cats-version>23.1.0.14</zio-cats-version> <!-- gives fs2 3.12.2, doobie 1.0.0-RC12 is in 3.12.2 -->
-    <zio-json-version>1.1.1</zio-json-version>
+    <zio-json-version>1.1.2</zio-json-version>
     <izumi-version>3.0.11</izumi-version>
     <magnolia-version>1.3.24</magnolia-version>
     <difflicious-version>0.7.1</difflicious-version>
