@@ -38,7 +38,7 @@
 package com.normation.plugins
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import net.liftweb.http.DispatchSnippet
@@ -53,12 +53,12 @@ trait DefaultExtendableSnippet[T] extends ExtendableSnippet[T] {
   private def extensionRegister = RudderConfig.snippetExtensionRegister
 
   override def beforeSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
-    PluginLogger.trace(s"Looking for pre-extension for snippet '${extendsAt.value}'")
+    ApplicationLoggerPure.Plugin.trace(s"Looking for pre-extension for snippet '${extendsAt.value}'")
     extensionRegister.getBeforeRenderExtension(this.extendsAt)
   }
 
   override def afterSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
-    PluginLogger.trace(s"Looking for post-extension for snippet '${extendsAt.value}'")
+    ApplicationLoggerPure.Plugin.trace(s"Looking for post-extension for snippet '${extendsAt.value}'")
     extensionRegister.getAfterRenderExtension(this.extendsAt)
   }
 
