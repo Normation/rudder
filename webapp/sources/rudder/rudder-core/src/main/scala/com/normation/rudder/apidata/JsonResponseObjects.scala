@@ -1293,7 +1293,16 @@ object JsonResponseObjects {
       hierarchy:       Option[JRPropertyHierarchy],
       hierarchyStatus: Option[JRPropertyHierarchyStatus],
       origval:         Option[ConfigValue]
-  )
+  ) {
+
+    /**
+     * Group property from its archive form, with the default visibility. Hierarchy fields are ignored.
+     */
+    def toGroupProperty: GroupProperty = {
+      val p = GroupProperty(name, GitVersion.DEFAULT_REV, value, inheritMode, provider)
+      description.fold(p)(p.withDescription)
+    }
+  }
   object JRProperty {
     def fromGroupProp(p: GroupProperty): JRProperty = {
       val desc = if (p.description.trim.isEmpty) None else Some(p.description)
@@ -1860,7 +1869,7 @@ object JsonResponseObjects {
             i,
             displayName,
             description,
-            properties.map(p => GroupProperty(p.name, GitVersion.DEFAULT_REV, p.value, p.inheritMode, p.provider)),
+            properties.map(_.toGroupProperty),
             q,
             dynamic,
             nodeIds.map(NodeId(_)).toSet,
