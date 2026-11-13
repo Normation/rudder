@@ -78,9 +78,7 @@ trait DeleteEditorTechnique {
   )(implicit changeContext: ChangeContext): IOResult[Unit]
 
   def deleteResource(
-      techniqueName:    String,
-      techniqueVersion: String,
-      resourceName:     String
+      resourceInformation: ResourceInformation
   )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
@@ -249,9 +247,7 @@ class DeleteEditorTechniqueImpl(
   }
 
   override def deleteResource(
-      techniqueName:    String,
-      techniqueVersion: String,
-      resourceName:     String
+      resourceInformation: ResourceInformation
   )(implicit changeContext: ChangeContext): IOResult[Unit] = {
 
     def removeResource(categories: Seq[String]): IOResult[Boolean] = {
@@ -261,19 +257,26 @@ class DeleteEditorTechniqueImpl(
       for {
         sanitized <- FileUtils.sanitizePath(
                        File(configRepository),
-                       ("techniques" :: categories.toList) :+ techniqueName :+ techniqueVersion :+ "resources" :+ resourceName
+                       ("techniques" :: categories.toList) :+
+                       resourceInformation.techniqueName.value :+
+                       resourceInformation.techniqueVersion.toString :+
+                       "resources" :+
+                       resourceInformation.resourceName.toString
                      )
       } yield {
         Files.deleteIfExists(sanitized.path)
       }
     }
 
-    val resourcePath = s"${techniqueName}/${techniqueVersion}/resources/${resourceName}"
+    val resourcePath =
+      s"${resourceInformation.techniqueName}/${resourceInformation.techniqueVersion.toString}/resources/${resourceInformation.resourceName}"
+    val techniqueId  = TechniqueId(TechniqueName(resourceInformation.techniqueName.value), resourceInformation.techniqueVersion)
     for {
-      techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
-      categories  <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
-      isRemoved   <- removeResource(categories.map(_.id.name.value))
-      _           <-
+      categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(
+                      TechniqueId(TechniqueName(resourceInformation.techniqueName.value), resourceInformation.techniqueVersion)
+                    )
+      isRemoved  <- removeResource(categories.map(_.id.name.value))
+      _          <-
         /*
          * The resource may already be absent, in this case `isRemoved=false`, this is not an error.
          * We only log it so that deleting the same resource twice still succeeds (idempotency).
@@ -281,15 +284,15 @@ class DeleteEditorTechniqueImpl(
         ZIO.unless(isRemoved)(
           DeleteEditorTechniqueLoggerPure.debug(s"Resource ${resourcePath} does not exist, nothing to delete")
         )
-      resourceId   = TechniqueResourceIdByName(techniqueId, resourceName)
-      -           <- archiver.deleteResource(
-                       techniqueId,
-                       resourceId,
-                       categories.map(_.id.name.value),
-                       changeContext.modId,
-                       changeContext.actor,
-                       s"Deleting resource '${techniqueId}/resources/${resourceId.name}'"
-                     )
+      resourceId  = TechniqueResourceIdByName(techniqueId, resourceInformation.resourceName.toString)
+      -          <- archiver.deleteResource(
+                      techniqueId,
+                      resourceId,
+                      categories.map(_.id.name.value),
+                      changeContext.modId,
+                      changeContext.actor,
+                      s"Deleting resource '${techniqueId}/resources/${resourceId.name}'"
+                    )
     } yield ()
   }
 }

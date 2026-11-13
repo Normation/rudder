@@ -403,8 +403,10 @@ class TechniqueArchiverImpl(
       modId = modId,
       msg = msg
     )
+
   }
 
+  final case class Empty(msg: String) extends RudderError
   private def delete(
       path:       String,
       committer:  EventActor,
@@ -420,13 +422,32 @@ class TechniqueArchiverImpl(
         gitRepo.semaphore.withPermit(for {
           rm     <-
             IOResult.attempt(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${path}").call())
+          status <- IOResult.attempt(
+                      gitRepo.git.status().call()
+                    )
+          _      <- if (
+                      status.getAdded.isEmpty &&
+                      status.getChanged.isEmpty &&
+                      status.getRemoved.isEmpty
+                    ) {
+                      ZIO.fail(
+                        Empty(
+                          s"Trying to delete ${relativePath}/${categoryPath}/${path} but there are no pending changes, skip commit"
+                        )
+                      )
+                    } else {
+                      ZIO.unit
+                    }
           rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
           commit <- IOResult.attempt(GitCommitId(rev.getName))
         } yield commit)
       _            <- gitModificationRepository.addCommit(commit, modId)
     } yield {
       s"${relativePath}/${categoryPath}/${path}"
-    }).chainError(s"error when deleting and committing '${path}").unit
+    }).catchSome {
+      case Empty(message) =>
+        GitArchiveLoggerPure.debug(message)
+    }.chainError(s"error when deleting and committing '${path}").unit
   }
 
   def deleteCategoryRecursively(

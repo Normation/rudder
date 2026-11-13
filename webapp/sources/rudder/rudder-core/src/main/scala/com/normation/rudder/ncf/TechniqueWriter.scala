@@ -75,9 +75,7 @@ trait TechniqueWriter {
   )(implicit cc: ChangeContext): IOResult[Unit]
 
   def deleteResource(
-      techniqueName:    String,
-      techniqueVersion: String,
-      resourceName:     String
+      resourceInformation: ResourceInformation
   )(implicit cc: ChangeContext): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
@@ -119,11 +117,9 @@ class TechniqueWriterImpl(
   }
 
   override def deleteResource(
-      techniqueName:    String,
-      techniqueVersion: String,
-      resourceName:     String
+      resourceInformation: ResourceInformation
   )(implicit cc: ChangeContext): IOResult[Unit] = for {
-    _ <- deleteService.deleteResource(techniqueName, techniqueVersion, resourceName)
+    _ <- deleteService.deleteResource(resourceInformation)
   } yield ()
 
   def writeTechniqueAndUpdateLib(

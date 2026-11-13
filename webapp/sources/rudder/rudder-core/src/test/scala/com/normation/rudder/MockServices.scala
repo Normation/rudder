@@ -101,6 +101,7 @@ import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
 import com.normation.rudder.ncf.ReadEditorTechniqueCheckResult
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.ResourceInformation
 import com.normation.rudder.ncf.RuddercOptions
 import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
@@ -472,9 +473,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     )(implicit cc: ChangeContext): IOResult[Unit] = ZIO.unit
 
     override def deleteResource(
-        techniqueName:    String,
-        techniqueVersion: String,
-        resourceName:     String
+        resourceInformation: ResourceInformation
     )(implicit cc: ChangeContext): IOResult[Unit] = ZIO.unit
   }
 

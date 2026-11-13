@@ -49,16 +49,12 @@ import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
+import com.normation.rudder.ncf.ResourceInformation.ResourceName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-import com.normation.rudder.rest
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.lift.TechniqueApi.JsonDeletedTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryAction
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryTree
-import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.rudder.rest.lift.TechniqueApi.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
@@ -301,12 +297,21 @@ class TechniqueApi(
         authzToken:   AuthzToken
     ): LiftResponse = {
 
+      val techniqueName    = resourceInfo._1
+      val versionPathParam = resourceInfo._2
+      val resourceName     = resourceInfo._3
+
       val content: ZIO[Any, RudderError, Json.Obj] = {
-        val file       = File(configRepoPath)
-        val categories = List("ncf_techniques")
         for {
-          _ <- techniqueWriter.deleteResource(resourceInfo._1, resourceInfo._2, resourceInfo._3)(using authzToken.qc.newCC())
+          techniqueVersion   <- ZIO
+                                  .fromEither(TechniqueVersion.parse(versionPathParam))
+                                  .mapError(s => Unexpected(s))
+          resourceInformation = ResourceInformation(TechniqueName(techniqueName), techniqueVersion, ResourceName(resourceName))
+          _                  <- techniqueWriter.deleteResource(
+                                  resourceInformation
+                                )(using authzToken.qc.newCC())
         } yield {
+
           Json.Obj(
             (
               "resources",
@@ -883,8 +888,8 @@ class TechniqueAPIService14(
   }
 
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
-    import zio.json.*
     import com.normation.rudder.ncf.TechniqueCompilationIO.codecTechniqueCompilationOutput
+    import zio.json.*
 
     techniqueCompiler
       .getCompilationOutput(editorTechnique)
@@ -975,5 +980,4 @@ class TechniqueAPIService14(
       json ++ parsingErrors
     }
   }
-
 }
