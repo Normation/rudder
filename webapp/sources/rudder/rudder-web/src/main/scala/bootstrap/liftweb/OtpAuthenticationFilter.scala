@@ -37,6 +37,7 @@ package bootstrap.liftweb
 
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.*
+import com.normation.rudder.users.TotpVerifyError.*
 import com.normation.zio.UnsafeRun
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -71,27 +72,26 @@ class OtpAuthenticationFilter extends AbstractAuthenticationProcessingFilter("/s
 
     (Option(req.getParameter("code")), current.getPrincipal) match {
       case (Some(code), preAuth: RudderPreAuthUser) =>
-        val u        = preAuth.authenticatingUser
-        val userId   = u.getUsername
-        def errorMsg =
-          "Could not verify user OTP, please retry with a valid code, generate a new OTP, or ask admin to reset your OTP if you lost it"
+        val u      = preAuth.authenticatingUser
+        val userId = u.getUsername
         // need to verify a newly generated OTP too
         otpService
           .verifyGenerated(UserId(userId), code)
           .tap(totp => ApplicationLoggerPure.Auth.info(s"User '${userId}' registered OTP at ${totp.created}"))
-          .orElse(
+          .handleVerify(
             otpService
               .verify(UserId(userId), code)
           )
-          .chainError(errorMsg)
           .foldZIO(
             err =>
-              // Send only error msg
-              ApplicationLoggerPure.Auth
-                .debug(err.fullMsg)
-                .as(
-                  errorResponse(res, HttpStatus.FORBIDDEN, errorMsg)
-                ),
+              // Send only a fixed error msg, to prevent exposing security details of verification to user
+              ZIO.succeed(
+                errorResponse(
+                  res,
+                  HttpStatus.FORBIDDEN,
+                  "Could not verify user OTP, please retry with a valid code, generate a new OTP, or ask admin to reset your OTP if you lost it"
+                )
+              ),
             _ => {
               ApplicationLoggerPure.Auth
                 .debug(s"User '${userId}' submitted a valid OTP code")

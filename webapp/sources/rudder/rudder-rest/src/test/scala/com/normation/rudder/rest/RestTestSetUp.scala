@@ -1097,9 +1097,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getGlobalStatus(): IOResult[TotpEnforcementLevel] = TotpEnforcementLevel.Enforced.succeed
     override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = TotpSecretData.make(userId, TotpSecret("secret"))
 
-    override def verifyGenerated(userId: UserId, code: String): IOResult[Totp] = ???
+    override def verifyGenerated(userId: UserId, code: String): ZIO[Any, TotpVerifyError, Totp] = ???
     override def reset(userId:           UserId): IOResult[Unit] = ???
-    override def verify(userId:          UserId, code: String): IOResult[Unit] = ???
+    override def verify(userId:          UserId, code: String): ZIO[Any, TotpVerifyError, Unit] = ???
   }
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(

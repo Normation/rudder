@@ -36,6 +36,7 @@
 package com.normation.rudder.users
 
 import com.normation.errors.*
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
 import enumeratum.*
 import java.time.Instant
@@ -147,6 +148,78 @@ object TotpUser {
 
   def default(userInfo: UserInfo, enforcement: TotpEnforcementLevel): TotpUser = {
     apply(userInfo, TotpEnrollmentStatus.default(enforcement))
+  }
+}
+
+/**
+ * Lattice for known errors that happen to be retried/issued as security errors
+ */
+enum TotpVerifyError extends RudderError {
+  case AlgorithmError(msg: String, userId: UserId)                  extends TotpVerifyError
+  case UnknownUser(msg: String, databaseError: Option[RudderError]) extends TotpVerifyError
+  case ReplayError(msg: String)                                     extends TotpVerifyError
+}
+
+object TotpVerifyError {
+  extension (replay:      ReplayError) {
+    def userMsg: String = s"${replay.msg}\nIf it was not by you, it might be a security problem and you " +
+      s"should contact your Rudder administrator. Otherwise, please retry with the next TOTP code."
+  }
+  extension (verifyError: AlgorithmError) {
+    def systemMsg: String = s"TOTP secret for user '${verifyError.userId.value}' could not be verified: ${verifyError.msg}"
+  }
+
+  extension (a: ZIO[Any, TotpVerifyError, Unit]) {
+    /*
+     * Verification endpoint has two entry-points:
+     * - first, attempt to verify the code as a generated code for enrollment
+     * - second, if the former failed, attempt to verify it for a known user
+     *
+     * Resulting failure result in both user-facing message, and emitted system log for ops details
+     */
+    def handleVerify(b: ZIO[Any, TotpVerifyError, Unit]): ZIO[Any, String, Unit] = for {
+      first  <- a.either
+      // fail-fast upon database error: there may be a database problem (users table just purged, ...)
+      _      <- first match {
+                  case Left(UnknownUser(msg, Some(dbError))) =>
+                    ApplicationLoggerPure.Auth.error(dbError.fullMsg) *>
+                    ZIO.fail(msg)
+                  case _                                     => ZIO.unit
+                }
+      second <- b.either
+      _      <- (first, second) match {
+                  case (Right(_), _)                                           =>
+                    ZIO.unit
+                  case (_, Right(_))                                           =>
+                    ZIO.unit
+                  // second: database error
+                  case (_, Left(UnknownUser(msg, Some(dbError))))              =>
+                    ApplicationLoggerPure.Auth.error(dbError.fullMsg) *>
+                    ZIO.fail(msg)
+                  // replay errors deserve specific warning logs
+                  case (Left(e: ReplayError), _)                               =>
+                    ApplicationLoggerPure.Auth.warn(e.msg) *>
+                    ZIO.fail(e.userMsg)
+                  case (_, Left(e: ReplayError))                               =>
+                    ApplicationLoggerPure.Auth.warn(e.msg) *>
+                    ZIO.fail(e.userMsg)
+                  // only log failed verification at debug (should rate limit to avoid verbose logs in case of brute force)
+                  case (Left(e: AlgorithmError), _)                            =>
+                    ApplicationLoggerPure.Auth.debug(e.systemMsg) *>
+                    ZIO.fail(e.msg)
+                  case (_, Left(e: AlgorithmError))                            =>
+                    ApplicationLoggerPure.Auth.debug(e.systemMsg) *>
+                    ZIO.fail(e.msg)
+                  // fail-fast case above is eliminated, so it's:
+                  // "user request verification without even having enrolled a code"
+                  // That is a potential security error that needs to be logged
+                  case (Left(UnknownUser(msg, _)), Left(UnknownUser(_, None))) =>
+                    ApplicationLoggerPure.Auth.warn(
+                      s"TOTP verification occurred for unknown user, this may be a security problem: ${msg}."
+                    ) *>
+                    ZIO.fail(msg)
+                }
+    } yield ()
   }
 }
 
