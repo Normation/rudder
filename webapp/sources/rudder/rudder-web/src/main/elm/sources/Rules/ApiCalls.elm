@@ -1,14 +1,14 @@
 module Rules.ApiCalls exposing (..)
 
 import Http exposing (..)
+import Iso8601
 import List.Extra exposing (find)
 import Maybe.Extra exposing (isJust)
 import Rules.ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodeGetEnableChangeMsg, decodeGetEnableCr, decodeGetMandatoryMsg, decodeGetMsgPrompt, decodePendingChangeRequests)
 import Rules.DataTypes exposing (..)
 import Rules.JsonDecoder exposing (..)
 import Rules.JsonEncoder exposing (..)
-import Time.Iso8601
-import Time.ZonedDateTime exposing (ZonedDateTime)
+import Time exposing (Posix)
 import Ui.Datatable exposing (Category, getAllElems)
 import Url.Builder exposing (QueryParameter, int, string)
 
@@ -66,14 +66,14 @@ getRuleChanges model =
     req
 
 
-getRepairedReports : Model -> RuleId -> ZonedDateTime -> ZonedDateTime -> Cmd Msg
+getRepairedReports : Model -> RuleId -> Posix -> Posix -> Cmd Msg
 getRepairedReports model ruleId start end =
     let
         req =
             request
                 { method = "GET"
                 , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
-                , url = getUrl model [ "changes", ruleId.value ] [ string "start" (Time.Iso8601.fromZonedDateTime start), string "end" (Time.Iso8601.fromZonedDateTime end) ]
+                , url = getUrl model [ "changes", ruleId.value ] [ string "start" (Iso8601.fromTime start), string "end" (Iso8601.fromTime end) ]
                 , body = emptyBody
                 , expect = expectJson (GetRepairedReportsResult ruleId start end) decodeRepairedReports
                 , timeout = Nothing

@@ -5,9 +5,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Rules.DataTypes exposing (..)
-import Time.Iso8601
-import Time.TimeZone as TZ exposing (TimeZone)
-import Time.ZonedDateTime as ZDT exposing (ZonedDateTime)
+import Time exposing (Zone)
+import Utils.DateUtils exposing (offsetString, posixToDateString, posixToString, posixToTimeString)
 
 
 type alias TableColumn =
@@ -18,7 +17,7 @@ type alias TableColumn =
 
 columns : Model -> List TableColumn
 columns model =
-    TableColumn "Execution date" (.executionDate >> Time.Iso8601.fromZonedDateTime)
+    TableColumn "Execution date" (.executionDate >> posixToString model.zone)
         :: TableColumn "Directive" (\r -> Maybe.withDefault r.directiveId.value (Maybe.map .displayName (Dict.get r.directiveId.value model.directives)))
         :: TableColumn "Node" (\r -> Maybe.withDefault r.nodeId.value (Maybe.map .hostname (Dict.get r.nodeId.value model.nodes)))
         :: TableColumn "Component" .component
@@ -27,9 +26,9 @@ columns model =
         :: []
 
 
-options : List Changes -> List (Html Msg)
-options changes =
-    List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges c) ]) <| changes
+options : Zone -> List Changes -> List (Html Msg)
+options zone changes =
+    List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges zone c) ]) <| changes
 
 
 technicalLogsTab : Model -> RuleDetails -> Html Msg
@@ -44,7 +43,7 @@ technicalLogsTab model details =
                     div [ class "table-title" ]
                         [ div [ class "input-group w-auto" ]
                             [ label [ class "input-group-text", for "dateRange" ] [ i [ class "fa fa-calendar" ] [] ]
-                            , select [ id "dateRange", onInput (\s -> GetRepairedReport details.rule.id (Maybe.withDefault 0 (String.toInt s))), class "form-select" ] (options changes)
+                            , select [ id "dateRange", onInput (\s -> GetRepairedReport details.rule.id (Maybe.withDefault 0 (String.toInt s))), class "form-select" ] (options model.zone changes)
                             ]
                         ]
 
@@ -97,32 +96,11 @@ technicalLogsTab model details =
         ]
 
 
-showChanges : Changes -> String
-showChanges c =
+showChanges : Zone -> Changes -> String
+showChanges zone c =
     let
-        formatYear =
-            String.fromInt << ZDT.year
-
-        formatTwoDigitInt =
-            String.padLeft 2 '0' << String.fromInt
-
-        formatMonth =
-            formatTwoDigitInt << ZDT.month
-
-        formatDay =
-            formatTwoDigitInt << ZDT.day
-
-        formatHour =
-            formatTwoDigitInt << ZDT.hour
-
-        formatMinute =
-            formatTwoDigitInt << ZDT.minute
-
-        formatTimeZone d =
-            "UTC" ++ (String.left 3 <| TZ.offsetString (ZDT.toPosix d) (ZDT.timeZone d))
-
         formatChangeDate d =
-            formatYear d ++ "-" ++ formatMonth d ++ "-" ++ formatDay d ++ " " ++ formatHour d ++ ":" ++ formatMinute d ++ " " ++ formatTimeZone d
+            posixToDateString zone d ++ " " ++ posixToTimeString zone d ++ offsetString zone d
 
         formatChangeCount n =
             String.fromFloat n
