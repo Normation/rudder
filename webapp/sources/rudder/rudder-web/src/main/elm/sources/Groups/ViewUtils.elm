@@ -132,20 +132,14 @@ updateGroupsTableData model =
            (i.e. without visiting rudder/secure/nodeManager/groups, and clicking on the group from the table or the tree).
            The "isDisabled" condition ensures that the export button is enabled if and only if table data is available.
         -}
+        -- todo
         isDisabled =
             (size == 0) && (model.mode /= GroupTable)
 
         options =
             buildOptions.newOptions
                 |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList
-                    , btnAttributes =
-                        if isDisabled then
-                            disabledCsvExportButtonAttributes
-
-                        else
-                            [ class "btn-primary" ]
-                    }
+                    { entryToStringList = entryToStringList }
     in
     { model
         | groupsTable = Rudder.Table.updateData data model.groupsTable

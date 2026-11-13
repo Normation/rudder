@@ -12,7 +12,7 @@ import Groups.ViewUtils exposing (..)
 import Http exposing (..)
 import Maybe.Extra
 import Rudder.Filters as Filters
-import Rudder.Table exposing (OutMsg(..))
+import Rudder.Table exposing (CsvExportType(..), OutMsg(..))
 import Task
 import Time
 import Time.DateTime
@@ -314,7 +314,7 @@ update msg model =
                     "rudder_groups_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.groupsTable filename
+                    Rudder.Table.updateExportToCsv model.groupsTable ExportFiltered filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
