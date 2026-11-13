@@ -41,9 +41,11 @@ import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
+import com.normation.rudder.domain.logger.DeleteEditorTechniqueLoggerPure
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
@@ -74,6 +76,18 @@ trait TechniqueWriter {
       deleteDirective:  Boolean
   )(implicit cc: ChangeContext): IOResult[Unit]
 
+  def writeResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit cc: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit cc: ChangeContext): IOResult[Unit]
+
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
   )(implicit cc: ChangeContext): IOResult[EditorTechnique]
@@ -97,6 +111,7 @@ class TechniqueWriterImpl(
     archiver:                 TechniqueArchiver,
     techLibUpdate:            UpdateTechniqueLibrary,
     deleteService:            DeleteEditorTechnique,
+    resourceWriter:           ResourceWriter,
     compiler:                 TechniqueCompiler,
     compilationStatusService: TechniqueCompilationSyncService,
     techniqueReader:          EditorTechniqueReader,
@@ -111,6 +126,64 @@ class TechniqueWriterImpl(
   )(implicit cc: ChangeContext): IOResult[Unit] = {
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective)
   }
+
+  def writeResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit cc: ChangeContext): IOResult[Unit] = {
+
+    def writeOnFileSystem(categories: Seq[String]): IOResult[Boolean] = {
+      import java.nio.file.Files
+
+      val configRepository = "/var/rudder/configuration-repository"
+      for {
+        sanitized <- FileUtils.sanitizePath(
+                       File(configRepository),
+                       ("techniques" :: categories.toList) :+ techniqueName :+ techniqueVersion :+ "resources" :+ resourceName
+                     )
+      } yield {
+        Files.deleteIfExists(sanitized.path)
+      }
+    }
+
+    val resourcePath = s"$techniqueName/$techniqueVersion/resources/$resourceName"
+    for {
+      techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
+      categories  <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+      isRemoved   <- writeOnFileSystem(categories.map(_.id.name.value))
+      _           <-
+        /*
+         * The resource may already be absent, in this case `isRemoved=false`, this is not an error.
+         * We only log it so that deleting the same resource twice still succeeds (idempotency).
+         */
+        ZIO.unless(isRemoved)(
+          DeleteEditorTechniqueLoggerPure.debug(s"Resource $resourcePath does not exist, nothing to delete")
+        )
+      resourceId   = TechniqueResourceIdByName(techniqueId, resourceName)
+      -           <- archiver.deleteResource(
+                       techniqueId,
+                       resourceId,
+                       categories.map(_.id.name.value),
+                       changeContext.modId,
+                       changeContext.actor,
+                       s"Deleting resource '${techniqueId}/resources/${resourceId.name}'"
+                     )
+
+    } yield ()
+
+    for {
+      _ <- writeService.writeResource(techniqueName, techniqueVersion, resourceName)
+    } yield ()
+  }
+
+  override def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit cc: ChangeContext): IOResult[Unit] = for {
+    _ <- deleteService.deleteResource(techniqueName, techniqueVersion, resourceName)
+  } yield ()
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
@@ -215,6 +288,7 @@ class TechniqueWriterImpl(
       (techniqueWithResourceUpdated, compilationResult)
     }
   }
+
 }
 
 object TechniqueWriterImpl {

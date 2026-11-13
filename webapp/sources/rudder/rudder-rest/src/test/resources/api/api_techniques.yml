@@ -854,4 +854,69 @@ response:
         "techniques":[ {"id":"test_delete","version":"1.0" } ]
       }
     }
- 
+---
+description: Delete a resource of a technique (api version from 22 - rudder 9.0)
+method: DELETE
+url: /api/latest/techniques/plip/1.0/resources/plop.txt
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteResource",
+      "id" : "plip/1.0/plop.txt",
+      "result":"success",
+      "data" : {
+        "resources" : [
+          {
+            "techniqueName" : "plip",
+            "techniqueVersion" : "1.0",
+            "resourceName" : "plop.txt"
+          }
+        ]
+      }
+    }
+---
+description: Can create a resource
+method: PUT
+url: /api/latest/techniques/plip/1.0/resources/plop.txt
+body: !!binary |
+   R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+   OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+   +f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createResource",
+      "result":"success",
+      "data": {
+        "resources":[
+          {
+            "id":"test_delete",
+            "version":"1.0",
+            "name":"test_delete",
+            "category":"ncf_techniques",
+            "calls":[
+              {
+                "type":"call",
+                "method":"command_execution",
+                "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+                "parameters":{"command":"/bin/true"},
+                "condition":"",
+                "component":"",
+                "disabledReporting":false
+              }
+              ],
+            "description":"",
+            "documentation":"",
+            "parameters":[],
+            "resources":[],
+            "tags":{},
+            "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+            "source":"editor"
+          }
+        ]
+      }
+    }
+---
+

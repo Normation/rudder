@@ -42,12 +42,14 @@ import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.DeleteEditorTechniqueLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
@@ -59,6 +61,7 @@ import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.utils.FileUtils
 import zio.*
 import zio.syntax.*
 
@@ -73,6 +76,12 @@ trait DeleteEditorTechnique {
       techniqueVersion: String,
       deleteDirective:  Boolean
   )(implicit changeContext: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
 class DeleteEditorTechniqueImpl(
@@ -85,6 +94,7 @@ class DeleteEditorTechniqueImpl(
     syncService:          TechniqueCheckSyncService,
     techniqueReader:      EditorTechniqueReader,
     actionLogger:         EventLogRepository,
+    resourceWriter:       ResourceWriter,
     baseConfigRepoPath:   String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
@@ -236,6 +246,37 @@ class DeleteEditorTechniqueImpl(
       _ <- syncService.unsyncOne(
              BundleName(techniqueName) -> new Version(techniqueVersion)
            ) // to delete the status of the technique
+    } yield ()
+  }
+
+  override def deleteResource(
+      techniqueName:    String,
+      techniqueVersion: String,
+      resourceName:     String
+  )(implicit changeContext: ChangeContext): IOResult[Unit] = {
+
+    val resourcePath = s"$techniqueName/$techniqueVersion/resources/$resourceName"
+    for {
+      techniqueId <- TechniqueVersion.parse(techniqueVersion).toIO.map(v => TechniqueId(TechniqueName(techniqueName), v))
+      categories  <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+      isRemoved   <- resourceWriter.deleteResource(categories.map(_.id.name.value), techniqueName, techniqueVersion, resourceName)
+      _           <-
+        /*
+         * The resource may already be absent, in this case `isRemoved=false`, this is not an error.
+         * We only log it so that deleting the same resource twice still succeeds (idempotency).
+         */
+        ZIO.unless(isRemoved)(
+          DeleteEditorTechniqueLoggerPure.debug(s"Resource $resourcePath does not exist, nothing to delete")
+        )
+      resourceId   = TechniqueResourceIdByName(techniqueId, resourceName)
+      -           <- archiver.deleteResource(
+                       techniqueId,
+                       resourceId,
+                       categories.map(_.id.name.value),
+                       changeContext.modId,
+                       changeContext.actor,
+                       s"Deleting resource '${techniqueId}/resources/${resourceId.name}'"
+                     )
     } yield ()
   }
 }
