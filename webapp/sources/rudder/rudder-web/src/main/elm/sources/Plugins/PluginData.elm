@@ -3,7 +3,7 @@ module Plugins.PluginData exposing (..)
 import List.Extra
 import Maybe.Extra
 import Ordering exposing (Ordering)
-import Time.ZonedDateTime exposing (ZonedDateTime)
+import Time exposing (Posix)
 
 
 type alias PluginId =
@@ -51,8 +51,8 @@ type ActivationStatus
 
 
 type alias PluginLicense =
-    { startDate : ZonedDateTime
-    , endDate : ZonedDateTime
+    { startDate : Posix
+    , endDate : Posix
     }
 
 
@@ -92,14 +92,14 @@ type alias PluginsInfo =
 
 type alias LicenseGlobal =
     { licensees : Maybe (List String)
-    , startDate : Maybe ZonedDateTime
+    , startDate : Maybe Posix
     , endDates : Maybe (List DateCount)
     , maxNodes : Maybe Int
     }
 
 
 type alias DateCount =
-    { date : ZonedDateTime
+    { date : Posix
     , count : Int
     }
 
@@ -114,8 +114,8 @@ type alias LicenseInfo =
     { licensee : String
     , allowedNodesNumber : Int
     , supportedVersions : String
-    , startDate : ZonedDateTime
-    , endDate : ZonedDateTime
+    , startDate : Posix
+    , endDate : Posix
     }
 
 

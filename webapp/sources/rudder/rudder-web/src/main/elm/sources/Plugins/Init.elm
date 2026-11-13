@@ -7,6 +7,7 @@ import Plugins.DataTypes exposing (..)
 import Plugins.Select exposing (noSelected)
 import Task
 import Time exposing (millisToPosix)
+import TimeZone
 
 
 subscriptions : Model -> Sub Msg
@@ -14,9 +15,13 @@ subscriptions model =
     Sub.none
 
 
-init : { contextPath : String } -> ( Model, Cmd Msg )
+init : { contextPath : String, timeZone : String } -> ( Model, Cmd Msg )
 init flags =
     let
+        initTimeZone =
+            Dict.get flags.timeZone TimeZone.zones
+                |> Maybe.withDefault (\() -> Time.utc)
+
         initUI : UI
         initUI =
             { loading = True, view = { viewModel = initPluginsViewModel, error = Nothing, modalState = NoModal } }
@@ -26,6 +31,7 @@ init flags =
             { contextPath = flags.contextPath
             , license = Nothing
             , now = millisToPosix 0
+            , zone = initTimeZone ()
             , plugins = Dict.empty
             , ui = initUI
             }

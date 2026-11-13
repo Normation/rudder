@@ -13,7 +13,8 @@
     $(document).ready(function () {
       var main = document.getElementById("plugins")
       var initValues = {
-        contextPath: contextPath
+        contextPath: contextPath,
+        timeZone: localStorage.getItem('timeZone') ?? 'UTC'
       };
       var app = Elm.Plugins.init({ node: main, flags: initValues });
       app.ports.successNotification.subscribe(function (message) {
