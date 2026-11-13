@@ -857,10 +857,11 @@ class Boot extends Loggable {
     // start inventory watchers if needed
     if (RudderConfig.WATCHER_ENABLE) {
       RudderConfig.inventoryWatcher.startWatcher().runNow
-    } else { // don't start
+    } else { // don't start, but process existing inventories as a watcher start would
       InventoryProcessingLogger.debug(
         s"Not automatically starting incoming inventory watcher because 'inventories.watcher.enable'=${RudderConfig.WATCHER_ENABLE}"
       )
+      RudderConfig.inventoryWatcher.processExistingFiles().runNow
     }
 
     RudderConfig.eventLogRepository
