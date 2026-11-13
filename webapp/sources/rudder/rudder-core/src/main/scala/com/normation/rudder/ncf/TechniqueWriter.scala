@@ -74,6 +74,10 @@ trait TechniqueWriter {
       deleteDirective:  Boolean
   )(implicit cc: ChangeContext): IOResult[Unit]
 
+  def deleteResource(
+      resourceInformation: ResourceInformation
+  )(implicit cc: ChangeContext): IOResult[Unit]
+
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
   )(implicit cc: ChangeContext): IOResult[EditorTechnique]
@@ -111,6 +115,12 @@ class TechniqueWriterImpl(
   )(implicit cc: ChangeContext): IOResult[Unit] = {
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective)
   }
+
+  override def deleteResource(
+      resourceInformation: ResourceInformation
+  )(implicit cc: ChangeContext): IOResult[Unit] = for {
+    _ <- deleteService.deleteResource(resourceInformation)
+  } yield ()
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique

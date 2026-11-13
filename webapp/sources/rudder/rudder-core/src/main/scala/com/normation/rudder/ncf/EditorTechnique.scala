@@ -41,12 +41,15 @@ import better.files.File
 import cats.data.NonEmptyList
 import cats.syntax.functor.*
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
+import com.normation.rudder.ncf.ResourceInformation.ResourceName
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.rudder.services.policies.PropertyParserTokens.CharSeq
 import com.normation.rudder.services.policies.PropertyParserTokens.NodeAccessor
@@ -58,6 +61,7 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
 import java.nio.file.Paths
 import java.util.regex.Pattern
+import zio.json.JsonCodec
 import zio.json.SnakeCase
 import zio.json.ast.Json
 import zio.json.jsonDiscriminator
@@ -102,6 +106,21 @@ case class ResourceFile(
     path:  String,
     state: ResourceFileState
 )
+
+case class ResourceInformation(
+    techniqueName:    TechniqueName,
+    techniqueVersion: TechniqueVersion,
+    resourceName:     ResourceName
+)
+object ResourceInformation {
+  opaque type ResourceName = String
+  object ResourceName {
+
+    given jsonCodec: JsonCodec[ResourceName] = JsonCodec.string
+
+    def apply(name: String): ResourceName = name
+  }
+}
 
 final case class EditorTechnique(
     id:            BundleName,

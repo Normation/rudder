@@ -49,15 +49,12 @@ import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
+import com.normation.rudder.ncf.ResourceInformation.ResourceName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.lift.TechniqueApi.JsonDeletedTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryAction
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryTree
-import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.rudder.rest.lift.TechniqueApi.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
@@ -201,6 +198,7 @@ class TechniqueApi(
       case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteResource            => DeleteResource
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -283,6 +281,55 @@ class TechniqueApi(
       } yield {
         "ok"
       }).toLiftResponseOne(params, schema, _ => Some(draftInfo._1))
+    }
+  }
+
+  object DeleteResource extends LiftApiModule {
+
+    val schema: ThreeParam = API.DeleteResource
+
+    override def process(
+        version:      ApiVersion,
+        path:         ApiPath,
+        resourceInfo: (String, String, String),
+        req:          Req,
+        params:       DefaultParams,
+        authzToken:   AuthzToken
+    ): LiftResponse = {
+
+      val techniqueName    = resourceInfo._1
+      val versionPathParam = resourceInfo._2
+      val resourceName     = resourceInfo._3
+
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        for {
+          techniqueVersion   <- ZIO
+                                  .fromEither(TechniqueVersion.parse(versionPathParam))
+                                  .mapError(s => Unexpected(s))
+          resourceInformation = ResourceInformation(TechniqueName(techniqueName), techniqueVersion, ResourceName(resourceName))
+          _                  <- techniqueWriter.deleteResource(
+                                  resourceInformation
+                                )(using authzToken.qc.newCC())
+        } yield {
+
+          Json.Obj(
+            (
+              "resources",
+              Json.Arr(
+                Chunk(
+                  Json.Obj(
+                    ("techniqueName", Json.Str(resourceInfo._1)),
+                    ("techniqueVersion" -> Json.Str(resourceInfo._2)),
+                    ("resourceName"     -> Json.Str(resourceInfo._3))
+                  )
+                )
+              )
+            )
+          )
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(s"${resourceInfo._1}/${resourceInfo._2}/${resourceInfo._3}"))
     }
   }
 
@@ -841,8 +888,8 @@ class TechniqueAPIService14(
   }
 
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
-    import zio.json.*
     import com.normation.rudder.ncf.TechniqueCompilationIO.codecTechniqueCompilationOutput
+    import zio.json.*
 
     techniqueCompiler
       .getCompilationOutput(editorTechnique)
@@ -933,5 +980,4 @@ class TechniqueAPIService14(
       json ++ parsingErrors
     }
   }
-
 }
