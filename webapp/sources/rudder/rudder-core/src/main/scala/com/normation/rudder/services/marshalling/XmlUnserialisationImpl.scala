@@ -844,7 +844,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     })
   }
 
-  def unserialise(entry: XNode): Box[ApiAccount] = {
+  def unserialise(entry: XNode): Box[ApiAccountNoToken] = {
     for {
       apiAccount         <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
@@ -913,18 +913,18 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                     }
       tenants    <- TenantAccessGrant.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
-      val kind         = accountType match {
+      val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi.apply(authz, expirationDate)
       }
-      val accountToken = AccountToken(Some(ApiTokenHash.fromHashValue(token)), tokenGenDate.toJavaInstant)
 
-      ApiAccount(
+      ApiAccountNoToken(
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        accountToken,
+        token.nonEmpty,
+        tokenGenDate.toJavaInstant,
         description,
         isEnabled,
         creationDate,
