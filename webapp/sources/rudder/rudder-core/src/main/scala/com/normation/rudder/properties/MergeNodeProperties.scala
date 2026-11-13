@@ -246,14 +246,19 @@ object MergeNodeProperties {
         otherProps: Map[NodeGroupId, GroupProp]
     ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
 
-      def findLastMatchingGroup(p: ParentProperty[?]): Option[ParentProperty.Group] = {
+      // Hierarchy whose topmost group is the given parent, with the global parameter as root
+      // (conflicting hierarchies don't have it yet, see https://issues.rudder.io/issues/30006)
+      def parentGroup(p: ParentProperty[?], parent: GroupProp): Option[ParentProperty.Group] = {
         p match {
-          case n: ParentProperty.Node   => n.parentProperty.flatMap(findLastMatchingGroup)
+          case n: ParentProperty.Node   => n.parentProperty.flatMap(parentGroup(_, parent))
           case g: ParentProperty.Group  =>
             g.parentProperty match {
-              case None                           => Some(g)
-              case Some(_: ParentProperty.Global) => Some(g)
-              case Some(parent)                   => findLastMatchingGroup(parent)
+              case None                           =>
+                Option.when(g.groupId == parent.groupId)(
+                  g.copy(parentProperty = globalParams.get(g.value.name).map(ParentProperty.Global(_)))
+                )
+              case Some(_: ParentProperty.Global) => Option.when(g.groupId == parent.groupId)(g)
+              case Some(p)                        => parentGroup(p, parent).map(h => g.copy(parentProperty = Some(h)))
             }
           case _: ParentProperty.Global => None
         }
@@ -273,16 +278,7 @@ object MergeNodeProperties {
                     parent          <- allGroupProps.get(firstParent)
                     // we assume that there is a single property value for the same name (upstream we have List and not a Map)
                     parentProp      <- parent.properties.find(_.name == nodeProp.name)
-                    // parentProps probably needs to be a NonEmptyChunk(VerticalPropTree[{node=(1),groups=(*),global=(1)}])
-                    // and what we want is a VerticalPropTree that has the parent group as its dominant group i.e. most prioritized groups, the last one
-                    // we probably want to have this natural subdivision, such that the Ordering[ParentProperty] will disappear, as it's explicitly : .node, .groups (already sorted), .global
-                    parentHierarchy <- parentProps.collectFirst {
-                                         case l
-                                             if findLastMatchingGroup(l)
-                                               .map(_.id)
-                                               .contains(parent.groupId.serialize) =>
-                                           l
-                                       }
+                    parentHierarchy <- parentProps.view.flatMap(parentGroup(_, parent)).headOption
                   } yield {
                     parentProp -> parentHierarchy
                   }
