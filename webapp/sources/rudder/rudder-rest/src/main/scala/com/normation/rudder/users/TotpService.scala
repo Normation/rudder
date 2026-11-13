@@ -38,7 +38,6 @@ package com.normation.rudder.users
 import cats.syntax.functor.*
 import com.bastiaanjansen.otp.*
 import com.normation.errors.*
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
 import java.net.URI
 import java.time.Instant
@@ -60,7 +59,7 @@ trait TotpService {
   def verifyGenerated(
       userId: UserId,
       code:   String
-  ): IOResult[Totp]
+  ): ZIO[Any, TotpVerifyError, Totp]
 
   /**
    * Reset (delete) the user's TOTP configuration, allowing a new one to be generated.
@@ -82,7 +81,7 @@ trait TotpService {
    */
   def getUserStatus(userId: UserId): IOResult[TotpEnrollmentStatus]
 
-  def verify(userId: UserId, code: String): IOResult[Unit]
+  def verify(userId: UserId, code: String): ZIO[Any, TotpVerifyError, Unit]
 }
 
 private given JsonEncoder[TotpSecret] = JsonEncoder[String].contramap(_.exposeSecret())
@@ -126,12 +125,12 @@ trait TotpSecretGenerator {
 trait TotpVerificator(val period: Duration, val delayWindow: Int)(
     usedCodes: Ref[Map[UserId, Chunk[(String, Instant)]]]
 ) {
-  // a code is accepted for the previous, current and next steps
+  // a code is accepted for the previous, current and next steps, plus additional window span as extra margin
   private val codeLifetime: Duration = period.multipliedBy(2L * delayWindow + 1)
 
-  def verify(secret: TotpSecret, userId: UserId, at: Instant, code: String): IOResult[Unit] = {
+  def verify(secret: TotpSecret, userId: UserId, at: Instant, code: String): ZIO[Any, TotpVerifyError, Unit] = {
     for {
-      _        <- verifyImpl(secret, at, code).toIO
+      _        <- ZIO.fromEither(verifyImpl(secret, at, code)).mapError(TotpVerifyError.AlgorithmError(_, userId))
       replayed <- usedCodes.modify { m =>
                     val used = m.getOrElse(userId, Chunk.empty).filter((_, end) => at.isBefore(end))
                     if (used.exists((c, _) => c == code)) {
@@ -141,15 +140,17 @@ trait TotpVerificator(val period: Duration, val delayWindow: Int)(
                     }
                   }
       _        <- ZIO.when(replayed) {
-                    ApplicationLoggerPure.Auth.warn(s"User '${userId.value}' submitted an already used TOTP code") *>
-                    Inconsistency(
-                      s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}, retry with another code"
-                    ).fail
+                    TotpVerifyError
+                      .ReplayError(
+                        s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}: " +
+                        s"code was already used in the last ${codeLifetime.render}."
+                      )
+                      .fail
                   }
     } yield ()
   }
 
-  protected def verifyImpl(secret: TotpSecret, at: Instant, code: String): PureResult[Instant]
+  protected def verifyImpl(secret: TotpSecret, at: Instant, code: String): Either[String, Instant]
 }
 
 /**
@@ -182,19 +183,33 @@ class InMemoryVerificationTotpService(
     }
   }
 
-  override def verifyGenerated(userId: UserId, code: String): IOResult[Totp] = {
+  override def verifyGenerated(userId: UserId, code: String): ZIO[Any, TotpVerifyError, Totp] = {
     for {
       map <- in.get
       opt  = map.get(userId)
-      s   <- opt.notOptional("User has no known generated TOTP")
+      s   <- opt
+               .notOptional(s"User '${userId.value}' has no known generated TOTP")
+               .catchAll(err => {
+                 TotpVerifyError.UnknownUser(err.msg, None).fail
+               })
       now <- Clock.instant
       _   <- verificator.verify(s, userId, now, code)
       totp = Totp(s, now)
       _   <-
         totpRepository
           .create(userId, totp)
-          .chainError("Could not store user TOTP in Rudder")
-          .tapError(err => ApplicationLoggerPure.Auth.error(s"User '${userId.value}' TOTP registration failed: ${err.fullMsg}"))
+          .catchAll(err => { //  may not exist with a PK error
+            val errorLog = Chained(
+              s"User '${userId.value}' TOTP registration failed: could not store user TOTP in database: ${err.fullMsg}",
+              err
+            )
+            TotpVerifyError
+              .UnknownUser(
+                "Could not save user TOTP, please retry or check with your Rudder administrator for error logs.",
+                Some(errorLog)
+              )
+              .fail
+          })
       // on success, user secret can be removed from cache
       _   <- in.update(_ - userId)
     } yield {
@@ -202,15 +217,18 @@ class InMemoryVerificationTotpService(
     }
   }
 
-  override def verify(userId: UserId, code: String): IOResult[Unit] = {
+  override def verify(userId: UserId, code: String): ZIO[Any, TotpVerifyError, Unit] = {
     for {
-      t   <- totpRepository.getByUserId(userId).map(_.map(_.secret))
-      s   <- t.notOptional(s"User '${userId.value}' OTP was not found")
+      s   <- totpRepository
+               .getByUserId(userId)
+               .map(_.map(_.secret))
+               .catchAll(err => TotpVerifyError.UnknownUser(s"User '${userId.value}' OTP was not found", Some(err)).fail)
+               .flatMap {
+                 case Some(value) => value.succeed
+                 case None        => TotpVerifyError.UnknownUser(s"User '${userId.value}' OTP was not found", None).fail
+               }
       now <- Clock.instant
-      _   <-
-        verificator
-          .verify(s, userId, now, code)
-          .chainError(s"TOTP secret for user '${userId.value}' does not match provided code")
+      _   <- verificator.verify(s, userId, now, code)
     } yield ()
   }
 
@@ -267,7 +285,7 @@ object OtpJavaTotpService {
         secret: TotpSecret,
         at:     Instant,
         code:   String
-    ): PureResult[Instant] = {
+    ): Either[String, Instant] = {
       val totp = TOTPGenerator
         .Builder(secret.exposeSecret())
         .withClock(java.time.Clock.fixed(at, ZoneId.systemDefault()))
@@ -279,9 +297,7 @@ object OtpJavaTotpService {
       if (valid) Right(at)
       else {
         Left(
-          Inconsistency(
-            s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}, code is wrong or may be too old"
-          )
+          s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}, code is wrong or may be too old"
         )
       }
     }
