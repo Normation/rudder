@@ -201,6 +201,11 @@ class EventLogDetailsGenerator(
       Text(s"API Account ${name} ${actionName}")
     }
 
+    def apiAccountDiffDesc(x: EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "apiAccount" \ "name" \ "from").headOption.map(_.text).getOrElse("")
+      Text(s"API Account ${name} ${actionName}")
+    }
+
     def secretDesc(x: EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "secret" \ "name").text
       Text(s"Secret ${name} ${actionName}")
@@ -268,7 +273,7 @@ class EventLogDetailsGenerator(
       case x: ModifyGlobalParameter         => globalParamDesc(x, Text(" modified"))
       case x: DeleteGlobalParameter         => globalParamDesc(x, Text(" deleted"))
       case x: CreateAPIAccountEventLog      => apiAccountDesc(x, Text(" added"))
-      case x: ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
+      case x: ModifyAPIAccountEventLog      => apiAccountDiffDesc(x, Text(" modified"))
       case x: DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
       case x: ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
       case x: ModifyNode                    => nodeDesc(x, Text(" modified"))
