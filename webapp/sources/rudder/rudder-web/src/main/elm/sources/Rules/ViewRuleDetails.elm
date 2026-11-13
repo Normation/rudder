@@ -370,7 +370,7 @@ editionTemplate model details =
                             ]
                             [ text "Recent changes"
                             , span [ class "badge badge-secondary badge-resources" ]
-                                [ span [ class "nb-resources" ] [ text (String.fromFloat (countRecentChanges details.rule.id model.changes)) ]
+                                [ span [ class "nb-resources" ] [ text (String.fromFloat (countRecentChanges details.rule.id model.latest.changes)) ]
                                 ]
                             ]
                         ]
