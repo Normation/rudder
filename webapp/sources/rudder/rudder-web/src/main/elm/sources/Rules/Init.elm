@@ -44,7 +44,8 @@ init flags =
         exportCsvOptions =
             buildOptions.newOptions
                 |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [] }
+                    { entryToStringList = entryToStringList }
+                >> .csvExport
 
         initTimeZone =
             Dict.get flags.timeZone TimeZone.zones
@@ -66,7 +67,7 @@ init flags =
             , nodes = Dict.empty
             , ui = initUI
             , rulesTable = initTable
-            , csvExportOptions = exportCsvOptions.csvExport
+            , csvExportOptions = exportCsvOptions
             , historyTable = EventLogs.Table.initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             }
 
@@ -108,8 +109,8 @@ initTable =
         options =
             buildOptions.newOptions
                 |> buildOptions.withCustomizations customizations
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [ class "d-none" ] }
+                |> buildOptions.withCsvExportHtml
+                    { entryToStringList = entryToStringList, html = text "" }
 
         columns : NonEmptyList.Nonempty (Column RuleWithCompliance Msg)
         columns =

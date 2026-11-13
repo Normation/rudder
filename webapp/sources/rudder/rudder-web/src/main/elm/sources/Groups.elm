@@ -1,6 +1,7 @@
 port module Groups exposing (..)
 
 import Browser
+import Date
 import Dict
 import Dict.Extra
 import GroupRelatedRules.DataTypes exposing (GroupId)
@@ -12,7 +13,7 @@ import Groups.ViewUtils exposing (..)
 import Http exposing (..)
 import Maybe.Extra
 import Rudder.Filters as Filters
-import Rudder.Table exposing (OutMsg(..))
+import Rudder.Table exposing (CsvExportType(..), OutMsg(..))
 import Task
 import Time
 import Time.DateTime
@@ -296,25 +297,16 @@ update msg model =
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
-        RequestCsvExportAllGroups ->
-            ( model, Task.perform ExportCsvWithCurrentDate Time.now )
-
-        ExportCsvWithCurrentDate time ->
+        ExportCsvWithCurrentDate csvExportType date ->
             let
                 timeStr =
-                    time
-                        |> Time.DateTime.fromPosix
-                        |> Time.Iso8601.fromDateTime
-                        -- remove millis
-                        |> String.toList
-                        |> List.take 10
-                        |> String.fromList
+                    date |> Date.format "yyyy-MM-dd"
 
                 filename =
                     "rudder_groups_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.groupsTable filename
+                    Rudder.Table.updateExportToCsv model.groupsTable csvExportType filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
@@ -328,6 +320,9 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
                     update parentMsg { model | groupsTable = groupsTable }
             in
             ( newModel, Cmd.batch [ tabMsg, newMsg ] )
+
+        Just (CsvExportRequested csvExportType) ->
+            ( model, Cmd.batch [ tabMsg, Task.perform (ExportCsvWithCurrentDate csvExportType) Date.today ] )
 
         _ ->
             ( { model | groupsTable = groupsTable }, tabMsg )

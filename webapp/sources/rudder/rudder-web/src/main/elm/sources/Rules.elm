@@ -15,7 +15,7 @@ import Maybe.Extra exposing (isNothing)
 import Random
 import Result
 import Rudder.Filters
-import Rudder.Table exposing (OutMsg(..), updateData)
+import Rudder.Table exposing (CsvExportType(..), OutMsg(..), updateData)
 import Rules.ApiCalls exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings, initCrSettings)
 import Rules.DataTypes exposing (..)
@@ -1096,11 +1096,8 @@ update msg model =
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
-        RequestCsvExportAllRules ->
-            ( model, Task.perform ExportCsvWithCurrentDate Date.today )
-
-        -- Export full rules table to CSV
-        ExportCsvWithCurrentDate date ->
+        -- Export rules table to CSV
+        ExportCsvWithCurrentDate exportType date ->
             let
                 timeStr =
                     date |> Date.format "yyyy-MM-dd"
@@ -1109,7 +1106,7 @@ update msg model =
                     "rudder_rules_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.rulesTable filename
+                    Rudder.Table.updateExportToCsv model.rulesTable exportType filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
@@ -1238,6 +1235,9 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
                     update parentMsg { model | rulesTable = groupsTable }
             in
             ( newModel, Cmd.batch [ newMsg, tabMsg ] )
+
+        Just (CsvExportRequested csvExportType) ->
+            ( model, Cmd.batch [ tabMsg, Task.perform (ExportCsvWithCurrentDate csvExportType) Date.today ] )
 
         _ ->
             ( { model | rulesTable = groupsTable }, tabMsg )
