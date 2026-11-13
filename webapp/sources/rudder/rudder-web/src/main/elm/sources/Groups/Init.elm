@@ -32,7 +32,7 @@ init flags =
         exportCsvOptions =
             buildOptions.newOptions
                 |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [] }
+                    { entryToStringList = entryToStringList }
 
         initModel =
             Model flags.contextPath Loading initUI initCategory Dict.empty initTable exportCsvOptions.csvExport
@@ -125,8 +125,8 @@ initTable =
         options =
             buildOptions.newOptions
                 |> buildOptions.withCustomizations customizations
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [ class "d-none" ] }
+                |> buildOptions.withCsvExportHtml
+                    { entryToStringList = entryToStringList, html = text "" }
 
         columns : NonEmptyList.Nonempty (Column GroupWithCompliance msg)
         columns =

@@ -15,7 +15,7 @@ import Maybe.Extra exposing (isNothing)
 import Random
 import Result
 import Rudder.Filters
-import Rudder.Table exposing (OutMsg(..), updateData)
+import Rudder.Table exposing (CsvExportType(..), OutMsg(..), updateData)
 import Rules.ApiCalls exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings, initCrSettings)
 import Rules.DataTypes exposing (..)
@@ -1109,7 +1109,7 @@ update msg model =
                     "rudder_rules_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.rulesTable filename
+                    Rudder.Table.updateExportToCsv model.rulesTable ExportFiltered filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
