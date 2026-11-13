@@ -185,9 +185,8 @@ showTechniqueCategory model catForm =
             [ div [ class "editForm" ]
                 [ div [ class "tab tab-category" ]
                     [ div [ class "row form-group" ]
-                        [ label [ for "category-name", class "col-sm-12 control-label" ]
+                        [ label [ for "category-name", class "col-sm-12 mandatory-field" ]
                             [ text "Name"
-                            , span [ class "mandatory-param" ] [ text " *" ]
                             ]
                         , div [ class "col-md-8" ]
                             [ input
@@ -204,7 +203,7 @@ showTechniqueCategory model catForm =
                             ]
                         ]
                     , div [ class "row form-group" ]
-                        [ label [ for "category-description", class "col-sm-12 control-label fw-normal" ] [ text "Description" ]
+                        [ label [ for "category-description", class "col-sm-12 fw-normal" ] [ text "Description" ]
                         , div [ class "col-md-8" ]
                             [ input
                                 [ readonly (not writeRights)
@@ -220,7 +219,7 @@ showTechniqueCategory model catForm =
                             ]
                         ]
                     , div [ class "row form-group" ]
-                        [ label [ for "category-id", class "col-sm-12 control-label" ] [ text "Category ID" ]
+                        [ label [ for "category-id", class "col-sm-12" ] [ text "Category ID" ]
                         , div [ class "col-md-8" ]
                             [ input [ readonly True, id "category-id", name "category_id", class "form-control", value categoryId ] []
                             , small [ class "form-text text-muted" ] [ text idHelp ]
