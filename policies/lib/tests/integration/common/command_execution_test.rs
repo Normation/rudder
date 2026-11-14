@@ -4,17 +4,33 @@
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
+use std::path::Path;
+
+fn touch_command(workdir: &Path, file_path: &Path) -> String {
+    #[cfg(feature = "test-unix")]
+    {
+        format!("/bin/touch {}", file_path.display())
+    }
+
+    #[cfg(not(feature = "test-unix"))]
+    {
+        let script_path = workdir.join("touch.ps1");
+        std::fs::write(
+            &script_path,
+            format!("New-Item -Path '{}' -ItemType 'File'", file_path.display()),
+        )
+        .unwrap();
+        script_path.display().to_string()
+    }
+}
 
 #[test]
 fn it_is_not_applicable_in_audit_mode() {
     let workdir = init_test();
     let file_path = workdir.path().join("target.txt");
+    let command = touch_command(workdir.path(), &file_path);
 
-    let tested_method = &method(
-        "command_execution",
-        &[&format!("/bin/touch {}", file_path.to_str().unwrap())],
-    )
-    .audit();
+    let tested_method = &method("command_execution", &[&command]).audit();
     let r = MethodTestSuite::new()
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
@@ -31,23 +47,7 @@ fn it_is_not_applicable_in_audit_mode() {
 fn it_repairs_in_enforced_mode_if_the_command_succeeds() {
     let workdir = init_test();
     let file_path = workdir.path().join("target.txt");
-    let command: String;
-
-    #[cfg(feature = "test-unix")]
-    {
-        command = format!("/bin/touch {}", file_path.display());
-    }
-
-    #[cfg(not(feature = "test-unix"))]
-    {
-        let script_path = workdir.path().join("touch.ps1");
-        std::fs::write(
-            &script_path,
-            format!("New-Item -Path '{}' -ItemType 'File'", file_path.display()),
-        )
-        .unwrap();
-        command = script_path.display().to_string();
-    }
+    let command = touch_command(workdir.path(), &file_path);
 
     let tested_method = method("command_execution", &[&command]).enforce();
     let r = MethodTestSuite::new()
@@ -66,12 +66,9 @@ fn it_repairs_in_enforced_mode_if_the_command_succeeds() {
 fn it_errors_in_enforced_mode_if_the_command_fails() {
     let workdir = init_test();
     let file_path = workdir.path().join("nonexistingfolder/target.txt");
+    let command = touch_command(workdir.path(), &file_path);
 
-    let tested_method = &method(
-        "command_execution",
-        &[&format!("/bin/touch {}", file_path.to_str().unwrap())],
-    )
-    .enforce();
+    let tested_method = &method("command_execution", &[&command]).enforce();
     let r = MethodTestSuite::new()
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
