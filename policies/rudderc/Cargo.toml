@@ -37,7 +37,7 @@ zip = { version = "9.0.0", default-features = false, features = ["deflate-flate2
 indexmap = "2.12.0"
 
 [features]
-"embedded-lib" = []
+"embedded-lib" = ["dep:rudder_commons", "dep:serde_json"]
 
 [dev-dependencies]
 pretty_assertions = "1"
@@ -45,6 +45,9 @@ pretty_assertions = "1"
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
 agent = { path = "../agent" }
 
+[build-dependencies]
+rudder_commons = { path = "../rudder-commons", optional = true }
+serde_json = { version = "1", optional = true }
 
 [package.metadata.cargo-machete]
 ignored = ["regex"]
