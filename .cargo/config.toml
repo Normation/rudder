@@ -1,8 +1,5 @@
-[resolver]
-# Allow security and important fixes to override the police
-#incompatible-publish-age = "allow"
-
-
 [registry]
-# For now use with "cargo +nightly -Zmin-publish-age update"
-#global-min-publish-age = "7 days"
+global-min-publish-age = "7 days"
+
+# For urgent security fixes, override per command:
+# CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update -p <crate> --precise <version>
