@@ -454,7 +454,7 @@ pipeline {
                         // The rationale here is:
                         // * all base test already run on the lowest supported (LTS) version
                         // * add specific compatibility tests for other supported LTS + latest release
-                        values '21', '25'
+                        values '25', '27'
                     }
                 }
                 stages {
@@ -569,7 +569,7 @@ pipeline {
                 stage('architecture-doc') {
                     agent {
                         dockerfile {
-                            additionalBuildArgs "--build-arg JDK_VERSION=21" // to be compatible with structurizr war version.
+                            additionalBuildArgs "--build-arg JDK_VERSION=25" // to be compatible with structurizr war version.
                             label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
                             args '-u 0:0'

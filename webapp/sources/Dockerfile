@@ -1,4 +1,4 @@
-ARG JDK_VERSION=17
+ARG JDK_VERSION=25
 
 FROM maven:3-eclipse-temurin-${JDK_VERSION}
 LABEL ci=rudder/webapp/sources/Dockerfile
