@@ -253,7 +253,7 @@ class DeleteEditorTechniqueImpl(
     def removeResource(categories: Seq[String]): IOResult[Boolean] = {
       import java.nio.file.Files
 
-      val configRepository = "/var/rudder/configuration-repository"
+      val configRepository = baseConfigRepoPath
       for {
         sanitized <- FileUtils.sanitizePath(
                        File(configRepository),
