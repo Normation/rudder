@@ -20,6 +20,8 @@ chrono = { version = "0.4", optional = true, default-features = false, features 
 fnv = { version ="1.0.7", optional = true }
 uuid = { version = "1.19.0", features = ["v4"] }
 skip_bom = "0.5.1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "1.1.6", features = ["fs", "process"] }
 
 [dev-dependencies]
