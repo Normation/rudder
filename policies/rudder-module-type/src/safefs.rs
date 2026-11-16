@@ -366,7 +366,9 @@ fn check_file(st: &Stat, path: &Path, euid: u32) -> Result<(), SafeFsError> {
             mode: st.st_mode,
         });
     }
-    let nlink = st.st_nlink;
+    // Conversion needed on platforms where st_nlink is not u64
+    #[allow(clippy::useless_conversion)]
+    let nlink = u64::from(st.st_nlink);
     if nlink > 1 {
         return Err(SafeFsError::HardLinked {
             path: path.to_owned(),
