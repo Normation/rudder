@@ -7,9 +7,9 @@ edition.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-agent = { path = "../agent" }
 anyhow = "1"
 askama = "0.16.0"
 boon = "0.6.0"
@@ -43,10 +43,7 @@ indexmap = "2.12.0"
 pretty_assertions = "1"
 # Fix for workspace isn't merged yet
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
-
-[build-dependencies]
-rudder_commons = { path = "../rudder-commons" }
-serde_json = "1"
+agent = { path = "../agent" }
 
 
 [package.metadata.cargo-machete]
