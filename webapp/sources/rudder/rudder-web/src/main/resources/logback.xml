@@ -86,7 +86,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
 
-  <if condition='property("run.mode").equalsIgnoreCase("production")'>
+  <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+    <key>run.mode</key>
+    <value>production</value>
+  </condition>
+  <if>
     <then>
       <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${WEBAPP_DIR}/webapp.log</file>

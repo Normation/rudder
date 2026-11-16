@@ -82,10 +82,50 @@ class FixedPathLoggerMigration extends BootstrapChecks {
     }
   }
 
+  // logback >= 1.5.37 removed Janino `<if condition="...">`, a preceding `<condition>` element is used instead
+  def propertyEqualityCondition(key: String, value: String): Elem = {
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+      <key>{key}</key>
+      <value>{value}</value>
+    </condition>
+  }
+
+  // Only `property("k").equals("v")` like expressions (what Rudder ships) are migrated, case is not ignored anymore
+  private val propertyEquals = """^(?:property|p)\("([^"]+)"\)\.equals(?:IgnoreCase)?\("([^"]*)"\)$""".r
+
+  def janinoConditionToElement(expr: String): Option[Elem] = {
+    expr.filterNot(_.isWhitespace) match {
+      case propertyEquals(key, value) => Some(propertyEqualityCondition(key, value))
+      case _                          => None
+    }
+  }
+
+  def countJaninoConditions(xml: NodeSeq): Int = (xml \\ "if").count(_.attribute("condition").isDefined)
+
+  // Replace `<if condition="...">` by `<condition>...</condition><if>`, unknown expressions are left untouched
+  def migrateIfConditions(xml: NodeSeq): NodeSeq = {
+    xml.flatMap {
+      case elem: Elem if elem.label == "if" && elem.attribute("condition").isDefined =>
+        val expr = elem.attribute("condition").map(_.text).getOrElse("")
+        val ifs  = elem.copy(child = migrateIfConditions(elem.child))
+        janinoConditionToElement(expr) match {
+          case Some(condition) =>
+            condition :: ifs.copy(attributes = ifs.attributes.remove("condition")) :: Nil
+          case None            =>
+            BootstrapLogger.logEffect.warn(
+              s"Can not migrate logback.xml condition '${expr}', it is not supported anymore, please update it manually"
+            )
+            ifs :: Nil
+        }
+      case elem: Elem                                                                => elem.copy(child = migrateIfConditions(elem.child)) :: Nil
+      case n => n :: Nil
+    }
+  }
+
   // Add new conditional STDOUT appender
   def addAppender(xml: NodeSeq) = {
-    val appenderElem: XmlNode = {
-      <if condition='property("run.mode").equalsIgnoreCase("production")'>
+    val appenderElems: List[XmlNode] = propertyEqualityCondition("run.mode", "production") :: {
+      <if>
         <then>
           <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${{WEBAPP_DIR}}/webapp.log</file>
@@ -107,17 +147,38 @@ class FixedPathLoggerMigration extends BootstrapChecks {
           </appender>
         </else>
       </if>
-
-    }
+    } :: Nil
 
     xml.map {
-      case elem: Elem => elem.copy(child = appenderElem :: elem.child.toList)
+      case elem: Elem => elem.copy(child = appenderElems ::: elem.child.toList)
       case n => n
     }
   }
 
   def migrateLogback(xml: NodeSeq): NodeSeq = {
     addProperties(addApiAppender(addAppender(removeProperties(removeStdoutAppender(xml)))))
+  }
+
+  // 8.2 format: no conditional STDOUT appender
+  def needsFixedPathMigration(xml: NodeSeq): Boolean = {
+    xml \\ "if" match {
+      case NodeSeq.Empty =>
+        true
+      case nodes         =>
+        nodes \\ "appender" match {
+          case NodeSeq.Empty =>
+            true
+          case appenders     =>
+            appenders.find(_.attribute("name").exists(_.exists(_.text == "STDOUT"))).isEmpty
+        }
+    }
+  }
+
+  // None if nothing to migrate
+  def migrate(xml: NodeSeq): Option[NodeSeq] = {
+    val fixedPath = needsFixedPathMigration(xml)
+    val newXml    = migrateIfConditions(if (fixedPath) migrateLogback(xml) else xml)
+    if (fixedPath || countJaninoConditions(newXml) < countJaninoConditions(xml)) Some(newXml) else None
   }
 
   override def checks(): Unit = {
@@ -133,21 +194,8 @@ class FixedPathLoggerMigration extends BootstrapChecks {
     val logbackFile = better.files.File(logbackPath)
     val xml         = ConstructingParser.fromFile(logbackFile.toJava, true).document()
 
-    val shouldMigrateLogback = xml \\ "if" match {
-      case NodeSeq.Empty =>
-        true
-      case nodes         =>
-        nodes \\ "appender" match {
-          case NodeSeq.Empty =>
-            true
-          case appenders     =>
-            appenders.find(_.attribute("name").exists(_.exists(_.text == "STDOUT"))).isEmpty
-        }
-    }
-
-    if (shouldMigrateLogback) {
-      val newLogback = migrateLogback(xml)
-      val backPath   =
+    migrate(xml).foreach { newLogback =>
+      val backPath =
         logbackFile.parent / s"logback.xml-backup-${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}"
 
       // In case file already exists
