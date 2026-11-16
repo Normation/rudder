@@ -7,11 +7,12 @@ edition.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 anyhow = "1"
 cli-table = "0.5"
-gag = "1"
+gag = { version = "1", optional = true }
 gumdrop = "0.8.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -32,9 +33,9 @@ windows = { version = "0.62.2", features = [ "Win32_System_Com", "Win32_System_U
 
 [features]
 # Enable APT package management
-apt = ["dep:rust-apt", "dep:memfile"]
+apt = ["dep:rust-apt", "dep:memfile", "dep:gag"]
 # Build with the old APT compatibility
-apt-compat = ["dep:rust-apt-compat", "dep:memfile"]
+apt-compat = ["dep:rust-apt-compat", "dep:memfile", "dep:gag"]
 
 [dev-dependencies]
 tempfile = "3"

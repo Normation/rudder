@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
 /*! Linux specific code for the service
-*  Include service startup, log initialization, ...
-*  The communication with the service manager is translated into channel::<ServiceMessage>()
-*  to make it generic
+ *  Include service startup, log initialization, ...
+ *  The communication with the service manager is translated into channel::<ServiceMessage>()
+ *  to make it generic
  */
 use agentd::scheduler::Scheduler;
 use anyhow::Result;
