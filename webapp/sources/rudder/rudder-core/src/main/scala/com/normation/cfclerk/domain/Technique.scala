@@ -43,6 +43,8 @@ import com.normation.rudder.services.policies.ComponentId
 import com.normation.utils.Utils.*
 import enumeratum.*
 import org.apache.commons.text.StringEscapeUtils
+import scala.language.postfixOps
+import zio.json.JsonEncoder
 
 /**
  * A name, used as an identifier, for a policy.
@@ -55,6 +57,9 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
   override def compare(that: TechniqueName): Int = this.value.compare(that.value)
 
   override def toString: String = value
+}
+object TechniqueName {
+  given JsonEncoder[TechniqueName] = JsonEncoder[String].contramap(_.value)
 }
 
 /**

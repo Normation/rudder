@@ -61,7 +61,9 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
 import java.nio.file.Paths
 import java.util.regex.Pattern
+import zio.json.DeriveJsonEncoder
 import zio.json.JsonCodec
+import zio.json.JsonEncoder
 import zio.json.SnakeCase
 import zio.json.ast.Json
 import zio.json.jsonDiscriminator
@@ -112,7 +114,10 @@ case class ResourceInformation(
     techniqueVersion: TechniqueVersion,
     resourceName:     ResourceName
 )
+
 object ResourceInformation {
+  given JsonEncoder[ResourceInformation] = DeriveJsonEncoder.gen[ResourceInformation]
+
   opaque type ResourceName = String
   object ResourceName {
 

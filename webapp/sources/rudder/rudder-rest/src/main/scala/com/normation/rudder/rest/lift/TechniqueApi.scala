@@ -300,7 +300,7 @@ class TechniqueApi(
       val techniqueName    = resourceInfo._1
       val versionPathParam = resourceInfo._2
       val resourceName     = resourceInfo._3
-
+      import zio.json.*
       val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
           techniqueVersion   <- ZIO
@@ -310,22 +310,9 @@ class TechniqueApi(
           _                  <- techniqueWriter.deleteResource(
                                   resourceInformation
                                 )(using authzToken.qc.newCC())
+          json               <- resourceInformation.toJsonAST.toIO
         } yield {
-
-          Json.Obj(
-            (
-              "resources",
-              Json.Arr(
-                Chunk(
-                  Json.Obj(
-                    ("techniqueName", Json.Str(resourceInfo._1)),
-                    ("techniqueVersion" -> Json.Str(resourceInfo._2)),
-                    ("resourceName"     -> Json.Str(resourceInfo._3))
-                  )
-                )
-              )
-            )
-          )
+          Json.Obj(("resources", Json.Arr(Chunk(json))))
         }
       }
 

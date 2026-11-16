@@ -40,6 +40,7 @@ package com.normation.cfclerk.domain
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.utils.*
+import zio.json.JsonEncoder
 
 final case class TechniqueVersion protected (version: Version, rev: Revision) extends Ordered[TechniqueVersion] {
   def compare(v: TechniqueVersion): Int = (version.compare(v.version)) match {
@@ -72,6 +73,8 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
 }
 
 object TechniqueVersion {
+
+  given JsonEncoder[TechniqueVersion] = JsonEncoder[String].contramap(_.version.toVersionString)
 
   // predefined object 1.0 because we use it in a lot of places
   val V1_0: TechniqueVersion = new TechniqueVersion(
