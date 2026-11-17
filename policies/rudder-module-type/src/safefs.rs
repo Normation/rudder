@@ -292,7 +292,7 @@ impl SafeOpenOptions {
                 "truncate requires write access",
             )));
         }
-        walk(path.as_ref(), self).map(File::from)
+        walk(path.as_ref(), self, WalkTarget::File).map(File::from)
     }
 
     fn access_flags(&self) -> OFlags {
@@ -444,7 +444,32 @@ fn create_new(
     Ok(fd)
 }
 
-fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
+fn reopen_dir(
+    dir: &OwnedFd,
+    name: &OsStr,
+    expected: &Stat,
+    shown: &Path,
+) -> Result<OwnedFd, SafeFsError> {
+    let flags = OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC;
+    let fd = openat(dir, name, flags, Mode::empty())?;
+    let st = fstat(&fd)?;
+    if (st.st_dev, st.st_ino) != (expected.st_dev, expected.st_ino) {
+        return Err(SafeFsError::Raced(shown.to_owned()));
+    }
+    Ok(fd)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WalkTarget {
+    Dir,
+    File,
+}
+
+fn walk(
+    path: &Path,
+    opts: &SafeOpenOptions,
+    final_component: WalkTarget,
+) -> Result<OwnedFd, SafeFsError> {
     let mut pending = VecDeque::new();
     for comp in path.components() {
         match comp {
@@ -455,11 +480,14 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
             }
         }
     }
-    if pending.is_empty() {
-        return Err(SafeFsError::PathHasNoFilename(path.to_owned()));
-    }
-    if path.as_os_str().as_bytes().ends_with(b"/") {
-        return Err(SafeFsError::InvalidPathComponent(path.to_owned()));
+
+    if final_component == WalkTarget::File {
+        if pending.is_empty() {
+            return Err(SafeFsError::PathHasNoFilename(path.to_owned()));
+        }
+        if path.as_os_str().as_bytes().ends_with(b"/") {
+            return Err(SafeFsError::InvalidPathComponent(path.to_owned()));
+        }
     }
 
     let euid = geteuid().as_raw();
@@ -493,7 +521,7 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
 
         let fd = match openat(&cur, &name, PATH_FLAGS, Mode::empty()) {
             Ok(fd) => fd,
-            Err(Errno::NOENT) if last && opts.create => {
+            Err(Errno::NOENT) if last && opts.create && final_component == WalkTarget::File => {
                 return create_new(&cur, &name, &shown, opts, euid);
             }
             Err(e) => return Err(e.into()),
@@ -535,18 +563,34 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
                 }
                 cur = fd;
             }
-            FileType::RegularFile if last => {
+            FileType::Directory if final_component == WalkTarget::Dir => {
+                if opts.strict_owner {
+                    check_dir(&st, &shown, euid)?;
+                }
+                return reopen_dir(&cur, &name, &st, &shown);
+            }
+            FileType::RegularFile if last && final_component == WalkTarget::File => {
                 if opts.strict_owner {
                     check_file(&st, &shown, euid)?;
                 }
                 return reopen(&cur, &name, &st, &shown, opts);
             }
-            _ if last => return Err(SafeFsError::NotFile(shown)),
+            _ if last && final_component == WalkTarget::File => {
+                return Err(SafeFsError::NotFile(shown));
+            }
             _ => return Err(SafeFsError::NotDirectory(shown)),
         }
     }
 
-    Err(SafeFsError::NotFile(path.to_owned()))
+    match final_component {
+        WalkTarget::Dir => Ok(openat(
+            &cur,
+            ".",
+            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Mode::empty(),
+        )?),
+        WalkTarget::File => Err(SafeFsError::NotFile(path.to_owned())),
+    }
 }
 
 #[cfg(test)]
@@ -920,5 +964,89 @@ mod tests {
             .unwrap_err();
         assert!(matches!(err, SafeFsError::HardLinked { .. }), "{}", err);
         assert_eq!(fs::read_to_string(&path).unwrap(), "0123456789");
+    }
+
+    #[test]
+    fn test_walk_and_want_final_to_be_a_file() {
+        let tmp = tmp();
+        let path = tmp.path().join("file");
+        write_file(&path, b"0123456789");
+        let res = walk(&path, &SafeOpenOptions::default(), WalkTarget::File);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn walk_file_target_rejects_directory() {
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        let err = walk(&dir, &read(), WalkTarget::File).unwrap_err();
+        assert!(matches!(err, SafeFsError::NotFile(_)), "{}", err);
+    }
+
+    #[test]
+    fn walk_dir_target_opens_directory() {
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        create_file(&tmp, "dir/inner", 0o600);
+        let fd = walk(&dir, &read(), WalkTarget::Dir).unwrap();
+        // The descriptor is a real directory, usable as an openat base.
+        let inner = openat(&fd, "inner", OFlags::RDONLY, Mode::empty()).unwrap();
+        assert_eq!(read_to_string(File::from(inner)), "data");
+    }
+
+    #[test]
+    fn walk_dir_target_accepts_trailing_slash_and_root() {
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        let mut with_slash = dir.into_os_string();
+        with_slash.push("/");
+        assert!(walk(Path::new(&with_slash), &read(), WalkTarget::Dir).is_ok());
+        assert!(walk(Path::new("/"), &read(), WalkTarget::Dir).is_ok());
+    }
+
+    #[test]
+    fn walk_dir_target_rejects_file() {
+        let tmp = tmp();
+        let path = create_file(&tmp, "file", 0o600);
+        let err = walk(&path, &read(), WalkTarget::Dir).unwrap_err();
+        assert!(matches!(err, SafeFsError::NotDirectory(_)), "{}", err);
+    }
+
+    #[test]
+    fn walk_dir_target_follows_trusted_symlink() {
+        let tmp = tmp();
+        create_dir(&tmp, "dir", 0o700);
+        let link = tmp.path().join("link");
+        symlink("dir", &link).unwrap();
+        assert!(walk(&link, &read(), WalkTarget::Dir).is_ok());
+    }
+
+    #[test]
+    fn walk_dir_target_does_not_create() {
+        let tmp = tmp();
+        let path = tmp.path().join("missing");
+        let mut opts = read();
+        opts.create(true);
+        let err = walk(&path, &opts, WalkTarget::Dir).unwrap_err();
+        assert!(
+            matches!(&err, SafeFsError::Io(e) if e.kind() == std::io::ErrorKind::NotFound),
+            "{}",
+            err
+        );
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn walk_dir_target_rejects_group_writable_dir_in_strict_mode() {
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o770);
+        let mut opts = read();
+        opts.strict_owner(true);
+        let err = walk(&dir, &opts, WalkTarget::Dir).unwrap_err();
+        assert!(
+            matches!(err, SafeFsError::WritableByOthers { .. }),
+            "{}",
+            err
+        );
     }
 }
