@@ -1055,4 +1055,68 @@ mod tests {
             err
         );
     }
+
+    #[test]
+    fn non_strict_accepts_world_writable_file() {
+        let tmp = tmp();
+        let path = create_file(&tmp, "file", 0o646);
+        let f = read().strict_owner(false).open(&path).unwrap();
+        assert_eq!(read_to_string(f), "data");
+    }
+
+    #[test]
+    fn non_strict_accepts_group_writable_directory() {
+        let tmp = tmp();
+        create_dir(&tmp, "sub", 0o770);
+        let path = tmp.path().join("sub/file");
+        write_file(&path, b"inner");
+        let f = read().strict_owner(false).open(&path).unwrap();
+        assert_eq!(read_to_string(f), "inner");
+    }
+
+    #[test]
+    fn strict_accepts_safe_file() {
+        let tmp = tmp();
+        create_dir(&tmp, "sub", 0o755);
+        let path = tmp.path().join("sub/file");
+        write_file(&path, b"inner");
+        let f = read().strict_owner(true).open(&path).unwrap();
+        assert_eq!(read_to_string(f), "inner");
+    }
+
+    #[test]
+    fn strict_rejects_symlink_to_world_writable_directory() {
+        let tmp = tmp();
+        create_dir(&tmp, "open", 0o777);
+        write_file(&tmp.path().join("open/file"), b"inner");
+        symlink("open", tmp.path().join("link")).unwrap();
+        let err = read()
+            .strict_owner(true)
+            .open(tmp.path().join("link/file"))
+            .unwrap_err();
+        assert!(
+            matches!(err, SafeFsError::WritableByOthers { .. }),
+            "{}",
+            err
+        );
+    }
+
+    #[test]
+    fn strict_does_not_create_in_world_writable_directory() {
+        let tmp = tmp();
+        create_dir(&tmp, "open", 0o777);
+        let path = tmp.path().join("open/new");
+        let err = read()
+            .write(true)
+            .create(true)
+            .strict_owner(true)
+            .open(&path)
+            .unwrap_err();
+        assert!(
+            matches!(err, SafeFsError::WritableByOthers { .. }),
+            "{}",
+            err
+        );
+        assert!(!path.exists());
+    }
 }
