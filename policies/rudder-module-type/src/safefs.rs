@@ -593,6 +593,8 @@ fn walk(
     }
 }
 
+/// Change the current working directory.
+///
 /// # Example
 ///
 /// ```
