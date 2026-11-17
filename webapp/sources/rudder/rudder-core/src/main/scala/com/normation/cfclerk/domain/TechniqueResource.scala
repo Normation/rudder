@@ -73,6 +73,10 @@ object ResourceName     {
 
   given jsonCodec: JsonCodec[ResourceName] = JsonCodec.string
 
+  extension (self: ResourceName) {
+    def value: String = self
+  }
+
   def apply(name: String): ResourceName = name
 }
 

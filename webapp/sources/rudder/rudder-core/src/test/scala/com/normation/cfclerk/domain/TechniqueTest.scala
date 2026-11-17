@@ -101,7 +101,7 @@ class TechniqueTest extends Specification {
 
     def getTemplateByid(technique: Technique, name: String) = {
       technique.agentConfigs.head.templates
-        .find(_.id == TechniqueResourceIdByName(technique.id, name))
+        .find(_.id == TechniqueResourceIdByName(technique.id, ResourceName(name)))
         .getOrElse(throw new Exception(s"Test must contain resource '${name}'"))
     }
 

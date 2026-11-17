@@ -261,7 +261,7 @@ class DeleteEditorTechniqueImpl(
                        resourceId.techniqueId.name.value :+
                        resourceId.techniqueId.version.toString :+
                        "resources" :+
-                       resourceId.name
+                       resourceId.name.value
                      )
       } yield {
         Files.deleteIfExists(sanitized.path)

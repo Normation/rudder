@@ -428,7 +428,7 @@ class GitTechniqueReader(
     // build a treewalk with the path, given by TechniqueTemplateId
     // here, we don't use rev in path, it will be used (if necessary) during walk
     val (rev, filenameFilter) = {
-      val name = techniqueResourceId.name + postfixName.getOrElse("")
+      val name = techniqueResourceId.name.value + postfixName.getOrElse("")
       techniqueResourceId match {
         case TechniqueResourceIdByName(tid, _)          =>
           (tid.version.rev, new ExactFileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRev.serialize}/${name}"))
