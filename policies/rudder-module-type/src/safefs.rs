@@ -86,7 +86,7 @@ use std::{
 use rustix::{
     fs::{CWD, FileType, Mode, OFlags, Stat, fstat, ftruncate, openat, readlinkat},
     io::Errno,
-    process::geteuid,
+    process::{fchdir, geteuid},
 };
 
 /// Same limit as the Linux kernel (`MAXSYMLINKS`).
@@ -591,6 +591,12 @@ fn walk(
         )?),
         WalkTarget::File => Err(SafeFsError::NotFile(path.to_owned())),
     }
+}
+
+pub fn safe_chdir<P: AsRef<Path>>(path: P) -> Result<(), SafeFsError> {
+    let fd = walk(path.as_ref(), &SafeOpenOptions::default(), WalkTarget::Dir)?;
+    fchdir(fd)?;
+    Ok(())
 }
 
 #[cfg(test)]
