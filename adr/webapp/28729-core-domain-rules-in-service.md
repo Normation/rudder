@@ -21,7 +21,7 @@ Ex:
 
 > Note: other domains could be defined and hold their own business rules.
 
-#### Issues
+### Issues
 
 Currently some core domain rules can be found in different layers of the webapp: the api layer, the repository layer which makes the maintenance and the debugging difficult.
 
