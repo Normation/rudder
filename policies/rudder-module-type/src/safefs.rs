@@ -604,18 +604,22 @@ fn walk(
 /// # std::fs::set_permissions(dir.path(), Permissions::from_mode(0o700))?;
 /// # std::fs::create_dir(dir.path().join("work"))?;
 /// # std::fs::write(dir.path().join("file"), b"")?;
-/// safe_chdir(dir.path().join("work"))?;
+/// safe_chdir(dir.path().join("work"), false)?;
 /// assert_eq!(
 ///     std::env::current_dir()?,
 ///     dir.path().join("work").canonicalize()?
 /// );
 ///
-/// let err = safe_chdir(dir.path().join("file")).unwrap_err();
+/// let err = safe_chdir(dir.path().join("file"), false).unwrap_err();
 /// assert!(matches!(err, SafeFsError::NotDirectory(_)));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn safe_chdir<P: AsRef<Path>>(path: P) -> Result<(), SafeFsError> {
-    let fd = walk(path.as_ref(), &SafeOpenOptions::default(), WalkTarget::Dir)?;
+pub fn safe_chdir<P: AsRef<Path>>(path: P, strict_owner: bool) -> Result<(), SafeFsError> {
+    let fd = walk(
+        path.as_ref(),
+        SafeOpenOptions::new().strict_owner(strict_owner),
+        WalkTarget::Dir,
+    )?;
     fchdir(fd)?;
     Ok(())
 }
@@ -1137,7 +1141,7 @@ mod tests {
         let _guard = CwdGuard::new();
         let tmp = tmp();
         let dir = create_dir(&tmp, "dir", 0o700);
-        safe_chdir(&dir).unwrap();
+        safe_chdir(&dir, false).unwrap();
         assert_eq!(cwd(), dir.canonicalize().unwrap());
     }
 
@@ -1147,8 +1151,8 @@ mod tests {
         let tmp = tmp();
         let dir = create_dir(&tmp, "dir", 0o700);
         create_dir(&tmp, "dir/sub", 0o700);
-        safe_chdir(&dir).unwrap();
-        safe_chdir("./sub").unwrap();
+        safe_chdir(&dir, false).unwrap();
+        safe_chdir("./sub", false).unwrap();
         assert_eq!(cwd(), dir.join("sub").canonicalize().unwrap());
     }
 
@@ -1159,7 +1163,7 @@ mod tests {
         let dir = create_dir(&tmp, "dir", 0o700);
         let link = tmp.path().join("link");
         symlink("dir", &link).unwrap();
-        safe_chdir(&link).unwrap();
+        safe_chdir(&link, false).unwrap();
         assert_eq!(cwd(), dir.canonicalize().unwrap());
     }
 
@@ -1169,7 +1173,7 @@ mod tests {
         let before = cwd();
         let tmp = tmp();
         let path = create_file(&tmp, "file", 0o600);
-        let err = safe_chdir(&path).unwrap_err();
+        let err = safe_chdir(&path, false).unwrap_err();
         assert!(matches!(err, SafeFsError::NotDirectory(_)), "{}", err);
         assert_eq!(cwd(), before);
     }
@@ -1179,7 +1183,7 @@ mod tests {
         let _guard = CwdGuard::new();
         let before = cwd();
         let tmp = tmp();
-        let err = safe_chdir(tmp.path().join("missing")).unwrap_err();
+        let err = safe_chdir(tmp.path().join("missing"), false).unwrap_err();
         assert!(
             matches!(&err, SafeFsError::Io(e) if e.kind() == std::io::ErrorKind::NotFound),
             "{}",
@@ -1194,7 +1198,7 @@ mod tests {
         let before = cwd();
         let tmp = tmp();
         create_dir(&tmp, "dir", 0o700);
-        let err = safe_chdir(tmp.path().join("dir/..")).unwrap_err();
+        let err = safe_chdir(tmp.path().join("dir/.."), false).unwrap_err();
         assert!(
             matches!(err, SafeFsError::InvalidPathComponent(_)),
             "{}",
