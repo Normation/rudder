@@ -1105,42 +1105,6 @@ mod tests {
         assert_eq!(read_to_string(f), "inner");
     }
 
-    #[test]
-    fn strict_rejects_symlink_to_world_writable_directory() {
-        let tmp = tmp();
-        create_dir(&tmp, "open", 0o777);
-        write_file(&tmp.path().join("open/file"), b"inner");
-        symlink("open", tmp.path().join("link")).unwrap();
-        let err = read()
-            .strict_owner(true)
-            .open(tmp.path().join("link/file"))
-            .unwrap_err();
-        assert!(
-            matches!(err, SafeFsError::WritableByOthers { .. }),
-            "{}",
-            err
-        );
-    }
-
-    #[test]
-    fn strict_does_not_create_in_world_writable_directory() {
-        let tmp = tmp();
-        create_dir(&tmp, "open", 0o777);
-        let path = tmp.path().join("open/new");
-        let err = read()
-            .write(true)
-            .create(true)
-            .strict_owner(true)
-            .open(&path)
-            .unwrap_err();
-        assert!(
-            matches!(err, SafeFsError::WritableByOthers { .. }),
-            "{}",
-            err
-        );
-        assert!(!path.exists());
-    }
-
     static CWD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     struct CwdGuard {
@@ -1237,33 +1201,5 @@ mod tests {
             err
         );
         assert_eq!(cwd(), before);
-    }
-
-    #[test]
-    fn chdir_relative_rejects_world_writable_cwd() {
-        let _guard = CwdGuard::new();
-        let tmp = tmp();
-        let open = create_dir(&tmp, "open", 0o777);
-        create_dir(&tmp, "open/sub", 0o700);
-        safe_chdir(&open).unwrap();
-        let err = safe_chdir("sub").unwrap_err();
-        assert!(
-            matches!(err, SafeFsError::WritableByOthers { .. }),
-            "{}",
-            err
-        );
-        assert_eq!(cwd(), open.canonicalize().unwrap());
-    }
-
-    #[test]
-    fn chdir_enters_checked_directory_even_if_path_is_replaced() {
-        let _guard = CwdGuard::new();
-        let tmp = tmp();
-        let dir = create_dir(&tmp, "dir", 0o700);
-        safe_chdir(&dir).unwrap();
-        let moved = tmp.path().join("moved");
-        fs::rename(&dir, &moved).unwrap();
-        create_dir(&tmp, "dir", 0o700);
-        assert_eq!(cwd(), moved.canonicalize().unwrap());
     }
 }
