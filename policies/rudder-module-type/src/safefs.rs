@@ -234,6 +234,7 @@ pub struct SafeOpenOptions {
     truncate: bool,
     create: bool,
     mode: u32,
+    strict_owner: bool,
 }
 
 impl Default for SafeOpenOptions {
@@ -244,6 +245,7 @@ impl Default for SafeOpenOptions {
             truncate: false,
             create: false,
             mode: 0o600,
+            strict_owner: false,
         }
     }
 }
@@ -275,6 +277,11 @@ impl SafeOpenOptions {
 
     pub fn mode(&mut self, mode: u32) -> &mut Self {
         self.mode = mode & 0o777;
+        self
+    }
+
+    pub fn strict_owner(&mut self, strict_owner: bool) -> &mut Self {
+        self.strict_owner = strict_owner;
         self
     }
 
@@ -378,9 +385,11 @@ fn check_file(st: &Stat, path: &Path, euid: u32) -> Result<(), SafeFsError> {
     Ok(())
 }
 
-fn open_root(euid: u32) -> Result<OwnedFd, SafeFsError> {
+fn open_root(euid: u32, strict_owner: bool) -> Result<OwnedFd, SafeFsError> {
     let fd = openat(CWD, "/", DIR_FLAGS, Mode::empty())?;
-    check_dir(&fstat(&fd)?, Path::new("/"), euid)?;
+    if strict_owner {
+        check_dir(&fstat(&fd)?, Path::new("/"), euid)?;
+    }
     Ok(fd)
 }
 
@@ -455,7 +464,7 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
 
     let euid = geteuid().as_raw();
     let (mut cur, mut shown) = if path.has_root() {
-        (open_root(euid)?, PathBuf::from("/"))
+        (open_root(euid, opts.strict_owner)?, PathBuf::from("/"))
     } else {
         let fd = openat(CWD, ".", DIR_FLAGS, Mode::empty())?;
         check_dir(&fstat(&fd)?, Path::new("."), euid)?;
@@ -509,7 +518,7 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
 
                 shown.pop();
                 if target.has_root() {
-                    cur = open_root(euid)?;
+                    cur = open_root(euid, opts.strict_owner)?;
                     shown = PathBuf::from("/");
                 }
                 for comp in target.components().rev() {
@@ -521,11 +530,15 @@ fn walk(path: &Path, opts: &SafeOpenOptions) -> Result<OwnedFd, SafeFsError> {
                 }
             }
             FileType::Directory if !last => {
-                check_dir(&st, &shown, euid)?;
+                if opts.strict_owner {
+                    check_dir(&st, &shown, euid)?;
+                }
                 cur = fd;
             }
             FileType::RegularFile if last => {
-                check_file(&st, &shown, euid)?;
+                if opts.strict_owner {
+                    check_file(&st, &shown, euid)?;
+                }
                 return reopen(&cur, &name, &st, &shown, opts);
             }
             _ if last => return Err(SafeFsError::NotFile(shown)),
@@ -633,7 +646,7 @@ mod tests {
     fn rejects_world_writable_file() {
         let tmp = tmp();
         let path = create_file(&tmp, "file", 0o646);
-        let err = read().open(&path).unwrap_err();
+        let err = read().strict_owner(true).open(&path).unwrap_err();
         assert!(
             matches!(err, SafeFsError::WritableByOthers { .. }),
             "{}",
@@ -645,7 +658,7 @@ mod tests {
     fn rejects_group_writable_file() {
         let tmp = tmp();
         let path = create_file(&tmp, "file", 0o664);
-        let err = read().open(&path).unwrap_err();
+        let err = read().strict_owner(true).open(&path).unwrap_err();
         assert!(
             matches!(err, SafeFsError::WritableByOthers { .. }),
             "{}",
@@ -659,7 +672,7 @@ mod tests {
         create_dir(&tmp, "sub", 0o777);
         let path = tmp.path().join("sub/file");
         File::create(&path).unwrap();
-        let err = read().open(&path).unwrap_err();
+        let err = read().strict_owner(true).open(&path).unwrap_err();
         assert!(
             matches!(err, SafeFsError::WritableByOthers { .. }),
             "{}",
@@ -673,7 +686,7 @@ mod tests {
         create_dir(&tmp, "sub", 0o770);
         let path = tmp.path().join("sub/file");
         File::create(&path).unwrap();
-        let err = read().open(&path).unwrap_err();
+        let err = read().strict_owner(true).open(&path).unwrap_err();
         assert!(
             matches!(err, SafeFsError::WritableByOthers { .. }),
             "{}",
@@ -695,7 +708,7 @@ mod tests {
         let tmp = tmp();
         let path = create_file(&tmp, "file", 0o600);
         fs::hard_link(&path, tmp.path().join("other")).unwrap();
-        let err = read().open(&path).unwrap_err();
+        let err = read().strict_owner(true).open(&path).unwrap_err();
         assert!(
             matches!(err, SafeFsError::HardLinked { nlink: 2, .. }),
             "{}",
@@ -804,7 +817,10 @@ mod tests {
         let tmp = tmp();
         create_file(&tmp, "target", 0o646);
         symlink("target", tmp.path().join("link")).unwrap();
-        let err = read().open(tmp.path().join("link")).unwrap_err();
+        let err = read()
+            .strict_owner(true)
+            .open(tmp.path().join("link"))
+            .unwrap_err();
         assert!(
             matches!(err, SafeFsError::WritableByOthers { .. }),
             "{}",
@@ -896,7 +912,12 @@ mod tests {
         let path = tmp.path().join("file");
         write_file(&path, b"0123456789");
         fs::hard_link(&path, tmp.path().join("other")).unwrap();
-        let err = read().write(true).truncate(true).open(&path).unwrap_err();
+        let err = read()
+            .write(true)
+            .truncate(true)
+            .strict_owner(true)
+            .open(&path)
+            .unwrap_err();
         assert!(matches!(err, SafeFsError::HardLinked { .. }), "{}", err);
         assert_eq!(fs::read_to_string(&path).unwrap(), "0123456789");
     }
