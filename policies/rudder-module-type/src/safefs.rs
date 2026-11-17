@@ -84,7 +84,7 @@ use std::{
 };
 
 use rustix::{
-    fs::{fstat, ftruncate, openat, readlinkat, FileType, Mode, OFlags, Stat, CWD},
+    fs::{CWD, FileType, Mode, OFlags, Stat, fstat, ftruncate, openat, readlinkat},
     io::Errno,
     process::{fchdir, geteuid},
 };
@@ -626,7 +626,7 @@ mod tests {
 
     use std::fs::{self, File, Permissions};
     use std::io::{Read, Write};
-    use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
+    use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
 
     use tempfile::TempDir;
 
