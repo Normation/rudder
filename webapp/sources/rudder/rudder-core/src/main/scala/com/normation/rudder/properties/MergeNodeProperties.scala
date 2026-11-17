@@ -116,10 +116,14 @@ object GroupProp {
         globalParameters: Map[String, GlobalParameter]
     ): Map[String, (VertexParentProperty[?], Option[InheritMode])] = {
       g.properties.map { p =>
-        val globalInheritMode = globalParameters.get(p.name).flatMap(g => GenericProperty.getMode(g.config))
+        val (parentProperty, globalInheritMode) = (for {
+          global <- globalParameters.get(p.name)
+        } yield {
+          (ParentProperty.Global(global), GenericProperty.getMode(global.config))
+        }).unzip
         (
           p.name,
-          ParentProperty.Group(g.groupName, g.groupId, p, None) -> globalInheritMode
+          ParentProperty.Group(g.groupName, g.groupId, p, parentProperty) -> globalInheritMode.flatten
         )
       }.toMap
     }
@@ -332,9 +336,6 @@ object MergeNodeProperties {
                     parent          <- allGroupProps.get(firstParent)
                     // we assume that there is a single property value for the same name (upstream we have List and not a Map)
                     parentProp      <- parent.properties.find(_.name == nodeProp.name)
-                    // parentProps probably needs to be a NonEmptyChunk(VerticalPropTree[{node=(1),groups=(*),global=(1)}])
-                    // and what we want is a VerticalPropTree that has the parent group as its dominant group i.e. most prioritized groups, the last one
-                    // we probably want to have this natural subdivision, such that the Ordering[ParentProperty] will disappear, as it's explicitly : .node, .groups (already sorted), .global
                     parentHierarchy <- parentProps.collectFirst {
                                          case l
                                              if findLastMatchingGroup(l)
