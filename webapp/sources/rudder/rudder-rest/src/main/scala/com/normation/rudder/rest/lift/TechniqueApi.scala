@@ -49,7 +49,6 @@ import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
-import com.normation.rudder.ncf.ResourceInformation.ResourceName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
@@ -284,6 +283,17 @@ class TechniqueApi(
     }
   }
 
+  case class ResourceInformation(
+      techniqueName:    TechniqueName,
+      techniqueVersion: TechniqueVersion,
+      resourceName:     ResourceName
+  ) derives JsonEncoder
+  object ResourceInformation {
+    def from(id: TechniqueResourceIdByName): ResourceInformation = {
+      ResourceInformation(techniqueName = id.techniqueId.name, techniqueVersion = id.techniqueId.version, resourceName = id.name)
+    }
+  }
+
   object DeleteResource extends LiftApiModule {
 
     val schema: ThreeParam = API.DeleteResource
@@ -303,14 +313,15 @@ class TechniqueApi(
       import zio.json.*
       val content: ZIO[Any, RudderError, Json.Obj] = {
         for {
-          techniqueVersion   <- ZIO
-                                  .fromEither(TechniqueVersion.parse(versionPathParam))
-                                  .mapError(s => Unexpected(s))
-          resourceInformation = ResourceInformation(TechniqueName(techniqueName), techniqueVersion, ResourceName(resourceName))
-          _                  <- techniqueWriter.deleteResource(
-                                  resourceInformation
-                                )(using authzToken.qc.newCC())
-          json               <- resourceInformation.toJsonAST.toIO
+          techniqueVersion <- ZIO
+                                .fromEither(TechniqueVersion.parse(versionPathParam))
+                                .mapError(s => Unexpected(s))
+          resourceId        =
+            TechniqueResourceIdByName(TechniqueId(TechniqueName(techniqueName), techniqueVersion), ResourceName(resourceName))
+          _                <- techniqueWriter.deleteResource(
+                                resourceId
+                              )(using authzToken.qc.newCC())
+          json             <- ResourceInformation.from(resourceId).toJsonAST.toIO
         } yield {
           Json.Obj(("resources", Json.Arr(Chunk(json))))
         }

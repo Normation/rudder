@@ -67,7 +67,7 @@ object TechniqueName {
  * A policy ID is built from the policy name, unique
  * among all policies, and a version for that policy.
  */
-final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
+final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] derives JsonEncoder {
   // intended for debug/log, not serialization
   def debugString:    String      = serialize
   // a technique

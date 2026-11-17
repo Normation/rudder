@@ -397,7 +397,7 @@ class TechniqueArchiverImpl(
   ): IOResult[Unit] = {
 
     delete(
-      path = s"${techniqueId.serialize}/resources/${resourceId.name}",
+      path = resourceId.displayPath,
       committer = committer,
       categories = categories,
       modId = modId,

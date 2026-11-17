@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import better.files.File
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
@@ -106,7 +107,6 @@ import com.normation.rudder.ncf.ReadEditorTechnique
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.ResourceInformation
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -867,7 +867,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def writeTechniques(techniques: List[EditorTechnique])(implicit cc: ChangeContext): IOResult[List[EditorTechnique]] =
       techniques.succeed
 
-    override def deleteResource(resourceInformation: ResourceInformation)(implicit
+    override def deleteResource(resourceId: TechniqueResourceIdByName)(implicit
         cc: ChangeContext
     ): IOResult[Unit] = ZIO.succeed(())
   }
