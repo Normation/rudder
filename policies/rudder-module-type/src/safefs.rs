@@ -84,7 +84,7 @@ use std::{
 };
 
 use rustix::{
-    fs::{CWD, FileType, Mode, OFlags, Stat, fstat, ftruncate, openat, readlinkat},
+    fs::{fstat, ftruncate, openat, readlinkat, FileType, Mode, OFlags, Stat, CWD},
     io::Errno,
     process::{fchdir, geteuid},
 };
@@ -593,6 +593,27 @@ fn walk(
     }
 }
 
+/// # Example
+///
+/// ```
+/// use std::fs::Permissions;
+/// use std::os::unix::fs::PermissionsExt;
+/// use rudder_module_type::safefs::{safe_chdir, SafeFsError};
+///
+/// # let dir = tempfile::tempdir()?;
+/// # std::fs::set_permissions(dir.path(), Permissions::from_mode(0o700))?;
+/// # std::fs::create_dir(dir.path().join("work"))?;
+/// # std::fs::write(dir.path().join("file"), b"")?;
+/// safe_chdir(dir.path().join("work"))?;
+/// assert_eq!(
+///     std::env::current_dir()?,
+///     dir.path().join("work").canonicalize()?
+/// );
+///
+/// let err = safe_chdir(dir.path().join("file")).unwrap_err();
+/// assert!(matches!(err, SafeFsError::NotDirectory(_)));
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn safe_chdir<P: AsRef<Path>>(path: P) -> Result<(), SafeFsError> {
     let fd = walk(path.as_ref(), &SafeOpenOptions::default(), WalkTarget::Dir)?;
     fchdir(fd)?;
@@ -605,7 +626,7 @@ mod tests {
 
     use std::fs::{self, File, Permissions};
     use std::io::{Read, Write};
-    use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
+    use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
 
     use tempfile::TempDir;
 
@@ -1118,5 +1139,131 @@ mod tests {
             err
         );
         assert!(!path.exists());
+    }
+
+    static CWD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    struct CwdGuard {
+        saved: PathBuf,
+        _lock: std::sync::MutexGuard<'static, ()>,
+    }
+
+    impl CwdGuard {
+        fn new() -> Self {
+            let lock = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            Self {
+                saved: std::env::current_dir().unwrap(),
+                _lock: lock,
+            }
+        }
+    }
+
+    impl Drop for CwdGuard {
+        fn drop(&mut self) {
+            std::env::set_current_dir(&self.saved).unwrap();
+        }
+    }
+
+    fn cwd() -> PathBuf {
+        std::env::current_dir().unwrap()
+    }
+
+    #[test]
+    fn chdir_enters_directory() {
+        let _guard = CwdGuard::new();
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        safe_chdir(&dir).unwrap();
+        assert_eq!(cwd(), dir.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn chdir_relative_path() {
+        let _guard = CwdGuard::new();
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        create_dir(&tmp, "dir/sub", 0o700);
+        safe_chdir(&dir).unwrap();
+        safe_chdir("./sub").unwrap();
+        assert_eq!(cwd(), dir.join("sub").canonicalize().unwrap());
+    }
+
+    #[test]
+    fn chdir_follows_trusted_symlink() {
+        let _guard = CwdGuard::new();
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        let link = tmp.path().join("link");
+        symlink("dir", &link).unwrap();
+        safe_chdir(&link).unwrap();
+        assert_eq!(cwd(), dir.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn chdir_rejects_file() {
+        let _guard = CwdGuard::new();
+        let before = cwd();
+        let tmp = tmp();
+        let path = create_file(&tmp, "file", 0o600);
+        let err = safe_chdir(&path).unwrap_err();
+        assert!(matches!(err, SafeFsError::NotDirectory(_)), "{}", err);
+        assert_eq!(cwd(), before);
+    }
+
+    #[test]
+    fn chdir_missing_directory_fails() {
+        let _guard = CwdGuard::new();
+        let before = cwd();
+        let tmp = tmp();
+        let err = safe_chdir(tmp.path().join("missing")).unwrap_err();
+        assert!(
+            matches!(&err, SafeFsError::Io(e) if e.kind() == std::io::ErrorKind::NotFound),
+            "{}",
+            err
+        );
+        assert_eq!(cwd(), before);
+    }
+
+    #[test]
+    fn chdir_rejects_parent_dir_component() {
+        let _guard = CwdGuard::new();
+        let before = cwd();
+        let tmp = tmp();
+        create_dir(&tmp, "dir", 0o700);
+        let err = safe_chdir(tmp.path().join("dir/..")).unwrap_err();
+        assert!(
+            matches!(err, SafeFsError::InvalidPathComponent(_)),
+            "{}",
+            err
+        );
+        assert_eq!(cwd(), before);
+    }
+
+    #[test]
+    fn chdir_relative_rejects_world_writable_cwd() {
+        let _guard = CwdGuard::new();
+        let tmp = tmp();
+        let open = create_dir(&tmp, "open", 0o777);
+        create_dir(&tmp, "open/sub", 0o700);
+        safe_chdir(&open).unwrap();
+        let err = safe_chdir("sub").unwrap_err();
+        assert!(
+            matches!(err, SafeFsError::WritableByOthers { .. }),
+            "{}",
+            err
+        );
+        assert_eq!(cwd(), open.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn chdir_enters_checked_directory_even_if_path_is_replaced() {
+        let _guard = CwdGuard::new();
+        let tmp = tmp();
+        let dir = create_dir(&tmp, "dir", 0o700);
+        safe_chdir(&dir).unwrap();
+        let moved = tmp.path().join("moved");
+        fs::rename(&dir, &moved).unwrap();
+        create_dir(&tmp, "dir", 0o700);
+        assert_eq!(cwd(), moved.canonicalize().unwrap());
     }
 }
