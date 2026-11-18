@@ -154,7 +154,7 @@ limitations under the License.
           <scalaVersion>${scala-version}</scalaVersion>
           <recompileMode>all</recompileMode>
           <args>
-            <arg>-release:17</arg>
+            <arg>-release:25</arg>
             <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
             <arg>-explain-types</arg>                 <!-- Explain type errors in more detail. -->
             <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
@@ -198,7 +198,7 @@ limitations under the License.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.15.0</version>
         <configuration>
-          <release>17</release>
+          <release>25</release>
         </configuration>
         <executions>
           <execution>

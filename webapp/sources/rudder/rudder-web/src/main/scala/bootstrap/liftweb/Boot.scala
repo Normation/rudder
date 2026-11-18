@@ -731,24 +731,21 @@ class Boot extends Loggable {
      * to allow explicit locale switch with just the addition
      * of &locale=en at the end of urls
      */
-    val DefaultLocale = new Locale("")
+    val DefaultLocale = Locale.ROOT
     LiftRules.localeCalculator = { (request: Box[HTTPRequest]) =>
-      {
-        request match {
-          case Empty | Failure(_, _, _) => DefaultLocale
-          case Full(r)                  =>
-            r.param("locale") match {
-              case Nil         => DefaultLocale
-              case loc :: tail => {
-                logger.debug("Switch to locale: " + loc)
-                loc.split("_").toList match {
-                  case Nil                     => DefaultLocale
-                  case lang :: Nil             => new Locale(lang)
-                  case lang :: country :: tail => new Locale(lang, country)
-                }
+      request match {
+        case Empty | Failure(_, _, _) => DefaultLocale
+        case Full(r)                  =>
+          r.param("locale") match {
+            case Nil      => DefaultLocale
+            case loc :: _ =>
+              logger.debug("Switch to locale: " + loc)
+              loc.split("_").toList match {
+                case Nil                  => DefaultLocale
+                case lang :: Nil          => Locale.of(lang)
+                case lang :: country :: _ => Locale.of(lang, country)
               }
-            }
-        }
+          }
       }
     }
 
