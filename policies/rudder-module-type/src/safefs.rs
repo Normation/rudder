@@ -4,22 +4,25 @@
 //! relative to a file descriptor of the previously validated directory, so a
 //! component cannot be swapped between the check and the use.
 //!
-//! By default, the wrappers do not validate the owner and permissions
-//! of path components, apart from symlinks.
-//! If the `strict_owner` option is specified, the following checks are performed:
+//! # Security model
 //!
-//! Trust policy (an object is "trusted" when owned by root or the effective uid)
+//! An object is *trusted* when it is owned by root or by the effective uid.
+//!
+//! The following rules are always enforced:
+//!
+//! * symlinks are resolved by this module, and only if the symlink itself is
+//!   trusted. At most [`MAX_SYMLINKS`] are followed.
+//! * the final file must be a regular file.
+//! * new files are created with `O_CREAT | O_EXCL`.
+//!
+//! With the `strict_owner` option, the following checks are added:
 //!
 //! * every traversed directory must be trusted and must not be writable by
 //!   group/others, unless it has the sticky bit (e.g. `/tmp`).
-//! * symlinks are resolved by this module, and only if
-//!   the symlink itself is trusted. At most [`MAX_SYMLINKS`] are followed.
-//! * the final file must be a regular file, trusted, not writable by
-//!   group/others, and must not have other hard links.
-//! * new files are created with `O_CREAT | O_EXCL`.
-//!
-//! For relative paths, the current working directory is validated but not
-//! its ancestors.
+//! * the final file, including a newly created one, must be trusted, not
+//!   writable by group/others, and must not have other hard links.
+//! * for relative paths, the current working directory is validated but not
+//!   its ancestors.
 //!
 //! # Examples
 //!
@@ -55,7 +58,7 @@
 //! ```no_run
 //! use rudder_module_type::safefs::{SafeFsError, SafeOpenOptions};
 //!
-//! match SafeOpenOptions::new().open("/tmp/some/file") {
+//! match SafeOpenOptions::new().strict_owner(true).open("/tmp/some/file") {
 //!     Ok(_file) => { /* use the file */ }
 //!     Err(SafeFsError::SymLinkNotOwned { path, owner, .. }) => {
 //!         eprintln!("refusing untrusted symlink {} (uid {owner})", path.display());
@@ -180,7 +183,7 @@ impl Display for SafeFsError {
 impl std::error::Error for SafeFsError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            SafeFsError::Io(err) => Some(err),
+            SafeFsError::Io(err) => std::error::Error::source(err),
             _ => None,
         }
     }
@@ -202,6 +205,13 @@ impl From<Errno> for SafeFsError {
 ///
 /// Configure it with the chained setters, then call [`open`](Self::open).
 /// Defaults: read-only, no creation, mode `0o600` for created files.
+///
+/// Differences from [`std::fs::OpenOptions`]:
+///
+/// * `read` defaults to `true`, so [`new`](Self::new) alone opens the file
+///   read-only.
+/// * disabling both `read` and `write` does not fail, the file is opened
+///   read-only.
 ///
 /// # Example
 ///
@@ -441,7 +451,9 @@ fn create_new(
     if !FileType::from_raw_mode(st.st_mode).is_file() {
         return Err(SafeFsError::NotFile(shown.to_owned()));
     }
-    check_file(&st, shown, euid)?;
+    if opts.strict_owner {
+        check_file(&st, shown, euid)?;
+    }
     Ok(fd)
 }
 
@@ -496,7 +508,9 @@ fn walk(
         (open_root(euid, opts.strict_owner)?, PathBuf::from("/"))
     } else {
         let fd = openat(CWD, ".", DIR_FLAGS, Mode::empty())?;
-        check_dir(&fstat(&fd)?, Path::new("."), euid)?;
+        if opts.strict_owner {
+            check_dir(&fstat(&fd)?, Path::new("."), euid)?;
+        }
         (fd, PathBuf::from("."))
     };
     let mut links = 0;
@@ -513,7 +527,9 @@ fn walk(
                     }
                     _ => shown.push(".."),
                 }
-                check_dir(&fstat(&cur)?, &shown, euid)?;
+                if opts.strict_owner {
+                    check_dir(&fstat(&cur)?, &shown, euid)?;
+                }
                 continue;
             }
             Step::Name(name) => name,
