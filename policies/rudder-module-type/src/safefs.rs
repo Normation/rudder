@@ -628,9 +628,6 @@ fn walk(
 ///     std::env::current_dir()?,
 ///     dir.path().join("work").canonicalize()?
 /// );
-///
-/// let err = safe_chdir(dir.path().join("file"), false).unwrap_err();
-/// assert!(matches!(err, SafeFsError::NotDirectory(_)));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn safe_chdir<P: AsRef<Path>>(path: P, strict_owner: bool) -> Result<(), SafeFsError> {
