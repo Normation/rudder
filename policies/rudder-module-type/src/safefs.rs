@@ -1,23 +1,25 @@
-//! TOCTOU-safe file handling.
+//! safefs provides TOCTOU-safe wrappers for common filesystem operations.
 //!
 //! The path is resolved one component at a time with `openat(2)`, always
 //! relative to a file descriptor of the previously validated directory, so a
 //! component cannot be swapped between the check and the use.
 //!
-//! Trust policy (an object is "trusted" when owned by root or the effective uid):
+//! By default, the wrappers do not validate the owner and permissions
+//! of path components, apart from symlinks.
+//! If the `strict_owner` option is specified, the following checks are performed:
+//!
+//! Trust policy (an object is "trusted" when owned by root or the effective uid)
 //!
 //! * every traversed directory must be trusted and must not be writable by
-//!   group/others, unless it has the sticky bit (e.g. `/tmp`);
+//!   group/others, unless it has the sticky bit (e.g. `/tmp`).
 //! * symlinks are resolved by this module, and only if
-//!   the symlink itself is trusted. At most [`MAX_SYMLINKS`] are followed;
+//!   the symlink itself is trusted. At most [`MAX_SYMLINKS`] are followed.
 //! * the final file must be a regular file, trusted, not writable by
-//!   group/others, and must not have other hard links;
+//!   group/others, and must not have other hard links.
 //! * new files are created with `O_CREAT | O_EXCL`.
 //!
 //! For relative paths, the current working directory is validated but not
 //! its ancestors.
-//!
-//! Linux-only: relies on `O_PATH` and `readlinkat(fd, "")`.
 //!
 //! # Examples
 //!
@@ -27,9 +29,8 @@
 //! use std::io::Read;
 //! use rudder_module_type::safefs::SafeOpenOptions;
 //!
-//! let mut file = SafeOpenOptions::new().open("/etc/hostname")?;
 //! let mut content = String::new();
-//! file.read_to_string(&mut content)?;
+//! SafeOpenOptions::new().open("/etc/hostname")?.read_to_string(&mut content)?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
