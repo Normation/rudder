@@ -58,14 +58,20 @@ import com.normation.utils.PartType.*
 import com.normation.utils.Separator.Dot
 import com.normation.utils.Separator.Minus
 import com.normation.utils.VersionPart.*
+import com.normation.zio.*
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
+import net.liftweb.common.Empty
+import net.liftweb.common.Full
+import net.liftweb.http.RedirectWithState
 import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import scala.xml.NodeSeq
 import zio.Chunk
+import zio.Ref
+import zio.UIO
 
 final case class RudderPluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
@@ -213,6 +219,27 @@ object RudderPluginDef {
   }
 }
 
+object SharedMenuAccess {
+  private val checks: Ref[Map[String, List[TestAccess]]] = Ref.make(Map.empty[String, List[TestAccess]]).runNow
+
+  def register(menuName: String, access: TestAccess): UIO[Unit] = {
+    checks.update(m => m.updatedWith(menuName)(accesses => Some(access :: accesses.getOrElse(Nil))))
+  }
+
+  def testAccess(menuName: String): TestAccess = TestAccess { () =>
+    // TestAccess.func() runs the access check: Full(response) = denied (Lift sends that response), Empty/Failure = granted
+    checks.get.runNow.getOrElse(menuName, Nil).map(_.func()) match {
+      // there was no entry for this menu, redirect to index, unreachable as always called after registration for now.
+      case Nil                                  => Full(RedirectWithState("/secure/index", Boot.redirection))
+      // There was at list one accepted check
+      case results if results.exists(_.isEmpty) => Empty
+      // There is no accepted access, send back first one
+      case denied :: _                          => denied
+
+    }
+  }
+}
+
 /**
  * Definition of a rudder plugins
  */
@@ -303,6 +330,11 @@ trait RudderPluginDef {
    */
   def testMenuAccess(requiredAuthz: AuthorizationType*): TestAccess = {
     Boot.needPermsWith(status.isEnabled(), requiredAuthz*)
+  }
+
+  def sharedMenuAccess(menuName: String, requiredAuthz: AuthorizationType*): TestAccess = {
+    SharedMenuAccess.register(menuName, testMenuAccess(requiredAuthz*)).runNow
+    SharedMenuAccess.testAccess(menuName)
   }
 
   /**
