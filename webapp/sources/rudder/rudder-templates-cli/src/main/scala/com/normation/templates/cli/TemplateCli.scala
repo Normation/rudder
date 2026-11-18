@@ -38,7 +38,7 @@
 package com.normation.templates.cli
 
 import com.normation.errors.*
-import com.normation.templates.FillTemplatesService
+import com.normation.templates.FastparsePolicyTemplateService
 import com.normation.templates.FillTemplateTimer
 import com.normation.templates.STVariable
 import com.normation.zio.*
@@ -88,7 +88,14 @@ object Tryor {
 
 object TemplateCli {
 
-  val fillerService = new FillTemplatesService()
+  val templateService = new FastparsePolicyTemplateService()
+
+  def fillTemplate(name: String, content: String, variables: Seq[STVariable], timer: FillTemplateTimer): IOResult[String] = {
+    for {
+      template <- templateService.parse(name, content)
+      filled   <- templateService.fill(name, template, variables, timer, None)
+    } yield filled._1
+  }
 
   val parser: OptionParser[Config] = new OptionParser[Config]("Rudder template cli") {
     head("rudder-templates-cli", "4.0.x")
@@ -236,7 +243,7 @@ object TemplateCli {
       content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(
                    FileUtils.readFileToString(template, StandardCharsets.UTF_8)
                  )
-      filled  <- fillerService.fill(template.getAbsolutePath, content, variables, timer)
+      filled  <- fillTemplate(template.getAbsolutePath, content, variables, timer)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size - inputExtension.size) + outputExtension)
       writed  <- IOResult.attempt(s"Error when writting filled template into ${out.getAbsolutePath}")(
@@ -274,7 +281,7 @@ object TemplateCli {
       timer:        FillTemplateTimer
   ): ZIO[Any, RudderError, String] = {
     for {
-      filled <- fillerService.fill(templateName, content, variables, timer)
+      filled <- fillTemplate(templateName, content, variables, timer)
       writed <- IOResult.attempt(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
     } yield {
       templateName

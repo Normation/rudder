@@ -81,7 +81,7 @@ trait PrepareTemplateVariables {
   /**
    * This methods contains all the logic that allows to transform an
    * agent node configuration (as (mostly) viewed by Rudder) into
-   * a list of path info with formatted variables that can be feed to StringTemplate
+   * a list of path info with formatted variables used to fill the policy templates
    * to actually generate the promises with the correct variables replaced.
    *
    * It's also that method that handle all the special variables, like "GENERATION TIMESTAMP",
@@ -105,7 +105,7 @@ trait PrepareTemplateVariables {
 
 /**
  * This class is responsible of transforming a NodeConfiguration for a given agent type
- * into a set of templates and variables that could be filled to string template.
+ * into a set of templates and the variables to fill them with.
  */
 class PrepareTemplateVariablesImpl(
     techniqueRepository:       TechniqueRepository, // only for getting reports file content

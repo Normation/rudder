@@ -105,7 +105,7 @@ final case class TechniqueFile(
  * and if the file must be included, and where it should be written
  *
  * The way it's meant to be used :
- * the template is fetch from the StringTemplateGroup using the path/template information
+ * the template is read from the technique repository using the path/template information
  * vars are replaced
  * it is written at outPath/name
  *

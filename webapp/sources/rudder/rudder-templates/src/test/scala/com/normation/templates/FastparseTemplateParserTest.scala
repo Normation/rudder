@@ -37,8 +37,6 @@
 
 package com.normation.templates
 
-import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-import org.antlr.stringtemplate.StringTemplate
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -125,7 +123,7 @@ class FastparseTemplateParserTest extends Specification {
 
   "iteration" should {
     "iterate in parallel up to the longest list, missing values empty" in {
-      // same case as TemplateTest.arrayTest on ST3
+      // expected value checked against StringTemplate 3
       fill("&list1,list2:{ n,p |&n&:&p&}&", "list1" -> Seq("chi", "fou", "mi"), "list2" -> Seq("bar", "bazz")) ===
       "chi:barfou:bazzmi:"
     }
@@ -167,16 +165,10 @@ class FastparseTemplateParserTest extends Specification {
     }
   }
 
-  // #30084: ST3 writes every '\r\n' or lone '\r' as '\n', CRLF in a value must not leak into policies
+  // #30084: ST3 wrote every '\r\n' or lone '\r' as '\n', CRLF in a value must not leak into policies
   "line endings" should {
     // a multi-line directive parameter, like a 'File content' generic method content
     val crlfValue = "set bell-style none\r\n\r\n$if mode=emacs\r\n\"\\e[1~\": beginning-of-line\r\n$endif\r\n"
-
-    def st3(template: String, vars: (String, Any)*): String = {
-      val st = new StringTemplate(template, classOf[NormationAmpersandTemplateLexer])
-      vars.foreach { case (n, v) => st.setAttribute(n, v) }
-      st.toString
-    }
 
     "normalize CRLF and lone CR in values to LF" in {
       (fill("a=&V&;", "V" -> "x\r\ny\rz\n") === "a=x\ny\nz\n;") and
@@ -184,24 +176,26 @@ class FastparseTemplateParserTest extends Specification {
     }
     "normalize LFCR as two line endings, like ST3" in {
       val v = "a\n\rb\n\r\nc\r\r\nd"
-      (fill("&V&", "V" -> v) === "a\n\nb\n\nc\n\nd") and (fill("&V&", "V" -> v) === st3("&V&", "V" -> v))
+      fill("&V&", "V" -> v) === "a\n\nb\n\nc\n\nd"
     }
     "normalize CRLF in template text to LF" in {
       // newlines around the condition markers are swallowed, as in the LF case
       val t = "a\r\n&if(X)&\r\nb\r\n&endif&\r\nc\r\n"
-      (fill(t, "X" -> true) === "a\nbc\n") and (fill(t, "X" -> true) === st3(t, "X" -> true))
+      fill(t, "X" -> true) === "a\nbc\n"
     }
     "normalize CRLF in indented and looped expansions" in {
       (fill("  vars:\n      &V&\nend", "V" -> "a\r\nb") === "  vars:\n      a\n      b\nend") and
       (fill("&l:{x |&x&;}&", "l" -> Seq("a\r\n", "b\r")) === "a\n;b\n;")
     }
-    "render exactly like ST3 when values contain CRLF" in {
-      val templates = List(
-        "content => \"&V&\";\n",
-        "  vars:\n      &V&\nend\n",
-        "a\r\n&if(X)&\r\n&V&\r\n&endif&\r\nb"
+    // expected values checked against StringTemplate 3
+    "render like ST3 when values contain CRLF" in {
+      val lf    = "set bell-style none\n\n$if mode=emacs\n\"\\e[1~\": beginning-of-line\n$endif\n"
+      val cases = List(
+        "content => \"&V&\";\n"               -> s"content => \"${lf}\";\n",
+        "  vars:\n      &V&\nend\n"           -> "  vars:\n      set bell-style none\n\n      $if mode=emacs\n      \"\\e[1~\": beginning-of-line\n      $endif\n\nend\n",
+        "a\r\n&if(X)&\r\n&V&\r\n&endif&\r\nb" -> s"a\n${lf}b"
       )
-      foreach(templates)(t => fill(t, "V" -> crlfValue, "X" -> true) === st3(t, "V" -> crlfValue, "X" -> true))
+      foreach(cases) { case (t, expected) => fill(t, "V" -> crlfValue, "X" -> true) === expected }
     }
   }
 
@@ -226,11 +220,4 @@ class FastparseTemplateParserTest extends Specification {
     }
   }
 
-  "PolicyTemplateEngine" should {
-    "parse valid names case-insensitively and reject unknown ones" in {
-      (PolicyTemplateEngine.parse("string-template") must beRight(PolicyTemplateEngine.StringTemplate)) and
-      (PolicyTemplateEngine.parse("Rudder-Fastparse") must beRight(PolicyTemplateEngine.Fastparse)) and
-      (PolicyTemplateEngine.parse("jinja") must beLeft)
-    }
-  }
 }

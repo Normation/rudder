@@ -139,10 +139,7 @@ import com.normation.rudder.web.components.administration.RudderCompanyAccount
 import com.normation.rudder.web.model.*
 import com.normation.rudder.web.services.*
 import com.normation.templates.FastparsePolicyTemplateService
-import com.normation.templates.FillTemplatesService
-import com.normation.templates.PolicyTemplateEngine
 import com.normation.templates.PolicyTemplateService
-import com.normation.templates.StringTemplatePolicyTemplateService
 import com.normation.utils.CronParser.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
@@ -727,21 +724,14 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
 
-  val RUDDER_POLICY_TEMPLATE_ENGINE: PolicyTemplateEngine = {
-    try {
-      PolicyTemplateEngine.parse(config.getString("rudder.policy.template.engine")) match {
-        case Right(engine) => engine
-        case Left(err)     =>
-          logger.warn(
-            s"Ignoring invalid value for property 'rudder.policy.template.engine': ${err.fullMsg}. " +
-            s"Defaulting to '${PolicyTemplateEngine.default.entryName}'"
-          )
-          PolicyTemplateEngine.default
-      }
-    } catch {
-      // missing key: this is an optional property, use default without a log
-      case ex: Exception => PolicyTemplateEngine.default
-    }
+  // removed in 10.0 with the StringTemplate 3 engine - keep up to 10.1 included.
+  if (
+    config.hasPath("rudder.policy.template.engine") && config.getString("rudder.policy.template.engine") != "rudder-fastparse"
+  ) {
+    ApplicationLogger.warn(
+      "Config property 'rudder.policy.template.engine' is removed and ignored: policy templates are always filled " +
+      "with the 'rudder-fastparse' engine. Please remove it from the configuration file."
+    )
   }
 
   val RUDDER_INVENTORIES_CLEAN_CRON: Option[CronExpr] = (
@@ -3390,13 +3380,7 @@ object RudderConfigInit {
       () => configService.cfengine_outputs_ttl().toBox,
       () => configService.rudder_report_protocol_default().toBox
     )
-    lazy val policyTemplateService: PolicyTemplateService = {
-      ApplicationLogger.info(s"Policy template engine: '${RUDDER_POLICY_TEMPLATE_ENGINE.entryName}'")
-      RUDDER_POLICY_TEMPLATE_ENGINE match {
-        case PolicyTemplateEngine.StringTemplate => new StringTemplatePolicyTemplateService(new FillTemplatesService())
-        case PolicyTemplateEngine.Fastparse      => new FastparsePolicyTemplateService()
-      }
-    }
+    lazy val policyTemplateService: PolicyTemplateService = new FastparsePolicyTemplateService()
     lazy val rudderCf3PromisesFileWriterService = {
       val nodeConfigurationLogger = NodeConfigurationLogger.make(RUDDER_DEBUG_NODE_CONFIGURATION_PATH).runNow
 

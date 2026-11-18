@@ -54,15 +54,13 @@ import scala.util.control.NonFatal
  *   - escapes in text:     \& for a literal '&', \\ for '\'
  *   - comments:            &! ... !&
  *
- * A template is parsed once into an immutable AST (thread safe, cacheable and
- * shareable without locks), then rendering is a pure function of the AST and
- * the variable values. This is the replacement for the mutable, synchronized
- * StringTemplate instances.
+ * A template is parsed once into an immutable AST (thread safe, shareable without
+ * locks), then rendering is a pure function of the AST and the variable values.
  *
- * All layout rules of the ST3 ampersand lexer/writer are reproduced (whitespace
- * skip after the subtemplate '|', newline handling around conditional markers,
- * auto-indent, empty-expression line elision): the output is byte-identical to
- * StringTemplate 3 on all Rudder templates (see WriteSystemTechniquesFastparseTest).
+ * The layout rules of the StringTemplate 3 ampersand lexer/writer, the engine it
+ * replaced in Rudder 10.0, are reproduced (whitespace skip after the subtemplate
+ * '|', newline handling around conditional markers, auto-indent, empty-expression
+ * line elision): at the replacement, the output was byte-identical.
  */
 
 sealed trait TemplateAst
@@ -113,8 +111,8 @@ object FastparseTemplateParser {
   def parse(content: String): PureResult[ParsedTemplate] = Parser.parse(content)
 
   /*
-   * Fill a parsed template with the same variable semantics as
-   * FillTemplateThreadUnsafe.fill: system variables that may be empty and are
+   * Fill a parsed template with the variable semantics of StringTemplate 3
+   * in policy generation: system variables that may be empty and are
    * empty are absent (conditionals on them are false, their expansion is empty),
    * a mandatory empty variable is an error, a single value is a scalar and
    * multiple values are a list.

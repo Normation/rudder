@@ -38,64 +38,48 @@
 package com.normation.templates
 
 import com.normation.errors.*
-import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
 import com.normation.zio.currentTimeNanos
-import enumeratum.Enum
-import enumeratum.EnumEntry
-import org.antlr.stringtemplate.StringTemplate
+import scala.collection.immutable.ArraySeq
 import zio.*
-import zio.syntax.*
+
+/**
+ * A variable to replace in policy templates:
+ * - name: the name referenced in the template;
+ * - mayBeEmpty: an empty value list is allowed (else filling the template fails);
+ * - values: one value is a scalar, several values are a list;
+ * - isSystem: a system variable that may be empty and is empty (or a single "")
+ *   is absent from the template scope.
+ */
+final case class STVariable(
+    name:       String,
+    mayBeEmpty: Boolean,
+    values:     ArraySeq[Any],
+    isSystem:   Boolean
+)
 
 /*
- * The engine used to fill policy templates (".st" files) during policy generation:
- * - StringTemplate: the historical engine, based on the (mutable, synchronized)
- *   StringTemplate 3 library with the ampersand lexer;
- * - Fastparse: the new in-house engine (see FastparseTemplateParser), an immutable AST
- *   parsed with fastparse and rendered as a pure function.
- * Both accept the same template syntax; the choice is done once at service init
- * with the `rudder.policy.template.engine` property in rudder-web.properties.
+ * Accumulated time (in nanoseconds) spent parsing templates and filling them.
  */
-sealed abstract class PolicyTemplateEngine(override val entryName: String) extends EnumEntry
+final case class FillTemplateTimer(
+    parse: Ref[Long],
+    fill:  Ref[Long]
+)
 
-object PolicyTemplateEngine extends Enum[PolicyTemplateEngine] {
-  case object StringTemplate extends PolicyTemplateEngine("string-template")
-  case object Fastparse      extends PolicyTemplateEngine("rudder-fastparse")
-
-  val values: IndexedSeq[PolicyTemplateEngine] = findValues
-
-  def default: PolicyTemplateEngine = Fastparse
-
-  def parse(s: String): PureResult[PolicyTemplateEngine] = {
-    withNameInsensitiveOption(s.trim).toRight(
-      Inconsistency(
-        s"Value '${s}' is not a valid policy template engine, expected values are: ${values.map(_.entryName).mkString("'", "', '", "'")}"
-      )
-    )
-  }
+object FillTemplateTimer {
+  def make(): ZIO[Any, Nothing, FillTemplateTimer] = for {
+    a <- Ref.make(0L)
+    b <- Ref.make(0L)
+  } yield FillTemplateTimer(a, b)
 }
 
 /*
- * A template parsed by one of the engines, ready to be filled.
- * BEWARE: the StringTemplate case holds a MUTABLE, NON THREAD SAFE template: a
- * given instance must not be filled concurrently (PolicyWriterService guarantees
- * that by grouping templates by content and filling each group sequentially).
- * The Fastparse case is immutable and free of such constraint.
- */
-sealed trait PreparedTemplate
-object PreparedTemplate {
-  final case class StringTemplateInstance(template: StringTemplate) extends PreparedTemplate
-  final case class FastparseTemplate(template: ParsedTemplate)      extends PreparedTemplate
-}
-
-/*
- * The service used by policy generation to parse and fill policy templates,
- * one implementation per PolicyTemplateEngine.
+ * The service used by policy generation to parse and fill policy templates
+ * (".st" files). A parsed template is immutable and can be filled concurrently.
  */
 trait PolicyTemplateService {
-  def engine: PolicyTemplateEngine
 
   /* parse template content; `name` is only used in error messages */
-  def parse(name: String, content: String): IOResult[PreparedTemplate]
+  def parse(name: String, content: String): IOResult[ParsedTemplate]
 
   /*
    * Fill the template with the given variables and return (filled content, file name),
@@ -104,76 +88,31 @@ trait PolicyTemplateService {
    */
   def fill(
       templateName: String,
-      template:     PreparedTemplate,
+      template:     ParsedTemplate,
       variables:    Seq[STVariable],
       timer:        FillTemplateTimer,
       replaceId:    Option[(String, String)]
   ): IOResult[(String, String)]
-
-  def clearCache(): IOResult[Unit]
-}
-
-class StringTemplatePolicyTemplateService(fillTemplates: FillTemplatesService) extends PolicyTemplateService {
-  override val engine: PolicyTemplateEngine = PolicyTemplateEngine.StringTemplate
-
-  override def parse(name: String, content: String): IOResult[PreparedTemplate] = {
-    IOResult.attempt(s"Error when trying to parse template '${name}'") {
-      PreparedTemplate.StringTemplateInstance(new StringTemplate(content, classOf[NormationAmpersandTemplateLexer]))
-    }
-  }
-
-  override def fill(
-      templateName: String,
-      template:     PreparedTemplate,
-      variables:    Seq[STVariable],
-      timer:        FillTemplateTimer,
-      replaceId:    Option[(String, String)]
-  ): IOResult[(String, String)] = {
-    template match {
-      case PreparedTemplate.StringTemplateInstance(st) =>
-        FillTemplateThreadUnsafe.fill(templateName, st, variables, timer, replaceId)
-      case other                                       =>
-        Unexpected(s"Template '${templateName}' was not parsed by the '${engine.entryName}' engine, this is a bug").fail
-    }
-  }
-
-  override def clearCache(): IOResult[Unit] = fillTemplates.clearCache()
 }
 
 class FastparsePolicyTemplateService extends PolicyTemplateService {
-  override val engine: PolicyTemplateEngine = PolicyTemplateEngine.Fastparse
 
-  override def parse(name: String, content: String): IOResult[PreparedTemplate] = {
-    FastparseTemplateParser
-      .parse(content)
-      .map(PreparedTemplate.FastparseTemplate.apply)
-      .toIO
-      .chainError(
-        s"Error when trying to parse template '${name}'"
-      )
+  override def parse(name: String, content: String): IOResult[ParsedTemplate] = {
+    FastparseTemplateParser.parse(content).toIO.chainError(s"Error when trying to parse template '${name}'")
   }
 
   override def fill(
       templateName: String,
-      template:     PreparedTemplate,
+      template:     ParsedTemplate,
       variables:    Seq[STVariable],
       timer:        FillTemplateTimer,
       replaceId:    Option[(String, String)]
   ): IOResult[(String, String)] = {
-    template match {
-      case PreparedTemplate.FastparseTemplate(ast) =>
-        (for {
-          t0     <- currentTimeNanos
-          result <- FastparseTemplateParser.fill(ast, templateName, variables, replaceId).toIO
-          t1     <- currentTimeNanos
-          // rendering is one pure step: variable handling and stringification are not distinguishable
-          _      <- timer.fill.update(_ + t1 - t0)
-        } yield result).chainError(s"Error with template '${templateName}'").uninterruptible
-      case other                                   =>
-        Unexpected(s"Template '${templateName}' was not parsed by the '${engine.entryName}' engine, this is a bug").fail
-    }
+    (for {
+      t0     <- currentTimeNanos
+      result <- FastparseTemplateParser.fill(template, templateName, variables, replaceId).toIO
+      t1     <- currentTimeNanos
+      _      <- timer.fill.update(_ + t1 - t0)
+    } yield result).chainError(s"Error with template '${templateName}'")
   }
-
-  // the immutable ASTs are parsed per generation by the policy writer, there is no cache to clear
-  override def clearCache(): IOResult[Unit] = ZIO.unit
 }

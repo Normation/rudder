@@ -529,8 +529,6 @@ class PolicyWriterServiceImpl(
                                 pair                          <- for {
                                                                    templates             <- readTemplateFromFileSystem(templateToRead.toSeq)
                                                                    resources             <- readResourcesFromFileSystem(fileToRead.toSeq)
-                                                                   // Clearing cache
-                                                                   _                     <- templateService.clearCache()
                                                                    readTemplateTime2     <- currentTimeMillis
                                                                    _                     <-
                                                                      timingLogger.debug(s"Paths computed and templates read in ${readTemplateTime2 - readTemplateTime1} ms")
@@ -600,13 +598,10 @@ class PolicyWriterServiceImpl(
                                 c                  <- writeTimer.writeCSV.get.map(_ / nanoToMillis)
                                 j                  <- writeTimer.writeJSON.get.map(_ / nanoToMillis)
                                 ftf                <- fillTimer.fill.get.map(_ / nanoToMillis)
-                                fts                <- fillTimer.stringify.get.map(_ / nanoToMillis)
-                                ftw                <- fillTimer.waitFill.get.map(_ / nanoToMillis)
-                                gte                <- fillTimer.get.get.map(_ / nanoToMillis)
-                                gtw                <- fillTimer.waitGet.get.map(_ / nanoToMillis)
+                                ftp                <- fillTimer.parse.get.map(_ / nanoToMillis)
                                 _                  <-
                                   timingLogger.trace(
-                                    s" -> fill template: ${f} ms [fill template: ${ftf} ms | to string template: ${fts} ms | fill template wait: ${ftw} ms | get template exec: ${gte} ms | get template wait: ${gtw} ms]"
+                                    s" -> fill template: ${f} ms [parse template: ${ftp} ms | fill template: ${ftf} ms]"
                                   )
                                 _                  <-
                                   timingLogger.trace(
@@ -643,7 +638,6 @@ class PolicyWriterServiceImpl(
       parametersWrittenTime <- currentTimeMillis
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
-      _              <- templateService.clearCache()
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
       preMvHooksName  = "policy-generation-node-ready"
@@ -751,29 +745,19 @@ class PolicyWriterServiceImpl(
       isRootServer:      Boolean
   )
   /*
-   * This method is an hot spot in Rudder. It is where most of the generation is taking time, and that for two reasons:
-   * - the fisrt one is that we write a lot of template. Not much can be done here.
-   * - the second is around template filling with StringTemplate. Parsing a template is very slow, so we cache them.
-   *   But even once parsed, we can't just use the parsed value, we need to protect it with a semaphore from
-   *   the moment we duplicate it to the moment we get the final string with replaced values: StringTemplate
-   *   is not even a bit thread safe.
+   * Hot spot of policy generation: every template of every (node, policy) is filled and written.
+   * Templates are grouped by content so that each distinct content is parsed once; groups are
+   * processed in parallel, the templates of a group sequentially.
    *
-   * Note: just making traverse for prepared technique/writePromisesFiles parallel increase latency by x5
+   * Note: with StringTemplate 3 and its locks, making traverse for prepared technique/writePromisesFiles parallel
+   * increased latency by x5; not measured since.
    */
   private def writePolicies(
       preparedTemplates: Seq[AgentNodeWritableConfiguration],
       writeTimer:        WriteTimer,
       fillTimer:         FillTemplateTimer
   )(implicit maxParallelism: Int, timeout: Duration): IOResult[Unit] = {
-    /*
-     * Idea: sort template by content (ie what is cached). Put each unique cache in a seq with the corresponding list of
-     * template to fill.
-     * Get the corresponding list of filled template.
-     * Write it.
-     * No semaphore, no synchronisation.
-     */
-
-    // template are created based on "content"
+    // destinations grouped by template content
     val byTemplate = (for {
       p  <- preparedTemplates
       pt <- p.preparedTechniques
@@ -792,14 +776,14 @@ class PolicyWriterServiceImpl(
       )
     }).groupMap(_._1)(_._2)
 
-    // now process by template, which may not be thread safe (StringTemplate engine) but here, accessed sequentially
+    // parse each distinct content once, then fill it for each of its destinations
     parallelSequence(byTemplate.toSeq) {
       case (content, seqInfos) =>
         for {
           t0     <- currentTimeNanos
           parsed <- templateService.parse(seqInfos.head.destination, content) // head ok because of groupBy
           t1     <- currentTimeNanos
-          _      <- fillTimer.get.update(_ + t1 - t0)
+          _      <- fillTimer.parse.update(_ + t1 - t0)
           _      <- ZIO.foreachDiscard(seqInfos) { info =>
                       for {
                         // we need to for {} yield {} to free resources
@@ -890,8 +874,7 @@ class PolicyWriterServiceImpl(
         _  <- writeTimer.writePEM.update(_ + t1 - t0)
       } yield ()
 
-      // this allows to do some IO (JSON, CSV) while waiting for semaphores in
-      // writePromise (for template filling)
+      // the writes of a node are independent from each other
       ZIO
         .collectAllPar(writeResources :: writeAgent :: writeCSV :: writeJSON :: writePEM :: Nil)
         .chainError(s"Error when writing configuration for node '${nodeConfig.paths.nodeId.value}'")
@@ -965,7 +948,6 @@ class PolicyWriterServiceImpl(
                     case Some(inputStream) =>
                       for {
                         _       <- PolicyGenerationLoggerPure.trace(s"Loading template: ${templateId.displayPath}")
-                        // string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
                         content <- IOResult.attempt(s"Error when copying technique template '${templateId.displayPath}'")(
                                      inputStream.asString(false)
                                    )
