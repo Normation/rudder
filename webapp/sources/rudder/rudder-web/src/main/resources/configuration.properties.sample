@@ -337,17 +337,9 @@ rudder.policy.distribution.port.https=443
 
 #
 # Directories used to write nodes policies.
-# - policies generated for a node with id UUID go in ***/var/rudder/share/UUID***
-#   For now, that property can not be modified, because there is no simple
-#   way of doing that and letting node knowing where to go look for their policies.
-# - policies generated for Rudder Root Server go into ***/var/rudder/cfengine-community/inputs***
-
-# Engine used to fill the policy templates (".st" files) during policy generation.
-# Both engines accept the same template syntax:
-# - 'rudder-fastparse': the new in-house engine (default)
-# - 'string-template':  the historical engine, based on the unsupported StringTemplate 3 library
-#
-#rudder.policy.template.engine=rudder-fastparse
+# Policies generated for a node with id UUID go in ***/var/rudder/share/UUID***
+# That property can not be modified, because there is no simple
+# way of doing that and letting nodes knowing where to go look for their policies.
 
 # - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
 # CAUTION: For performance and consistency, it is necessary that the rudder.dir.backup is on the same

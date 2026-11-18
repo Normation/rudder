@@ -64,12 +64,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>org.antlr</groupId>
-      <artifactId>stringtemplate</artifactId>
-      <version>3.2.1</version>
-    </dependency>
-
-    <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>fastparse_${scala-binary-version}</artifactId>
       <version>${fastparse-version}</version>
