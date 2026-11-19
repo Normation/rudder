@@ -349,6 +349,12 @@ pub struct ReportingConfig {
     pub cleanup: CleanupConfig,
     #[serde(default)]
     pub skip_event_types: HashSet<String>,
+    /// Maximum size, in bytes, of a report once decompressed.
+    ///
+    /// Reports are decompressed in memory *before* their signature is checked, so this
+    /// bounds the memory an unauthenticated compressed file (decompression bomb) can use.
+    #[serde_inline_default(10 * 1024 * 1024)]
+    pub max_uncompressed_size: u64,
 }
 
 impl Default for ReportingConfig {
@@ -579,6 +585,7 @@ mod tests {
                         retention: Duration::from_secs(3600 * 24 * 7),
                     },
                     skip_event_types: HashSet::new(),
+                    max_uncompressed_size: 10 * 1024 * 1024,
                 },
             },
             output: OutputConfig {
@@ -680,6 +687,7 @@ mod tests {
                         retention: Duration::from_secs(30 * 60 + 20),
                     },
                     skip_event_types: HashSet::new(),
+                    max_uncompressed_size: 1024 * 1024,
                 },
             },
             output: OutputConfig {

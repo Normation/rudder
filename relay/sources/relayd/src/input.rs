@@ -22,29 +22,33 @@ use zip::read::ZipArchive;
 
 use crate::error::RudderError;
 
-pub async fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
+/// Reads a received report, decompressing it if needed.
+///
+/// `limit` is the maximum decompressed size in bytes: the content is not authenticated yet,
+/// so this is what protects against decompression bombs.
+pub async fn read_compressed_file<P: AsRef<Path>>(path: P, limit: u64) -> Result<Vec<u8>, Error> {
     let path = path.as_ref();
 
     debug!("Reading {:#?} content", path);
     let data = read(path).await?;
+    decompress(path, data, limit)
+}
 
-    Ok(match path.extension().and_then(OsStr::to_str) {
+/// Decompresses `data` according to the extension of `path`, refusing to produce
+/// more than `limit` bytes.
+fn decompress(path: &Path, data: Vec<u8>, limit: u64) -> Result<Vec<u8>, Error> {
+    match path.extension().and_then(OsStr::to_str) {
         Some("gz") => {
             debug!("{:?} has .gz extension, extracting", path);
-            let mut gz = GzDecoder::new(data.as_slice());
-            let mut uncompressed_data = vec![];
-            gz.read_to_end(&mut uncompressed_data)?;
-            uncompressed_data
+            read_to_end_limited(GzDecoder::new(data.as_slice()), limit)
         }
         Some("zip") => {
             debug!("{:?} has .zip extension, extracting", path);
             let mut zip = ZipArchive::new(Cursor::new(data))?;
             // Considering only the first file in the zip
             // There should be only one anyway
-            let mut first_file = zip.by_index(0)?;
-            let mut uncompressed_data: Vec<u8> = Vec::new();
-            let _ = first_file.read_to_end(&mut uncompressed_data);
-            uncompressed_data
+            let first_file = zip.by_index(0)?;
+            read_to_end_limited(first_file, limit)
         }
         // Let's assume everything else is a text file
         _ => {
@@ -52,9 +56,22 @@ pub async fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Er
                 "{:?} has no compressed file extension, no extraction needed",
                 path
             );
-            data
+            Ok(data)
         }
-    })
+    }
+}
+
+/// Reads `reader` to the end, failing if it yields more than `limit` bytes.
+fn read_to_end_limited<R: Read>(reader: R, limit: u64) -> Result<Vec<u8>, Error> {
+    let mut content = vec![];
+    // Read one byte past the limit to tell "exactly at the limit" from "over it".
+    reader
+        .take(limit.saturating_add(1))
+        .read_to_end(&mut content)?;
+    if content.len() as u64 > limit {
+        return Err(RudderError::UncompressedSizeLimit(limit).into());
+    }
+    Ok(content)
 }
 
 /// Parses an S/MIME message as an UTF-8 string and validates the signature with the given
@@ -105,11 +122,13 @@ mod tests {
 
     use super::*;
 
+    const TEST_LIMIT: u64 = 10 * 1024 * 1024;
+
     #[tokio::test]
     async fn it_reads_gzipped_files() {
         let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log.gz")
+            read_compressed_file("tests/files/gz/normal.log.gz", TEST_LIMIT)
                 .await
                 .unwrap(),
             reference
@@ -120,7 +139,7 @@ mod tests {
     async fn it_reads_zipped_files() {
         let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log.zip")
+            read_compressed_file("tests/files/gz/normal.log.zip", TEST_LIMIT)
                 .await
                 .unwrap(),
             reference
@@ -128,10 +147,45 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn it_refuses_compressed_files_over_the_size_limit() {
+        let reference_len = read("tests/files/gz/normal.log").await.unwrap().len() as u64;
+
+        for compressed in [
+            "tests/files/gz/normal.log.gz",
+            "tests/files/gz/normal.log.zip",
+        ] {
+            let data = read(compressed).await.unwrap();
+            // Exactly at the limit is accepted
+            assert_eq!(
+                decompress(Path::new(compressed), data.clone(), reference_len)
+                    .unwrap()
+                    .len() as u64,
+                reference_len
+            );
+            // One byte over is refused, not truncated
+            let err = decompress(Path::new(compressed), data, reference_len - 1).unwrap_err();
+            assert!(matches!(
+                err.downcast_ref::<RudderError>(),
+                Some(RudderError::UncompressedSizeLimit(_))
+            ));
+        }
+    }
+
+    #[tokio::test]
+    async fn it_fails_on_corrupted_zip_content() {
+        let mut data = read("tests/files/gz/normal.log.zip").await.unwrap();
+        // Corrupt the compressed stream of the first entry, after its local header
+        for b in &mut data[100..200] {
+            *b = !*b;
+        }
+        assert!(decompress(Path::new("corrupted.zip"), data, TEST_LIMIT).is_err());
+    }
+
+    #[tokio::test]
     async fn it_reads_plain_files() {
         let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log")
+            read_compressed_file("tests/files/gz/normal.log", TEST_LIMIT)
                 .await
                 .unwrap(),
             reference

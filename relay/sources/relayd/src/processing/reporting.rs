@@ -198,7 +198,11 @@ async fn output_report_database_inner(
     debug!("Starting insertion of {:#?}", path);
     let timer = REPORTS_PROCESSING_DURATION.start_timer();
 
-    let content = read_compressed_file(&path).await?;
+    let content = read_compressed_file(
+        &path,
+        job_config.cfg.processing.reporting.max_uncompressed_size,
+    )
+    .await?;
     let signed_runlog = signature(
         &content,
         job_config.nodes.read().await.certs(&run_info.node_id)?,
