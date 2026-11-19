@@ -58,4 +58,6 @@ pub enum RudderError {
     MissingHeader(String),
     #[error("invalid shared file: {0}")]
     InvalidSharedFile(String),
+    #[error("uncompressed content exceeds the {0} bytes limit")]
+    UncompressedSizeLimit(u64),
 }
