@@ -61,7 +61,6 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalTime
@@ -399,21 +398,21 @@ class SystemVariableServiceImpl(
         .get("SUB_NODES_KEYHASH")
         .toVariable(subNodesList.map(n => s"sha256//${n._2.keyHashBase64Sha256}"))
 
-      // Construct the system variables for nodes with certificates
+      // Construct the system variables for nodes with certificates. Only write the first certificate in any
+      // cases (see https://issues.rudder.io/issues/30193).
       val nodesWithCertificate       = nodesAgentWithHttpDistrib.flatMap {
         case (agent, node) =>
           agent.securityToken match {
-            // A certificate, we return it
             case cert: Certificate =>
-              // for the certificate part, we exec the ZIO. If we have failure, log it and return "None"
-              val parsedCert = cert.cert.either.runNow match {
+              cert.parsed match {
                 case Left(err) =>
-                  logger.error(s"Error when parsing certificate for node '${node.fqdn}' [${node.id.value}]: ${err.fullMsg}")
+                  logger.error(
+                    s"Certificate of node '${node.fqdn}' [${node.id.value}] is not trusted by policy server '${nodeInfo.id.value}': ${err.fullMsg}"
+                  )
                   None
                 case Right(x)  =>
-                  Some(x)
+                  Some((node, cert, x))
               }
-              Some((node, cert, parsedCert))
           }
       }
       val varManagedNodesCertificate =
@@ -421,13 +420,13 @@ class SystemVariableServiceImpl(
 
       val varManagedNodesCertDN = systemVariableSpecService
         .get("MANAGED_NODES_CERT_DN")
-        .toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.toString).getOrElse("")))
+        .toVariable(nodesWithCertificate.map(_._3.getSubject.toString))
 
       // get the CN, based on https://stackoverflow.com/questions/2914521/how-to-extract-cn-from-x509certificate-in-java
       val varManagedNodesCertCN = systemVariableSpecService
         .get("MANAGED_NODES_CERT_CN")
         .toVariable(
-          nodesWithCertificate.map(_._3.map(_.getSubject.getRDNs().apply(0).getFirst().getValue().toString).getOrElse(""))
+          nodesWithCertificate.map(_._3.getSubject.getRDNs().apply(0).getFirst().getValue().toString)
         )
 
       val varManagedNodesCertUUID =

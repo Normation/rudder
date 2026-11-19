@@ -147,6 +147,19 @@ class TestWriteNodeCertificatesPem extends Specification {
       (res must beRight) and
       (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
     }
+
+    "a token stored with two certificates is not written" in {
+      val poisoned = NodeConfigData.fact1
+        .modify(_.id)
+        .setTo(NodeId("poisoned"))
+        .modify(_.rudderAgent.securityToken)
+        .setTo(Certificate(cert1 + "\n" + cert2))
+      val writer   = new WriteNodeCertificatesPemImpl(None)
+      val res      = ZioRuntime.runNow(writer.writeCertificates(dest, nodes + (poisoned.id -> poisoned)).either)
+
+      (res must beRight) and
+      (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
+    }
   }
 
   "when there is an error in async, we shoud get a log" in {
