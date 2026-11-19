@@ -1,7 +1,7 @@
 module Utils.CsvExportUtils exposing (csvExportDropdownAllEntries, csvExportDropdownFilteredEntries)
 
 import Html exposing (Html, button, div, i, li, span, text, ul)
-import Html.Attributes exposing (attribute, class)
+import Html.Attributes exposing (attribute, class, disabled)
 import Html.Events exposing (onClick)
 
 
@@ -31,14 +31,15 @@ csvExportDropdownAllEntries onClickAction btnClass =
         ]
 
 
-csvExportDropdownFilteredEntries : msg -> Html msg
-csvExportDropdownFilteredEntries onClickAction =
+csvExportDropdownFilteredEntries : Bool -> msg -> Html msg
+csvExportDropdownFilteredEntries isDisabled onClickAction =
     div
         [ class "btn-group" ]
         [ button
             [ attribute "data-bs-toggle" "dropdown"
             , attribute "aria-expanded" "false"
             , class "btn btn-primary export-dropdown-toggle dropdown-toggle"
+            , disabled isDisabled
             ]
             [ text "Export CSV"
             , span [ class "me-2 fa fa-file-download" ] []

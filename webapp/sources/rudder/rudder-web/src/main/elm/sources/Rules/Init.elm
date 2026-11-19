@@ -66,7 +66,6 @@ init flags =
             , nodes = Dict.empty
             , ui = initUI
             , rulesTable = initTable
-            , csvExportOptions = exportCsvOptions.csvExport
             , historyTable = EventLogs.Table.initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             }
 

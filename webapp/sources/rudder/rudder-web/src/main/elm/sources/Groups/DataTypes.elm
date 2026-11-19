@@ -20,7 +20,7 @@ type alias Model =
     , groupsTree : Category Group
     , groupsCompliance : Dict String GroupComplianceSummary
     , groupsTable : Rudder.Table.Model GroupWithCompliance Msg
-    , csvExportOptions : Rudder.Table.CsvExportOptions GroupWithCompliance Msg
+    , disableExportButton : Bool
     }
 
 

@@ -29,13 +29,8 @@ init flags =
         initUI =
             UI initFilters NoModal flags.hasWriteRights True
 
-        exportCsvOptions =
-            buildOptions.newOptions
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList }
-
         initModel =
-            Model flags.contextPath Loading initUI initCategory Dict.empty initTable exportCsvOptions.csvExport
+            Model flags.contextPath Loading initUI initCategory Dict.empty initTable True
 
         listInitActions =
             [ getGroupsTree initModel (not flags.hasGroupToDisplay)

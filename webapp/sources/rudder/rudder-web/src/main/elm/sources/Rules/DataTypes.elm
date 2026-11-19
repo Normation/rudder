@@ -336,7 +336,6 @@ type alias Model =
     , nodes : Dict String NodeInfo
     , ui : UI
     , rulesTable : Rudder.Table.Model RuleWithCompliance Msg
-    , csvExportOptions : Rudder.Table.CsvExportOptions RuleWithCompliance Msg
     , historyTable : Rudder.Table.Model EventLog Msg
     }
 

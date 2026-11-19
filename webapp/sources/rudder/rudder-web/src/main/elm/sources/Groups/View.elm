@@ -169,7 +169,7 @@ view model =
                             --, button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewGroup (GroupId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
                             --]
                             [ button [ id "newItem", class "btn btn-success", type_ "button", onClick OpenModal ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
-                            , csvExportDropdownFilteredEntries RequestCsvExportAllGroups
+                            , csvExportDropdownFilteredEntries model.disableExportButton RequestCsvExportAllGroups
                             ]
 
                       else
