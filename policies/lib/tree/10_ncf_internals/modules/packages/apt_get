@@ -51,8 +51,10 @@ else:
 
 apt_get_list_update_options = []
 
+# Without --with-new-pkgs, `upgrade` keeps back packages whose new version pulls in new
+# dependencies, so they would never be listed as updates (and never be upgraded).
 # compare only the first two digits of the version so versions like 1.1.1ubuntu2 work
-if [int(x) for x in apt_version.split(".")[0:2]] < [1, 0]:
+if [int(x) for x in apt_version.split(".")[0:2]] >= [1, 0]:
   apt_get_list_update_options.append("--with-new-pkgs")
 
 os.environ['DEBIAN_FRONTEND'] = "noninteractive"
