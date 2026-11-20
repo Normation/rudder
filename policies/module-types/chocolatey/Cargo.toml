@@ -1,0 +1,16 @@
+[package]
+name = "rudder-module-chocolatey"
+version = "0.0.0-dev"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0.100"
+serde_json = "1.0.145"
+rudder_module_type = { path = "../../rudder-module-type" } 
+serde = { version = "1.0", features = ["derive"] }
+regex = "1.13.1"
+tracing = "0.1.44"
