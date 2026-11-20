@@ -774,6 +774,15 @@ object RudderParsedProperties {
     }
   }
 
+  val RUDDER_LATEST_CHANGES_CACHE_DELAY: Duration = {
+    try {
+      val delay = config.getString("rudder.latest.changes.cache.delay")
+      Duration.fromScala(scala.concurrent.duration.Duration.apply(delay))
+    } catch {
+      case ex: Exception => 1.minute
+    }
+  }
+
   /*
    * Root directory for git config-repo et fact-repo.
    * We should homogeneize naming here, ie s/rudder.dir.gitRoot/rudder.dir.gitRootConfigRepo/
@@ -2692,7 +2701,8 @@ object RudderConfigInit {
 
     lazy val recentChangesService = new CachedNodeChangesServiceImpl(
       new NodeChangesServiceImpl(reportsRepository),
-      () => configService.rudder_compute_changes().toBox
+      () => configService.rudder_compute_changes().toBox,
+      RUDDER_LATEST_CHANGES_CACHE_DELAY
     )
 
     //////////////////////////////////////////////////////////////////////////////////////////

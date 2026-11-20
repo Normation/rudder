@@ -29,7 +29,7 @@ getSortFunction model r1 r2 =
                 RuleChanges ->
                     let
                         getChanges =
-                            \r -> countRecentChanges r.id model.changes
+                            \r -> countRecentChanges r.id model.latest.changes
 
                         r1Changes =
                             getChanges r1
@@ -126,7 +126,7 @@ buildRulesTable model rules =
                             div [ class "skeleton-loading" ] [ span [] [] ]
 
                 changes =
-                    text (String.fromFloat (countRecentChanges r.id model.changes))
+                    text (String.fromFloat (countRecentChanges r.id model.latest.changes))
 
                 displayStatus : Html Msg
                 displayStatus =
