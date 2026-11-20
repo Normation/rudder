@@ -16,6 +16,7 @@ pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
 pub mod runner;
+pub mod safefs;
 #[cfg(feature = "splay")]
 pub mod splay;
 
