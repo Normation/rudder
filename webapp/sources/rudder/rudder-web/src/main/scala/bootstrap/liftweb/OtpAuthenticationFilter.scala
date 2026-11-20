@@ -35,8 +35,10 @@
  */
 package bootstrap.liftweb
 
+import com.normation.NamedZioLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.*
+import com.normation.rudder.users.TotpVerifyError.*
 import com.normation.zio.UnsafeRun
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -47,6 +49,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.authentication.*
 import scala.jdk.CollectionConverters.*
 import zio.*
+import zio.syntax.*
 
 /**
  * Filter for OTP check which is run when the enrollment/verify page submits the verification code
@@ -54,6 +57,8 @@ import zio.*
 class OtpAuthenticationFilter extends AbstractAuthenticationProcessingFilter("/secure/otp/verify") {
 
   private val otpService = RudderConfig.otpService
+
+  private given NamedZioLogger = ApplicationLoggerPure.Auth
 
   @throws[AuthenticationException]
   override def attemptAuthentication(req: HttpServletRequest, res: HttpServletResponse): Authentication = {
@@ -71,35 +76,28 @@ class OtpAuthenticationFilter extends AbstractAuthenticationProcessingFilter("/s
 
     (Option(req.getParameter("code")), current.getPrincipal) match {
       case (Some(code), preAuth: RudderPreAuthUser) =>
-        val u        = preAuth.authenticatingUser
-        val userId   = u.getUsername
-        def errorMsg =
-          "Could not verify user OTP, please retry with a valid code, generate a new OTP, or ask admin to reset your OTP if you lost it"
+        val u      = preAuth.authenticatingUser
+        val userId = u.getUsername
         // need to verify a newly generated OTP too
         otpService
           .verifyGenerated(UserId(userId), code)
-          .tap(totp => ApplicationLoggerPure.Auth.info(s"User '${userId}' registered OTP at ${totp.created}"))
-          .orElse(
-            otpService
-              .verify(UserId(userId), code)
+          .handleVerify(
+            otpService.verify(UserId(userId), code)
           )
-          .chainError(errorMsg)
-          .foldZIO(
-            err =>
-              // Send only error msg
-              ApplicationLoggerPure.Auth
-                .debug(err.fullMsg)
-                .as(
-                  errorResponse(res, HttpStatus.FORBIDDEN, errorMsg)
-                ),
-            _ => {
-              ApplicationLoggerPure.Auth
-                .debug(s"User '${userId}' submitted a valid OTP code")
-                .as(
-                  new UsernamePasswordAuthenticationToken(u, null, RudderAuthType.User.grantedAuthorities)
+          .flatMap {
+            case Left(err) =>
+              // Send only a fixed error msg, to prevent exposing security details of verification to user
+              ZIO.succeed(
+                errorResponse(
+                  res,
+                  HttpStatus.FORBIDDEN,
+                  err.fullMsg
                 )
-            }
-          )
+              )
+            case _         =>
+              new UsernamePasswordAuthenticationToken(u, null, RudderAuthType.User.grantedAuthorities).succeed
+
+          }
           .runNow
 
       case (_, u: RudderUserDetail) =>
