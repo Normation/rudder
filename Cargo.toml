@@ -10,6 +10,7 @@ members = [
            "policies/rudder-commons-test",
            "policies/rudder-report",
            "policies/module-types/augeas",
+           "policies/module-types/chocolatey",
            "policies/module-types/commands",
            "policies/module-types/inventory",
            "policies/module-types/system-updates",

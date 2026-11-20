@@ -4115,6 +4115,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rudder-module-chocolatey"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "regex",
+ "rudder_module_type",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "rudder-module-commands"
 version = "0.0.0-dev"
 dependencies = [
