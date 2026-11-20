@@ -212,7 +212,7 @@ fn config_search_and_replace(
         let mut section_diff: Vec<String> = vec![];
         for (key, new_value) in entries {
             let new_value = validate_property(key, section, new_value)?;
-            let new_value = match new_value {
+            let new_value = match new_value.as_deref() {
                 Some(s) if s.contains(FORBIDDEN_CHARS) => {
                     let mut found: Vec<char> =
                         s.chars().filter(|c| FORBIDDEN_CHARS.contains(c)).collect();
@@ -222,11 +222,11 @@ fn config_search_and_replace(
                     ));
                     continue;
                 }
-                Some(s) => Some(s.replace("\"", "")),
+                Some(s) => Some(s.trim_matches('"')),
                 None => None,
             };
 
-            let new_value = match new_value.as_deref() {
+            let new_value = match new_value {
                 Some("") => {
                     // set to default value if the provided property is empty
 
