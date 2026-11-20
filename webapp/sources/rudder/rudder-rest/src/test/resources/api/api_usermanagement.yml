@@ -844,7 +844,7 @@ response:
       }
     }
 ---
-description: Update user's admninistrative information
+description: Update user's administrative information
 method: POST
 url: /api/latest/usermanagement/update/user1
 headers:
@@ -853,7 +853,7 @@ body: >-
   {
     "username" : "user1",
     "password" : "password1234",
-    "permissions" : ["any_rights"],
+    "permissions" : ["administration","any_rights"],
     "isPreHashed" : true
   }
 response:
@@ -867,7 +867,7 @@ response:
           "username" : "user1",
           "password" : "password1234",
           "permissions" : [
-            "any_rights"
+            "administration"
           ]
         }
       }

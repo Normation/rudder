@@ -37,6 +37,7 @@
 
 package com.normation.rudder.users
 
+import com.normation.rudder.AuthorizationType.AnyRights
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
@@ -55,14 +56,19 @@ import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
-case class User(username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
+/*
+ * A user representation in the XML file.
+ */
+case class User private (username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
   def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.mkString(",")} tenants={
     tenants.orNull
   }/>
 }
-object User                                                                                                          {
+
+object User {
   def make(username: String, password: StorableUserPassword, permissions: Set[String], tenants: String): User = {
-    User(username, password, permissions, if (tenants.isEmpty) None else Some(tenants))
+    val perms = permissions.filterNot(_ == AnyRights.id)
+    User(username, password, perms, if (tenants.isEmpty) None else Some(tenants))
   }
 }
 
@@ -455,7 +461,8 @@ final case class JsonUserFormData(
     isPreHashed: Boolean,
     name:        Option[String],
     email:       Option[String],
-    otherInfo:   Option[Json.Obj]
+    otherInfo:   Option[Json.Obj],
+    tenants:     String = ""
 )
 
 object JsonUserFormData {
@@ -469,6 +476,7 @@ object JsonUserFormData {
   given transformer(using passwordEncoder: UserPasswordEncoder[SecretUserPassword]): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
+      .withConstructor(User.make)
       .withFieldComputed(
         _.password,
         json => {
@@ -478,7 +486,6 @@ object JsonUserFormData {
         }
       )
       .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
-      .withFieldConst(_.tenants, None)
       .buildTransformer
   }
   given transformerUpdateUser:                                                       Transformer[JsonUserFormData, UpdateUserFile] = {

@@ -74,7 +74,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
 
   "Adding an user" should {
     "add it in last position with the correct parameters when it does not exists yet" in {
-      val newUser = User("alice", UnknownPassword("secret"), Set("permA", "permB"), Some("tenantA"))
+      val newUser = User.make("alice", UnknownPassword("secret"), Set("permA", "permB"), "tenantA")
       val exec    = UserManagementIO.replaceXml(
         userXml,
         UserManagementService.addUserXmlRewriteRule(newUser),
@@ -93,7 +93,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
     }
 
     "lead to an error if user exists" in {
-      val newUser = User("user1", UnknownPassword("secret"), Set("permA", "permB"), Some("tenantA"))
+      val newUser = User.make("user1", UnknownPassword("secret"), Set("permA", "permB"), "tenantA")
       val exec    = UserManagementIO.replaceXml(
         userXml,
         UserManagementService.addUserXmlRewriteRule(newUser),
@@ -145,6 +145,39 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user3" password="sha-1terces" permissions="perm1,perm2" tenants="zoneA" />
+            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+          </authentication>
+        )
+      )
+    }
+
+    "update user by ignoring special any_rights permission" in {
+      // replace with "administrator" permissions, then with "administrator,any_rights"
+      val adminXml = UserManagementIO
+        .replaceXml(
+          userXml,
+          UserManagementService.updateUserXmlRewriteRule(
+            "user1",
+            JsonUserFormData("user1", "", Some(List("administrator")), isPreHashed = false, None, None, None),
+            passwordEncoder
+          ),
+          "test"
+        )
+        .toOption
+        .get
+      val exec     = UserManagementIO.replaceXml(
+        adminXml,
+        UserManagementService.updateUserXmlRewriteRule(
+          "user1",
+          JsonUserFormData("user1", "", Some(List("any_rights", "administrator")), isPreHashed = false, None, None, None),
+          passwordEncoder
+        ),
+        "test"
+      )
+      exec must beRight(
+        equalsIgnoringSpace(
+          <authentication hash="sha-1" case-sensitivity="true">
+            <user name="user1" password="1234" permissions="administrator" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
           </authentication>
         )

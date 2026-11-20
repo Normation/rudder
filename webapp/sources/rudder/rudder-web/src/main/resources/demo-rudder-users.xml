@@ -52,14 +52,19 @@
   (where you define the actual authorizations of the user). The "hash" field of
   "authentication" can be omitted.
 
-  The "roles" tag must contain one or more of these values (comma separated), depending
-  on what the user should be allowed to do:
-    "administrator" (all rights), "administration_only" (administration tab), "user"
+  Refer to https://docs.rudder.io/reference/current/administration/users.html#_user_configuration_file
+  for the complete schema of this XML file.
+
+  The "permissions" tag must contain one or more rights, which consist of roles and permissions that are comma separated.
+  These rights will define what the user should be allowed to do.
+  Refer to https://docs.rudder.io/reference/current/administration/users.html#_user_roles_and_fine_grained_authorizations,
+  for complete documentation, e.g. some provided roles are the following:
+    "no_rights" (no rights), "administrator" (all rights), "administration_only" (administration tab), "user"
     (all nodes, configuration tab), "configuration" (configuration tab), "read_only"
     (read everything), "compliance" (read rules, read nodes), "inventory" (read nodes), "validator"
     (can valid changes), "deployer" (can deploy changes), "workflow" (both deployer and validator)
 
-  There is also the possibility to create "custom" roles by combining those elements:
+  There is also the possibility to create "custom" roles by combining elements into the format of built-in permission:
     type: "node", "group", "deployment", "administration", "configuration", "rule", "technique"
     "directive", "parameter", "validator", "deployer",
     level: "read", "write", "edit", "all" (read, write, edit)
