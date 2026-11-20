@@ -139,45 +139,44 @@ object SecurityToken {
     } yield ()
   }
 
-  // Use bouncy castle to parse the key and check if it's a public key or a certificate
   def parseValidate(key: String): Either[InventoryError, SecurityToken] = {
-    PureResult
-      .attempt(
-        new PEMParser(new StringReader(key))
-          .readObject()
-      )
-      .left
-      .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a PEM certificate", ex.cause): InventoryError)
-      .flatMap { obj =>
-        obj match {
-          case _: X509CertificateHolder => Right(Certificate(key))
-          case null =>
-            Left(
-              InventoryError
-                .Crypto(
-                  s"Provided agent key cannot be parsed a certificate. Please use a certificate in PEM format"
-                )
-            )
-          case _    =>
-            Left(
-              InventoryError
-                .Crypto(
-                  s"Provided agent key is in an unknown format. Please use a certificate in PEM format"
-                )
-            )
-        }
-      }
+    Certificate.parseSingle(key).map(_ => Certificate(key))
   }
 }
 
 object Certificate {
   val kind = "certificate"
+
+  /*
+   * We want that a security token holds exactly one certificate, see: https://issues.rudder.io/issues/30193
+   * Parsing stops at the second object to avoid DoS by a forged file with many certificate.
+   */
+  def parseSingle(pem: String): Either[InventoryError, X509CertificateHolder] = {
+    PureResult.attempt {
+      val parser = new PEMParser(new StringReader(pem))
+      Iterator.continually(parser.readObject()).takeWhile(_ != null).take(2).toList
+    }.left
+      .map(ex => InventoryError.CryptoEx(s"Key '${pem}' cannot be parsed as a PEM certificate", ex.cause): InventoryError)
+      .flatMap {
+        case (cert: X509CertificateHolder) :: Nil => Right(cert)
+        case Nil                                  =>
+          Left(InventoryError.Crypto(s"Key '${pem}' is not a PEM object. Please use a certificate in PEM format"))
+        case _ :: Nil                             =>
+          Left(InventoryError.Crypto(s"Key '${pem}' is not a certificate. Please use a certificate in PEM format"))
+        case _                                    =>
+          Left(
+            InventoryError.SecurityToken(
+              s"Key '${pem}' contains more than one PEM object. Please use exactly one certificate in PEM format"
+            )
+          )
+      }
+  }
 }
 
 final case class Certificate(value: String) extends SecurityToken(Certificate.kind) {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
-  val key:  String                                    = {
+  val key:    String                                        = {
     if (value.startsWith("-----BEGIN CERTIFICATE-----")) {
       value
     } else {
@@ -186,25 +185,8 @@ final case class Certificate(value: String) extends SecurityToken(Certificate.ki
          |-----END CERTIFICATE-----""".stripMargin
     }
   }
-  def cert: IO[InventoryError, X509CertificateHolder] = {
-    for {
-      reader <- ZIO.attempt {
-                  new PEMParser(new StringReader(key))
-                } mapError { e => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (PEM)", e) }
-      obj    <- ZIO.attempt(reader.readObject()).mapError { e =>
-                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (read)", e)
-                }
-      res    <- obj match {
-                  case a: X509CertificateHolder =>
-                    a.succeed
-                  case null =>
-                    InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (not a valid PEM object)").fail
-                  case _    => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (unexpected type )").fail
-                }
-    } yield {
-      res
-    }
-  }
+  def parsed: Either[InventoryError, X509CertificateHolder] = Certificate.parseSingle(key)
+  def cert:   IO[InventoryError, X509CertificateHolder]     = ZIO.fromEither(parsed)
 }
 
 /**

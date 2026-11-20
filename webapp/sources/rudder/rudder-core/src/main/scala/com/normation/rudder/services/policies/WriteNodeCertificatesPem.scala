@@ -40,6 +40,7 @@ package com.normation.rudder.services.policies
 import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.Cmd
@@ -83,12 +84,29 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     val allCertsNew = File(file.pathAsString + ".new")
 
     for {
-      _    <- checkParentDirOK(file)
-      certs = allNodeInfos.map { case (_, node) => node.rudderAgent.securityToken.key }
-      _    <- writeCertificatesToNew(allCertsNew, certs)
-      _    <- IOResult.attempt(allCertsNew.moveTo(file)(using File.CopyOptions(overwrite = true)))
-      _    <- execHook(reloadScriptPath)
+      _     <- checkParentDirOK(file)
+      certs <- ZIO.foreach(allNodeInfos.values.toList)(validCertificate)
+      _     <- writeCertificatesToNew(allCertsNew, certs.flatten)
+      _     <- IOResult.attempt(allCertsNew.moveTo(file)(using File.CopyOptions(overwrite = true)))
+      _     <- execHook(reloadScriptPath)
     } yield ()
+  }
+
+  /*
+   * relayd trusts every certificate of the file: a token that is not exactly one certificate (stored before that rule
+   * was enforced) is left out. See https://issues.rudder.io/issues/30193.
+   */
+  private def validCertificate(node: CoreNodeFact): UIO[Option[String]] = {
+    node.rudderAgent.securityToken match {
+      case cert: Certificate =>
+        cert.parsed match {
+          case Right(_)  => Some(cert.key).succeed
+          case Left(err) =>
+            logger
+              .error(s"Certificate of node '${node.fqdn}' [${node.id.value}] is not trusted by relayd: ${err.fullMsg}")
+              .as(None)
+        }
+    }
   }
 
   /*

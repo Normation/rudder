@@ -263,6 +263,42 @@ class TestSaveInventoryLdap extends TestSaveInventory {
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
   }
 
+  // The node appends to its AGENT_CERT a self-signed certificate claiming the id of another node
+  // (cert-forged-uid-windows.pem), and signs the inventory with its own trusted key.
+  def saveForged(inventory: String) = {
+    (
+      for {
+        res <- inventoryProcessorInternal.saveInventoryInternal(
+                 SaveInventoryInfo(
+                   inventory,
+                   asManagedStream(s"certificates/${inventory}.ocs"),
+                   asManagedStream(s"certificates/${inventory}.ocs.sign"),
+                   exist
+                 )
+               )
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
+      } yield (res, inv)
+    ).runNow
+  }
+
+  "an AGENT_CERT with two PEM blocks is refused and the stored certificate is kept" in {
+    val (res, inv) = saveForged("linux-cfe-sign-cert-two-pem")
+    (res must beLike {
+      case SaveError(_, _, err) => err.fullMsg must contain("contains more than one PEM object")
+      case x                    => ko(s"Expecting SaveError about the number of PEM objects, got: ${x}")
+    }) and
+    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK)
+  }
+
+  "two AGENT_CERT tags are refused and the stored certificate is kept" in {
+    val (res, inv) = saveForged("linux-cfe-sign-cert-two-tags")
+    (res must beLike {
+      case SaveError(_, _, err) => err.fullMsg must contain("contains more than one PEM object")
+      case x                    => ko(s"Expecting SaveError about the number of PEM objects, got: ${x}")
+    }) and
+    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK)
+  }
+
   "when a node is not in repository, invalid signature is an error" in {
     val (res, inv) = (
       for {
