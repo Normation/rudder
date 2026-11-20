@@ -39,7 +39,7 @@ package com.normation.plugins
 
 import bootstrap.liftweb.MenuUtils
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
@@ -152,7 +152,9 @@ trait DefaultPluginDef extends RudderPluginDef {
           case m: Menu if (m.loc.name == parent) =>
             // We need to avoid collision on name/loc
             if (m.kids.exists(_.loc.name == newMenu.loc.name)) {
-              PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
+              ApplicationLoggerPure.Plugin.error(
+                s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team"
+              )
               m
             } else {
               Menu(m.loc, (m.kids :+ newMenu).sortBy(_.loc.name)*)
