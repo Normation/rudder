@@ -287,6 +287,8 @@ paths:
     $ref: paths/techniques/revisions.yml
   "/techniques/{techniqueId}/{techniqueVersion}/resources":
     $ref: paths/techniques/resources.yml
+  "/techniques/{techniqueId}/{techniqueVersion}/resources/{filename}":
+    $ref: paths/techniques/delete-resource.yml
   "/techniques/{techniqueId}":
     $ref: paths/techniques/id.yml
   "/techniques/{techniqueId}/{techniqueVersion}":
