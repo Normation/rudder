@@ -64,6 +64,36 @@ fn test_jinja2_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// The rendering script must not run from the shared temp dir: Python puts the script's
+/// directory first in `sys.path`, so any local user could plant a module there and have
+/// it imported by the (root) agent.
+#[test]
+#[cfg(target_family = "unix")]
+fn test_jinja2_ignores_modules_planted_in_temp_dir() -> Result<(), Box<dyn std::error::Error>> {
+    let shared_tmp = tempfile::tempdir()?;
+    for module in ["jinja2_custom.py", "simplejson.py"] {
+        std::fs::write(
+            shared_tmp.path().join(module),
+            "raise RuntimeError('planted module was imported')\n",
+        )?;
+    }
+    let mut output_file = NamedTempFile::new()?;
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
+
+    cmd.env("TMPDIR", shared_tmp.path());
+    cmd.arg("--template").arg("tests/template.j2");
+    cmd.arg("--data").arg("tests/data.json");
+    cmd.arg("--out").arg(output_file.path());
+    cmd.arg("--engine").arg("jinja2");
+    cmd.assert().success();
+
+    let mut file_content = String::new();
+    output_file.read_to_string(&mut file_content)?;
+    assert_eq!(EXPECTED_FILE_CONTENT, file_content);
+
+    Ok(())
+}
+
 #[test]
 fn test_mustache_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
