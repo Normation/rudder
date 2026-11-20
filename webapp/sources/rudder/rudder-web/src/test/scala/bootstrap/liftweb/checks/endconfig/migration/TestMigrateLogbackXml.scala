@@ -44,6 +44,7 @@ import org.specs2.mutable.*
 import org.specs2.runner.*
 import org.specs2.specification.AfterAll
 import scala.xml.PrettyPrinter
+import scala.xml.parsing.ConstructingParser
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -131,7 +132,11 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
          <pattern>%d{{MMM dd HH:mm:ss}} ${{HOSTNAME}} rudder[%logger]: [%level] %msg%n</pattern>
        </encoder>
     </appender>
-    <if condition='property("run.mode").equalsIgnoreCase("production")'>
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+      <key>run.mode</key>
+      <value>production</value>
+    </condition>
+    <if>
       <then>
         <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
           <file>${{WEBAPP_DIR}}/webapp.log</file>
@@ -223,6 +228,48 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
     val content = logback8_2.contentAsString
 
     content must beEqualTo(previous_content)
+  }
+
+  "Properly migrate 9.2 logbackFile" >> {
+    val previous_content = (tmpDir / "logback-9.2-migrated.xml").contentAsString
+    val logback9_2       = tmpDir / "logback-9.2.xml"
+    System.setProperty(LOGBACK_CONFIGURATION_FILE, logback9_2.pathAsString)
+    migration.checks()
+    migration.checks()
+
+    logback9_2.contentAsString must beEqualTo(previous_content)
+  }
+
+  "Not migrate an up to date logback file" >> {
+    val logback = ConstructingParser.fromFile((srcDir / "logback-9.2-migrated.xml").toJava, true).document()
+    migration.migrate(logback) must beNone
+  }
+
+  "Migrate nested and shorthand conditions" >> {
+    val janino = <configuration>
+      <if condition='p("a").equals("b")'>
+        <then>
+          <if condition=' property("c").equalsIgnoreCase( "d" ) '><then><root/></then></if>
+        </then>
+      </if>
+    </configuration>
+
+    val expected = <configuration>
+      <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition"><key>a</key><value>b</value></condition>
+      <if>
+        <then>
+          <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition"><key>c</key><value>d</value></condition>
+          <if><then><root/></then></if>
+        </then>
+      </if>
+    </configuration>
+
+    prettyPrinter.formatNodes(migration.migrateIfConditions(janino)) must beEqualTo(prettyPrinter.format(expected))
+  }
+
+  "Keep unknown conditions untouched" >> {
+    val janino = <configuration><if condition='isDefined("a")'><then><root/></then></if></configuration>
+    prettyPrinter.formatNodes(migration.migrateIfConditions(janino)) must beEqualTo(prettyPrinter.format(janino))
   }
 
 }
