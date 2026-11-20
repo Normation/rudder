@@ -48,14 +48,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
 import com.normation.rudder.services.policies.PropertyParser
-import com.normation.rudder.services.policies.PropertyParserTokens.CharSeq
-import com.normation.rudder.services.policies.PropertyParserTokens.NodeAccessor
-import com.normation.rudder.services.policies.PropertyParserTokens.NonRudderVar
-import com.normation.rudder.services.policies.PropertyParserTokens.Param
-import com.normation.rudder.services.policies.PropertyParserTokens.Property
-import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
-import com.normation.rudder.services.policies.PropertyParserTokens.Token
-import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
+import com.normation.rudder.services.policies.PropertyParserTokens.*
 import java.nio.file.Paths
 import java.util.regex.Pattern
 import zio.json.SnakeCase

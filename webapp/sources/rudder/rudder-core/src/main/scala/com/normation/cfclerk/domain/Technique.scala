@@ -43,6 +43,8 @@ import com.normation.rudder.services.policies.ComponentId
 import com.normation.utils.Utils.*
 import enumeratum.*
 import org.apache.commons.text.StringEscapeUtils
+import scala.language.postfixOps
+import zio.json.JsonEncoder
 
 /**
  * A name, used as an identifier, for a policy.
@@ -56,13 +58,16 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
 
   override def toString: String = value
 }
+object TechniqueName {
+  given JsonEncoder[TechniqueName] = JsonEncoder[String].contramap(_.value)
+}
 
 /**
  * Unique ID for a policy.
  * A policy ID is built from the policy name, unique
  * among all policies, and a version for that policy.
  */
-final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
+final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] derives JsonEncoder {
   // intended for debug/log, not serialization
   def debugString:    String      = serialize
   // a technique

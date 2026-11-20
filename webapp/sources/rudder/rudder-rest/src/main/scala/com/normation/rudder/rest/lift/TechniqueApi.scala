@@ -53,11 +53,7 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.lift.TechniqueApi.JsonDeletedTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategory
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryAction
-import com.normation.rudder.rest.lift.TechniqueApi.JsonTechniqueCategoryTree
-import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.rudder.rest.lift.TechniqueApi.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
@@ -201,6 +197,7 @@ class TechniqueApi(
       case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
       case API.GetNewResources           =>
         new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteResource            => DeleteResource
       case API.DeleteTechnique           => DeleteTechnique
       case API.GetMethods                => GetMethods
       case API.UpdateMethods             => UpdateMethods
@@ -283,6 +280,54 @@ class TechniqueApi(
       } yield {
         "ok"
       }).toLiftResponseOne(params, schema, _ => Some(draftInfo._1))
+    }
+  }
+
+  case class ResourceInformation(
+      techniqueName:    TechniqueName,
+      techniqueVersion: TechniqueVersion,
+      resourceName:     ResourceName
+  ) derives JsonEncoder
+  object ResourceInformation {
+    def from(id: TechniqueResourceIdByName): ResourceInformation = {
+      ResourceInformation(techniqueName = id.techniqueId.name, techniqueVersion = id.techniqueId.version, resourceName = id.name)
+    }
+  }
+
+  object DeleteResource extends LiftApiModule {
+
+    val schema: ThreeParam = API.DeleteResource
+
+    override def process(
+        version:      ApiVersion,
+        path:         ApiPath,
+        resourceInfo: (String, String, String),
+        req:          Req,
+        params:       DefaultParams,
+        authzToken:   AuthzToken
+    ): LiftResponse = {
+
+      val techniqueName    = resourceInfo._1
+      val versionPathParam = resourceInfo._2
+      val resourceName     = resourceInfo._3
+      import zio.json.*
+      val content: ZIO[Any, RudderError, Json.Obj] = {
+        for {
+          techniqueVersion <- ZIO
+                                .fromEither(TechniqueVersion.parse(versionPathParam))
+                                .mapError(s => Unexpected(s))
+          resourceId        =
+            TechniqueResourceIdByName(TechniqueId(TechniqueName(techniqueName), techniqueVersion), ResourceName(resourceName))
+          _                <- techniqueWriter.deleteResource(
+                                resourceId
+                              )(using authzToken.qc.newCC())
+          json             <- ResourceInformation.from(resourceId).toJsonAST.toIO
+        } yield {
+          Json.Obj(("resources", Json.Arr(Chunk(json))))
+        }
+      }
+
+      content.toLiftResponseOne(params, schema, _ => Some(s"${resourceInfo._1}/${resourceInfo._2}/${resourceInfo._3}"))
     }
   }
 
@@ -841,8 +886,8 @@ class TechniqueAPIService14(
   }
 
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
-    import zio.json.*
     import com.normation.rudder.ncf.TechniqueCompilationIO.codecTechniqueCompilationOutput
+    import zio.json.*
 
     techniqueCompiler
       .getCompilationOutput(editorTechnique)
@@ -933,5 +978,4 @@ class TechniqueAPIService14(
       json ++ parsingErrors
     }
   }
-
 }

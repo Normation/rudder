@@ -42,12 +42,14 @@ import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.DeleteEditorTechniqueLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
@@ -59,6 +61,7 @@ import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.utils.FileUtils
 import zio.*
 import zio.syntax.*
 
@@ -72,6 +75,10 @@ trait DeleteEditorTechnique {
       techniqueName:    String,
       techniqueVersion: String,
       deleteDirective:  Boolean
+  )(implicit changeContext: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+      resourceId: TechniqueResourceIdByName
   )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
@@ -236,6 +243,51 @@ class DeleteEditorTechniqueImpl(
       _ <- syncService.unsyncOne(
              BundleName(techniqueName) -> new Version(techniqueVersion)
            ) // to delete the status of the technique
+    } yield ()
+  }
+
+  override def deleteResource(
+      resourceId: TechniqueResourceIdByName
+  )(implicit changeContext: ChangeContext): IOResult[Unit] = {
+
+    def removeResource(categories: Seq[String]): IOResult[Boolean] = {
+      import java.nio.file.Files
+
+      val configRepository = baseConfigRepoPath
+      for {
+        sanitized <- FileUtils.sanitizePath(
+                       File(configRepository),
+                       ("techniques" :: categories.toList) :+
+                       resourceId.techniqueId.name.value :+
+                       resourceId.techniqueId.version.toString :+
+                       "resources" :+
+                       resourceId.name.value
+                     )
+      } yield {
+        Files.deleteIfExists(sanitized.path)
+      }
+    }
+
+    for {
+      _          <- DeleteEditorTechniqueLoggerPure.debug(s"Deleting resource ${resourceId.displayPath}")
+      categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(resourceId.techniqueId)
+      isRemoved  <- removeResource(categories.map(_.id.name.value))
+      _          <-
+        /*
+         * The resource may already be absent, in this case `isRemoved=false`, this is not an error.
+         * We only log it so that deleting the same resource twice still succeeds (idempotency).
+         */
+        ZIO.unless(isRemoved)(
+          DeleteEditorTechniqueLoggerPure.debug(s"Resource ${resourceId.displayPath} does not exist, nothing to delete")
+        )
+      -          <- archiver.deleteResource(
+                      resourceId.techniqueId,
+                      resourceId,
+                      categories.map(_.id.name.value),
+                      changeContext.modId,
+                      changeContext.actor,
+                      s"Deleting resource '${resourceId.displayPath}'"
+                    )
     } yield ()
   }
 }
