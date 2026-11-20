@@ -79,8 +79,12 @@ impl HttpClientBuilder {
 
     pub fn custom_ca(self, ca: &PemCertificate) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with custom CA");
-        let mut client = self.builder;
-        client = client.add_root_certificate(Certificate::from_pem(ca)?);
+        let certs = Certificate::from_pem_bundle(ca)?;
+        anyhow::ensure!(
+            !certs.is_empty(),
+            "Custom CA bundle contains no certificates"
+        );
+        let client = self.builder.tls_certs_only(certs);
         Ok(HttpClient::System(client.build()?))
     }
 
@@ -128,6 +132,13 @@ mod tests {
     use std::fs;
 
     use super::*;
+
+    #[test]
+    fn custom_ca_requires_at_least_one_certificate() {
+        assert!(HttpClient::builder(Duration::from_secs(10))
+            .custom_ca(&Vec::new())
+            .is_err());
+    }
 
     #[test]
     fn it_creates_pinned_cert_client() {
