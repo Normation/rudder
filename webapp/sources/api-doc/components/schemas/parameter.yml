@@ -17,7 +17,11 @@ properties:
     type: string
     example: "Default inform message put in footer of managed files by Rudder"
     description: Description of the parameter
-  overridable:
-    type: boolean
-    description: Is the global parameter overridable by node
-    example: false
+  inheritMode:
+    type: string
+    pattern: "^[mo][oap][oap]$"
+    description: >-
+      How a value overriding this parameter in a group or on a node is combined with it, as three characters for objects
+      (`m`erge, `o`verride), arrays and strings (`o`verride, `a`ppend, `p`repend),
+      unless the overriding value sets its own. When absent, the default `moo` applies.
+    example: moo
