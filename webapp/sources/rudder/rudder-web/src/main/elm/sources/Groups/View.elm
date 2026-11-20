@@ -9,7 +9,7 @@ import Html.Events.Extra exposing (onClickPreventDefault)
 import List
 import NaturalOrdering as N
 import Rudder.Filters
-import Rudder.Table
+import Rudder.Table exposing (CsvExportType(..))
 import String
 import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable)
@@ -169,7 +169,7 @@ view model =
                             --, button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewGroup (GroupId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
                             --]
                             [ button [ id "newItem", class "btn btn-success", type_ "button", onClick OpenModal ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
-                            , csvExportDropdownFilteredEntries RequestCsvExportAllGroups
+                            , csvExportDropdownFilteredEntries model.disableExportButton (RequestCsvExportGroups ExportAll) (RequestCsvExportGroups ExportFiltered)
                             ]
 
                       else

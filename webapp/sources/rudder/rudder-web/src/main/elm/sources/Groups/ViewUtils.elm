@@ -134,18 +134,6 @@ updateGroupsTableData model =
         -}
         isDisabled =
             (size == 0) && (model.mode /= GroupTable)
-
-        options =
-            buildOptions.newOptions
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList
-                    , btnAttributes =
-                        if isDisabled then
-                            disabledCsvExportButtonAttributes
-
-                        else
-                            [ class "btn-primary" ]
-                    }
     in
     { model
         | groupsTable = Rudder.Table.updateData data model.groupsTable
@@ -155,7 +143,7 @@ updateGroupsTableData model =
 
             else
                 model.mode
-        , csvExportOptions = options.csvExport
+        , disableExportButton = isDisabled
     }
 
 

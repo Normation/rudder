@@ -29,13 +29,8 @@ init flags =
         initUI =
             UI initFilters NoModal flags.hasWriteRights True
 
-        exportCsvOptions =
-            buildOptions.newOptions
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [] }
-
         initModel =
-            Model flags.contextPath Loading initUI initCategory Dict.empty initTable exportCsvOptions.csvExport
+            Model flags.contextPath Loading initUI initCategory Dict.empty initTable True
 
         listInitActions =
             [ getGroupsTree initModel (not flags.hasGroupToDisplay)
@@ -125,8 +120,8 @@ initTable =
         options =
             buildOptions.newOptions
                 |> buildOptions.withCustomizations customizations
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList, btnAttributes = [ class "d-none" ] }
+                |> buildOptions.withCsvExportHtml
+                    { entryToStringList = entryToStringList, html = text "" }
 
         columns : NonEmptyList.Nonempty (Column GroupWithCompliance msg)
         columns =

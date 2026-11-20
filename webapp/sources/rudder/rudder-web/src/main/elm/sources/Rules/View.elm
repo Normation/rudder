@@ -9,7 +9,7 @@ import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
 import NaturalOrdering as N
-import Rudder.Table
+import Rudder.Table exposing (CsvExportType(..))
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewCategoryDetails exposing (..)
@@ -18,7 +18,6 @@ import Rules.ViewUtils exposing (..)
 import String
 import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable, getSubElems)
-import Utils.CsvExportUtils exposing (csvExportDropdownFilteredEntries)
 
 
 view : Model -> Html Msg
@@ -255,7 +254,7 @@ view model =
                         div [ class "header-buttons" ]
                             [ button [ class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s))) ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
                             , button [ class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s)) ] [ text "Add category" ]
-                            , csvExportDropdownFilteredEntries RequestCsvExportAllRules
+                            , Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
                             ]
 
                       else

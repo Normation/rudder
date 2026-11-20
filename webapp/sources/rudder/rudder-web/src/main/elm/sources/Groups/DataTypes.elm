@@ -20,7 +20,7 @@ type alias Model =
     , groupsTree : Category Group
     , groupsCompliance : Dict String GroupComplianceSummary
     , groupsTable : Rudder.Table.Model GroupWithCompliance Msg
-    , csvExportOptions : Rudder.Table.CsvExportOptions GroupWithCompliance Msg
+    , disableExportButton : Bool
     }
 
 
@@ -136,8 +136,8 @@ type Msg
     | UpdateGroupFoldedFilters String
     | UpdateGroupSearchFilters SearchFilterState
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | RequestCsvExportAllGroups
-    | ExportCsvWithCurrentDate Time.Posix
+    | RequestCsvExportGroups Rudder.Table.CsvExportType
+    | ExportCsvWithCurrentDate Rudder.Table.CsvExportType Time.Posix
 
 
 groupTableBatchSize : number
