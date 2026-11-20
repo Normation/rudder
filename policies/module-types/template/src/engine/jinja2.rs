@@ -2,10 +2,10 @@
 // SPDX-FileCopyrightText: 2021-2025 Normation SAS
 
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
-use tempfile::{NamedTempFile, TempPath};
 
 use crate::engine::{Mode, TemplateEngine};
 use anyhow::{Context, Result, bail};
@@ -20,10 +20,17 @@ const JINJA2_SANDBOX_TIMEOUT: Duration = Duration::from_secs(3);
 /// Timeout for unrestricted (trusted) renders: only catches a hung render.
 const JINJA2_UNRESTRICTED_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Agent modules directories, mirroring `configuration.modules_dir` in
+/// `10_ncf_internals/configuration.cf`: the new location is used when it exists.
+const MODULES_DIR: &str = "/opt/rudder/var/modules";
+const LEGACY_MODULES_DIR: &str = "/var/rudder/cfengine-community/modules";
+
 pub(crate) struct Jinja2Engine {
     python_interpreter: String,
     sandbox_timeout: Duration,
     unrestricted_timeout: Duration,
+    /// Where the user-provided `jinja2_custom.py` (custom filters and tests) is looked up.
+    extensions_dir: PathBuf,
 }
 
 impl Jinja2Engine {
@@ -36,8 +43,18 @@ impl Jinja2Engine {
             python_interpreter,
             sandbox_timeout: JINJA2_SANDBOX_TIMEOUT,
             unrestricted_timeout: JINJA2_UNRESTRICTED_TIMEOUT,
+            extensions_dir: default_extensions_dir(),
         })
     }
+}
+
+fn default_extensions_dir() -> PathBuf {
+    let modules_dir = if Path::new(MODULES_DIR).is_dir() {
+        MODULES_DIR
+    } else {
+        LEGACY_MODULES_DIR
+    };
+    Path::new(modules_dir).join("extensions")
 }
 
 impl TemplateEngine for Jinja2Engine {
@@ -49,46 +66,36 @@ impl TemplateEngine for Jinja2Engine {
         mode: Mode,
     ) -> Result<String> {
         let is_inline = template_path.is_none();
-        let named: TempPath;
-        // `validate` guarantees exactly one of the two sources is provided.
-        let template_path: &Path = match (&template_path, template_string) {
-            (Some(p), _) => p,
+        // Python prepends the script's directory to `sys.path`, ahead of the stdlib, so the
+        // script (and the inline template written next to it) must live in a directory only
+        // we can write to (`TempDir` is created 0700): in the shared, world-writable temp dir,
+        // any local user could plant a module (e.g. `jinja2_custom.py`, `json.py`) and get it
+        // run as root.
+        let work_dir = tempfile::Builder::new()
+            .prefix("rudder-jinja2-")
+            .tempdir()
+            .context("Failed to create a private directory for the rendering script")?;
+
+        let template_path: PathBuf = match (template_path, template_string) {
+            (Some(p), _) => p.to_path_buf(),
             (_, Some(s)) => {
-                let mut tmp_file =
-                    NamedTempFile::new().context("Failed to create a temporary template file")?;
-                tmp_file
-                    .write_all(s.as_bytes())
-                    .context("Failed to write the template into a temporary file")?;
-                named = tmp_file.into_temp_path();
-                &named
+                let p = work_dir.path().join("template.j2");
+                fs::write(&p, s).context("Failed to write the template into a temporary file")?;
+                p
             }
+            // `validate` guarantees exactly one of the two sources is provided.
             _ => unreachable!(),
         };
 
-        let tmp_script =
-            NamedTempFile::new().context("Failed to create temporary file for render script")?;
-        let template_script_path = tmp_script.into_temp_path();
-        let templating_script_content = include_str!("jinja2/render.py");
-
-        fs::write(&template_script_path, templating_script_content)?;
-        #[cfg(target_family = "unix")]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = fs::Permissions::from_mode(0o755);
-            fs::set_permissions(&template_script_path, perms)?;
-        }
-        #[cfg(target_family = "windows")]
-        {
-            let mut perms = fs::metadata(&template_script_path)?.permissions();
-            // The lint warns about world-writable files on Unix, which does not apply here.
-            #[allow(clippy::permissions_set_readonly_false)]
-            perms.set_readonly(false);
-            fs::set_permissions(&template_script_path, perms)?;
-        }
+        let template_script_path = work_dir.path().join("render.py");
+        fs::write(&template_script_path, include_str!("jinja2/render.py"))
+            .context("Failed to write the rendering script")?;
 
         let output = if cfg!(target_os = "linux") {
             let mut cmd = Command::new(&self.python_interpreter);
-            cmd.arg(&template_script_path).arg(template_path);
+            cmd.arg(&template_script_path)
+                .arg("--extensions-dir")
+                .arg(&self.extensions_dir);
             if mode.is_sandboxed() {
                 cmd.arg("--sandboxed");
             }
@@ -96,6 +103,7 @@ impl TemplateEngine for Jinja2Engine {
                 cmd.arg("--inline");
             }
             let mut child = cmd
+                .arg(&template_path)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -202,7 +210,31 @@ mod tests {
             python_interpreter,
             sandbox_timeout,
             unrestricted_timeout: JINJA2_UNRESTRICTED_TIMEOUT,
+            extensions_dir: default_extensions_dir(),
         }
+    }
+
+    #[test]
+    fn it_loads_custom_filters_and_tests_from_the_extensions_dir() {
+        let extensions_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            extensions_dir.path().join("jinja2_custom.py"),
+            "FILTERS = {'shout': lambda s: s.upper()}\nTESTS = {'odd': lambda n: n % 2 == 1}\n",
+        )
+        .unwrap();
+        let engine = Jinja2Engine {
+            extensions_dir: extensions_dir.path().to_path_buf(),
+            ..engine(JINJA2_SANDBOX_TIMEOUT)
+        };
+        let out = engine
+            .render(
+                None,
+                Some("{{ vars.a | shout }} {{ vars.n is odd }}"),
+                &json!({"vars": {"a": "ferris", "n": 3}}),
+                Mode::Sandboxed,
+            )
+            .unwrap();
+        assert_eq!(out, "FERRIS True");
     }
 
     #[test]
