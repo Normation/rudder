@@ -77,11 +77,7 @@ showParam model call state methodParam params =
             List.Extra.find (.id >> (==) methodParam.name) params |> Maybe.map (.value >> displayValue) |> Maybe.withDefault ""
 
         isMandatory =
-            if methodParam.constraints.allowEmpty |> Maybe.withDefault False then
-                element "span" |> addClass "allow-empty"
-
-            else
-                element "span" |> addClass "mandatory-param" |> appendText " *"
+            not (methodParam.constraints.allowEmpty |> Maybe.withDefault False)
 
         errors =
             case state of
@@ -157,8 +153,7 @@ showParam model call state methodParam params =
                     |> addAttribute (for ("param-" ++ methodParam.name.value))
                     |> appendChildList
                         [ element "span"
-                            |> appendChild (element "span" |> appendText paramLabel)
-                            |> appendChild isMandatory
+                            |> appendChild (element "span" |> appendText paramLabel |> addClassConditional "mandatory-field" isMandatory)
                             |> appendChild (element "span" |> appendText "•" |> addClass "text-secondary mx-1")
                         , element "small" |> appendText methodParam.description |> addClass "text-secondary fw-medium"
                         ]
