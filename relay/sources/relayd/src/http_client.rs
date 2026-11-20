@@ -129,9 +129,11 @@ mod tests {
 
     #[test]
     fn custom_ca_requires_at_least_one_certificate() {
-        assert!(HttpClient::builder(Duration::from_secs(10))
-            .custom_ca(&Vec::new())
-            .is_err());
+        assert!(
+            HttpClient::builder(Duration::from_secs(10))
+                .custom_ca(&Vec::new())
+                .is_err()
+        );
     }
 
     #[test]
