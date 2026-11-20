@@ -296,10 +296,10 @@ update msg model =
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
-        RequestCsvExportAllGroups ->
-            ( model, Task.perform ExportCsvWithCurrentDate Time.now )
+        RequestCsvExportGroups csvExportType ->
+            ( model, Task.perform (ExportCsvWithCurrentDate csvExportType) Time.now )
 
-        ExportCsvWithCurrentDate time ->
+        ExportCsvWithCurrentDate csvExportType time ->
             let
                 timeStr =
                     time
@@ -314,7 +314,7 @@ update msg model =
                     "rudder_groups_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.groupsTable ExportFiltered filename
+                    Rudder.Table.updateExportToCsv model.groupsTable csvExportType filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 

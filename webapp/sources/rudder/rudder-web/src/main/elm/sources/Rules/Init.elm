@@ -45,6 +45,7 @@ init flags =
             buildOptions.newOptions
                 |> buildOptions.withCsvExport
                     { entryToStringList = entryToStringList }
+                >> .csvExport
 
         initTimeZone =
             Dict.get flags.timeZone TimeZone.zones
@@ -66,6 +67,7 @@ init flags =
             , nodes = Dict.empty
             , ui = initUI
             , rulesTable = initTable
+            , csvExportOptions = exportCsvOptions
             , historyTable = EventLogs.Table.initTable flags.canReadChangeLogs (ContextPath flags.contextPath) zone
             }
 

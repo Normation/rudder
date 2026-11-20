@@ -136,8 +136,8 @@ type Msg
     | UpdateGroupFoldedFilters String
     | UpdateGroupSearchFilters SearchFilterState
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | RequestCsvExportAllGroups
-    | ExportCsvWithCurrentDate Time.Posix
+    | RequestCsvExportGroups Rudder.Table.CsvExportType
+    | ExportCsvWithCurrentDate Rudder.Table.CsvExportType Time.Posix
 
 
 groupTableBatchSize : number

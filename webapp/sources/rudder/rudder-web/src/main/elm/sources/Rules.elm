@@ -1096,11 +1096,8 @@ update msg model =
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
-        RequestCsvExportAllRules ->
-            ( model, Task.perform ExportCsvWithCurrentDate Date.today )
-
-        -- Export full rules table to CSV
-        ExportCsvWithCurrentDate date ->
+        -- Export rules table to CSV
+        ExportCsvWithCurrentDate exportType date ->
             let
                 timeStr =
                     date |> Date.format "yyyy-MM-dd"
@@ -1109,7 +1106,7 @@ update msg model =
                     "rudder_rules_" ++ timeStr
 
                 ( groupsTable, tabMsg, outMsgOpt ) =
-                    Rudder.Table.updateExportToCsv model.rulesTable ExportFiltered filename
+                    Rudder.Table.updateExportToCsv model.rulesTable exportType filename
             in
             handleOutMsg model groupsTable tabMsg outMsgOpt
 
@@ -1238,6 +1235,9 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
                     update parentMsg { model | rulesTable = groupsTable }
             in
             ( newModel, Cmd.batch [ newMsg, tabMsg ] )
+
+        Just (CsvExportRequested csvExportType) ->
+            ( model, Cmd.batch [ tabMsg, Task.perform (ExportCsvWithCurrentDate csvExportType) Date.today ] )
 
         _ ->
             ( { model | rulesTable = groupsTable }, tabMsg )

@@ -31,8 +31,8 @@ csvExportDropdownAllEntries onClickAction btnClass =
         ]
 
 
-csvExportDropdownFilteredEntries : Bool -> msg -> Html msg
-csvExportDropdownFilteredEntries isDisabled onClickAction =
+csvExportDropdownFilteredEntries : Bool -> msg -> msg -> Html msg
+csvExportDropdownFilteredEntries isDisabled allEntriesAction filteredEntriesAction =
     div
         [ class "btn-group" ]
         [ button
@@ -49,9 +49,17 @@ csvExportDropdownFilteredEntries isDisabled onClickAction =
             [ li []
                 [ button
                     [ class "dropdown-item"
-                    , onClick onClickAction
+                    , onClick allEntriesAction
                     ]
-                    [ span [] [ text "Filtered entries" ]
+                    [ span [] [ text "All entries" ]
+                    ]
+                ]
+            , li []
+                [ button
+                    [ class "dropdown-item"
+                    , onClick filteredEntriesAction
+                    ]
+                    [ span [] [ text "Filtered entries only" ]
                     ]
                 ]
             ]
