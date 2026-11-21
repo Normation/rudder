@@ -3,11 +3,12 @@
 
 use core::fmt;
 use std::{
+    collections::{HashMap, HashSet},
     env,
     fs::{self, *},
     io::{Cursor, Read},
     path::{Component, Path, PathBuf},
-    str,
+    str::FromStr,
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
@@ -16,11 +17,151 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
-    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE,
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, RepoIndex, Repository, TMP_PLUGINS_FOLDER,
     database::{Database, InstalledPlugin, UninstallMode},
-    plugin::Metadata,
+    plugin::{Metadata, SafePackageName},
+    repo_index::Plugin,
+    versions::ArchiveVersion,
     webapp::Webapp,
 };
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PackageSource {
+    Path(PathBuf),
+    Name(String),
+}
+
+impl FromStr for PackageSource {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, anyhow::Error> {
+        if s.ends_with(".rpkg") || s.contains('/') {
+            let p = PathBuf::from(s);
+            if !p.exists() {
+                bail!("The {} plugin file does not exist", s)
+            }
+            Ok(PackageSource::Path(p))
+        } else {
+            Ok(PackageSource::Name(s.to_owned()))
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PlannedPackage {
+    Local(Rpkg),
+    Remote(Plugin),
+}
+
+impl PlannedPackage {
+    pub fn new(
+        source: PackageSource,
+        version: Option<ArchiveVersion>,
+        force: bool,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<Self, anyhow::Error> {
+        match &source {
+            PackageSource::Name(name) => {
+                let index = match index {
+                    Some(i) => i,
+                    None => bail!(
+                        "Can not resolve non local packages without repository index. Run `rudder package update` and retry"
+                    ),
+                };
+                let plugin = match (&version, force) {
+                    (Some(v), true) => index.any_matching_plugin(name, v).ok_or(anyhow!(
+                        "Could not find any plugin matching '{}:{}'",
+                        name,
+                        v,
+                    )),
+                    (Some(v), false) => index
+                        .matching_compatible_plugin(&webapp.version, name, v)
+                        .ok_or(anyhow!(
+                            "Could not find any compatible plugin matching '{}:{}'",
+                            name,
+                            v,
+                        )),
+                    (None, _) => index
+                        .latest_compatible_plugin(&webapp.version, name)
+                        .ok_or(anyhow!("Could not find any compatible '{}' plugin", name)),
+                }?;
+                Ok(PlannedPackage::Remote(plugin.to_owned()))
+            }
+            PackageSource::Path(p) => {
+                let rpkg = Rpkg::try_from(p.to_owned())?;
+                Ok(PlannedPackage::Local(rpkg))
+            }
+        }
+    }
+
+    pub fn get_metadata(&self) -> &Metadata {
+        match self {
+            Self::Local(l) => &l.metadata,
+            Self::Remote(r) => &r.metadata,
+        }
+    }
+
+    // version and force are not needed as we do not handle versions in the dependencies.
+    pub fn get_plugin_dependencies(
+        &self,
+        installed: &HashMap<String, InstalledPlugin>,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let mut visited = HashSet::from([self.get_metadata().name.clone()]);
+        let mut r = Vec::new();
+        self.collect_dependencies(installed, &mut visited, &mut r, index, webapp)?;
+        Ok(r)
+    }
+
+    fn collect_dependencies(
+        &self,
+        installed: &HashMap<String, InstalledPlugin>,
+        visited: &mut HashSet<SafePackageName>,
+        out: &mut Vec<PlannedPackage>,
+        index: Option<&RepoIndex>,
+        webapp: &Webapp,
+    ) -> Result<(), anyhow::Error> {
+        let depends = self.get_metadata().depends.as_ref();
+        let deps = depends
+            .and_then(|d| d.plugin.as_deref())
+            .unwrap_or_default();
+        for i in deps {
+            // Skip already install packages
+            if installed.contains_key(i.as_ref()) {
+                continue;
+            }
+            // Skip already inserted packages
+            if !visited.insert(SafePackageName::try_from(i.as_ref())?) {
+                continue;
+            }
+            let source = PackageSource::Name(i.as_ref().to_owned());
+            let pp = PlannedPackage::new(source, None, false, index, webapp)?;
+            pp.collect_dependencies(installed, visited, out, index, webapp)?;
+            // Add the main package at the end
+            out.push(pp);
+        }
+        Ok(())
+    }
+
+    // WARNING the dependencies are looked up from the local index which is not signed
+    pub fn fetch(&self, repository: &Repository) -> Result<Rpkg> {
+        match self {
+            PlannedPackage::Local(l) => Ok(l.clone()),
+            PlannedPackage::Remote(r) => {
+                let dest =
+                    Path::new(TMP_PLUGINS_FOLDER).join(Path::new(&r.path).file_name().ok_or_else(
+                        || anyhow!("Could not retrieve filename from path '{}'", r.path),
+                    )?);
+
+                // Download target rpkg
+                repository.download(&r.path, &dest)?;
+                Rpkg::try_from(dest)
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PackageType {
@@ -89,18 +230,27 @@ fn safe_join(prefix: &Path, relative: &str) -> Result<PathBuf> {
     Ok(prefix.join(relative))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rpkg {
     pub path: PathBuf,
     pub metadata: Metadata,
 }
 
-impl Rpkg {
-    pub fn from_path(path: &str) -> Result<Rpkg> {
+impl TryFrom<PathBuf> for Rpkg {
+    type Error = anyhow::Error;
+
+    fn try_from(path: PathBuf) -> Result<Self, anyhow::Error> {
         Ok(Self {
-            path: PathBuf::from(path),
-            metadata: read_metadata(path)?,
+            metadata: read_metadata(&path.to_string_lossy())?,
+            path,
         })
+    }
+}
+
+impl Rpkg {
+    #[cfg(test)]
+    pub fn from_path(path: &str) -> Result<Rpkg> {
+        Rpkg::try_from(PathBuf::from(path))
     }
 
     fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {
@@ -244,7 +394,7 @@ impl Rpkg {
         }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends
-            && !(force || d.are_installed())
+            && !(force || d.are_installed(db))
         {
             bail!(
                 "Some dependencies are missing, install them before trying to install the plugin."
