@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::integration::{end_test, get_lib_path, init_test};
+use crate::testlib::given::Given;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use std::fs;
@@ -24,6 +25,52 @@ fn it_writes_content_to_file() {
         "toto",
         fs::read_to_string(file).unwrap().trim_end(),
         "File content does not match the expected value"
+    );
+
+    end_test(workdir);
+}
+
+#[test]
+fn it_repairs_a_content_that_only_differs_by_case() {
+    let workdir = init_test();
+    let file = workdir.path().join("file_to_edit");
+    let file_path = &file.clone().to_string_lossy().into_owned();
+
+    let tested_method = &method("file_content", &[file_path, "Enabled=true", "true"]).enforce();
+    let r = MethodTestSuite::new()
+        .given(Given::file_present(file_path, "Enabled=TRUE"))
+        .when(tested_method)
+        .execute(get_lib_path(), workdir.path().to_path_buf());
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
+
+    assert_eq!(
+        "Enabled=true",
+        fs::read_to_string(file).unwrap().trim_end(),
+        "File content does not match the expected value"
+    );
+
+    end_test(workdir);
+}
+
+#[test]
+fn it_errors_in_audit_on_a_content_that_only_differs_by_case() {
+    let workdir = init_test();
+    let file = workdir.path().join("file_to_edit");
+    let file_path = &file.clone().to_string_lossy().into_owned();
+
+    let tested_method = &method("file_content", &[file_path, "Enabled=true", "true"]).audit();
+    let r = MethodTestSuite::new()
+        .given(Given::file_present(file_path, "Enabled=TRUE"))
+        .when(tested_method)
+        .execute(get_lib_path(), workdir.path().to_path_buf());
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
+
+    assert_eq!(
+        "Enabled=TRUE",
+        fs::read_to_string(file).unwrap(),
+        "File content should not be modified in audit mode"
     );
 
     end_test(workdir);

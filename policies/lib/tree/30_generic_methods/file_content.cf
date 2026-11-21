@@ -111,7 +111,7 @@ bundle agent file_content(path, lines, enforce)
 
   methods:
     pass2::
-      #"${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
-      #"${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert content into ${path}", "");
 }
