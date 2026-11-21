@@ -62,8 +62,8 @@ every failed one, as each can need a different right.
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
-- `node_info`: a node's configuration and inventory. Not its runtime state (compliance,
-  reports).
+- `node_info`: a node's configuration and inventory. Not its runtime state (see
+  `node_compliance`).
   - **Lookup**: the node is designated as below. `GET /nodes/{id}` for an id, `GET /nodes`
     searching the exact hostname otherwise. That search returns the node itself, so there is no
     extra call to resolve it.
@@ -84,6 +84,22 @@ every failed one, as each can need a different right.
     read (e.g. an ACL token without their paths), the node is still answered, with Rudder's raw
     `policyMode` and the reason in `policyModeUnresolved`: one field is not worth failing the
     whole answer.
+
+- `node_compliance`: a node's compliance (`GET /compliance/nodes/{id}`), the node designated as
+  below. The full tree (rule → directive → component → value) is too large to pass through, so
+  it is summarized as indented plain text:
+  - **Every rule** applied to the node, with its rate and the share of each report status: an
+    overview of the node.
+  - **Below a rule not fully compliant**, only what is not: directives, blocks and components,
+    down to the failing values with the agent's report messages. Compliant siblings are only
+    counted. A status is compliant as in Rudder (`success*`, `auditCompliant`,
+    `auditNotApplicable`), any other is shown, including those this version does not know.
+  - **Skipped directives** (overridden by another rule) are listed with the overriding rule.
+  - **No reports** is said, rather than shown as a 0% rate.
+  - **At most 300 lines**, then the number of lines left out.
+
+  Rudder's answer is parsed into types: a change in its shape is a tool error, not a wrong
+  summary.
 
 ### Designating a node
 
@@ -123,6 +139,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
 | `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
+| `node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
