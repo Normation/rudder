@@ -923,15 +923,15 @@ class TestMergeGroupProperties extends Specification {
             ),
             "provider"  -> Str("overridden"),
             "hierarchy" ->
-            Str("""<p>from <b>global property 'foo'</b>:<pre>{
+            Str("""<p>from <b>global property 'foo'</b> with inherit mode 'moo':<pre>{
                   |    &quot;global&quot; : &quot;global value&quot;,
                   |    &quot;override&quot; : &quot;global&quot;
                   |}
-                  |</pre></p><p>from <b>group 'parent1' (parent1)</b>:<pre>{
+                  |</pre></p><p>from <b>group 'parent1' (parent1)</b> with inherit mode 'moo':<pre>{
                   |    &quot;override&quot; : &quot;parent&quot;,
                   |    &quot;parent&quot; : &quot;parent value&quot;
                   |}
-                  |</pre></p><p>from <b>group 'child' (child)</b>:<pre>{
+                  |</pre></p><p>from <b>group 'child' (child)</b> with inherit mode 'moo':<pre>{
                   |    &quot;child&quot; : &quot;child value&quot;,
                   |    &quot;override&quot; : &quot;child&quot;
                   |}
