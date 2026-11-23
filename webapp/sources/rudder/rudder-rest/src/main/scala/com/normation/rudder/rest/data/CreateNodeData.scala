@@ -264,7 +264,8 @@ object Validation {
 
     val checkedAgent: Validation[AgentInfo] = nodeDetails.agentKey match {
       case Some(a) => checkAgent(os.os, a)
-      case None    => AgentInfo(AgentType.CfeCommunity, None, Certificate("placeholder-value - not a real key"), Set.empty).validNel
+      case None    =>
+        AgentInfo(AgentType.CfeCommunity, None, UnverifiedToken("placeholder-value - not a real key"), Set.empty).validNel
     }
 
     (checkId(nodeDetails.id.toLowerCase), checkStatus(nodeDetails.status)).mapN(Tuple2(_, _)) andThen {

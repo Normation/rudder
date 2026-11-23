@@ -37,11 +37,11 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.properties.NodeProperty
@@ -197,7 +197,7 @@ object ModifyNodeDiff {
       case None    => None
       case Some(k) =>
         oldKeys match {
-          case Nil    => Some(SimpleDiff(Certificate(""), k))
+          case Nil    => Some(SimpleDiff(UnverifiedToken(""), k))
           case x :: _ => if (k == x) None else Some(SimpleDiff(x, k))
         }
     }

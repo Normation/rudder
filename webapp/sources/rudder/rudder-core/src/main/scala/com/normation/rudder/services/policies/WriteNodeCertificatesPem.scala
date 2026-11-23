@@ -38,13 +38,17 @@
 package com.normation.rudder.services.policies
 
 import better.files.File
+import better.files.File.OpenOptions
 import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.zio.ZioRuntime
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import zio.*
 import zio.syntax.*
@@ -83,12 +87,23 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     val allCertsNew = File(file.pathAsString + ".new")
 
     for {
-      _    <- checkParentDirOK(file)
-      certs = allNodeInfos.map { case (_, node) => node.rudderAgent.securityToken.key }
-      _    <- writeCertificatesToNew(allCertsNew, certs)
-      _    <- IOResult.attempt(allCertsNew.moveTo(file)(using File.CopyOptions(overwrite = true)))
-      _    <- execHook(reloadScriptPath)
+      _     <- checkParentDirOK(file)
+      certs <- ZIO.foreach(allNodeInfos.values.toList)(validCertificate)
+      _     <- writeCertificatesToNew(allCertsNew, certs.flatten)
+      _     <- IOResult.attempt(allCertsNew.moveTo(file)(using File.CopyOptions(overwrite = true)))
+      _     <- execHook(reloadScriptPath)
     } yield ()
+  }
+
+  // relayd trusts every certificate of the file: an unverified token is left out.
+  private def validCertificate(node: CoreNodeFact): UIO[Option[String]] = {
+    node.rudderAgent.securityToken match {
+      case cert: Certificate     => Some(cert.pem).succeed
+      case _:    UnverifiedToken =>
+        logger
+          .error(s"Agent key of node '${node.fqdn}' [${node.id.value}] is not a checked certificate, it is not trusted by relayd")
+          .as(None)
+    }
   }
 
   /*
@@ -96,8 +111,8 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
    * once written
    */
   def writeCertificatesToNew(file: File, certs: Iterable[String]): IOResult[Unit] = {
-    implicit val charset     = StandardCharsets.UTF_8
-    implicit val writeAppend = File.OpenOptions.append
+    implicit val charset:     Charset     = StandardCharsets.UTF_8
+    implicit val writeAppend: OpenOptions = File.OpenOptions.append
 
     for {
       _ <- ZIO.when(file.exists)(IOResult.attempt(file.delete()))

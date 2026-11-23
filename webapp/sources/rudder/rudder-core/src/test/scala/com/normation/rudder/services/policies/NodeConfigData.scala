@@ -261,7 +261,7 @@ object NodeConfigData {
       rootId,
       None
     ),
-    RudderAgent(CfeCommunity, rootAdmin, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
+    RudderAgent(CfeCommunity, rootAdmin, AgentVersion("7.0.0"), SecurityToken.fromStored(CERT), Chunk.empty),
     Chunk.empty,
     Instant.now(),
     Instant.now(),
@@ -291,7 +291,7 @@ object NodeConfigData {
       rootId,
       None
     ),
-    RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate(CERT), Chunk.empty),
+    RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), SecurityToken.fromStored(CERT), Chunk.empty),
     Chunk.empty,
     Instant.now(),
     Instant.now(),
@@ -363,7 +363,7 @@ object NodeConfigData {
       rootId,
       None
     ),
-    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
+    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), SecurityToken.fromStored(CERT), Chunk.empty),
     Chunk.empty,
     Instant.now(),
     Instant.now(),
@@ -476,7 +476,7 @@ object NodeConfigData {
         rootId,
         None
       ),
-      RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate("node certificate"), Chunk.empty),
+      RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), UnverifiedToken("node certificate"), Chunk.empty),
       Chunk.empty,
       Instant.now(),
       Instant.now(),

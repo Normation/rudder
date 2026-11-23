@@ -83,6 +83,7 @@ import org.specs2.specification.BeforeAfterAll
 import scala.annotation.nowarn
 import zio.*
 import zio.concurrent.ReentrantLock
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -206,8 +207,8 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv must beSome) and
-    (SecurityToken.kind(inv.forceGet.rudderAgent.securityToken) === "certificate") and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK) and
+    (inv.forceGet.rudderAgent.securityToken must beAnInstanceOf[Certificate]) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
 
   }
@@ -232,8 +233,8 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv.forceGet.fqdn === "agent3.FQDN_ATTRIBUTE.rudder.local") and
-    (start.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK) and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK) and
+    (start.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
 
   }
@@ -258,9 +259,55 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv.forceGet.fqdn === "node1-overridden.rudder.local.override") and
-    (start.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK) and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_CFE_OK) and
+    (start.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
+  }
+
+  // The node signs with its own key an inventory whose AGENT_CERT also holds cert-forged-uid-windows.pem, a
+  // self-signed certificate with the UID of another node.
+  def saveForged(inventory: String) = {
+    (
+      for {
+        res <- inventoryProcessorInternal.saveInventoryInternal(
+                 SaveInventoryInfo(
+                   inventory,
+                   asManagedStream(s"certificates/${inventory}.ocs"),
+                   asManagedStream(s"certificates/${inventory}.ocs.sign"),
+                   exist
+                 )
+               )
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
+      } yield (res, inv)
+    ).runNow
+  }
+
+  "an AGENT_CERT with two PEM blocks is refused and the stored certificate is kept" in {
+    val (res, inv) = saveForged("linux-cfe-sign-cert-two-pem")
+    (res must beLike {
+      case SaveError(_, _, err) => err.fullMsg must contain("contains more than one PEM object")
+      case x                    => ko(s"Expecting SaveError about the number of PEM objects, got: ${x}")
+    }) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK)
+  }
+
+  // BouncyCastle stops at the malformed BEGIN line, OpenSSL skips it and reads the forged certificate
+  "an AGENT_CERT with a certificate after a malformed BEGIN line is stored without it" in {
+    val (res, inv) = saveForged("linux-cfe-sign-cert-malformed-begin")
+    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK)
+  }
+
+  "a token stored with several certificates is loaded with its first one" in {
+    val forged     = Resource.getAsString("certificates/cert-forged-uid-windows.pem")
+    val poisoned   = AgentInfo(AgentType.CfeCommunity, None, UnverifiedToken(Cert.CERT_CFE_OK + "\n" + forged), Set()).toJson
+    mockLdapFactStorage.testServer.modify(
+      mockLdapFactStorage.pendingDIT.NODES.NODE.dn(linuxCert.value).toString,
+      new com.unboundid.ldap.sdk.Modification(com.unboundid.ldap.sdk.ModificationType.REPLACE, "agentName", poisoned)
+    )
+    val (one, all) = (factStorage.getPending(linuxCert)(using SelectFacts.none) <*> factStorage.loadAllCoreNodeFacts()).runNow
+    (one.forceGet.rudderAgent.securityToken.value === Cert.CERT_CFE_OK) and
+    (all.pending(linuxCert).rudderAgent.securityToken.value === Cert.CERT_CFE_OK)
   }
 
   "when a node is not in repository, invalid signature is an error" in {
@@ -304,8 +351,8 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv must beSome) and
-    (SecurityToken.kind(inv.forceGet.rudderAgent.securityToken) === "certificate") and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_WIN_OK) and
+    (inv.forceGet.rudderAgent.securityToken must beAnInstanceOf[Certificate]) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_WIN_OK) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
   }
 
@@ -329,8 +376,8 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv.forceGet.fqdn === "WIN-GNGDHPVHVTN") and
-    (start.forceGet.rudderAgent.securityToken.key === Cert.CERT_WIN_OK) and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_WIN_OK) and
+    (start.forceGet.rudderAgent.securityToken.value === Cert.CERT_WIN_OK) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_WIN_OK) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
 
   }
@@ -356,8 +403,8 @@ class TestSaveInventoryLdap extends TestSaveInventory {
 
     (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (inv.forceGet.fqdn === "WIN-GNGDHPVHVTN") and
-    (start.forceGet.rudderAgent.securityToken.key === Cert.CERT_WIN_OK) and
-    (inv.forceGet.rudderAgent.securityToken.key === Cert.CERT_WIN_NEW) and
+    (start.forceGet.rudderAgent.securityToken.value === Cert.CERT_WIN_OK) and
+    (inv.forceGet.rudderAgent.securityToken.value === Cert.CERT_WIN_NEW) and
     (inv.forceGet.rudderSettings.keyStatus == CertifiedKey)
   }
 
