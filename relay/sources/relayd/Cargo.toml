@@ -21,6 +21,8 @@ clap = { version = "4.4.6", features = ["derive"] }
 diesel = { version = "2", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 # Use the zlib-rs backend, consistent with the other flate2/zip users
 flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+# Raw pointer handling for the PKCS#7 FFI in `input.rs`, same version as `openssl` uses
+foreign-types = "0.3"
 futures = { version = "0.3", default-features = false }
 hex = "0.4"
 humantime = "2"
@@ -29,6 +31,8 @@ inotify = "0.11"
 lazy_static = "1"
 nom = "8"
 openssl = "0.10"
+# PKCS#7 SignerInfo accessors missing from `openssl` (see `input.rs`)
+openssl-sys = "0.9"
 percent-encoding = "2.3"
 prometheus = { version = "0.14", default-features = false, features = ["process"] }
 regex = "1"
