@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 import GroupCompliance.DataTypes exposing (GroupId)
 import Groups.DataTypes exposing (..)
 import Html exposing (Attribute, Html, div, i, li, span, table, tbody, td, th, thead, tr, ul)
-import Html.Attributes exposing (attribute, class, disabled, style)
+import Html.Attributes exposing (class, style)
 import List.Extra
 import Maybe
 import Maybe.Extra
@@ -121,31 +121,6 @@ updateGroupsTableData model =
             List.map
                 (toGroupWithCompliance model.groupsCompliance model.groupsTree)
                 groupsList
-
-        size =
-            model.groupsTable |> Rudder.Table.getRows |> List.length
-
-        {-
-           For some reason, table data is not loaded if the user loads the elm app in the state where
-           a given group's details are displayed on the right pane, e.g.
-           by opening the link rudder/secure/nodeManager/groups#{"groupId":"all-nodes-with-cfengine-agent"}
-           (i.e. without visiting rudder/secure/nodeManager/groups, and clicking on the group from the table or the tree).
-           The "isDisabled" condition ensures that the export button is enabled if and only if table data is available.
-        -}
-        isDisabled =
-            (size == 0) && (model.mode /= GroupTable)
-
-        options =
-            buildOptions.newOptions
-                |> buildOptions.withCsvExport
-                    { entryToStringList = entryToStringList
-                    , btnAttributes =
-                        if isDisabled then
-                            disabledCsvExportButtonAttributes
-
-                        else
-                            [ class "btn-primary" ]
-                    }
     in
     { model
         | groupsTable = Rudder.Table.updateData data model.groupsTable
@@ -155,20 +130,7 @@ updateGroupsTableData model =
 
             else
                 model.mode
-        , csvExportOptions = options.csvExport
     }
-
-
-disabledCsvExportButtonAttributes : List (Attribute msg)
-disabledCsvExportButtonAttributes =
-    [ disabled True
-    , attribute "data-bs-toggle" "tooltip"
-    , attribute "data-bs-placement" "bottom"
-    , attribute
-        "data-bs-original-title"
-        "The groups tree was not loaded. Close the group details view on the right pane in order to load the groups tree."
-    , style "pointer-events" "auto"
-    ]
 
 
 toGroupWithCompliance : Dict String GroupComplianceSummary -> Category Group -> Group -> GroupWithCompliance

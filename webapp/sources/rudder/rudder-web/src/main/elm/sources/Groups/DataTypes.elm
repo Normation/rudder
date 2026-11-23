@@ -1,6 +1,7 @@
 module Groups.DataTypes exposing (..)
 
 import Compliance.DataTypes exposing (ComplianceDetails)
+import Date
 import Dict exposing (Dict)
 import GroupRelatedRules.DataTypes exposing (GroupId)
 import Http exposing (Error)
@@ -136,8 +137,7 @@ type Msg
     | UpdateGroupFoldedFilters String
     | UpdateGroupSearchFilters SearchFilterState
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | RequestCsvExportAllGroups
-    | ExportCsvWithCurrentDate Time.Posix
+    | ExportCsvWithCurrentDate Rudder.Table.CsvExportType Date.Date
 
 
 groupTableBatchSize : number
