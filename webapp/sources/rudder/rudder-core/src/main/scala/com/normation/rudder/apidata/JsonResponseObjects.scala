@@ -1598,35 +1598,22 @@ object JsonResponseObjects {
         renderInHtml: RenderInheritedProperties,
         escapeHtml:   Boolean
     ): Option[JRPropertyHierarchy] = {
+      val escape: String => String = if (escapeHtml) xml.Utility.escape else identity
+
       def renderHtml(nodeParentProperty: ParentProperty[?]): List[String] = {
-        nodeParentProperty match {
-          case n: ParentProperty.Node   =>
-            n.parentProperty
-              .map(renderHtml)
-              .getOrElse(Nil) :::
-            (s"<p>from <b>node '${n.name}' (${n.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
-                                                                 else identity[String])
-                .apply(n.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case g: ParentProperty.Group  =>
-            g.parentProperty
-              .map(renderHtml)
-              .getOrElse(Nil) :::
-            (s"<p>from <b>group '${g.name}' (${g.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
-                                                                  else identity[String])
-                .apply(g.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case t: ParentProperty.Target =>
-            t.parentProperty
-              .map(renderHtml)
-              .getOrElse(Nil) :::
-            (s"<p>from <b>global property '${t.name}' scoped to '${t.id}'</b>:<pre>${(if (escapeHtml)
-                                                                                        xml.Utility.escape(_: String)
-                                                                                      else identity[String])
-                .apply(t.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case ParentProperty.Global(v) =>
-            s"<p>from <b>global property '${v.name}'</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
-                                                                 else identity[String])
-                .apply(v.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil
+        val (parent, label, showMode) = nodeParentProperty match {
+          case n: ParentProperty.Node   => (n.parentProperty, s"node '${n.name}' (${n.id})", false)
+          case g: ParentProperty.Group  => (g.parentProperty, s"group '${g.name}' (${g.id})", true)
+          case t: ParentProperty.Target => (t.parentProperty, s"global property '${t.name}' scoped to '${t.id}'", true)
+          case v: ParentProperty.Global => (None, s"global property '${v.name}'", true)
         }
+        val mode                      = if (showMode) {
+          val m = nodeParentProperty.resolvedValue.inheritMode.getOrElse(InheritMode.Default).value
+          s" with inherit mode '${m}'"
+        } else ""
+        val value                     = nodeParentProperty.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false))
+        parent.map(renderHtml).getOrElse(Nil) :::
+        (s"<p>from <b>${label}</b>${mode}:<pre>${escape(value)}</pre></p>" :: Nil)
       }
       val parents = renderInHtml match {
         case RenderInheritedProperties.HTML =>
