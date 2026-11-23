@@ -370,7 +370,7 @@ displayNodePropertyRow model =
                                             "<h4 class='tags-tooltip-title'>Inherited</h4> <div class='tooltip-inner-content'>This property is inherited " ++ Maybe.withDefault "" p.hierarchy ++ "</div>."
 
                                         "overridden" ->
-                                            "<h4 class='tags-tooltip-title'>Overridden</h4> <div class='tooltip-inner-content'>This property is overridden on this object and was inherited " ++ Maybe.withDefault "" p.hierarchy ++ "</div>."
+                                            "<h4 class='tags-tooltip-title'>Overridden</h4> <div class='tooltip-inner-content'>This property is overridden on this object and was inherited " ++ Maybe.withDefault "" p.hierarchy ++ "<p>Consult the <a href='/rudder-doc/reference/current/usage/variables.html#_inheritance_and_overriding' target='_blank'>documentation</a> to find out about the inheritance and overriding strategies.</p></div>."
 
                                         _ ->
                                             "<h4 class='tags-tooltip-title'>" ++ pr ++ "</h4> <div class='tooltip-inner-content'>This property is managed by its provider ‘<b>" ++ pr ++ "</b>’ and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.</div>"
