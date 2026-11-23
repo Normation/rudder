@@ -3,17 +3,16 @@ module Groups.View exposing (..)
 import Groups.DataTypes exposing (..)
 import Groups.ViewUtils exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, href, id, placeholder, style, title, type_, value)
+import Html.Attributes exposing (attribute, class, disabled, href, id, placeholder, style, title, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onClickPreventDefault)
 import List
 import NaturalOrdering as N
 import Rudder.Filters
-import Rudder.Table
+import Rudder.Table exposing (CsvExportType(..))
 import String
 import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable)
-import Utils.CsvExportUtils exposing (csvExportDropdownFilteredEntries)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
@@ -155,6 +154,23 @@ view model =
 
             else
                 ""
+
+        {-
+           For some reason, table data is not loaded if the user loads the elm app in the state where
+           a given group's details are displayed on the right pane, e.g.
+           by opening the link rudder/secure/nodeManager/groups#{"groupId":"all-nodes-with-cfengine-agent"}
+           (i.e. without visiting rudder/secure/nodeManager/groups, and clicking on the group from the table or the tree).
+           The "isDisabled" condition ensures that the export button is enabled if and only if table data is available.
+        -}
+        isDisabled =
+            ((model.groupsTable |> Rudder.Table.getRows |> List.length) == 0) && (model.mode /= GroupTable)
+
+        csvExportButton =
+            if isDisabled then
+                disabledCsvExportButton
+
+            else
+                Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.csvExportOptions)
     in
     div [ class "rudder-template" ]
         [ div [ class "template-sidebar sidebar-left" ]
@@ -169,7 +185,7 @@ view model =
                             --, button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewGroup (GroupId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
                             --]
                             [ button [ id "newItem", class "btn btn-success", type_ "button", onClick OpenModal ] [ text "Create", i [ class "fa fa-plus-circle" ] [] ]
-                            , csvExportDropdownFilteredEntries RequestCsvExportAllGroups
+                            , csvExportButton
                             ]
 
                       else
@@ -221,4 +237,25 @@ view model =
         -- which then crashes on nodes it does not own. Elm only owns its visibility.
         , div [ class ("template-main" ++ hideWhen (not externalTemplate)), id "ajaxItemContainer" ] []
         , modal
+        ]
+
+
+disabledCsvExportButton : Html msg
+disabledCsvExportButton =
+    div
+        [ class "btn-group" ]
+        [ button
+            [ disabled True
+            , attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "bottom"
+            , attribute
+                "data-bs-original-title"
+                "The groups tree was not loaded. Close the group details view on the right pane in order to load the groups tree."
+            , style "pointer-events" "auto"
+            , attribute "aria-label" "Export CSV"
+            , class "btn btn-primary export-dropdown-toggle dropdown-toggle"
+            ]
+            [ span [ class "me-2 fa fa-file-download" ] []
+            , span [ class "me-2" ] [ text "Export CSV" ]
+            ]
         ]

@@ -399,8 +399,7 @@ type Msg
     | RefreshReportsTable RuleId
     | UpdateCrSettings ChangeRequestSettings
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | RequestCsvExportAllRules
-    | ExportCsvWithCurrentDate Date.Date
+    | ExportCsvWithCurrentDate Rudder.Table.CsvExportType Date.Date
     | ExportRuleComplianceByDirective RuleId Date.Date
     | ExportRuleComplianceByNode RuleId Date.Date
     | RuleComplianceCsvExported String (Result Error String)
