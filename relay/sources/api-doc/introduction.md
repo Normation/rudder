@@ -9,9 +9,12 @@ Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 Rudder relay exposes an internal API, enabling the agents and other services to interact with the relay.
 
-A part of the API (everything but the `System` category) is exposed publicly on the relay
-at `https://relay.example.com/rudder/relay-api/` (which is a reverse proxy of
-`http://localhost:3030/rudder/relay-api/1/`).
+Apache proxies the remote-run, shared-files, and shared-folder routes from
+`https://relay.example.com/rudder/relay-api/` to `http://localhost:3030/rudder/relay-api/1/`.
+Apache serves policy files for every managed node at
+`https://relay.example.com/policies/{nodeId}/{path}`. The path is relative to that node's policy
+directory, for example `rules/cfengine-community/promises.cf` for CFEngine or
+`rules/dsc/rudder.zip` for the Windows DSC archive.
 
 ## Authentication
 
@@ -23,12 +26,14 @@ The relay API is authenticated on a case-by-case basis:
 
 * *Shared folder* is only available to nodes in the authorized networks
 
-* *System* is only accessible to local clients and do not permit access to private information nor modification abilities
+* *System* routes are available on the local relay API.
+
+* *Policies* downloads require the node's client certificate and access from an authorized network.
 
 ## Versioning
 
 Each time the API is extended with new features (new functions, new parameters, new responses, ...), it will be assigned a new version number. This will allow you to keep your existing scripts (based on previous behavior). Versions will always be integers (no 2.1 or 3.3, just 2, 3, 4, ...).
-You can change the version of the API used by setting in the URL: each URL is prefixed by its version id, like `/relay-api/version/action`.
+On the local relay API, versioned routes use `/rudder/relay-api/{version}/{action}`. The Apache policy download URL is unversioned.
 In the future, we may declare some versions as deprecated, in order to remove them in a later version of Rudder, but we will never remove any versions without warning, or without a safe period of time to allow migration from previous versions.
 
 ### Existing versions:

@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Download a node's DSC policies
+  description: Apache serves the ZIP archive to the corresponding node on the policy server's HTTPS virtual host.
+  servers:
+    - url: "https://{policyServer}"
+      variables:
+        policyServer:
+          default: rudder.example.com
+          description: Hostname of the node's policy server
+  security:
+    - nodeCertificate: []
+  operationId: getDscPolicies
+  parameters:
+    - $ref: "../components/parameters/node-id.yml"
+  responses:
+    "200":
+      description: File content
+      content:
+        application/zip:
+          schema:
+            type: string
+            format: binary
+  tags:
+    - Policies
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../code_samples/curl/policies/dsc.sh
