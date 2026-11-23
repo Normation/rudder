@@ -21,6 +21,10 @@ servers:
 # there is a TLS client auth cert performed by the httpd reverse proxy
 # for some of them.
 security: []
+components:
+  securitySchemes:
+    nodeCertificate:
+      type: mutualTLS
 tags:
   - name: System
     description: Internal relay service management
@@ -43,8 +47,10 @@ paths:
     $ref: paths/shared-folder.yml
   "/rudder/relay-api/1/shared-files/{targetNodeId}/{sourceNodeId}/{fileId}":
     $ref: paths/shared-files.yml
-  "/rudder/relay-api/1/policies/{nodeId}/rules/dsc/rudder.zip":
+  "/policies/{nodeId}/{path}":
     $ref: paths/policies.yml
+  "/policies/{nodeId}/rules/dsc/rudder.zip":
+    $ref: paths/policies-http.yml
   "/rudder/relay-api/1/remote-run/nodes/{nodeId}":
     $ref: paths/remote-run/node.yml
   "/rudder/relay-api/1/remote-run/nodes":

@@ -1,22 +1,33 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Download policies
-  description: Downloads an archive containing the policies to apply to the given node
-  operationId: getDscPolicies
+  summary: Download a node's policy file
+  description: Apache serves files from each managed node's policy directory over HTTPS.
+  servers:
+    - url: "https://{policyServer}"
+      variables:
+        policyServer:
+          default: rudder.example.com
+          description: Hostname of the node's policy server
+  security:
+    - nodeCertificate: []
+  operationId: getNodePolicyFile
   parameters:
     - $ref: "../components/parameters/node-id.yml"
+    - name: path
+      in: path
+      required: true
+      description: File path relative to the node's policy directory. Use a slash between directory names.
+      schema:
+        type: string
+      example: rules/cfengine-community/promises.cf
   responses:
     "200":
       description: File content
       content:
-        application/zip:
+        "*/*":
           schema:
             type: string
             format: binary
   tags:
     - Policies
-  x-codeSamples:
-    - lang: curl
-      source:
-        $ref: ../code_samples/curl/policies/dsc.sh
