@@ -63,8 +63,6 @@ import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger
-import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.campaigns.Campaign
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignRepository

@@ -38,6 +38,7 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.*
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import zio.ZIO
@@ -70,8 +71,11 @@ class CampaignSerializer {
 
   def getJson(campaign: Campaign): ZIO[Any, RudderError, Json] = {
     tranlaters.map(_.getRawJson()).fold(Jsonbase) { case (a, b) => b orElse a }(campaign).flatMap { json =>
-      CampaignParsingInfo(campaign.campaignType, campaign.version).toJsonAST.toIO.map(json.merge)
-
+      CampaignParsingInfo(
+        campaignType = campaign.campaignType,
+        campaignDetails = campaign.details,
+        version = campaign.version
+      ).toJsonAST.toIO.map(json.merge)
     }
   }
 
@@ -164,6 +168,9 @@ object CampaignSerializer {
   implicit val timezoneDecoder:     JsonDecoder[ScheduleTimeZone] = JsonDecoder[String].mapOrFail(ScheduleTimeZone.parse)
   implicit val scheduleDecoder:     JsonDecoder[CampaignSchedule] = DeriveJsonDecoder.gen
   implicit val campaignTypeDecoder: JsonDecoder[CampaignType]     = JsonDecoder[String].map(CampaignType.apply)
+
+  implicit val ruleTargetDecoder: JsonDecoder[RuleTarget] = JsonDecoder[String].map(RuleTarget.apply)
+  implicit val campaignDetailsDecoder: JsonDecoder[CampaignDetails]     = JsonDecoder[String].map(CampaignDetails.apply.target)
   implicit val campaignInfoDecoder: JsonDecoder[CampaignInfo]     = DeriveJsonDecoder.gen
 
   implicit val parsingInfoDecoder: JsonDecoder[CampaignParsingInfo] = DeriveJsonDecoder.gen

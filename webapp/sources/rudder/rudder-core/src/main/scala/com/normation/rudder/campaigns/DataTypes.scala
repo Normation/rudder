@@ -55,6 +55,7 @@ import zio.json.enumeratum.*
 
 case class CampaignParsingInfo(
     campaignType: CampaignType,
+    campaignDetails: CampaignDetails,
     version:      Int
 )
 
@@ -324,6 +325,7 @@ case class Daily(start: Time, end: Time, tz: Option[ScheduleTimeZone]) extends C
 trait CampaignDetails {
   def targets: List[RuleTarget]
 }
+//case class CampaignDetails(targets: List[RuleTarget])
 
 case class CampaignType(value: String)
 
