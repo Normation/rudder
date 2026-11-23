@@ -40,6 +40,9 @@ package com.normation.rudder.api
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.xml.Elem
+import scala.xml.Node
+import scala.xml.XML
 
 final class TestTokenGenerator extends TokenGenerator {
   override def newToken(size: Int): String = "a" * size
@@ -47,8 +50,71 @@ final class TestTokenGenerator extends TokenGenerator {
 
 @RunWith(classOf[JUnitRunner])
 class TestApiToken extends Specification {
+  private def isNotToken(node: Node): Boolean = node match {
+    case e: Elem => e.label != "token"
+    case _ => true
+  }
+
+  def withoutApiAccountToken(xml: Elem): Elem = xml match {
+    case entry: Elem if entry.label == "entry" =>
+      entry.copy(child = entry.child.map {
+        case api: Elem if api.label == "apiAccount" =>
+          // remove token tag
+          api.copy(child = api.child.filter(isNotToken))
+        case other => other
+      })
+    case other => other
+  }
+
+  def clean(xml: String) = withoutApiAccountToken(XML.loadString(xml))
+
+  private val input: String = {
+    """<entry>
+      |  <apiAccount changeType="add" fileFormat="6">
+      |    <id>123</id>
+      |    <name>mon compte</name>
+      |    <token>abc123</token>
+      |  </apiAccount>
+      |</entry>""".stripMargin
+  }
 
   "API tokens" should {
+
+    "partir d'un XML qui contient bien la balise token" in {
+      (XML.loadString(input) \ "apiAccount" \ "token") must not(beEmpty)
+    }
+
+    "supprimer la balise token" in {
+      (clean(input) \ "apiAccount" \ "token") must beEmpty
+    }
+
+    "conserver les autres balises d'apiAccount" in {
+      val api = clean(input) \ "apiAccount"
+      ((api \ "id").text must_== "123") and
+      ((api \ "name").text must_== "mon compte")
+    }
+
+    "conserver les attributs d'apiAccount" in {
+      val api = clean(input) \ "apiAccount"
+      ((api \ "@changeType").text must_== "add") and
+      ((api \ "@fileFormat").text must_== "6")
+    }
+
+    "ne pas supprimer un token situé ailleurs que dans entry/apiAccount" in {
+      val other = """<entry><other><token>xyz</token></other></entry>"""
+      (clean(other) \ "other" \ "token").text must_== "xyz"
+    }
+
+    /*"laisser inchangé un XML sans token" in {
+      val noToken = """<entry><apiAccount><id>123</id></apiAccount></entry>"""
+      clean(noToken) must ==/(XML.loadString(noToken))
+    }*/
+
+    "test xml" in {
+      val token = ApiTokenSecret.generate(new TestTokenGenerator)
+      token.exposeSecret() must beEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    }
+
     "be generated from generator" in {
       val token = ApiTokenSecret.generate(new TestTokenGenerator)
       token.exposeSecret() must beEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")

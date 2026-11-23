@@ -65,7 +65,12 @@ import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
-import com.normation.rudder.campaigns.{Campaign, CampaignId, CampaignRepository, CampaignSerializer, CampaignStatusValue, CampaignType}
+import com.normation.rudder.campaigns.Campaign
+import com.normation.rudder.campaigns.CampaignId
+import com.normation.rudder.campaigns.CampaignRepository
+import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.CampaignStatusValue
+import com.normation.rudder.campaigns.CampaignType
 import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.eventlog.ModifyNodeGroup
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -174,7 +179,6 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import enumeratum.*
-
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -201,7 +205,6 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
-
 import scala.annotation.nowarn
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
@@ -322,7 +325,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       reason = None
     )
   )
-  val campaignRepo: CampaignRepository = new CampaignRepository {
+  val campaignRepo:                  CampaignRepository            = new CampaignRepository {
 
     override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = ???
 
@@ -332,7 +335,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
     override def save(c: Campaign): IOResult[Campaign] = ???
   }
-  val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
+  val eventLogRepo: EventLogRepository = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
     override def eventLogFactory: EventLogFactory = ???

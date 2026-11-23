@@ -324,7 +324,9 @@ git commit -m "techniques first commit"
 
 If in case a change would happen in `rudder-techniques` remote repository
 ```
-git pull ~/<workspace>/rudder-techniques/techniques
+cd  ~/<workspace>/rudder-techniques/techniques
+git checkout branch/rudder/<version>
+git pull
 rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
 ```
 But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change

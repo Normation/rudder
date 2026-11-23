@@ -46,9 +46,16 @@ import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.campaigns.Campaign
+import com.normation.rudder.campaigns.CampaignDetails
+import com.normation.rudder.campaigns.CampaignId
+import com.normation.rudder.campaigns.CampaignInfo
 import com.normation.rudder.campaigns.CampaignRepository
+import com.normation.rudder.campaigns.CampaignType
+import com.normation.rudder.campaigns.ScheduleTimeZone
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.CompositeRuleTarget
 import com.normation.rudder.domain.policies.Directive
@@ -226,7 +233,7 @@ class DependencyAndDeletionServiceImpl(
     woDirectiveRepository: WoDirectiveRepository,
     woRuleRepository:      WoRuleRepository,
     woGroupRepository:     WoNodeGroupRepository,
-    campaignRepository: CampaignRepository
+    campaignRepository:    CampaignRepository
 ) extends DependencyAndDeletionService with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
@@ -509,27 +516,43 @@ class DependencyAndDeletionServiceImpl(
     targetToDelete match {
       case GroupTarget(groupId) =>
         for {
-          configRules   <- findDependencies.findRulesForTarget(targetToDelete)
-          updatedRules  <- ZIO.foreach(configRules)(updateRule)
-          campaigns <- campaignRepository.getAll(List(), List())
-          // TODO pb: on a pas le detail de campagnes disponible a ce niveau du code,
-          //  - c'est dans le plugin system update qu'il faut donc mettre a jour la campaigne ?
-          //  - est ce qu'il faut bouger l'implem des campagnes dans rudder ?
-          //  - est ce qu'il faut implementer la suppression la verification des groupes dans system-update ?
-          //  - est ce qu'au moment de la suppression du groupe (action dans ihm elm) il faut catcher l'erreur et mettre a jour la campagne
+          configRules  <- findDependencies.findRulesForTarget(targetToDelete)
+          updatedRules <- ZIO.foreach(configRules)(updateRule)
+          _            <- ApplicationLoggerPure.error(s"Get campaigns to update")
+          campaigns    <- campaignRepository.getAll(List(), List())
+          // TODO pb: on a pas le detail de campagnes disponible a ce niveau du code, exploration de plusieurs solutions
+          //  - [-] c'est dans le plugin system update qu'il faut donc mettre a jour la campaigne ?
+          //    - rudder ne depend pas de system-update
+          //    - implementation d'une service dedié : on envoie une notification du noeud supprimé et le service mets a jour les campaignes concerné
+          //    - PUT /campaigns?deletedNode=<uuid>
+          //    - mais la persistance des campagnes se fait dans rudder et pas dans system-update
+          //  - [-] faire l'update des campagnes depuis l'ihm elm ?
+          //    - est ce qu'au moment de la suppression du groupe (action dans ihm elm) il faut catcher l'erreur et mettre a jour la campagne
+          //    - sur quel evennement de l'ihm ? sur le save idealememt mais on peut rencontrer l'erreur bien avant de refaire save
+          //    - a la lecture de la campagne ? on fait un get et lors du get on check l'existence des groupes, on appelle un save si besoin -> l'operation du GET n'est pas consistente
+          //  - [-] est ce qu'il faut bouger l'implem des campagnes dans rudder ?
+          //    - pas tout
+          //  - [x] bouger la liste des groupe dans la partie campagne info
+          //    - ca fait sens car le domaine des groupes est completement dans rudder
+          //    - on ne remonte pas toute la logique campagne system update vs campagne software update, on veut que cela reste dans le repo du plugin.
+          //    - TODO verifier l'utilisation de ce champs dans system-update
+          //  - [-] est ce qu'il faut implementer la suppression la verification des groupes dans system-update ?
 
-          //filteredCampaign <- campaigns.filter(c => c.details.)
-          /*_ <- // ZIO.foreach(campaigns). campaignRepository.save()
-
-          ZIO.foreach(campaigns) { campaign =>
-          if (campaign..contains(r) || AuthorizationType.parseRight(r).isRight) { Some(r).succeed }
-        else {
-        logger.warn(
-        s"Role '${name}' reference unknown role '${r}': '${r}' will be ignored."
-        ) *> None.succeed
-        }
-        }*/
-
+          campaignsContainingGroup <-
+            ZIO.succeed(campaigns.filter(c => c.details.targets.map(_.target).contains(groupId.uid.value)))
+          _                        <- ZIO.succeed(campaignsContainingGroup.foreach(c => {
+                                        val newCampaign = new Campaign() {
+                                          override def info:         CampaignInfo    = c.info
+                                          override def details:      CampaignDetails = new CampaignDetails {
+                                            override def targets: List[RuleTarget] = c.details.targets.filter(!_.equals(groupId.uid.value))
+                                          }
+                                          override def campaignType: CampaignType    = c.campaignType
+                                          override def copyWithId(newId:                        CampaignId):       Campaign = c
+                                          override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign = c
+                                          override def version: RuntimeFlags = c.version
+                                        }
+                                        campaignRepository.save(newCampaign)
+                                      }))
           // FIXME : add a step to update campaign having dependencies on this group
           deletedTarget <- woGroupRepository
                              .delete(groupId)

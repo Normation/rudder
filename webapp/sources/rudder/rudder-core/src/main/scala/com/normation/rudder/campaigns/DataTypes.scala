@@ -42,6 +42,7 @@ import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.hooks.HookReturnCode
 import enumeratum.*
 import io.scalaland.chimney.*
@@ -63,6 +64,7 @@ trait Campaign {
   def campaignType: CampaignType
   def copyWithId(newId:                        CampaignId):       Campaign
   def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign
+  // def targets: List[RuleTarget]
   def version: Int
 }
 
@@ -79,6 +81,12 @@ object Campaign {
       case (t, s)     => campaigns.filter(c => t.contains(c.campaignType) && s.contains(c.info.status.value))
     }
   }
+
+  /*// FIXME
+  def removeTargetFromCampaigns(campaigns:    List[Campaign], targetId: String): List[Campaign] = {
+    campaigns.map(_.targets).filter(t => t.map(_.target).contains(s"group:${targetId}")).flatten
+
+  }*/
 }
 
 case class CampaignInfo(
@@ -313,7 +321,9 @@ case class Daily(start: Time, end: Time, tz: Option[ScheduleTimeZone]) extends C
   override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
 }
 
-trait CampaignDetails
+trait CampaignDetails {
+  def targets: List[RuleTarget]
+}
 
 case class CampaignType(value: String)
 

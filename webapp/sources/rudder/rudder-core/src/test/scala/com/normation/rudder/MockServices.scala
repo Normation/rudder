@@ -3412,7 +3412,9 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
 // case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
 object TestCampaignType extends CampaignType("test-campaign")
 
-final case class TestCampaignDetails(name: String) extends CampaignDetails
+final case class TestCampaignDetails(name: String) extends CampaignDetails {
+  override def targets: List[RuleTarget] = ???
+}
 
 // The only goal of this trait is to be able to provide a discriminator in json,
 // zio-json allow to have discriminator only on sealed trait
