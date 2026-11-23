@@ -39,10 +39,6 @@ package com.normation.rudder.services.policies.write
 import com.normation.errors.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.softwaremill.quicklens.*
 import org.junit.runner.RunWith
@@ -67,20 +63,6 @@ class PathComputerTest extends Specification {
   ////////////////////////// test //////////////////////////
 
   "The paths for " should {
-
-    "mytest" in {
-      val nodeId = NodeGroupId(uid = NodeGroupUid("280bf78c-9b64-42fc-ac2b-402e1f22c9c5"))
-      def groupIsInTarget(ruleTarget: RuleTarget, group: NodeGroupId): Boolean = {
-        ruleTarget.target.contains(group.uid.value)
-      }
-      /*{
-        override def target: String = "{\"include\":{\"or\":[\"group:280bf78c-9b64-42fc-ac2b-402e1f22c9c5\",\"group:d9f372e7-d64e-4372-975f-61a908b7d093\"]},\"exclude\":{\"or\":[]}}"
-      }*/
-
-      val rule = GroupTarget(nodeId)
-      groupIsInTarget(rule, nodeId) must beEqualTo(true)
-    }
-
     "the root node should raise an error" in {
       pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[
         Left[Inconsistency, ?]

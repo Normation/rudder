@@ -539,6 +539,21 @@ class DependencyAndDeletionServiceImpl(
 
           _ <- campaignTargetService.removeGroupFromCampaigns(groupId = groupId)
 
+
+
+          /*"mytest" in {
+          val nodeId = NodeGroupId(uid = NodeGroupUid("280bf78c-9b64-42fc-ac2b-402e1f22c9c5"))
+          def groupIsInTarget(ruleTarget: RuleTarget, group: NodeGroupId): Boolean = {
+          ruleTarget.target.contains(group.uid.value)
+        }
+          /*{
+            override def target: String = "{\"include\":{\"or\":[\"group:280bf78c-9b64-42fc-ac2b-402e1f22c9c5\",\"group:d9f372e7-d64e-4372-975f-61a908b7d093\"]},\"exclude\":{\"or\":[]}}"
+          }*/
+
+        val rule = GroupTarget(nodeId)
+        groupIsInTarget(rule, nodeId) must beEqualTo(true)
+        }*/
+
           // TODO deplacer toutes cette logique dans le plugin system-update.
           /*campaigns    <- campaignRepository.getAll(List(), List())
           campaignsToSave = {
