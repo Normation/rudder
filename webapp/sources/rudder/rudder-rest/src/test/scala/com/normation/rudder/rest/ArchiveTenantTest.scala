@@ -56,6 +56,7 @@ import com.normation.rudder.rest.lift.ArchiveScope
 import com.normation.rudder.rest.lift.GroupArchive
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
+import com.normation.rudder.rest.lift.RuleCategoryArchive
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
 import com.normation.rudder.rest.lift.SpecialExportAll
 import com.normation.rudder.rest.lift.TechniqueArchive
@@ -74,6 +75,7 @@ import com.normation.rudder.tenants.TenantPermission
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import net.liftweb.actor.MockLiftActor
@@ -127,6 +129,9 @@ class ArchiveTenantTest extends ZIOSpecDefault {
     security = Some(zoneATag)
   )
 
+  // a second zoneA group, only written by the rule category test
+  val zoneAGroup2: NodeGroup = zoneAGroup.modify(_.id).setTo(NodeGroupId(NodeGroupUid("zoneA-group-2")))
+
   val allScopes: Set[ArchiveScope] = Set(ArchiveScope.AllDep)
 
   def build(
@@ -167,12 +172,15 @@ class ArchiveTenantTest extends ZIOSpecDefault {
     _ <- restTestSetUp.mockTenants.tenantRepo.setTenantEnabled(true)
     _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ ++ importRules.map(r => (r.id, r)))
     _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (zoneARule.id -> zoneARule))
-    e <- restTestSetUp.mockNodeGroups.groupsRepoImpl.categories.get.map(_.allGroups.contains(zoneAGroup.id))
-    _ <- ZIO.unless(e) {
-           restTestSetUp.mockNodeGroups.groupsRepoImpl
-             .create(zoneAGroup, com.normation.rudder.domain.Constants.ROOT_GROUP_CATEGORY)(using
-               ChangeContext.newForRudder(Some("seed zoneA group"))
-             )
+    _ <- ZIO.foreachDiscard(List(zoneAGroup, zoneAGroup2)) { g =>
+           restTestSetUp.mockNodeGroups.groupsRepoImpl.categories.get.map(_.allGroups.contains(g.id)).flatMap { e =>
+             ZIO.unless(e) {
+               restTestSetUp.mockNodeGroups.groupsRepoImpl
+                 .create(g, com.normation.rudder.domain.Constants.ROOT_GROUP_CATEGORY)(using
+                   ChangeContext.newForRudder(Some("seed zoneA group"))
+                 )
+             }
+           }
          }
   } yield ()).runNow
 
@@ -352,6 +360,24 @@ class ArchiveTenantTest extends ZIOSpecDefault {
               )
               .either
         } yield assertTrue(res.left.exists(_.fullMsg.contains("technique_any")))
+      },
+      test("a rule category the tenant can not read is refused even where it stays, and nothing is written") {
+        for {
+          // the stored tree, as an administrator exports it: it holds the admin-only `category1`
+          root   <- restTestSetUp.mockRules.ruleCategoryRepo.getRootCategory()(using admin)
+          (g, c) <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(zoneAGroup2.id)(using admin).someOrFail("seed")
+          a       = PolicyArchive
+                      .empty("t")
+                      .modify(_.ruleCats)
+                      .setTo(Chunk(root.transformInto[RuleCategoryArchive]))
+                      .modify(_.groups)
+                      .setTo(Chunk(GroupArchive(g.modify(_.description).setTo("changed"), c)))
+          res    <- saver.save(a, MergePolicy.OverrideAll)(using zoneA).either
+          after  <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(zoneAGroup2.id)(using admin).someOrFail("seed")
+        } yield {
+          assertTrue(res.left.exists(_.fullMsg.contains("category1"))) &&
+          assertTrue(after._1.description == g.description)
+        }
       },
       test("an unchanged object the tenant can not read is refused too") {
         for {

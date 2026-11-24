@@ -1772,43 +1772,20 @@ class SaveArchiveServicebyRepo(
     stored.findParents(id).map(_.map(_.id)) == archived.findParents(id).map(_.map(_.id))
   }
 
-  def saveRuleCategory(r: RuleCategoryArchive)(using cc: ChangeContext): IOResult[Unit] = {
-    roRuleCategoryRepos.getRootCategory()(using cc.toQC).flatMap { root =>
-      val newRoot  = r.toRuleCategory
-      val parents  = r.parentCategories
-      val children = r.childCategories
-      def recSave(c: RuleCategoryArchive, created: Ref[Set[RuleCategoryId]]): IOResult[Unit] = {
-        def needsCreate   = !root.contains(c.id) && newRoot.contains(c.id)
-        def alreadyExists = (id: RuleCategoryId) => created.get.map(_.contains(id))
-        if (c.id == root.id || hasSameParents(root, newRoot, c.id)) {
-          ZIO.unit
-        } else {
-          // create starting from the greatest parent
-          ZIO.foreach(parents.get(c))(recSave(_, created)) *>
-          (if (needsCreate) {
-             ZIO.unlessZIODiscard(alreadyExists(c.id))(
-               woRuleCategoryRepos.create(
-                 c.toRuleCategory,
-                 parents.get(c).fold(newRoot.id)(_.id)
-               ) *> created.update(_ + c.id) *>
-               ApplicationLoggerPure.Archive.trace(
-                 s"Created rule category parent from archive: '${c.name}' (${c.id.value})"
-               )
-             )
-           } else {
-             woRuleCategoryRepos.updateAndMove(
-               c.toRuleCategory,
-               parents.get(c).fold(newRoot.id)(_.id)
-             ) *> ApplicationLoggerPure.Archive.trace(
-               s"Moved rule category parent from archive: '${c.name}' (${c.id.value}) to ${parents(c).id}"
-             )
-           })
-        }
-      }
-      for {
-        created <- Ref.make(Set.empty[RuleCategoryId])
-        _       <- ZIO.foreachDiscard(children.values)(recSave(_, created))
-      } yield ()
+  // a rule category write decided by `authorize`
+  private enum RuleCategoryWrite {
+    case Create(category: RuleCategory, into: RuleCategoryId)
+    case Move(category: RuleCategory, into: RuleCategoryId)
+  }
+
+  private def saveRuleCategory(w: RuleCategoryWrite)(using cc: ChangeContext): IOResult[Unit] = {
+    w match {
+      case RuleCategoryWrite.Create(c, into) =>
+        woRuleCategoryRepos.create(c, into) *>
+        ApplicationLoggerPure.Archive.trace(s"Created rule category from archive: '${c.name}' (${c.id.value})")
+      case RuleCategoryWrite.Move(c, into)   =>
+        woRuleCategoryRepos.updateAndMove(c, into) *>
+        ApplicationLoggerPure.Archive.trace(s"Moved rule category from archive: '${c.name}' (${c.id.value}) to ${into.value}")
     }
   }
 
@@ -1968,19 +1945,34 @@ class SaveArchiveServicebyRepo(
     } else ArchiveContainer.Imported()
   }
 
+  // the categories under `c`, each with the id of its parent, parents first
+  private def withParents(c: RuleCategoryArchive): List[(RuleCategoryArchive, RuleCategoryId)] = {
+    c.children.flatMap(child => (child, c.id) :: withParents(child))
+  }
+
+  /*
+   * A category of the archive is written when it is new (created) or when its parents changed (moved), in
+   * parents-first order. A stored category the actor can not read is refused even when its parents did not change.
+   */
   private def checkRuleCategories(r: RuleCategoryArchive, storedRoot: RuleCategory)(using
       cc: ChangeContext
-  ): IOResult[Unit] = {
+  ): IOResult[List[RuleCategoryWrite]] = {
     val newRoot = r.toRuleCategory
-    val parents = r.parentCategories
-    r.childCategories.values
-      .filter(c => c.id != storedRoot.id && !hasSameParents(storedRoot, newRoot, c.id))
-      .accumulate { c =>
-        val parentId = parents.get(c).fold(newRoot.id)(_.id)
-        val stored   = storedRoot.find(c.id).toOption.filter(_._1.id != storedRoot.id)
-        decide(c.toRuleCategory, stored, parentId, ruleCategoryContainer(parentId, storedRoot))
+    withParents(r)
+      .filter(_._1.id != storedRoot.id)
+      .accumulate {
+        case (c, parentId) =>
+          val category = c.toRuleCategory
+          val stored   = storedRoot.find(c.id).toOption
+          stored match {
+            case Some((s, _)) if (readable(s) && hasSameParents(storedRoot, newRoot, c.id)) => None.succeed
+            case _                                                                          =>
+              decide(category, stored, parentId, ruleCategoryContainer(parentId, storedRoot)).as {
+                Some(stored.fold(RuleCategoryWrite.Create(category, parentId))(_ => RuleCategoryWrite.Move(category, parentId)))
+              }
+          }
       }
-      .unit
+      .map(_.flatten)
   }
 
   private def checkRule(r: Rule, mergePolicy: MergePolicy, storedRoot: RuleCategory)(using
@@ -2071,19 +2063,21 @@ class SaveArchiveServicebyRepo(
   /*
    * Decide every object of the archive, and give back the archive restricted to the objects that are written.
    */
-  private def authorize(archive: PolicyArchive, mergePolicy: MergePolicy)(using cc: ChangeContext): IOResult[PolicyArchive] = {
+  // what an authorized archive writes: rule categories are written as decided, not from the archive tree
+  final private case class ArchiveWrites(archive: PolicyArchive, ruleCategories: List[RuleCategoryWrite])
+
+  private def authorize(archive: PolicyArchive, mergePolicy: MergePolicy)(using cc: ChangeContext): IOResult[ArchiveWrites] = {
     val catMap = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
     for {
       visible    <- if (archive.groups.isEmpty) NodeVisibility.Everything.succeed else visibleNodes(using cc.toQC)
-      storedRoot <- if (archive.ruleCats.isEmpty && archive.rules.isEmpty) None.succeed
-                    else QueryContext.asSystem(storedReason)(roRuleCategoryRepos.getRootCategory()).map(Some(_))
+      storedRoot <- QueryContext.asSystem(storedReason)(roRuleCategoryRepos.getRootCategory())
       techCats   <- archive.techniqueCats.accumulateNEL(checkTechniqueCat(_)).either
       techniques <- archive.techniques.accumulateNEL(checkTechnique(_)).either
       directives <- archive.directives.accumulateNEL(checkDirective(_, archive)).either
       groupCats  <- archive.groupCats.accumulateNEL(checkGroupCat(_, catMap)).either
       groups     <- archive.groups.accumulateNEL(checkGroup(_, visible)).either
-      ruleCats   <- ZIO.foreach(storedRoot)(root => archive.ruleCats.accumulateNEL(checkRuleCategories(_, root))).either
-      rules      <- ZIO.foreach(storedRoot)(root => archive.rules.accumulateNEL(checkRule(_, mergePolicy, root))).either
+      ruleCats   <- archive.ruleCats.accumulateNEL(checkRuleCategories(_, storedRoot)).either
+      rules      <- archive.rules.accumulateNEL(checkRule(_, mergePolicy, storedRoot)).either
       refusals    = List(techCats, techniques, directives, groupCats, groups, ruleCats, rules).flatMap(
                       _.left.toOption.toList.flatMap(_.toList)
                     )
@@ -2094,7 +2088,7 @@ class SaveArchiveServicebyRepo(
                     }
     } yield {
       def kept[A](r: Either[?, List[Option[A]]]): Chunk[A] = Chunk.fromIterable(r.toOption.toList.flatten.flatten)
-      archive
+      val written = archive
         .modify(_.techniqueCats)
         .setTo(kept(techCats))
         .modify(_.techniques)
@@ -2106,7 +2100,8 @@ class SaveArchiveServicebyRepo(
         .modify(_.groups)
         .setTo(kept(groups))
         .modify(_.rules)
-        .setTo(kept(rules.map(_.toList.flatten)))
+        .setTo(kept(rules))
+      ArchiveWrites(written, ruleCats.toOption.toList.flatten.flatten)
     }
   }
 
@@ -2121,27 +2116,28 @@ class SaveArchiveServicebyRepo(
       qc.newCC(Some(s"Importing archive '${archive.metadata.filename}'"), Some(ModificationId(uuidGen.newUuid)))
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
-      toWrite <- authorize(archive, mergePolicy)
-      _       <- ZIO.foreach(toWrite.techniqueCats)(saveTechniqueCat(eventMetadata, _))
-      _       <- ZIO.foreach(toWrite.techniques)(saveTechnique(eventMetadata, _))
+      writes <- authorize(archive, mergePolicy)
+      toWrite = writes.archive
+      _      <- ZIO.foreach(toWrite.techniqueCats)(saveTechniqueCat(eventMetadata, _))
+      _      <- ZIO.foreach(toWrite.techniques)(saveTechnique(eventMetadata, _))
       // update technique lib, regenerate policies now since we need to have the possible new techniques available
       // for directives below
-      _       <- ZIO.when(toWrite.techniques.nonEmpty) {
-                   techLibUpdate
-                     .update()
-                     .toIO
-                     .chainError(
-                       s"An error occurred during technique update after import of archive"
-                     )
-                 }
-      _       <- ZIO.foreach(toWrite.directives)(saveDirective(_))
+      _      <- ZIO.when(toWrite.techniques.nonEmpty) {
+                  techLibUpdate
+                    .update()
+                    .toIO
+                    .chainError(
+                      s"An error occurred during technique update after import of archive"
+                    )
+                }
+      _      <- ZIO.foreach(toWrite.directives)(saveDirective(_))
       // we need the map of all (categoryPath -> id) in the archive
-      m        = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
-      _       <- ZIO.foreach(toWrite.groupCats)(saveGroupCat(_, m))
-      _       <- ZIO.foreach(toWrite.groups)(saveGroup(_))
-      _       <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(_))
-      _       <- ZIO.foreach(toWrite.rules)(saveRule(mergePolicy, _))
-      _       <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
+      m       = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
+      _      <- ZIO.foreach(toWrite.groupCats)(saveGroupCat(_, m))
+      _      <- ZIO.foreach(toWrite.groups)(saveGroup(_))
+      _      <- ZIO.foreach(writes.ruleCategories)(saveRuleCategory(_))
+      _      <- ZIO.foreach(toWrite.rules)(saveRule(mergePolicy, _))
+      _      <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
     } yield ()
   }
 }

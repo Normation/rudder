@@ -56,8 +56,8 @@ import org.specs2.runner.*
 import zio.Chunk
 
 /*
- * A group update by an actor only changes the members it can see: the members in tenants it can not see are
- * kept from the stored group.
+ * A group write by an actor only changes the members it can see: the members in tenants it can not see are
+ * kept from the stored group, and are not added.
  */
 @RunWith(classOf[JUnitRunner])
 class GroupMembersTenantTest extends Specification {
@@ -109,6 +109,10 @@ class GroupMembersTenantTest extends Specification {
       NodeVisibility.Only(Set(n1, n2)).replaceVisible(stored = Set(n1, n3), submitted = Set(n2)) === Set(n2, n3)
     }
 
+    "not add a submitted member that is not visible" in {
+      NodeVisibility.Only(Set(n1, n2)).replaceVisible(stored = Set(n1), submitted = Set(n2, n3)) === Set(n2)
+    }
+
     "replace everything for an unrestricted reader" in {
       NodeVisibility.Everything.replaceVisible(stored = Set(n1, n3), submitted = Set(n2)) === Set(n2)
     }
@@ -137,6 +141,26 @@ class GroupMembersTenantTest extends Specification {
       val g = created("g-diff-admin")
       repo.updateDiffNodes(g.id, Nil, List(MockNodes.node1.id))(using admin).runNow
       stored(g.id.uid.value) === members - MockNodes.node1.id
+    }
+
+    "not add a member the actor can not see" in {
+      val g = created("g-diff-add-zoneA")
+      repo.update(g.modify(_.serverList).setTo(Set()))(using admin).runNow
+      repo.updateDiffNodes(g.id, List(MockNodes.node1.id), Nil)(using zoneA).runNow
+      stored(g.id.uid.value) === Set()
+    }
+  }
+
+  "A group creation" should {
+    "not add the members the actor can not see" in {
+      val g = group("g-create-zoneA")
+      repo.create(g, Constants.ROOT_GROUP_CATEGORY)(using zoneA).runNow
+      stored(g.id.uid.value) === Set()
+    }
+
+    "add them for an administrator" in {
+      created("g-create-admin")
+      stored("g-create-admin") === members
     }
   }
 }

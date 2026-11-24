@@ -54,9 +54,9 @@ enum NodeVisibility {
     case Only(nodes) => ids.filter(nodes.contains)
   }
 
-  // `submitted` replaces the part of `stored` the query context can see; the rest of `stored` is kept
+  // the visible part of `submitted` replaces the part of `stored` the query context can see; the rest of `stored` is kept
   def replaceVisible(stored: Set[NodeId], submitted: Set[NodeId]): Set[NodeId] = this match {
     case Everything  => submitted
-    case Only(nodes) => submitted ++ stored.filterNot(nodes.contains)
+    case Only(nodes) => submitted.filter(nodes.contains) ++ stored.filterNot(nodes.contains)
   }
 }
