@@ -236,7 +236,8 @@ class TestInventory extends Specification {
                                    |QlIDF1c8Ko+9/RrnRVAS8C4GZOqbmMmfJjMp09GBz2d0ixlTusF6m6iwfIVMf/nI
                                    |P/V0D7STRiV62cfnZ3e0w8kIeZwWAgXI7RMHJU3skLyurUu8yxkp635IQyzQsW2A
                                    |Yo7t7O7fxjqD9yVI2QfkERZ7
-                                   |-----END CERTIFICATE-----""".stripMargin),
+                                   |-----END CERTIFICATE-----
+                                   |""".stripMargin),
         Set()
       )
     )

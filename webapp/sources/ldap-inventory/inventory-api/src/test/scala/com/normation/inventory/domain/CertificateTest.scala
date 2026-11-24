@@ -48,7 +48,7 @@ class CertificateTest extends ZIOSpecDefault {
 
   def read(name: String): String = {
     val source = Source.fromResource(s"certificates/${name}")
-    try source.mkString.trim
+    try source.mkString.trim + "\n"
     finally source.close()
   }
 
@@ -60,8 +60,8 @@ class CertificateTest extends ZIOSpecDefault {
   val nodeId:    NodeId = NodeId("67e00959-ccda-430d-b6c2-ad1f3e89276a")
 
   // BouncyCastle stops at the malformed BEGIN line, OpenSSL skips it and reads the forged certificate
-  val hiddenAfterMalformedBegin: String = linux + "\n-----BEGIN CERTIFICATE\n" + forged
-  val twoCertificates:           String = linux + "\n" + forged
+  val hiddenAfterMalformedBegin: String = linux + "-----BEGIN CERTIFICATE\n" + forged
+  val twoCertificates:           String = linux + forged
 
   def isSecurityToken(res: Either[InventoryError, Any]): Boolean = res match {
     case Left(_: InventoryError.SecurityToken) => true
@@ -75,9 +75,10 @@ class CertificateTest extends ZIOSpecDefault {
       test("is a certificate when it is exactly one") {
         assertTrue(
           pem(Certificate.parse(linux)) == Right(linux),
-          pem(Certificate.parse(linux + "\r\n")) == Right(linux),
+          pem(Certificate.parse(linux.stripSuffix("\n"))) == Right(linux),
+          pem(Certificate.parse(linux.replace("\n", "\r\n"))) == Right(linux),
           isSecurityToken(Certificate.parse(twoCertificates)),
-          isSecurityToken(Certificate.parse(linux + "\n" + publicKey)),
+          isSecurityToken(Certificate.parse(linux + publicKey)),
           Certificate.parse(publicKey).isLeft,
           Certificate.parse("not a certificate").isLeft
         )
@@ -107,7 +108,7 @@ class CertificateTest extends ZIOSpecDefault {
         assertTrue(
           SecurityToken.fromStored(twoCertificates).value == linux,
           SecurityToken.fromStored(hiddenAfterMalformedBegin).value == linux,
-          SecurityToken.fromStored(publicKey + "\n" + linux) == UnverifiedToken(publicKey + "\n" + linux)
+          SecurityToken.fromStored(publicKey + linux) == UnverifiedToken(publicKey + linux)
         )
       },
       test("is read with its first certificate from JSON, in the same format") {
@@ -121,8 +122,13 @@ class CertificateTest extends ZIOSpecDefault {
     suite("certificate")(
       test("is equal to another one with the same PEM") {
         val a = Certificate.parse(linux)
-        val b = Certificate.parse(linux + "\n")
-        assertTrue(a == b, a.map(_.hashCode) == b.map(_.hashCode), a != Certificate.parse(forged))
+        val b = Certificate.parse(linux.stripSuffix("\n"))
+        assertTrue(
+          a == b,
+          a.map(_.hashCode) == b.map(_.hashCode),
+          a != Certificate.parse(forged),
+          a.map { case Certificate(pem) => pem } == Right(linux)
+        )
       },
       test("has the subject and key digests computed by openssl") {
         val cert = Certificate.parse(linux)

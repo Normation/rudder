@@ -800,7 +800,8 @@ object Cert {
       |1yxqMETG59Y7U8Lbg7OiUdxYlnU6xqvUKfGMeVex8u5ezi8FnDnq4GMKv1T0IxEm
       |q9mtP7ZlngR8NgzUx4sB9cmPFo1f8YU9z6fy28ikYoP4vEv195W/eoPOURM4wLZo
       |KIrCpwe0wYC3267ZbRQJ
-      |-----END CERTIFICATE-----""".stripMargin
+      |-----END CERTIFICATE-----
+      |""".stripMargin
   }
 
   val CERT_WIN_OK: String = {
@@ -835,7 +836,8 @@ object Cert {
       |o07htJltXDGDSekSDgK3OnZwLOyTUrz1zMmGqGbqRCwOQAWcZBWLrIjUjM0k9vPy
       |qYUqf4FphVwX4JqDhm8JSS/et/0431MjMfQC/qauAhPBITgRjlDVEVvGB40aiNLk
       |ootapja6lKOaIpqp0kmmYN7gFIhp
-      |-----END CERTIFICATE-----""".stripMargin
+      |-----END CERTIFICATE-----
+      |""".stripMargin
   }
 
   val CERT_WIN_NEW: String = {
@@ -870,7 +872,8 @@ object Cert {
       |Jq19A1ObBOe7axqsHvqeW4GJapXBjcWFRsq2ltP19lefKu27ikMWzEvkYJu1TX7t
       |RmA82uwwqMa4eo5lXYkLCkVLyN3sSb39vqMb9C45y2fjBZv9OcpWCt/c0FwKz00K
       |TZEW7+Ri43DsMyRwYiCafuVThL+J
-      |-----END CERTIFICATE-----""".stripMargin
+      |-----END CERTIFICATE-----
+      |""".stripMargin
   }
 
   val CERT_WIN_BAD: String = {
@@ -904,7 +907,8 @@ object Cert {
       |NgYt8p2IV5E/sX2YN0ud6m67JI/aOGVd9ayx/5iewgPN9Qqq/hbIf0chDAHLrBaP
       |FsNJl7wJNyScs0tWcehDQFGg6M4ZZzVe17pbQRugPR4FtX8Gn/7YOaJ/qi1iH/+A
       |FaEnrp+MmjRoSWIW6ZOscKE4hOz9wvwq+Rdl3rfTfohM5CbcfrQT1H3/cw==
-      |-----END CERTIFICATE-----""".stripMargin
+      |-----END CERTIFICATE-----
+      |""".stripMargin
   }
 
 }

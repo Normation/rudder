@@ -37,6 +37,7 @@
 
 package com.normation.inventory.domain
 
+import cats.syntax.either.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError.CryptoEx
@@ -76,8 +77,10 @@ final case class JsonDecSecurityToken(@jsonAliases("token") value: String)
 final case class JsonEncSecurityToken(@jsonField("type") @jsonAliases("kind") kind: String, value: String)
 
 /*
- * Agent security token: a `Certificate`, checked, or an `UnverifiedToken`, a text received or stored that is not one
- * certificate. Only certificates are published to Apache, relayd and agents, and a node is saved only with one.
+ * An agent security token:
+ * - `UnverifiedToken`: a text received or stored that is not exactly one certificate
+ * - `Certificate` when we checked that there is exactly one and correctly  parsed certificate. PEM is normalized.
+ *    Only certificates are published to Apache, relayd and agents.
  */
 sealed trait SecurityToken {
   // text stored, and returned by the API
@@ -184,10 +187,10 @@ final case class UnverifiedToken(value: String) extends SecurityToken
  * string representation. This is needed because BouncyCastle and OpenSSL do not accept the same text as valid:
  * BouncyCastle stops at a malformed BEGIN line, OpenSSL skips it and reads on. See https://issues.rudder.io/issues/30193
  *
- * Equality is on `pem`: the other fields derive from it.
+ * Identity and Equality is on `pem`: the other fields derive from it, scala
+ * doesn't use the second argument list for case class generated methods.
  */
-final class Certificate private (
-    val pem:               String,
+final case class Certificate private (pem: String)(
     val subject:           String,
     val firstRdnValue:     String,
     // SHA-256 of the DER public key, in base64 (relayd and curl pinning)
@@ -195,16 +198,12 @@ final class Certificate private (
     // MD5 of the RSA modulus and exponent, in hexadecimal (CFEngine key hash); None when the key is not RSA
     val cfengineMd5Digest: Option[String]
 ) extends SecurityToken {
-  def value: String = pem
+  override def value: String = pem
 
   def cert: IO[InventoryError, X509CertificateHolder] = ZIO.fromEither(Certificate.parseSingle(pem))
 
-  override def equals(other: Any): Boolean = other match {
-    case c: Certificate => c.pem == pem
-    case _ => false
-  }
-  override def hashCode:           Int     = pem.hashCode
-  override def toString:           String  = s"Certificate(${subject}, sha256=${sha256Base64})"
+  // the PEM is long, logs need the subject and the key digest
+  override def toString: String = s"Certificate(${subject}, sha256=${sha256Base64})"
 }
 
 object Certificate {
@@ -246,8 +245,7 @@ object Certificate {
       pem    <- toPem(cert)
       sha256 <- sha256Base64(cert)
     } yield {
-      new Certificate(
-        pem,
+      new Certificate(pem)(
         cert.getSubject.toString,
         cert.getSubject.getRDNs().headOption.map(_.getFirst().getValue().toString).getOrElse(""),
         sha256,
@@ -256,15 +254,13 @@ object Certificate {
     }
   }
 
-  // Standard PEM of the certificate: DER in base64, 64 characters per line, `\n` line ends.
+  // Strict PEM of the certificate (RFC 7468 §3): DER in base64, 64 characters per line, every line ended by `\n`, the last one included.
   private def toPem(cert: X509CertificateHolder): Either[InventoryError, String] = {
     PureResult
       .attempt(s"Certificate '${cert.getSubject}' cannot be encoded") {
         Base64.getMimeEncoder(64, Array('\n'.toByte)).encodeToString(cert.getEncoded)
       }
-      .left
-      .map(ex => InventoryError.CryptoEx(ex.msg, ex.cause): InventoryError)
-      .map(b64 => s"${HEADER}\n${b64}\n${FOOTER}")
+      .bimap(ex => InventoryError.CryptoEx(ex.msg, ex.cause): InventoryError, b64 => s"${HEADER}\n${b64}\n${FOOTER}\n")
   }
 
   private def sha256Base64(cert: X509CertificateHolder): Either[InventoryError, String] = {

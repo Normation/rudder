@@ -727,7 +727,6 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       n1 === numberOfNodes and n2 === (numberOfNodes - 1)
     }
 
-    // the fixture certificate ends with a new line, saved back as standard PEM
     "node certificate serialisation is correct with ZIO in LDAP" >> {
       mockLdapFactStorage.testServer
         .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
@@ -747,7 +746,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         """YPkTJm5g2UBYDiguD/tlz3VmbsNYU6fkap7DKqhttbaseIx1zDwdAv4jtVOWDyjx\nWq4b7pljYiczfRa84X/9v1x05pT3raELy5udY+Pxmnz+hOXOM+jY5bzSKS24b8rS\n""" +
         """5Sklmutm0IdflMKd5vNrXd9yPFLu3QzN50ArzHHXczwBLgjaMlZsPAp1wITlqM7+\nWCjy3qM5/KgAjH3L24MPTq23o9PokBVh1NH7lesZqgJPgsj+OG7FMQDvKzg7ytrs\n""" +
         """QlIDF1c8Ko+9/RrnRVAS8C4GZOqbmMmfJjMp09GBz2d0ixlTusF6m6iwfIVMf/nI\nP/V0D7STRiV62cfnZ3e0w8kIeZwWAgXI7RMHJU3skLyurUu8yxkp635IQyzQsW2A\n""" +
-        """Yo7t7O7fxjqD9yVI2QfkERZ7\n-----END CERTIFICATE-----"},"capabilities":["acl","cfengine","curl","http_reporting","jq","xml","yaml"]}"""
+        """Yo7t7O7fxjqD9yVI2QfkERZ7\n-----END CERTIFICATE-----\n"},"capabilities":["acl","cfengine","curl","http_reporting","jq","xml","yaml"]}"""
       )
     }
 
