@@ -76,7 +76,6 @@ import com.normation.rudder.users.RudderPreAuthUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
-import com.normation.rudder.web.snippet.WithDisabledCSP
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -137,36 +136,32 @@ object Boot {
     private val cspHeaderNames = List("Content-Security-Policy", "X-Content-Security-Policy")
 
     /**
-      * Returns default headers with all other initial CSP directive, using current request nonce unless CSP are disabled
+      * Returns default headers with our strict CSP header replacing Lift's one, using current request nonce.
+      * We also add directives that Lift cannot express (like `frame-ancestors`).
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
-      if (WithDisabledCSP.isDisabled) { // no headers to override
-        allHeaders
-      } else {
-        val nonce = WithNonce.getRequestNonce
+      val nonce = WithNonce.getRequestNonce
 
-        val cspHeader     = compileCSPHeader(
-          cspDirectives
-            .pipe(
-              replaceCSPRestrictionDirectives("script-src", nonce.map(n => s"'nonce-${n}' 'strict-dynamic'").getOrElse("'none'"))(
-                _
-              )
-            )
-            .pipe(
-              replaceCSPRestrictionDirectives("object-src", "'none'")(_)
-            )
-            .pipe(
-              _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath().mkString("/")}/content-security-policy-report")
-            )
-        )
-        val newCspHeaders = csp
-          .headers()
-          .collect {
-            // replace all content security policies directives
-            case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
-          }
-        newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
-      }
+      val cspHeader     = compileCSPHeader(
+        cspDirectives
+          .pipe(
+            replaceCSPRestrictionDirectives("script-src", nonce.map(n => s"'nonce-${n}' 'strict-dynamic'").getOrElse("'none'"))(_)
+          )
+          .pipe(
+            replaceCSPRestrictionDirectives("object-src", "'none'")(_)
+          )
+        :+ ("base-uri"        -> "'none'")
+        // Forbid embedding Rudder pages in frames (clickjacking), replaces the legacy `X-Frame-Options: DENY`
+        :+ ("frame-ancestors" -> "'none'")
+        :+ ("report-uri"      -> s"${S.contextPath}/${LiftRules.liftContextRelativePath().mkString("/")}/content-security-policy-report")
+      )
+      val newCspHeaders = csp
+        .headers()
+        .collect {
+          // replace all content security policies directives
+          case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
+        }
+      newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
     }
 
     val cspDirectives: List[(String, String)] = List( // copied from lift ContentSecurityPolicy source
@@ -580,11 +575,13 @@ class Boot extends Loggable {
         ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
-    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-disabled-csp" -> WithDisabledCSP))
+    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce))
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
         content = Some(csp),
+        // Legacy `X-Frame-Options: DENY`, only kept for browsers without CSP level 2 support:
+        // it is superseded by the CSP `frame-ancestors 'none'` directive added in `RequestHeadersFactoryVendor`
         frameRestrictions = Some(FrameRestrictions.Deny),
         // OtherModes = not(DevMode) = Prod, enforce and log
         enforceInOtherModes = true,
