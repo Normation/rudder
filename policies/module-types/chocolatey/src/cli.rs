@@ -16,7 +16,7 @@ fn read_from_json_or_file(s: &str) -> Result<Map<String, Value>> {
     } else {
         s.to_string()
     };
-    serde_json::from_str(&content).context(format!("Invalid JSON '{s}'"))
+    serde_json::from_str(&content).with_context(|| format!("Invalid JSON '{s}'"))
 }
 
 #[derive(Parser, Debug)]

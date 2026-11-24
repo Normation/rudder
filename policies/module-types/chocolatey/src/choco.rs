@@ -86,8 +86,8 @@ impl ChocoRunner {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let code = output.status.code();
         debug!(
-            "Result: exit code {:?}\nstdout: {}\nstderr: {}",
-            output.status.code(),
+            "Result: exit code {}\nstdout: {}\nstderr: {}",
+            output.status,
             stdout.trim(),
             stderr.trim()
         );

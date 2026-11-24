@@ -222,7 +222,7 @@ impl ChocoModule {
         let spinner = Spinner::start(format!("Trying to repair package {}...", entry.name));
         let r = match entry.status {
             Absent => {
-                let cmd = commands::UninstallPackage::new(&entry.name, entry.version.clone(), entry.extra_params.clone()).context(format!("An unexpected error occurred while building the chocolatey CLI command to uninstall package '{}'.", entry.name))?;
+                let cmd = commands::UninstallPackage::new(&entry.name, entry.version.clone(), entry.extra_params.clone()).with_context(|| format!("An unexpected error occurred while building the chocolatey CLI command to uninstall package '{}'.", entry.name))?;
                 match self.runner.run(&cmd) {
                     Err(e) => {
                         bail!(
@@ -238,7 +238,7 @@ impl ChocoModule {
                 }
             }
             Present => {
-                let cmd = commands::InstallPackage::new(&entry.name, entry.version.clone(), entry.extra_params.clone()).context(format!("An unexpected error occurred while building the chocolatey CLI command to install package '{}'.", entry.name))?;
+                let cmd = commands::InstallPackage::new(&entry.name, entry.version.clone(), entry.extra_params.clone()).with_context(|| format!("An unexpected error occurred while building the chocolatey CLI command to install package '{}'.", entry.name))?;
                 match self.runner.run(&cmd) {
                     Err(e) => {
                         bail!(
@@ -434,10 +434,12 @@ impl ModuleType0 for ChocoModule {
         let report = Self::summarize(&outcomes);
         if let Some(r) = p.report_file {
             rudder_info!("Writing report");
-            fs::write(&r, report.message.clone()).context(format!(
-                "Could not write the module report file to '{}'",
-                r.display()
-            ))?;
+            fs::write(&r, report.message.clone()).with_context(|| {
+                format!(
+                    "Could not write the module report file to '{}'",
+                    r.display()
+                )
+            })?;
         }
         report.into()
     }
