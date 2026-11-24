@@ -1,28 +1,37 @@
-//! safefs provides TOCTOU-safe wrappers for common filesystem operations.
+//! TOCTOU-safe wrappers for common filesystem operations.
 //!
-//! The path is resolved one component at a time with `openat(2)`, always
+//! Paths are resolved one component at a time with `openat(2)`, always
 //! relative to a file descriptor of the previously validated directory, so a
 //! component cannot be swapped between the check and the use.
 //!
 //! # Security model
 //!
-//! An object is *trusted* when it is owned by root or by the effective uid.
+//! An object is trusted when it is owned by root or by the effective UID.
 //!
 //! The following rules are always enforced:
 //!
-//! * symlinks are resolved by this module, and only if the symlink itself is
-//!   trusted. At most [`MAX_SYMLINKS`] are followed.
-//! * the final file must be a regular file.
-//! * new files are created with `O_CREAT | O_EXCL`.
+//! - Symlinks are resolved by this module rather than by the kernel. Each
+//!   component is opened with `O_NOFOLLOW`; when it is a symlink, its target
+//!   is read with `readlinkat(2)` and the link is followed only if:
+//!   - by default, the symlink has the same owner as its target;
+//!   - with `strict_owner`, the symlink itself is trusted, whoever owns its
+//!     target.
+//!
+//!   At most [`MAX_SYMLINKS`] symlinks are followed.
+//! - The final file must be a regular file.
+//! - New files are created with `O_CREAT | O_EXCL`.
+//!
+//! # Strict mode
 //!
 //! With the `strict_owner` option, the following checks are added:
 //!
-//! * every traversed directory must be trusted and must not be writable by
-//!   group/others, unless it has the sticky bit (e.g. `/tmp`).
-//! * the final file, including a newly created one, must be trusted, not
-//!   writable by group/others, and must not have other hard links.
-//! * for relative paths, the current working directory is validated but not
+//! - Every traversed directory must be trusted and must not be writable by
+//!   group or others, unless it has the sticky bit (e.g. `/tmp`).
+//! - The final file, including a newly created one, must be trusted, must not
+//!   be writable by group or others, and must not have other hard links.
+//! - For relative paths, the current working directory is validated, but not
 //!   its ancestors.
+
 //!
 //! # Examples
 //!
