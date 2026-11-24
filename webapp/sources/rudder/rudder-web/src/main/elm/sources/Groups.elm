@@ -15,9 +15,6 @@ import Maybe.Extra
 import Rudder.Filters as Filters
 import Rudder.Table exposing (CsvExportType(..), OutMsg(..))
 import Task
-import Time
-import Time.DateTime
-import Time.Iso8601
 import Ui.Datatable exposing (getAllCats)
 
 
