@@ -35,6 +35,22 @@
 //! - For relative paths, the current working directory is validated, but not
 //!   its ancestors.
 //!
+//! # Differences from CFEngine
+//!
+//! The default mode applies CFEngine's symlink trust policy:
+//! A link is followed if it is owned by root or by the effective user, or if it has the same owner
+//! and group as its target. CFEngine lets the kernel follow links and then compares the ownership
+//! of the name with the ownership of the opened object.
+//! This module opens every component with O_NOFOLLOW and resolves links itself with readlinkat,
+//! up to 40 links (the kernel's limit).
+//!
+//! The strict_owner mode has no CFEngine equivalent. It requires every
+//! symlink to be trusted, and requires every traversed directory and the final file to be trusted
+//! and not writable by group or others (sticky directories excepted). It also rejects hard-linked
+//! files. Paths containing `..` are also rejected. When another process creates the file at the same
+//! moment, CFEngine retries up to 3 times and then fails with EACCES, but this module fails at once
+//! with SafeFsError::Raced.
+//!
 //! # Examples
 //!
 //! Open an existing file read-only (the default):
