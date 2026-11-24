@@ -137,7 +137,7 @@ object Boot {
 
     /**
       * Returns default headers with our strict CSP header replacing Lift's one, using current request nonce.
-      * We also add directives that Lift cannot express (like `frame-ancestors`).
+      * We also add directives that Lift cannot express (like `form-action` or `frame-ancestors`).
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
       val nonce = WithNonce.getRequestNonce
@@ -151,6 +151,7 @@ object Boot {
             replaceCSPRestrictionDirectives("object-src", "'none'")(_)
           )
         :+ ("base-uri"        -> "'none'")
+        :+ ("form-action"     -> "'self'")
         // Forbid embedding Rudder pages in frames (clickjacking), replaces the legacy `X-Frame-Options: DENY`
         :+ ("frame-ancestors" -> "'none'")
         :+ ("report-uri"      -> s"${S.contextPath}/${LiftRules.liftContextRelativePath().mkString("/")}/content-security-policy-report")
