@@ -644,16 +644,24 @@ function propertyFunction(name) {
       return JSON.stringify(data.value)
     } else {  // render for "display", etc.
       const iRow = meta.row
-      const property = data.value
-      const text = typeof property === "object" ? JSON.stringify(property, null, 2) : property
+      // `data` is the property (name, value, provider, hierarchy...): provider and hierarchy are
+      // read from it, never from `data.value`, which is the user-supplied property content.
+      const value = data.value
+      const text = typeof value === "object" ? JSON.stringify(value, null, 2) : value
 
       var provider = $("")
-      if (property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden')
-        provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right" title="This property is managed by its provider <b>‘' + property.provider + '</b>’">' + property.provider + '</span>')
+      // The provider is free text, set by whoever wrote the property: it goes in as text, and is
+      // HTML-escaped inside the title because the tooltip renders its title as HTML.
+      if (data.provider !== undefined && data.provider !== 'inherited' && data.provider !== 'overridden') {
+        provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right"></span>')
+          .text(data.provider)
+          .attr('title', "This property is managed by its provider <b>‘" + escapeHTML(data.provider) + "</b>’")
+      }
 
-      if (property.provider === 'inherited') {
+      if (data.provider === 'inherited') {
         provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right">inherited</span>')
-        provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>" + property.hierarchy + "</div>.")
+        // hierarchy is HTML built and escaped server side (RenderInheritedProperties.HTML, escapeHtml = true)
+        provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>" + data.hierarchy + "</div>.")
       }
       const id = `property-${name}-${iRow}`;
       const pre = $(`<pre class="collapse json-beautify show-more" id="${id}"></span>`).text(text).prepend(provider);
@@ -795,8 +803,8 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
                , "defaultContent" : "<span class='text-muted'>N/A</span>"
       , "createdCell" :
         function (nTd, sData, oData, iRow, iCol) {
-          $(nTd).empty();
-          $(nTd).prepend("<ul><li>"+oData.ipAddresses.sort().join("</li><li>") + "</li></ul>");
+          const ips = oData.ipAddresses.slice().sort().map(ip => $("<li></li>").text(ip));
+          $(nTd).empty().append($("<ul></ul>").append(ips));
         }
       }
     , "Machine type" :
@@ -816,12 +824,10 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
       , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
           var link = callbackElement(oData, false)
-          var state = "";
+          var nodeLink = $('<span></span>').text(sData);
           if(oData.state != "enabled") {
-            state = '<span class="rudder-label label-state label-sm" style="margin-left: 5px;">'+oData.state+'</span>'
+            nodeLink.append($('<span class="rudder-label label-state label-sm" style="margin-left: 5px;"></span>').text(oData.state));
           }
-          var el = '<span>'+sData+state+'</span>';
-          var nodeLink = $(el);
           link.append(nodeLink);
           var systemCompliance = "";
           if (oData.systemError) {
