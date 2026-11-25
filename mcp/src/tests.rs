@@ -20,10 +20,10 @@ use serde_json::{Value, json};
 use crate::{api::RudderApi, config::ApiConfig, serve};
 
 /// Mock Rudder API: the token check, the system endpoints, the global policy mode (`audit`,
-/// overridable) and one node, `root` with hostname
+/// overridable) and one node (with its compliance), `root` with hostname
 /// `server.example.com`, which echoes the requested `include` (`""` when absent). Tokens: `ro` identifies a read-only
 /// account, `user` a user token (no `authorizationType`), `acl` an account that can read its own
-/// account but not the system endpoints nor the settings, `narrow` is valid but cannot read its own account,
+/// account but not the system endpoints, the settings nor the compliance, `narrow` is valid but cannot read its own account,
 /// `anonymous` gets an answer without account, `future` an account with an unknown
 /// `authorizationType`, `audit` is an `rw` account only used to check the logs, anything else is
 /// unknown.
@@ -136,6 +136,18 @@ async fn mock_rudder() -> String {
                 json!({"action": "getSetting", "id": "global_policy_mode_overridable",
                           "result": "success",
                           "data": {"settings": {"global_policy_mode_overridable": true}}}),
+            ),
+        )
+        .route(
+            "/rudder/api/latest/compliance/nodes/root",
+            system(
+                json!({"action": "getNodeComplianceId", "result": "success", "data": {"nodes": [{
+                    "id": "root", "name": "server.example.com", "compliance": 50.0,
+                    "complianceDetails": {"error": 50.0, "successAlreadyOK": 50.0},
+                    "rules": [{"id": "r1", "name": "Web", "compliance": 50.0,
+                               "complianceDetails": {"error": 50.0, "successAlreadyOK": 50.0},
+                               "directives": []}]
+                }]}}),
             ),
         )
         .route(
@@ -294,6 +306,29 @@ async fn node_info_without_the_global_policy_mode() {
     assert!(
         reason.contains("GET settings/global_policy_mode") && reason.contains("node_read"),
         "{reason}"
+    );
+}
+
+#[tokio::test]
+async fn node_compliance_by_id_or_hostname() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let expected = "- server.example.com (root): 50% [error 50%, successAlreadyOK 50%]\n\
+                    \x20 - Web (r1): 50% [error 50%, successAlreadyOK 50%]";
+    for node in ["root", "server.example.com"] {
+        let text = tool_text(&url, "ro", "node_compliance", json!({"node": node})).await;
+        assert_eq!(text, expected);
+    }
+    let (is_error, text) =
+        tool_result(&url, "ro", "node_compliance", json!({"node": "server"})).await;
+    assert!(
+        is_error && text.contains("Similar hostnames (id): server.example.com (root)."),
+        "{text}"
+    );
+    let (is_error, text) =
+        tool_result(&url, "acl", "node_compliance", json!({"node": "root"})).await;
+    assert!(
+        is_error && text.contains("requires the compliance_read right"),
+        "{text}"
     );
 }
 
