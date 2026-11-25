@@ -63,6 +63,8 @@ init flags =
             , techniquesTree = initCategory
             , rulesCompliance = Dict.empty
             , changes = Dict.empty
+            , latest = LatestChanges Nothing Dict.empty
+            , intervals = Nothing
             , directives = Dict.empty
             , nodes = Dict.empty
             , ui = initUI
@@ -90,6 +92,8 @@ init flags =
             , getGroupsTree initModel
             , getTechniquesTree initModel
             , getRulesTree initModel
+            , getChangesInterval initModel
+            , getLatestChanges initModel
             , getRuleChanges initModel
             ]
     in

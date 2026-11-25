@@ -741,6 +741,20 @@ object ChangesApi       extends Enum[ChangesApi] with ApiModuleProvider[ChangesA
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
 
+  case object GetIntervals extends ChangesApi with ZeroParam with StartsAtVersion23 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get interval for changes of all Rules over the last 3 days (internal)"
+    val (action, path) = GET / "changes" / "intervals"
+    val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
+  }
+
+  case object GetLatestChanges extends ChangesApi with ZeroParam with StartsAtVersion23 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get changes for all Rules over the a specifield interval"
+    val (action, path) = GET / "changes" / "latest"
+    val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
+  }
+
   case object GetRuleRepairedReports extends ChangesApi with OneParam with StartsAtVersion14 with SortIndex {
     override val name: String = "getRuleChange"
     val z:             Int    = implicitly[Line].value
