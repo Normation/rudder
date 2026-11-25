@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import List.Extra
 import Rules.DataTypes exposing (..)
 import Time exposing (Zone)
 import Utils.DateUtils exposing (offsetString, posixToDateString, posixToString, posixToTimeString)
@@ -26,9 +27,26 @@ columns model =
         :: []
 
 
-options : Zone -> List Changes -> List (Html Msg)
-options zone changes =
-    List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges zone c) ]) <| changes
+computeChanges : Interval -> List Changes -> Float
+computeChanges interval changes =
+    changes
+        |> List.Extra.find (\c -> c.start == interval.start)
+        |> Maybe.map .changes
+        |> Maybe.withDefault 0
+
+
+options : Zone -> Maybe Interval -> Float -> List Interval -> List Changes -> List (Html Msg)
+options zone latestInterval latestCount intervals changes =
+    let
+        latestOption =
+            case latestInterval of
+                Just _ ->
+                    [ option [ value "latest" ] [ text ("Last 6 hours (" ++ formatChangeCount latestCount ++ ")") ] ]
+
+                Nothing ->
+                    []
+    in
+    latestOption ++ (List.reverse <| List.indexedMap (\id c -> option [ value (String.fromInt id) ] [ text (showChanges zone c (computeChanges c changes)) ]) <| intervals)
 
 
 technicalLogsTab : Model -> RuleDetails -> Html Msg
@@ -37,18 +55,22 @@ technicalLogsTab model details =
         col =
             columns model
 
-        tableTitle =
-            case Dict.get details.rule.id.value model.changes of
-                Just changes ->
-                    div [ class "table-title" ]
-                        [ div [ class "input-group w-auto" ]
-                            [ label [ class "input-group-text", for "dateRange" ] [ i [ class "fa fa-calendar" ] [] ]
-                            , select [ id "dateRange", onInput (\s -> GetRepairedReport details.rule.id (Maybe.withDefault 0 (String.toInt s))), class "form-select" ] (options model.zone changes)
-                            ]
-                        ]
+        changes =
+            Dict.get details.rule.id.value model.changes |> Maybe.withDefault []
 
-                Nothing ->
-                    text ""
+        intervals =
+            model.intervals |> Maybe.map .all |> Maybe.withDefault []
+
+        latestCount =
+            Dict.get details.rule.id.value model.latest.changes |> Maybe.withDefault 0
+
+        tableTitle =
+            div [ class "table-title" ]
+                [ div [ class "input-group w-auto" ]
+                    [ label [ class "input-group-text", for "dateRange" ] [ i [ class "fa fa-calendar" ] [] ]
+                    , select [ id "dateRange", onInput (\s -> GetRepairedReport details.rule.id (String.toInt s)), class "form-select" ] (options model.zone model.latest.interval latestCount intervals changes)
+                    ]
+                ]
     in
     div [ class "tab-table-content" ]
         [ tableTitle
@@ -96,19 +118,21 @@ technicalLogsTab model details =
         ]
 
 
-showChanges : Zone -> Changes -> String
-showChanges zone c =
+showChanges : Zone -> Interval -> Float -> String
+showChanges zone interval nbChanges =
     let
         formatChangeDate d =
             posixToDateString zone d ++ " " ++ posixToTimeString zone d ++ offsetString zone d
-
-        formatChangeCount n =
-            String.fromFloat n
-                ++ (if n > 1 then
-                        " changes"
-
-                    else
-                        " change"
-                   )
     in
-    ("Between " ++ formatChangeDate c.start ++ " and " ++ formatChangeDate c.end ++ " (" ++ formatChangeCount c.changes) ++ ")"
+    ("Between " ++ formatChangeDate interval.start ++ " and " ++ formatChangeDate interval.end ++ " (" ++ formatChangeCount nbChanges) ++ ")"
+
+
+formatChangeCount : Float -> String
+formatChangeCount n =
+    String.fromFloat n
+        ++ (if n > 1 then
+                " changes"
+
+            else
+                " change"
+           )
