@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! The MCP server and its tools, one module per tool, plus what several share (`policy_mode`).
+//! The MCP server and its tools, one module per tool, plus what several share (`node`, `policy_mode`).
 //!
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
 
+mod node;
+mod node_compliance;
 mod node_info;
 mod policy_mode;
 mod server_info;
@@ -28,7 +30,10 @@ pub struct Rudder;
 impl Rudder {
     /// Each tool module has its own router
     fn tool_router() -> ToolRouter<Self> {
-        Self::whoami_router() + Self::server_info_router() + Self::node_info_router()
+        Self::whoami_router()
+            + Self::server_info_router()
+            + Self::node_info_router()
+            + Self::node_compliance_router()
     }
 }
 
