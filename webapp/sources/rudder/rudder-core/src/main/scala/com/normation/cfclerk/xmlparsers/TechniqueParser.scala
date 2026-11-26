@@ -60,6 +60,7 @@ class TechniqueParser(
 
   def loggerName = "technique-parser"
 
+  // TODO this (xml) is actually metadata.xml
   def parseXml(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Technique] = {
     def nonEmpty(s: String) = if (null == s || s == "") None else Some(s)
 
@@ -318,6 +319,7 @@ class TechniqueParser(
    * to root of configuration repository in place of relative to the technique.
    * TODO: pass the AgentType here
    */
+  // TODO this can be a use case
   private def parseResource(
       techniqueId: TechniqueId,
       xml:         Node,

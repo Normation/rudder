@@ -67,6 +67,8 @@ sealed trait TechniqueResourceId {
 final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: ResourceName) extends TechniqueResourceId
     derives JsonEncoder {
   def displayPath: String = techniqueId.serialize + "/" + name
+
+  def fileSystemPath: String = techniqueId.serialize + "/resources/" + name
 }
 opaque type ResourceName = String
 object ResourceName     {

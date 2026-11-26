@@ -286,8 +286,14 @@ class DeleteEditorTechniqueImpl(
                       categories.map(_.id.name.value),
                       changeContext.modId,
                       changeContext.actor,
-                      s"Deleting resource '${resourceId.displayPath}'"
+                      s"Deleting resource '${resourceId.fileSystemPath}'"
                     )
+      _          <- techLibUpdate
+                      .update()
+                      .toIO
+                      .chainError(
+                        s"An error occurred during technique update after deletion of resource ${resourceId.fileSystemPath}"
+                      )
     } yield ()
   }
 }

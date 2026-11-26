@@ -397,7 +397,7 @@ class TechniqueArchiverImpl(
   ): IOResult[Unit] = {
 
     delete(
-      path = resourceId.displayPath,
+      path = resourceId.fileSystemPath,
       committer = committer,
       categories = categories,
       modId = modId,
@@ -556,6 +556,7 @@ class TechniqueArchiverImpl(
       // update file status file what the compiler did
       known       = resourcesStatus.map(f => (f.path, f)).toMap
       fileStates  = Chunk.fromIterable((known ++ updated).values)
+      // TODO an example of metadata.xml manipulation
       metadata   <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech       <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files       = getFilesToCommit(tech, techniqueGitPath, fileStates)
@@ -576,6 +577,7 @@ class TechniqueArchiverImpl(
     // to have a future-proof version, we should deal with the different kinds of technique descriptor: yml, xml
     // as it is done ArchiveApi checkParseTechniqueDescriptor
     for {
+      // TODO an example of metadata.xml manipulation
       metadata <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
     } yield tech
