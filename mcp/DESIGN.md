@@ -51,6 +51,9 @@ fields renamed or dropped, without deprecation. Their consumers are models readi
 descriptions at each connection, not programs: nothing should be built on their exact shape.
 Scripts and integrations should use the Rudder API, which is the stable interface.
 
+Tools are named in snake_case, verb then noun (`get_node`, `list_nodes`), the usual convention
+of MCP servers: `get_` for one object, `list_` for several, `search_` for a free-text search.
+
 Tools answer compact JSON, Rudder's data passed through where possible: new fields come through
 without a change here, and the field names carry the meaning. Plain text is kept for summaries
 of data too large to send whole (e.g. compliance), where size matters more than shape.
@@ -61,15 +64,31 @@ it can tell the user rather than retry. On 403 it also names the right the endpo
 (e.g. `compliance_read`), which Rudder's answer does not. A tool making several calls reports
 every failed one, as each can need a different right.
 
-- `whoami`: the Rudder API account behind the caller's token and its rights. Built from the
+- `get_current_account`: the Rudder API account behind the caller's token and its rights. Built from the
   token check, no extra Rudder call. Doubles as the "does it work" check for clients.
-- `server_info` (`GET /system/info`, `GET /system/status` and `GET /compliance`, concurrently):
+- `get_server_info` (`GET /system/info`, `GET /system/status` and `GET /compliance`, concurrently):
   Rudder version, relays, OS, node counts, plugins, plus the webapp `status` and the global
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
-- `node_info`: a node's configuration and inventory. Not its runtime state (see
-  `node_compliance`).
+- `list_nodes`: the accepted nodes, all or those matching a Rudder node search (`GET /nodes`),
+  to find the ones to look at with the other tools.
+  - **Criteria**: those of Rudder's node search (`where`, `{objectType, attribute, comparator,
+    value}`, and an `and`/`or` composition), passed through rather than a closed list of
+    filters: they cover software, properties, groups, OS, IP addresses... and change with Rudder
+    versions. The tool description documents the most useful ones; an invalid one gets Rudder's
+    error, which lists the valid object types, attributes or comparators to retry with. The
+    criteria are typed and serialized here, so no value can change the query's structure. The
+    Rudder server and relays are included, as without criteria
+    (`select=nodeAndPolicyServer`).
+  - **Answer**: `{total, nodes}`, each node with its id, hostname and OS (`include=minimal,os`):
+    enough to pick one, `get_node` gives the rest. Sorted by
+    hostname, every match listed, with their number (`total`), which spares the model counting.
+    Rudder has no paging, nor does the tool: on a large installation, an unfiltered call answers
+    every node, about 150 bytes each, so narrowing is left to the model's criteria.
+
+- `get_node`: a node's configuration and inventory. Not its runtime state (see
+  `get_node_compliance`).
   - **Lookup**: the node is designated as below. `GET /nodes/{id}` for an id, `GET /nodes`
     searching the exact hostname otherwise. That search returns the node itself, so there is no
     extra call to resolve it.
@@ -91,7 +110,7 @@ every failed one, as each can need a different right.
     `policyMode` and the reason in `policyModeUnresolved`: one field is not worth failing the
     whole answer.
 
-- `node_compliance`: a node's compliance (`GET /compliance/nodes/{id}`), the node designated as
+- `get_node_compliance`: a node's compliance (`GET /compliance/nodes/{id}`), the node designated as
   below. The full tree (rule → directive → component → value) is too large to pass through, so
   it is summarized as indented plain text:
   - **Every rule** applied to the node, with its rate and the share of each report status: an
@@ -107,7 +126,7 @@ every failed one, as each can need a different right.
   Rudder's answer is parsed into types: a change in its shape is a tool error, not a wrong
   summary.
 
-- `node_policies` lists the rules and directives in a node’s compliance tree, including
+- `get_node_policies` lists the rules and directives in a node’s compliance tree, including
   override information. It requests level 4 to include directive references across Rudder versions.
   Pass a listed directive id to read its current parameter tree and the exact technique
   version it references. Parameter expressions are returned as configured.
@@ -154,11 +173,12 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
 |---|---|---|
 | Every tool call (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
-| `whoami` | none | none |
-| `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
-| `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
-| `node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
-| `node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read` (hostname only), `compliance_read`; for details, `directive_read`, `technique_read` |
+| `get_current_account` | none | none |
+| `get_server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
+| `list_nodes` | `nodes` | `node_read` |
+| `get_node` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
+| `get_node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
+| `get_node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read` (hostname only), `compliance_read`; for details, `directive_read`, `technique_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports

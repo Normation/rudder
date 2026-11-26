@@ -24,13 +24,13 @@ struct NodeComplianceQuery {
     node: String,
 }
 
-#[tool_router(router = node_compliance_router, vis = "pub(super)")]
+#[tool_router(router = get_node_compliance_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
         description = "A node's compliance, by id or hostname, as plain text: its compliance and that of every rule applied to it; for the rules not fully compliant, the directives, components and values that are not, with the agent's report messages. Compliant parts are only counted. Rates are percentages, with the share of each report status in brackets. Compliant statuses: `successAlreadyOK`, `successRepaired`, `successNotApplicable`, `auditCompliant`, `auditNotApplicable`; any other (e.g. `error`, `auditNonCompliant`, `noReport`, `unexpectedMissingComponent`, `applying`) is not.",
         annotations(read_only_hint = true)
     )]
-    async fn node_compliance(
+    async fn get_node_compliance(
         &self,
         Extension(parts): Extension<Parts>,
         Parameters(NodeComplianceQuery { node }): Parameters<NodeComplianceQuery>,

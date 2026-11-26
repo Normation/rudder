@@ -74,10 +74,17 @@ async fn mock_rudder() -> String {
     fn nodes(nodes: Vec<Value>) -> String {
         json!({"action": "nodeDetails", "result": "success", "data": {"nodes": nodes}}).to_string()
     }
+    /// With its OS when `include` names it, as `list_nodes` asks
     fn root(query: &HashMap<String, String>) -> Value {
-        json!({"id": "root", "hostname": "server.example.com", "policyMode": "enforce",
-               "include": query.get("include").cloned().unwrap_or_default(),
-               "software": [{"name": "openssl", "version": "3.5.1"}, {"name": "bash", "version": "5.2"}]})
+        let include = query.get("include").cloned().unwrap_or_default();
+        let mut root = json!({"id": "root", "hostname": "server.example.com", "policyMode": "enforce",
+               "include": include, "status": "accepted",
+               "software": [{"name": "openssl", "version": "3.5.1"}, {"name": "bash", "version": "5.2"}]});
+        if include.split(',').any(|field| field == "os") {
+            root["os"] = json!({"type": "Linux", "name": "Debian", "version": "13",
+                                "fullName": "Debian GNU/Linux 13 (trixie)", "kernelVersion": "6.12.48"});
+        }
+        root
     }
     async fn node(
         Path(id): Path<String>,
@@ -91,16 +98,27 @@ async fn mock_rudder() -> String {
             (StatusCode::NOT_FOUND, error.to_string())
         }
     }
-    /// Finds `root` by its exact hostname, or by the similar hostnames regex of `server`
+    /// Every node (`root` and `web1`) without criteria. Finds `root` by its exact hostname, by the
+    /// similar hostnames regex of `server`, or as the Debian node of an `or` composition.
     async fn search(Query(query): Query<HashMap<String, String>>) -> String {
-        let condition = |comparator, value| {
-            json!([{"objectType": "node", "attribute": "nodeHostname",
+        let Some(condition_sent) = query.get("where") else {
+            let web1 = json!({"id": "8b168194-c0b4-41ab-b2b5-9571a8906d59",
+                              "hostname": "web1.example.com", "status": "accepted",
+                              "os": {"type": "Windows", "name": "Windows2019", "version": "10.0",
+                                     "fullName": "Windows Server 2019",
+                                     "kernelVersion": "10.0.17763"}});
+            return nodes(vec![web1, root(&query)]);
+        };
+        let condition = |attribute, comparator, value| {
+            json!([{"objectType": "node", "attribute": attribute,
                     "comparator": comparator, "value": value}])
         };
-        let condition_sent = serde_json::from_str::<Value>(&query["where"]).unwrap();
+        let condition_sent = serde_json::from_str::<Value>(condition_sent).unwrap();
         let found = query.get("select").map(String::as_str) == Some("nodeAndPolicyServer")
-            && (condition_sent == condition("eq", "server.example.com")
-                || condition_sent == condition("regex", r"(?i)server(\..*)?"));
+            && (condition_sent == condition("nodeHostname", "eq", "server.example.com")
+                || condition_sent == condition("nodeHostname", "regex", r"(?i)server(\..*)?")
+                || (condition_sent == condition("osName", "eq", "Debian")
+                    && query["composition"] == "or"));
         nodes(if found { vec![root(&query)] } else { vec![] })
     }
     let app = Router::new()
@@ -289,28 +307,29 @@ async fn tool_text(url: &str, token: &str, name: &str, arguments: Value) -> Stri
 }
 
 #[tokio::test]
-async fn whoami_describes_the_caller() {
+async fn get_current_account_describes_the_caller() {
     let url = mcp_server(&mock_rudder().await).await;
-    let whoami = async |token| -> Value {
-        serde_json::from_str(&tool_text(&url, token, "whoami", json!({})).await).unwrap()
+    let get_current_account = async |token| -> Value {
+        serde_json::from_str(&tool_text(&url, token, "get_current_account", json!({})).await)
+            .unwrap()
     };
     assert_eq!(
-        whoami("ro").await,
+        get_current_account("ro").await,
         json!({"id": "ro-id", "name": "Account ro", "rights": "ro",
                "rightsDescription": "read-only: GET on all APIs"})
     );
     assert_eq!(
-        whoami("user").await,
+        get_current_account("user").await,
         json!({"id": "user-id", "name": "Account user", "rights": "owner",
                "rightsDescription": "those of the user owning the token (api-authorization plugin)"})
     );
 }
 
 #[tokio::test]
-async fn server_info_with_status() {
+async fn get_server_info_with_status() {
     let url = mcp_server(&mock_rudder().await).await;
     let info: Value =
-        serde_json::from_str(&tool_text(&url, "ro", "server_info", json!({})).await).unwrap();
+        serde_json::from_str(&tool_text(&url, "ro", "get_server_info", json!({})).await).unwrap();
     assert_eq!(info["rudder"]["version"], "9.1.0");
     assert_eq!(info["system"], json!({}));
     assert_eq!(info["status"], "OK");
@@ -319,16 +338,16 @@ async fn server_info_with_status() {
 }
 
 #[tokio::test]
-async fn node_info_by_id_or_hostname() {
+async fn get_node_by_id_or_hostname() {
     let url = mcp_server(&mock_rudder().await).await;
-    let node_info = async |arguments| -> Value {
-        serde_json::from_str(&tool_text(&url, "ro", "node_info", arguments).await).unwrap()
+    let get_node = async |arguments| -> Value {
+        serde_json::from_str(&tool_text(&url, "ro", "get_node", arguments).await).unwrap()
     };
-    let node = node_info(json!({"node": "root"})).await;
+    let node = get_node(json!({"node": "root"})).await;
     assert_eq!(node["include"], "default");
     assert_eq!(node["policyMode"], "enforce");
     assert_eq!(node["policyModeSource"], "node");
-    let node = node_info(
+    let node = get_node(
         json!({"node": "server.example.com", "details": ["fileSystems"],
                                 "software": "SSL"}),
     )
@@ -340,21 +359,21 @@ async fn node_info_by_id_or_hostname() {
         json!([{"name": "openssl", "version": "3.5.1"}])
     );
 
-    let (is_error, text) = tool_result(&url, Some("ro"), "node_info", json!({"node": "web"})).await;
+    let (is_error, text) = tool_result(&url, Some("ro"), "get_node", json!({"node": "web"})).await;
     assert!(
         is_error && text.starts_with("no node found for 'web': give a node id"),
         "{text}"
     );
     // A short name: the fully qualified one to retry with
     let (is_error, text) =
-        tool_result(&url, Some("ro"), "node_info", json!({"node": "server"})).await;
+        tool_result(&url, Some("ro"), "get_node", json!({"node": "server"})).await;
     assert!(
         is_error && text.contains("Similar hostnames (id): server.example.com (root)."),
         "{text}"
     );
     let unknown = "8b168194-c0b4-41ab-b2b5-9571a8906d59";
     let (is_error, text) =
-        tool_result(&url, Some("ro"), "node_info", json!({"node": unknown})).await;
+        tool_result(&url, Some("ro"), "get_node", json!({"node": unknown})).await;
     assert!(
         is_error && text.contains("was not found in Rudder"),
         "{text}"
@@ -362,11 +381,42 @@ async fn node_info_by_id_or_hostname() {
 }
 
 #[tokio::test]
-async fn node_info_without_the_global_policy_mode() {
+async fn list_nodes_all_or_matching() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let list_nodes = async |arguments| -> Value {
+        serde_json::from_str(&tool_text(&url, "ro", "list_nodes", arguments).await).unwrap()
+    };
+    let all = list_nodes(json!({})).await;
+    assert_eq!(all["total"], 2);
+    let hostnames: Vec<&str> = all["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["hostname"].as_str().unwrap())
+        .collect();
+    assert_eq!(hostnames, ["server.example.com", "web1.example.com"]);
+    // Only the selected fields
+    assert_eq!(
+        all["nodes"][0],
+        json!({"id": "root", "hostname": "server.example.com",
+               "os": {"type": "Linux", "name": "Debian", "version": "13",
+                      "fullName": "Debian GNU/Linux 13 (trixie)", "kernelVersion": "6.12.48"}})
+    );
+
+    let debian = list_nodes(json!({"where": [
+        {"objectType": "node", "attribute": "osName", "comparator": "eq", "value": "Debian"}
+    ], "composition": "or"}))
+    .await;
+    assert_eq!(debian["total"], 1);
+    assert_eq!(debian["nodes"][0]["id"], "root");
+}
+
+#[tokio::test]
+async fn get_node_without_the_global_policy_mode() {
     // `acl` can read the node but not the settings: the node anyway, with why the mode is raw
     let url = mcp_server(&mock_rudder().await).await;
     let node: Value =
-        serde_json::from_str(&tool_text(&url, "acl", "node_info", json!({"node": "root"})).await)
+        serde_json::from_str(&tool_text(&url, "acl", "get_node", json!({"node": "root"})).await)
             .unwrap();
     assert_eq!(node["policyMode"], "enforce");
     let reason = node["policyModeUnresolved"].as_str().unwrap();
@@ -393,10 +443,10 @@ items:
 ";
 
 #[tokio::test]
-async fn node_policies_overview_and_directive_details() {
+async fn get_node_policies_overview_and_directive_details() {
     let url = mcp_server(&mock_rudder().await).await;
     let query = async |args| -> Value {
-        serde_json::from_str(&tool_text(&url, "ro", "node_policies", args).await).unwrap()
+        serde_json::from_str(&tool_text(&url, "ro", "get_node_policies", args).await).unwrap()
     };
     let overview = query(json!({"node":POLICY_NODE})).await;
     assert_eq!(overview["rules"][0]["directives"][0]["id"], "d1");
@@ -435,7 +485,7 @@ async fn node_policies_overview_and_directive_details() {
     let (failed, text) = tool_result(
         &url,
         Some("ro"),
-        "node_policies",
+        "get_node_policies",
         json!({"node":POLICY_NODE,"directive":"unrelated"}),
     )
     .await;
@@ -443,7 +493,7 @@ async fn node_policies_overview_and_directive_details() {
     let (failed, text) = tool_result(
         &url,
         Some("acl"),
-        "node_policies",
+        "get_node_policies",
         json!({"node":POLICY_NODE,"directive":"d1"}),
     )
     .await;
@@ -451,18 +501,18 @@ async fn node_policies_overview_and_directive_details() {
 }
 
 #[tokio::test]
-async fn node_compliance_by_id_or_hostname() {
+async fn get_node_compliance_by_id_or_hostname() {
     let url = mcp_server(&mock_rudder().await).await;
     let expected = "- server.example.com (root): 50% [error 50%, successAlreadyOK 50%]\n\
                     \x20 - Web (r1): 50% [error 50%, successAlreadyOK 50%]";
     for node in ["root", "server.example.com"] {
-        let text = tool_text(&url, "ro", "node_compliance", json!({"node": node})).await;
+        let text = tool_text(&url, "ro", "get_node_compliance", json!({"node": node})).await;
         assert_eq!(text, expected);
     }
     let (is_error, text) = tool_result(
         &url,
         Some("ro"),
-        "node_compliance",
+        "get_node_compliance",
         json!({"node": "server"}),
     )
     .await;
@@ -473,7 +523,7 @@ async fn node_compliance_by_id_or_hostname() {
     let (is_error, text) = tool_result(
         &url,
         Some("acl"),
-        "node_compliance",
+        "get_node_compliance",
         json!({"node": "root"}),
     )
     .await;
@@ -487,7 +537,7 @@ async fn node_compliance_by_id_or_hostname() {
 async fn api_errors_are_tool_errors() {
     // The model sees every failed call and the right it needs, so it can tell the user
     let url = mcp_server(&mock_rudder().await).await;
-    let (is_error, text) = tool_result(&url, Some("acl"), "server_info", json!({})).await;
+    let (is_error, text) = tool_result(&url, Some("acl"), "get_server_info", json!({})).await;
     assert!(is_error, "{text}");
     let refused = |path, right| {
         format!(
@@ -517,7 +567,7 @@ async fn refuses_tool_calls_without_an_identified_token() {
         (Some("anonymous"), "could not check the API token"),
         (Some("future"), "could not check the API token"),
     ] {
-        let (is_error, text) = tool_result(&url, token, "whoami", json!({})).await;
+        let (is_error, text) = tool_result(&url, token, "get_current_account", json!({})).await;
         assert!(
             is_error && text.contains(expected),
             "token {token:?}: {text}"
@@ -555,7 +605,7 @@ async fn does_not_follow_redirects_with_the_token() {
     tokio::spawn(async move { axum::serve(listener, rudder).await.unwrap() });
 
     let url = mcp_server(&rudder_url).await;
-    let (is_error, text) = tool_result(&url, Some("ro"), "whoami", json!({})).await;
+    let (is_error, text) = tool_result(&url, Some("ro"), "get_current_account", json!({})).await;
     assert!(
         is_error && text.contains("could not check the API token"),
         "{text}"
@@ -583,11 +633,11 @@ async fn connects_without_token_while_rudder_is_unreachable() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|tool| tool["name"] == "whoami"),
+            .any(|tool| tool["name"] == "get_current_account"),
         "{body}"
     );
     // Tool calls are refused
-    let (is_error, text) = tool_result(&url, Some("ro"), "whoami", json!({})).await;
+    let (is_error, text) = tool_result(&url, Some("ro"), "get_current_account", json!({})).await;
     assert!(
         is_error && text.contains("could not check the API token"),
         "{text}"
@@ -628,14 +678,20 @@ fn logs() -> String {
 async fn requests_are_logged_with_the_caller() {
     logs();
     let url = mcp_server(&mock_rudder().await).await;
-    tool_text(&url, "audit", "whoami", json!({})).await;
-    call_tool(&url, Some("secret-unknown-token"), "whoami", json!({})).await;
+    tool_text(&url, "audit", "get_current_account", json!({})).await;
+    call_tool(
+        &url,
+        Some("secret-unknown-token"),
+        "get_current_account",
+        json!({}),
+    )
+    .await;
     let legacy = reqwest::Client::new()
         .post(&url)
         .bearer_auth("legacy")
         .header("Accept", "application/json, text/event-stream")
         .json(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                      "params": {"name": "whoami", "arguments": {}}}))
+                      "params": {"name": "get_current_account", "arguments": {}}}))
         .send()
         .await
         .unwrap();
@@ -655,24 +711,29 @@ async fn requests_are_logged_with_the_caller() {
         "{accepted}"
     );
     assert!(
-        accepted.contains(r#"mcp_method="tools/call" mcp_name="whoami" account="audit-id" "#),
+        accepted.contains(
+            r#"mcp_method="tools/call" mcp_name="get_current_account" account="audit-id" "#
+        ),
         "{accepted}"
     );
     assert!(accepted.contains("http_status=200"), "{accepted}");
     let legacy =
         line(r#"account_name="Account legacy" rights="rw"}: rudder_mcp::auth: MCP request"#);
     assert!(
-        legacy.contains(r#"mcp_method="tools/call" mcp_name="whoami""#),
+        legacy.contains(r#"mcp_method="tools/call" mcp_name="get_current_account""#),
         "{legacy}"
     );
-    let api_call = line("Rudder API answered status=200");
-    assert!(
-        api_call
-            .contains(r#":token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}"#),
-        "{api_call}"
+    // The whole fragment, span included: the log is shared by the concurrent tests, and those whose
+    // request started before the subscriber was set log the same messages without their spans
+    line(
+        r#":token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}: rudder_mcp::api: Rudder API answered status=200"#,
     );
     // Refusals have the request context, but no account
-    let refused = line("tool call refused rejection=Rejected");
-    assert!(refused.contains(r#"mcp_name="whoami"}:"#), "{refused}");
+    assert!(
+        logs.lines()
+            .any(|line| line.contains(r#"mcp_name="get_current_account"}:"#)
+                && line.contains("tool call refused rejection=Rejected")),
+        "no refusal in a request span in:\n{logs}"
+    );
     assert!(!logs.contains("secret-unknown-token"), "{logs}");
 }
