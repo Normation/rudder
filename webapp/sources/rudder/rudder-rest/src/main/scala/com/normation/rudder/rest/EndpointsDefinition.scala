@@ -1871,14 +1871,14 @@ object ArchiveApi       extends Enum[ArchiveApi] with ApiModuleProvider[ArchiveA
     val z: Int = implicitly[Line].value
     val description    = "Export the list of objects with their dependencies in a policy archive"
     val (action, path) = GET / "archives" / "export"
-    val authz: List[AuthorizationType] = AuthorizationType.Configuration.Read :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Archive.Read :: Nil
 
   }
   case object Import extends ArchiveApi with ZeroParam with StartsAtVersion16 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Import policy archive"
     val (action, path) = POST / "archives" / "import"
-    val authz: List[AuthorizationType] = AuthorizationType.Configuration.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Archive.Write :: Nil
   }
 
   def endpoints: List[ArchiveApi] = values.toList.sortBy(_.z)

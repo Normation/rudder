@@ -98,6 +98,7 @@ object ActionType {
 }
 
 sealed trait Administration extends EnumEntry with AuthorizationType { def authzKind = "administration" }
+sealed trait Archive        extends EnumEntry with AuthorizationType { def authzKind = "archive"        }
 sealed trait Compliance     extends EnumEntry with AuthorizationType { def authzKind = "compliance"     }
 sealed trait Configuration  extends EnumEntry with AuthorizationType { def authzKind = "configuration"  }
 sealed trait Deployer       extends EnumEntry with AuthorizationType { def authzKind = "deployer"       }
@@ -200,6 +201,15 @@ object AuthorizationType {
     case object Write extends Validator with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Validator] = findValues
   }
+  // zip policy archive export (read) and import (write). They are almost administration action: it read/writes every
+  // kind of configuration object at once and carries property providers as they are. Only administrator has it by default.
+  // Edit gives nothing: it exists only for compat so that `archive_all` parses as for the other kinds.
+  case object Archive        extends Enum[Archive]        {
+    case object Read  extends Archive with ActionType.Read with AuthorizationType
+    case object Edit  extends Archive with ActionType.Edit with AuthorizationType
+    case object Write extends Archive with ActionType.Write with AuthorizationType
+    val values: IndexedSeq[Archive] = findValues
+  }
 
   val configurationKind: Set[AuthorizationType] =
     (Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Parameter.values).toSet
@@ -219,7 +229,7 @@ object AuthorizationType {
   private var allKindsMap: Set[AuthorizationType] = {
     Set(
       AnyRights
-    ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
+    ) ++ Administration.values ++ Archive.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
     Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
     UserAccount.values ++ Validator.values
   }

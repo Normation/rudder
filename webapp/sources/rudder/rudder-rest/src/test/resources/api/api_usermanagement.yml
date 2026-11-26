@@ -105,6 +105,7 @@ response:
             "status" : "active",
             "authz" : [
               "administration_read",
+              "archive_read",
               "compliance_read",
               "configuration_read",
               "deployer_read",
@@ -137,6 +138,7 @@ response:
                 "provider" : "file",
                 "authz" : [
                   "administration_read",
+                  "archive_read",
                   "compliance_read",
                   "configuration_read",
                   "deployer_read",
@@ -272,6 +274,7 @@ response:
           "id" : "read_only",
           "rights" : [
             "administration_read",
+            "archive_read",
             "compliance_read",
             "configuration_read",
             "deployer_read",
@@ -536,6 +539,7 @@ response:
             "status" : "active",
             "authz" : [
               "administration_read",
+              "archive_read",
               "compliance_read",
               "configuration_read",
               "deployer_read",
@@ -568,6 +572,7 @@ response:
                 "provider" : "file",
                 "authz" : [
                   "administration_read",
+                  "archive_read",
                   "compliance_read",
                   "configuration_read",
                   "deployer_read",
@@ -705,6 +710,7 @@ response:
             "status" : "active",
             "authz" : [
               "administration_read",
+              "archive_read",
               "compliance_read",
               "configuration_read",
               "deployer_read",
@@ -737,6 +743,7 @@ response:
                 "provider" : "file",
                 "authz" : [
                   "administration_read",
+                  "archive_read",
                   "compliance_read",
                   "configuration_read",
                   "deployer_read",
