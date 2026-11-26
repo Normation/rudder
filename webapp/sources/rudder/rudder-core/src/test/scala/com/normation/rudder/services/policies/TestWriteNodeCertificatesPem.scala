@@ -41,8 +41,9 @@ import better.files.File
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.OutputStreamAppender
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
@@ -124,9 +125,9 @@ class TestWriteNodeCertificatesPem extends Specification {
                         |-----END CERTIFICATE-----""".stripMargin
 
   val root:  CoreNodeFact =
-    NodeConfigData.factRoot.modify(_.rudderAgent.securityToken).setTo(Certificate(NodeConfigData.ROOT_CERT))
-  val node1: CoreNodeFact = NodeConfigData.fact1.modify(_.rudderAgent.securityToken).setTo(Certificate(cert1))
-  val node2: CoreNodeFact = NodeConfigData.fact2.modify(_.rudderAgent.securityToken).setTo(Certificate(cert2))
+    NodeConfigData.factRoot.modify(_.rudderAgent.securityToken).setTo(SecurityToken.fromStored(NodeConfigData.ROOT_CERT))
+  val node1: CoreNodeFact = NodeConfigData.fact1.modify(_.rudderAgent.securityToken).setTo(SecurityToken.fromStored(cert1))
+  val node2: CoreNodeFact = NodeConfigData.fact2.modify(_.rudderAgent.securityToken).setTo(SecurityToken.fromStored(cert2))
 
   val nodes: Map[NodeId, CoreNodeFact] = (root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
 
@@ -143,6 +144,19 @@ class TestWriteNodeCertificatesPem extends Specification {
     "certificate are written to file only for nodes with certificate" in {
       val writer = new WriteNodeCertificatesPemImpl(Some(s"/usr/bin/touch ${dest.pathAsString}"))
       val res    = ZioRuntime.runNow(writer.writeCertificates(dest, nodes).either)
+
+      (res must beRight) and
+      (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
+    }
+
+    "an unverified token is not written" in {
+      val poisoned = NodeConfigData.fact1
+        .modify(_.id)
+        .setTo(NodeId("poisoned"))
+        .modify(_.rudderAgent.securityToken)
+        .setTo(UnverifiedToken(cert1 + "\n" + cert2))
+      val writer   = new WriteNodeCertificatesPemImpl(None)
+      val res      = ZioRuntime.runNow(writer.writeCertificates(dest, nodes + (poisoned.id -> poisoned)).either)
 
       (res must beRight) and
       (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))

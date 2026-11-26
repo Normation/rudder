@@ -1116,7 +1116,7 @@ class EventLogDetailsGenerator(
                     }
                   }{mapComplexDiff(modDiff.modNodeState, "Node state")(x => Text(x.name))}{
                     mapComplexDiff(modDiff.modKeyStatus, "Key status")(x => Text(x.value))
-                  }{mapComplexDiff(modDiff.modKeyValue, "Key value")(x => Text(x.key))}{reasonHtml}{
+                  }{mapComplexDiff(modDiff.modKeyValue, "Key value")(x => Text(x.value))}{reasonHtml}{
                     xmlParameters(event.id)
                   }{
                     mapComplexDiff(modDiff.modDocumentation, "Description")(x => Text(x))

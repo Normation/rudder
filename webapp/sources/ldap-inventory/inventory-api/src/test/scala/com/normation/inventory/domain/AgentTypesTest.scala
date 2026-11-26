@@ -83,7 +83,9 @@ class AgentTypesTest extends Specification {
         AgentInfo(
           AgentType.CfeCommunity,
           Some(AgentVersion("8.0.0")),
-          Certificate(cert.replaceAll("""\\n""", "\n")), // this is needed because the json format writes the \n literaly
+          SecurityToken.fromStored(
+            cert.replaceAll("""\\n""", "\n")
+          ), // this is needed because the json format writes the \n literaly
           Set()
         )
       )
@@ -105,7 +107,9 @@ class AgentTypesTest extends Specification {
         AgentInfo(
           AgentType.CfeCommunity,
           Some(AgentVersion("8.0.0")),
-          Certificate(cert.replaceAll("""\\n""", "\n")), // this is needed because the json format writes the \n literaly
+          SecurityToken.fromStored(
+            cert.replaceAll("""\\n""", "\n")
+          ), // this is needed because the json format writes the \n literaly
           Set("acl", "cfengine", "curl", "http_reporting", "jq", "xml", "yaml").map(AgentCapability.apply)
         )
       ) and ser === json80
