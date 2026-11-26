@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use axum::http::request::Parts;
 use rmcp::{
     handler::server::{tool::Extension, wrapper::Parameters},
@@ -15,7 +15,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 
-use super::{Rudder, UNEXPECTED, caller, node::NodeRef, tool_error};
+use super::{Rudder, UNEXPECTED, caller, data, node::NodeRef, tool_error};
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -172,17 +172,10 @@ struct Report {
 impl NodeCompliance {
     fn parse(body: &str) -> Result<Self> {
         #[derive(Deserialize)]
-        struct Response {
-            data: Data,
-        }
-        #[derive(Deserialize)]
-        struct Data {
+        struct Nodes {
             nodes: Vec<NodeCompliance>,
         }
-        let mut nodes = serde_json::from_str::<Response>(body)
-            .context(UNEXPECTED)?
-            .data
-            .nodes;
+        let mut nodes = data::<Nodes>(body)?.nodes;
         if nodes.len() != 1 {
             bail!("{UNEXPECTED}: {} nodes instead of one", nodes.len());
         }

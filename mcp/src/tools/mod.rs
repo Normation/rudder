@@ -9,10 +9,12 @@
 mod node;
 mod node_compliance;
 mod node_info;
+mod node_policies;
 mod policy_mode;
 mod server_info;
 mod whoami;
 
+use anyhow::Context;
 use axum::http::request::Parts;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
@@ -24,8 +26,12 @@ use rmcp::{
     service::RequestContext,
     tool_handler,
 };
+use serde::de::DeserializeOwned;
 
-use crate::auth::{self, Caller};
+use crate::{
+    api::Envelope,
+    auth::{self, Caller},
+};
 
 /// The MCP server, built for each request
 #[derive(Debug, Clone)]
@@ -37,6 +43,7 @@ impl Rudder {
         Self::whoami_router()
             + Self::server_info_router()
             + Self::node_info_router()
+            + Self::node_policies_router()
             + Self::node_compliance_router()
     }
 }
@@ -58,6 +65,7 @@ impl ServerHandler for Rudder {
             .extensions
             .get_mut::<Parts>()
             .ok_or_else(|| ErrorData::internal_error("no HTTP request", None))?;
+        auth::record_tool_call(parts, &request.name);
         if let Err(e) = auth::authenticate(parts).await {
             return Ok(CallToolResult::error(vec![ContentBlock::text(e)]).into());
         }
@@ -77,6 +85,13 @@ fn caller(parts: &Parts) -> Result<&Caller, String> {
 
 /// Context of the errors on a Rudder answer that does not have the expected shape: the API changed
 const UNEXPECTED: &str = "unexpected Rudder API response";
+
+/// The `data` of a Rudder API response body
+fn data<T: DeserializeOwned>(body: &str) -> anyhow::Result<T> {
+    Ok(serde_json::from_str::<Envelope<T>>(body)
+        .context(UNEXPECTED)?
+        .data)
+}
 
 /// A failed tool call, shown to the model as the tool result: e.g. a 403 when the caller lacks
 /// the right, so it can tell the user
