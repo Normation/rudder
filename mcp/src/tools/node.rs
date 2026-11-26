@@ -5,7 +5,7 @@
 //! (Designating a node).
 
 use anyhow::{Context, Result, bail};
-use serde::Deserialize;
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
 use super::{UNEXPECTED, data, tool_error};
@@ -173,13 +173,14 @@ fn not_found(node: &str, similar: &[Value]) -> String {
     )
 }
 
-/// The nodes of a `GET /nodes` or `GET /nodes/{id}` body (both answer a `nodes` array)
-fn nodes(body: &str) -> Result<Vec<Value>> {
+/// The nodes of a `GET /nodes` or `GET /nodes/{id}` body (both answer a `nodes` array), as
+/// `Value` or a type selecting their fields
+pub(super) fn nodes<T: DeserializeOwned>(body: &str) -> Result<Vec<T>> {
     #[derive(Deserialize)]
-    struct Nodes {
-        nodes: Vec<Value>,
+    struct Nodes<T> {
+        nodes: Vec<T>,
     }
-    Ok(data::<Nodes>(body)?.nodes)
+    Ok(data::<Nodes<T>>(body)?.nodes)
 }
 
 /// The node designated by `node`, `None` when there is none. Several (the same hostname) is an
@@ -229,7 +230,7 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(several.ends_with("use one of their ids: a, b"), "{several}");
-        assert_eq!(nodes("{}").unwrap_err().to_string(), UNEXPECTED);
+        assert_eq!(nodes::<Value>("{}").unwrap_err().to_string(), UNEXPECTED);
     }
 
     #[test]
