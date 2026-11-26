@@ -156,7 +156,7 @@ class TestWriteNodeCertificatesPem extends Specification {
         .setTo(NodeId("poisoned"))
         .modify(_.rudderAgent.securityToken)
         .setTo(UnverifiedToken(cert1 + "\n" + cert2))
-      val writer   = new WriteNodeCertificatesPemImpl(None)
+      val writer   = new WriteNodeCertificatesPemImpl(None, WithoutSudo)
       val res      = ZioRuntime.runNow(writer.writeCertificates(dest, nodes + (poisoned.id -> poisoned)).either)
 
       (res must beRight) and
