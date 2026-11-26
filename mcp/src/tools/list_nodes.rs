@@ -66,7 +66,7 @@ impl Composition {
 /// API `include` value: what [`ListedNode`] needs
 const INCLUDE: &str = "minimal,os";
 
-/// A node as listed: enough to pick one, `node_info` gives the rest. Only these fields are read
+/// A node as listed: enough to pick one, `get_node` gives the rest. Only these fields are read
 /// and answered, whatever else Rudder sends now or adds later.
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 struct ListedNode {
@@ -94,7 +94,7 @@ struct Os {
 #[tool_router(router = list_nodes_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
-        description = "Lists the accepted nodes (the Rudder server and relays included), all or those matching criteria of Rudder's node search: id, hostname and OS of each, sorted by hostname, with their number (`total`). Use `node_info` for a node's details. A criterion is `{objectType, attribute, comparator, value}`, e.g.: `node`: `nodeHostname`, `nodeId`, `osName` (`Debian`, `Ubuntu`, `Redhat`, `Centos`, `Suse`, `AlmaLinux`, `RockyLinux`, `Oracle`...), `OS` (`Linux`, `Windows`), `osVersion`, `osFullName`, `ipHostNumber`, `policyServerId`, `agentVersion`, `state` (`enabled`, `ignored`, `empty-policies`, `initializing`, `preparing-eol`); `software`: `cn` (name), `softwareVersion`; `serializedNodeProperty`: `name.value` (`eq` `key=value`, or `hasKey` `key`); `group`: `nodeGroupId` (`eq` a group id: its members). Comparators: `eq`, `notEq`, `regex`, `notRegex` (Java regex on the whole value), `exists`, `notExists` (no value), and `lt`, `lteq`, `gt`, `gteq` for versions, sizes and dates. An invalid criterion is an error listing the valid ones.",
+        description = "Lists the accepted nodes (the Rudder server and relays included), all or those matching criteria of Rudder's node search: id, hostname and OS of each, sorted by hostname, with their number (`total`). Use `get_node` for a node's details. A criterion is `{objectType, attribute, comparator, value}`, e.g.: `node`: `nodeHostname`, `nodeId`, `osName` (`Debian`, `Ubuntu`, `Redhat`, `Centos`, `Suse`, `AlmaLinux`, `RockyLinux`, `Oracle`...), `OS` (`Linux`, `Windows`), `osVersion`, `osFullName`, `ipHostNumber`, `policyServerId`, `agentVersion`, `state` (`enabled`, `ignored`, `empty-policies`, `initializing`, `preparing-eol`); `software`: `cn` (name), `softwareVersion`; `serializedNodeProperty`: `name.value` (`eq` `key=value`, or `hasKey` `key`); `group`: `nodeGroupId` (`eq` a group id: its members). Comparators: `eq`, `notEq`, `regex`, `notRegex` (Java regex on the whole value), `exists`, `notExists` (no value), and `lt`, `lteq`, `gt`, `gteq` for versions, sizes and dates. An invalid criterion is an error listing the valid ones.",
         annotations(read_only_hint = true)
     )]
     async fn list_nodes(

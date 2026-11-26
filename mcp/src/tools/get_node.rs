@@ -87,13 +87,13 @@ impl SoftwareFilter {
     }
 }
 
-#[tool_router(router = node_info_router, vis = "pub(super)")]
+#[tool_router(router = get_node_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
         description = "A node's configuration and inventory, by id or hostname: OS, IP addresses, RAM, policy server, agent, policy mode, node properties, state, acceptance, last run and inventory dates. Other inventory sections on request, and installed software and available updates filtered by name (e.g. which openssl version a node runs). No compliance. `policyMode` is the mode that applies to the node, `policyModeSource` where it comes from: `node` (its own setting), `global` (it follows the global mode), `forced` (the global mode cannot be overridden); directives can also set their own mode, not accounted for here. `status` is the node's acceptance in Rudder (`accepted`); `state` is how Rudder manages it: `enabled`; `empty-policies` (only Rudder's system policies); `ignored` (disabled); `initializing` and `preparing-eol` (labels, managed as `enabled`).",
         annotations(read_only_hint = true)
     )]
-    async fn node_info(
+    async fn get_node(
         &self,
         Extension(parts): Extension<Parts>,
         Parameters(NodeQuery {
