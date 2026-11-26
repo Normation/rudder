@@ -318,9 +318,20 @@ class TechniqueApi(
                                 .mapError(s => Unexpected(s))
           resourceId        =
             TechniqueResourceIdByName(TechniqueId(TechniqueName(techniqueName), techniqueVersion), ResourceName(resourceName))
+          // Delete the resource on the file system
           _                <- techniqueWriter.deleteResource(
                                 resourceId
                               )(using authzToken.qc.newCC())
+          editorTechniques <-
+            techniqueReader
+              .getTechnique(BundleName(resourceId.techniqueId.name.value), resourceId.techniqueId.version.version.toVersionString)
+              .notOptional("could not find technique associated to the resource to delete")
+          // Update technique :
+          // - compile the technique to generate a new metadata without the deleted resource
+          // - commit
+          // - generate a ModifyEditorTechnique event log
+          // - update the technique lib
+          _                <- techniqueWriter.writeTechniqueAndUpdateLib(editorTechniques)(using authzToken.qc.newCC())
           json             <- ResourceInformation.from(resourceId).toJsonAST.toIO
         } yield {
           Json.Obj(("resources", Json.Arr(Chunk(json))))

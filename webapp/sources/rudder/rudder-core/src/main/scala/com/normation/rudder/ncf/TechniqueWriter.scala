@@ -121,9 +121,10 @@ class TechniqueWriterImpl(
       resourceId: TechniqueResourceIdByName
   )(implicit cc: ChangeContext): IOResult[Unit] = for {
     _ <- deleteService.deleteResource(resourceId)
+
   } yield ()
 
-  def writeTechniqueAndUpdateLib(
+  override def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
   )(implicit cc: ChangeContext): IOResult[EditorTechnique] = {
     for {

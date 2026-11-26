@@ -100,7 +100,7 @@ class TechniqueRepositoryImpl(
   override def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
     import TechniqueCategoryModType.*
     try {
-      val modifiedPackages: Map[TechniqueName, TechniquesLibraryUpdateType] = techniqueReader.getModifiedTechniques
+      val modifiedPackages = techniqueReader.getModifiedTechniques
       if (techniqueReader.needReload() || /* first time init */ null == techniqueInfosCache) {
         logger.info("Reloading technique library, " + {
           if (modifiedPackages.isEmpty) "no modified techniques found"

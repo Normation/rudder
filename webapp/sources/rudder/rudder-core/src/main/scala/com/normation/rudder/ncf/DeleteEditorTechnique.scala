@@ -288,12 +288,6 @@ class DeleteEditorTechniqueImpl(
                       changeContext.actor,
                       s"Deleting resource '${resourceId.fileSystemPath}'"
                     )
-      _          <- techLibUpdate
-                      .update()
-                      .toIO
-                      .chainError(
-                        s"An error occurred during technique update after deletion of resource ${resourceId.fileSystemPath}"
-                      )
     } yield ()
   }
 }

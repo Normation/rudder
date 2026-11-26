@@ -406,7 +406,6 @@ class TechniqueArchiverImpl(
 
   }
 
-  final case class Empty(msg: String) extends RudderError
   private def delete(
       path:       String,
       committer:  EventActor,
@@ -418,36 +417,18 @@ class TechniqueArchiverImpl(
       ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
       // construct the path to the technique. Root category is "/", so we filter out all / to be sure
       categoryPath <- categories.filter(_ != "/").mkString("/").succeed
-      commit       <-
+
+      commit <-
         gitRepo.semaphore.withPermit(for {
           rm     <-
             IOResult.attempt(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${path}").call())
-          status <- IOResult.attempt(
-                      gitRepo.git.status().call()
-                    )
-          _      <- if (
-                      status.getAdded.isEmpty &&
-                      status.getChanged.isEmpty &&
-                      status.getRemoved.isEmpty
-                    ) {
-                      ZIO.fail(
-                        Empty(
-                          s"Trying to delete ${relativePath}/${categoryPath}/${path} but there are no pending changes, skip commit"
-                        )
-                      )
-                    } else {
-                      ZIO.unit
-                    }
           rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
           commit <- IOResult.attempt(GitCommitId(rev.getName))
         } yield commit)
-      _            <- gitModificationRepository.addCommit(commit, modId)
+      _      <- gitModificationRepository.addCommit(commit, modId)
     } yield {
       s"${relativePath}/${categoryPath}/${path}"
-    }).catchSome {
-      case Empty(message) =>
-        GitArchiveLoggerPure.debug(message)
-    }.chainError(s"error when deleting and committing '${path}").unit
+    }).chainError(s"error when deleting and committing '${path}").unit
   }
 
   def deleteCategoryRecursively(
@@ -556,7 +537,6 @@ class TechniqueArchiverImpl(
       // update file status file what the compiler did
       known       = resourcesStatus.map(f => (f.path, f)).toMap
       fileStates  = Chunk.fromIterable((known ++ updated).values)
-      // TODO an example of metadata.xml manipulation
       metadata   <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech       <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files       = getFilesToCommit(tech, techniqueGitPath, fileStates)
@@ -577,7 +557,6 @@ class TechniqueArchiverImpl(
     // to have a future-proof version, we should deal with the different kinds of technique descriptor: yml, xml
     // as it is done ArchiveApi checkParseTechniqueDescriptor
     for {
-      // TODO an example of metadata.xml manipulation
       metadata <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
     } yield tech
