@@ -11,6 +11,7 @@ mod node_compliance;
 mod node_info;
 mod policy_mode;
 mod server_info;
+mod template;
 mod whoami;
 
 use axum::http::request::Parts;
@@ -34,6 +35,7 @@ impl Rudder {
             + Self::server_info_router()
             + Self::node_info_router()
             + Self::node_compliance_router()
+            + Self::template_router()
     }
 }
 

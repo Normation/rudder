@@ -224,6 +224,41 @@ async fn tool_text(url: &str, token: &str, name: &str, arguments: Value) -> Stri
 }
 
 #[tokio::test]
+async fn render_template_uses_the_module_engine() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let arguments = json!({
+        "template": "{% for name in names %}\n{{ name | b64encode }}\n{% endfor %}",
+        "data": {"names": ["web", "db"]}
+    });
+    let output = tool_text(&url, "ro", "render_template", arguments).await;
+    assert_eq!(output, "d2Vi\nZGI=\n");
+
+    for (template, expected) in [
+        ("header\n{{ missing }}", "inline:2"),
+        ("{% include 'fixture.j2' %}", "template not found"),
+    ] {
+        let (failed, message) = tool_result(
+            &url,
+            "ro",
+            "render_template",
+            json!({"template": template, "data": {}}),
+        )
+        .await;
+        assert!(failed && message.contains(expected), "{message}");
+    }
+
+    let (status, body) = call_tool(
+        &url,
+        Some("ro"),
+        "render_template",
+        json!({"template": "hello", "data": {}, "engine": "jinja2"}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("unknown field `engine`"), "{body}");
+}
+
+#[tokio::test]
 async fn whoami_describes_the_caller() {
     let url = mcp_server(&mock_rudder().await).await;
     let whoami = async |token| -> Value {

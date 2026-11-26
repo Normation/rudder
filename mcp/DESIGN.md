@@ -55,6 +55,9 @@ it can tell the user rather than retry. On 403 it also names the right the endpo
 (e.g. `compliance_read`), which Rudder's answer does not. A tool making several calls reports
 every failed one, as each can need a different right.
 
+- `render_template` previews inline MiniJinja source with a JSON object of variables and returns
+  the rendered text. It uses the Rudder template module’s filters, strict undefined variables, and
+  whitespace settings. Rendering runs locally with a VM instruction budget and no file loader.
 - `whoami`: the Rudder API account behind the caller's token and its rights. Built from the
   token check, no extra Rudder call. Doubles as the "does it work" check for clients.
 - `server_info` (`GET /system/info`, `GET /system/status` and `GET /compliance`, concurrently):
@@ -137,6 +140,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 |---|---|---|
 | Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
+| `render_template` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
 | `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 | `node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
