@@ -81,6 +81,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
@@ -929,7 +930,20 @@ final case class GroupCategoryArchive(
 final case class GroupArchive(
     group:    NodeGroup,
     category: NodeGroupCategoryId
-)
+) {
+
+  /*
+   * Archive ignores hidden properties - see https://issues.rudder.io/issues/30153
+   * So we keep them is they are missing (archive case) and update them when they are specified
+   * (plugins - actually only security-benchmarks)
+   */
+  def updating(stored: NodeGroup): NodeGroup = {
+    import com.softwaremill.quicklens.*
+    val names  = group.properties.map(_.name).toSet
+    val hidden = stored.properties.filter(p => p.visibility == Visibility.Hidden && !names.contains(p.name))
+    group.modify(_.properties).using(_ ++ hidden)
+  }
+}
 
 final case class RuleCategoryArchive(
     id:          RuleCategoryId,
@@ -1688,8 +1702,8 @@ class SaveArchiveServicebyRepo(
       // now we can check if we create a new group or update one
       x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQC)
       _ <- x match {
-             case Some((_, parentId)) =>
-               woGroupRepos.update(g.group) *>
+             case Some((stored, parentId)) =>
+               woGroupRepos.update(g.updating(stored)) *>
                // we need to check if the group moved
                ZIO.when(parentId != g.category) {
                  woGroupRepos.move(g.group.id, g.category)
