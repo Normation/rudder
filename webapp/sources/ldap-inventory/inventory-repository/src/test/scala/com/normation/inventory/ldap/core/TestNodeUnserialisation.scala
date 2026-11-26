@@ -240,16 +240,22 @@ class TestNodeUnserialisation extends Specification {
                |-----END CERTIFICATE-----
                |""".stripMargin
 
+  // the 6.1 entries hold the certificate text as received, loaded as standard PEM
   "Agent type " should {
     "correctly unserialize Linux node from 6_1" in {
       node(linux61Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("6.1.0")), Certificate(cert), Set(AgentCapability("https")))
+        AgentInfo(
+          AgentType.CfeCommunity,
+          Some(AgentVersion("6.1.0")),
+          SecurityToken.fromStored(cert),
+          Set(AgentCapability("https"))
+        )
       )
     }
 
     "correctly unserialize DSC node from 6_1" in {
       node(dsc61Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.Dsc, Some(AgentVersion("6.1-1.9")), Certificate(cert), Set())
+        AgentInfo(AgentType.Dsc, Some(AgentVersion("6.1-1.9")), SecurityToken.fromStored(cert), Set())
       )
     }
 

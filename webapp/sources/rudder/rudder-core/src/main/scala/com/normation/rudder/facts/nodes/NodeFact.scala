@@ -38,14 +38,12 @@
 package com.normation.rudder.facts.nodes
 
 import cats.syntax.traverse.*
-import com.normation.box.*
 import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeKeyHash
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -62,7 +60,6 @@ import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
@@ -73,9 +70,6 @@ import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
 import java.time.Instant
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -668,7 +662,7 @@ object NodeFact {
   }
 
   def defaultRudderAgent(localAdmin: String): RudderAgent = {
-    RudderAgent(AgentType.CfeCommunity, localAdmin, AgentVersion("unknown"), Certificate("not initialized"), Chunk.empty)
+    RudderAgent(AgentType.CfeCommunity, localAdmin, AgentVersion("unknown"), UnverifiedToken("not initialized"), Chunk.empty)
   }
 
   def newFromFullInventory(inventory: FullInventory, software: Option[Iterable[Software]]): NodeFact = {
@@ -931,33 +925,25 @@ trait MinimalNodeFactInterface {
   def ram:               Option[MemorySize]
   def softwareUpdate:    Chunk[SoftwareUpdate]
 
-  // this is copied from NodeInfo. Not sure if there is a better way for now.
-  /**
-   * Get a digest of the key in the proprietary CFEngine digest format. It is
-   * formated as expected by CFEngine authentication module, i.e with the
-   * "MD5=" prefix for community agent (resp. "SHA=") prefix for enterprise agent).
+  /*
+   * Key digest in the format of the CFEngine authentication module ("MD5=" prefix for the community agent). Empty, and
+   * logged, when there is none.
    */
   lazy val keyHashCfengine: String = {
-
-    def formatDigest(digest: Box[String], algo: String, tokenType: SecurityToken): String = {
-      digest match {
-        case Full(hash) => s"${algo}=${hash}"
-        case eb: EmptyBox =>
-          val msgForToken = tokenType match {
-            case _: Certificate => "for certificate of"
-          }
-          val e           = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${fqdn}' (${id.value})"
-          PolicyGenerationLogger.error(e.messageChain)
-          ""
-      }
-    }
-
     (rudderAgent.agentType, rudderAgent.securityToken) match {
-
-      case (AgentType.CfeCommunity, cert: Certificate) =>
-        formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
-
-      case (AgentType.Dsc, _) =>
+      case (AgentType.CfeCommunity, cert: Certificate)  =>
+        cert.cfengineMd5Digest match {
+          case Some(digest) => s"MD5=${digest}"
+          case None         =>
+            PolicyGenerationLogger.error(s"Certificate of node '${fqdn}' (${id.value}) has no RSA key: no CFEngine key digest")
+            ""
+        }
+      case (AgentType.CfeCommunity, _: UnverifiedToken) =>
+        PolicyGenerationLogger.error(
+          s"Agent key of node '${fqdn}' (${id.value}) is not a checked certificate: no CFEngine key digest"
+        )
+        ""
+      case (AgentType.Dsc, _)                           =>
         PolicyGenerationLogger.info(
           s"Node '${fqdn}' (${id.value}) is a Windows node and a we do not know how to generate a hash yet"
         )
@@ -965,25 +951,13 @@ trait MinimalNodeFactInterface {
     }
   }
 
-  /**
-   * Get a base64 sha-256 digest (of the DER byte sequence) of the key.
-   *
-   * This method never fails, and if we are not able to parse
-   * the store key, or if no key is store, it return an empty
-   * string. Logs are used to track problems.
-   *
-   */
+  // Base64 SHA-256 digest of the DER public key. Empty, and logged, when there is none.
   lazy val keyHashBase64Sha256: String = {
     rudderAgent.securityToken match {
-      case cert: Certificate =>
-        NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
-          case Right(hash) => hash
-          case Left(e)     =>
-            PolicyGenerationLogger.error(
-              s"Error when trying to get the sha-256 digest of Certificate for node '${fqdn}' (${id.value}): ${e.fullMsg}"
-            )
-            ""
-        }
+      case cert: Certificate     => cert.sha256Base64
+      case _:    UnverifiedToken =>
+        PolicyGenerationLogger.error(s"Agent key of node '${fqdn}' (${id.value}) is not a checked certificate: no key digest")
+        ""
     }
   }
 

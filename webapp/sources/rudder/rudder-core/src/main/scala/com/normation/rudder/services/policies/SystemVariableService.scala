@@ -49,6 +49,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -61,7 +62,6 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalTime
@@ -399,35 +399,31 @@ class SystemVariableServiceImpl(
         .get("SUB_NODES_KEYHASH")
         .toVariable(subNodesList.map(n => s"sha256//${n._2.keyHashBase64Sha256}"))
 
-      // Construct the system variables for nodes with certificates
+      // Construct the system variables for nodes with certificates. Apache trusts every certificate: an unverified
+      // token is left out.
       val nodesWithCertificate       = nodesAgentWithHttpDistrib.flatMap {
         case (agent, node) =>
           agent.securityToken match {
-            // A certificate, we return it
-            case cert: Certificate =>
-              // for the certificate part, we exec the ZIO. If we have failure, log it and return "None"
-              val parsedCert = cert.cert.either.runNow match {
-                case Left(err) =>
-                  logger.error(s"Error when parsing certificate for node '${node.fqdn}' [${node.id.value}]: ${err.fullMsg}")
-                  None
-                case Right(x)  =>
-                  Some(x)
-              }
-              Some((node, cert, parsedCert))
+            case cert: Certificate     => Some((node, cert))
+            case _:    UnverifiedToken =>
+              logger.error(
+                s"Agent key of node '${node.fqdn}' [${node.id.value}] is not a checked certificate, it is not trusted by policy server '${nodeInfo.id.value}'"
+              )
+              None
           }
       }
       val varManagedNodesCertificate =
-        systemVariableSpecService.get("MANAGED_NODES_CERT_PEM").toVariable(nodesWithCertificate.map(_._2.value))
+        systemVariableSpecService.get("MANAGED_NODES_CERT_PEM").toVariable(nodesWithCertificate.map(_._2.pem))
 
       val varManagedNodesCertDN = systemVariableSpecService
         .get("MANAGED_NODES_CERT_DN")
-        .toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.toString).getOrElse("")))
+        .toVariable(nodesWithCertificate.map(_._2.subject))
 
       // get the CN, based on https://stackoverflow.com/questions/2914521/how-to-extract-cn-from-x509certificate-in-java
       val varManagedNodesCertCN = systemVariableSpecService
         .get("MANAGED_NODES_CERT_CN")
         .toVariable(
-          nodesWithCertificate.map(_._3.map(_.getSubject.getRDNs().apply(0).getFirst().getValue().toString).getOrElse(""))
+          nodesWithCertificate.map(_._2.firstRdnValue)
         )
 
       val varManagedNodesCertUUID =
