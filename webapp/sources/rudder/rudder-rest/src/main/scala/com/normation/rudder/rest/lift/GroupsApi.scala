@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
@@ -74,7 +73,6 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
@@ -707,13 +705,7 @@ class GroupApiService14(
     queryProcessor:       QueryProcessor
 ) {
 
-  // The set of node ids the caller may see, used to filter the serialized group member ids (`nodeIds`) so a
-  // group visible to a tenant does not leak node ids from tenants it can not see. `None` = no filter
-  // (admin / all-tenants grant), which also avoids materialising the whole fleet's id set.
-  private def visibleNodeIds(implicit qc: QueryContext): IOResult[Option[Set[NodeId]]] = {
-    if (qc.accessGrant == TenantAccessGrant.All) None.succeed
-    else nodeFactRepo.getNodeAndServerIds().map(v => Some(v.nodeIds))
-  }
+  private def visibleNodeIds(implicit qc: QueryContext): IOResult[NodeVisibility] = nodeFactRepo.getVisibleNodes()
 
   private def createChangeRequest(
       diff:   ChangeRequestNodeGroupDiff,

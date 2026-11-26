@@ -215,7 +215,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantNodeGroupRepo(tenantService, ldapWo, ldapRoGroupRepo)
+    new WoTenantNodeGroupRepo(tenantService, ldapWo, ldapRoGroupRepo, nodeFactRepo.getVisibleNodes())
   }
 
   val mockGitRepo = new MockGitConfigRepo("")

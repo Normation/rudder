@@ -369,6 +369,9 @@ object ReaderScope {
   }
 
   extension (scope: ReaderScope) {
+    // can the acting subject read every object, whatever its security tag?
+    def isUnrestricted: Boolean = (scope: TenantAccessGrant) == TenantAccessGrant.All
+
     // can the acting subject read an object carrying this security tag? A missing tag (None) is admin-only
     // (fail closed). Allocation-free: the grant's tenant chunk is scanned directly, no intermediate Set.
     def canSee(tag: Option[SecurityTag]): Boolean = (scope: TenantAccessGrant) match {

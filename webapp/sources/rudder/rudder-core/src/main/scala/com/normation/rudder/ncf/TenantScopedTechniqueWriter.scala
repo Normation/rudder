@@ -66,23 +66,9 @@ class TenantScopedTechniqueWriter(
 
   import com.normation.rudder.ncf.TenantScopedTechniqueWriter.*
 
-  /*
-   * A technique name owns one directory on disk, so every version of it declares the same tenants.
-   * The lookup joins them as it is done in the active technique
-   * (`TechniqueLibraryTenantSync.declaredFor`).
-   */
-  private def stored(name: String): Lookup[Technique] = {
-    ZIO.succeed(joinVersions(techniqueRepo.getByName(TechniqueName(name)).values))
-  }
+  private def stored(name: String): Lookup[Technique] = storedTechnique(techniqueRepo, TechniqueName(name))
 
-  // the category a technique is written into, as the law needs to see it
-  private def into(categoryPath: String): Container[TechniqueCategoryMetadata] = {
-    TechniqueCategoryId
-      .parse(categoryPath)
-      .toIO
-      .flatMap(techniqueRepo.getTechniqueCategory)
-      .map(c => TechniqueCategoryMetadata(c.name, c.description, c.isSystem, c.security))
-  }
+  private def into(categoryPath: String): Container[TechniqueCategoryMetadata] = categoryContainer(techniqueRepo, categoryPath)
 
   override def deleteTechnique(
       techniqueName:    String,
@@ -135,6 +121,31 @@ class TenantScopedTechniqueWriter(
 object TenantScopedTechniqueWriter {
 
   /*
+   * A technique name owns one directory on disk, so every version of it declares the same tenants.
+   * The lookup joins them as it is done in the active technique
+   * (`TechniqueLibraryTenantSync.declaredFor`).
+   */
+  def storedTechnique(techniqueRepo: TechniqueRepository, name: TechniqueName): Lookup[Technique] = {
+    ZIO.succeed(joinVersions(techniqueRepo.getByName(name).values))
+  }
+
+  def storedCategory(techniqueRepo: TechniqueRepository, id: TechniqueCategoryId): Lookup[TechniqueCategoryMetadata] = {
+    techniqueRepo
+      .getTechniqueCategory(id)
+      .map(c => Some(TechniqueCategoryMetadata(c.name, c.description, c.isSystem, c.security)))
+      .catchAll(_ => ZIO.none)
+  }
+
+  // the category a technique is written into, as the law needs to see it
+  def categoryContainer(techniqueRepo: TechniqueRepository, categoryPath: String): Container[TechniqueCategoryMetadata] = {
+    TechniqueCategoryId
+      .parse(categoryPath)
+      .toIO
+      .flatMap(techniqueRepo.getTechniqueCategory)
+      .map(c => TechniqueCategoryMetadata(c.name, c.description, c.isSystem, c.security))
+  }
+
+  /*
    * The versions of one technique name as a single object for the law: the last version, carrying the join
    * of the tags every version declares. None when the name is not in the library.
    */
@@ -156,12 +167,8 @@ class TenantScopedTechniqueCategoryWriter(
     checkTenant:   TenantCheckLogic
 ) extends TechniqueCategoryWriter {
 
-  private def stored(id: TechniqueCategoryId): Lookup[TechniqueCategoryMetadata] = {
-    techniqueRepo
-      .getTechniqueCategory(id)
-      .map(c => Some(TechniqueCategoryMetadata(c.name, c.description, c.isSystem, c.security)))
-      .catchAll(_ => ZIO.none)
-  }
+  private def stored(id: TechniqueCategoryId): Lookup[TechniqueCategoryMetadata] =
+    TenantScopedTechniqueWriter.storedCategory(techniqueRepo, id)
 
   override def createCategory(parent: TechniqueCategoryId, name: String, description: String, security: Option[SecurityTag])(
       implicit cc: ChangeContext

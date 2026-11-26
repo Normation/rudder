@@ -2503,7 +2503,9 @@ object RudderConfigInit {
             ruleRead.repository,
             ruleCategoryRead.repository,
             directiveRead.repository,
-            techniqueRepository
+            techniqueRepository,
+            nodeFactRepository,
+            tenantCheckLogic
           )
         }
         // fixe archive name to make it simple to test
@@ -2515,6 +2517,7 @@ object RudderConfigInit {
           new SaveArchiveServicebyRepo(
             techniqueArchiver,
             techniqueReader,
+            techniqueRepository,
             directiveRead.repository,
             directiveWrite.repository,
             groupRead.repository,
@@ -2525,7 +2528,9 @@ object RudderConfigInit {
             ruleCategoryWrite.repository,
             updateTechniqueLibrary,
             asyncDeploymentAgent,
-            stringUuidGenerator
+            stringUuidGenerator,
+            tenantCheckLogic,
+            nodeFactRepository.getVisibleNodes()
           ),
           new CheckArchiveServiceImpl(techniqueRepository)
         )
@@ -3307,7 +3312,10 @@ object RudderConfigInit {
         personIdentServiceImpl,
         RUDDER_AUTOARCHIVEITEMS
       )
-      TenantScopedWrite(new WoTenantNodeGroupRepo(tenantCheckLogic, storage, groupRead.storage), storage)
+      TenantScopedWrite(
+        new WoTenantNodeGroupRepo(tenantCheckLogic, storage, groupRead.storage, nodeFactRepository.getVisibleNodes()),
+        storage
+      )
     }
 
     lazy val globalPropertyRead: TenantScopedRead[RoParameterRepository, RoLDAPParameterRepository] = {

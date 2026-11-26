@@ -933,7 +933,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       mockRules.ruleRepo,
       mockRules.ruleCategoryRepo,
       mockDirectives.directiveRepo,
-      mockTechniques.techniqueRepo
+      mockTechniques.techniqueRepo,
+      mockNodes.nodeFactRepo,
+      mockTenants.checkTenant
     )
 
     // archive name in a Ref to make it simple to change in tests

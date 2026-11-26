@@ -48,6 +48,7 @@ import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.MockTenants
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -80,7 +81,8 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
 
   implicit val qc: QueryContext = QueryContext.testQC
 
-  val mockRules         = MockRules(new MockTenants)
+  val mockTenants       = new MockTenants
+  val mockRules         = MockRules(mockTenants)
   val mockGitConfigRepo = MockGitConfigRepo()
   val mockTechniques    = MockTechniques(mockGitConfigRepo)
 
@@ -153,6 +155,9 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       mockGitConfigRepo.configurationRepositoryRoot / "techniques" / techniqueCategory.mkString("/") / techniqueId.serialize
     val files        = Chunk.fromIterable(
       techniqueDir.collectChildren(!_.isDirectory).map(f => (techniqueDir.relativize(f).toString, f.byteArray)).toList
+    ) :+ (
+      // a technique identical to the stored one is not written: the archive adds a file
+      ("resources/added-by-archive.txt", "added".getBytes(java.nio.charset.StandardCharsets.UTF_8))
     )
 
     PolicyArchive
@@ -166,7 +171,8 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
                 TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException("test"))
               ),
               "technique with blocks",
-              TechniqueType.Yaml
+              TechniqueType.Yaml,
+              None
             ),
             techniqueCategory,
             files
@@ -213,11 +219,14 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       null,
       null,
       null,
+      null,
       ruleCategoryRepo,
       ruleCategoryRepo,
       null,
       mockActor,
-      stubUuidGen
+      stubUuidGen,
+      mockTenants.checkTenant,
+      zio.ZIO.succeed(NodeVisibility.Everything)
     )
     for {
       _    <- save(archiveSaver)
@@ -231,17 +240,20 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
     val archiveSaver = new SaveArchiveServicebyRepo(
       mockTechniques.techniqueArchiver,
       mockTechniques.techniqueReader,
+      mockTechniques.techniqueRepo,
       null,
       null,
       null,
       null,
       null,
       null,
-      null,
-      null,
+      mockRules.ruleCategoryRepo,
+      mockRules.ruleCategoryRepo,
       dummyTechLibUpdate,
       mockActor,
-      stubUuidGen
+      stubUuidGen,
+      mockTenants.checkTenant,
+      zio.ZIO.succeed(NodeVisibility.Everything)
     )
     save(archiveSaver)
   }

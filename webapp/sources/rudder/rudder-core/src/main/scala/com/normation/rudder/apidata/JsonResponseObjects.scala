@@ -54,6 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.nodes.NodeVisibility
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.Visibility.Displayed
@@ -2119,21 +2120,17 @@ object JsonResponseObjects {
       security = None
     )
 
-    // `visibleNodes` is the set of node ids the caller may see (from `nodeFactRepo.getNodeAndServerIds()(qc)`);
-    // `None` means "no tenant filter" (admin/system paths). We filter the serialized `nodeIds` to it so a group
-    // visible to a tenant does not leak the ids of member nodes in tenants the caller can not see.
+    // The serialized `nodeIds` are restricted to `visibleNodes`, so a group does not leak the ids of nodes the caller
+    // can not see.
     def fromGroup(
         group:        NodeGroup,
         catId:        NodeGroupCategoryId,
         crId:         Option[ChangeRequestId],
-        visibleNodes: Option[Set[NodeId]]
+        visibleNodes: NodeVisibility
     )(using
         qc:           QueryContext
     ): JRGroup = {
-      val nodeIds = (visibleNodes match {
-        case None      => group.serverList
-        case Some(vis) => group.serverList.filter(vis.contains)
-      }).toList.map(_.value).sorted
+      val nodeIds = visibleNodes.restrict(group.serverList).toList.map(_.value).sorted
       group
         .into[JRGroup]
         .enableBeanGetters
@@ -2205,7 +2202,7 @@ object JsonResponseObjects {
     def fromCategory(
         cat:          FullNodeGroupCategory,
         parent:       Option[NodeGroupCategoryId],
-        visibleNodes: Option[Set[NodeId]] // caller's visible node ids for `nodeIds` filtering; None = no filter
+        visibleNodes: NodeVisibility
     )(using qc: QueryContext): JRFullGroupCategory = {
       cat
         .into[JRFullGroupCategory]

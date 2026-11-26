@@ -2,7 +2,9 @@
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
 get:
   summary: Get a ZIP archive of the requested items and their dependencies
-  description: Get a ZIP archive or rules, directives, techniques and groups with optionally their dependencies
+  description: >-
+    Get a ZIP archive or rules, directives, techniques and groups with optionally their dependencies.
+    Only the objects the account can see are exported (see Multi-tenancy).
   operationId: export
   parameters:
     - in: query

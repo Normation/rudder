@@ -311,6 +311,18 @@ trait TenantCheckLogic {
   )(using cc: ChangeContext): IOResult[Authorized[B]]
 
   /*
+   * `decideSave` for an object that may also change container: `existing` gives the stored object with the
+   * key of the container it is in, `intoKey` is the key of the destination. The destination container is
+   * checked on a creation and on a move, not when the object stays where it is.
+   */
+  def decideSaveAndMove[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag, K](
+      saved:    B,
+      existing: Lookup[(A, K)],
+      intoKey:  K,
+      into:     Container[C]
+  )(using cc: ChangeContext): IOResult[Authorized[B]]
+
+  /*
    * `decideSave` over a collection, refusing the whole batch if any element is refused and reporting every
    * refusal rather than the first.
    */
@@ -813,6 +825,19 @@ class DefaultTenantCheckLogic(tenantService: TenantService) extends TenantCheckL
       // the container is only checked when the object is created into it: an update doesn't change it
       case None    => checkContainer(into) *> createLogic(saved)
       case Some(e) => updateLogic(e, saved)
+    }
+  }
+
+  override def decideSaveAndMove[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag, K](
+      saved:    B,
+      existing: Lookup[(A, K)],
+      intoKey:  K,
+      into:     Container[C]
+  )(using cc: ChangeContext): IOResult[Authorized[B]] = {
+    existing(using QueryContext.systemQC).flatMap {
+      case None                           => checkContainer(into) *> createLogic(saved)
+      case Some((e, k)) if (k == intoKey) => updateLogic(e, saved)
+      case Some((e, _))                   => checkContainer(into) *> updateLogic(e, saved)
     }
   }
 
