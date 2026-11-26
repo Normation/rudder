@@ -173,29 +173,30 @@ async fn mcp_server(rudder_url: &str) -> String {
     url
 }
 
-/// Calls a tool with a stateless (2026-07-28) MCP request, returns the HTTP status and body
-async fn call_tool(
+/// Sends a stateless (2026-07-28) MCP request, returns the HTTP status and body. `name` is the
+/// tool's, for a tool call.
+async fn mcp_request(
     url: &str,
     token: Option<&str>,
-    name: &str,
-    arguments: Value,
+    method: &str,
+    name: Option<&str>,
+    mut params: Value,
 ) -> (StatusCode, String) {
-    let request = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
-        "name": name,
-        "arguments": arguments,
-        "_meta": {
-            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-            "io.modelcontextprotocol/clientCapabilities": {}
-        }
-    }});
+    params["_meta"] = json!({
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+    });
+    let request = json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params});
     let mut request = reqwest::Client::new()
         .post(url)
         .header("Content-Type", "application/json")
         .header("Accept", "application/json, text/event-stream")
         .header("MCP-Protocol-Version", "2026-07-28")
-        .header("Mcp-Method", "tools/call")
-        .header("Mcp-Name", name)
+        .header("Mcp-Method", method)
         .body(request.to_string());
+    if let Some(name) = name {
+        request = request.header("Mcp-Name", name);
+    }
     if let Some(token) = token {
         request = request.header("Authorization", format!("Bearer {token}"));
     }
@@ -204,9 +205,25 @@ async fn call_tool(
     (status, response.text().await.unwrap())
 }
 
+/// Calls a tool, returns the HTTP status and body
+async fn call_tool(
+    url: &str,
+    token: Option<&str>,
+    name: &str,
+    arguments: Value,
+) -> (StatusCode, String) {
+    let params = json!({"name": name, "arguments": arguments});
+    mcp_request(url, token, "tools/call", Some(name), params).await
+}
+
 /// Text answered by a tool, and whether it is an error
-async fn tool_result(url: &str, token: &str, name: &str, arguments: Value) -> (bool, String) {
-    let (status, body) = call_tool(url, Some(token), name, arguments).await;
+async fn tool_result(
+    url: &str,
+    token: Option<&str>,
+    name: &str,
+    arguments: Value,
+) -> (bool, String) {
+    let (status, body) = call_tool(url, token, name, arguments).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     let response: Value = serde_json::from_str(&body).unwrap();
     let text = response["result"]["content"][0]["text"]
@@ -218,7 +235,7 @@ async fn tool_result(url: &str, token: &str, name: &str, arguments: Value) -> (b
 
 /// Text answered by a tool that succeeds
 async fn tool_text(url: &str, token: &str, name: &str, arguments: Value) -> String {
-    let (is_error, text) = tool_result(url, token, name, arguments).await;
+    let (is_error, text) = tool_result(url, Some(token), name, arguments).await;
     assert!(!is_error, "{text}");
     text
 }
@@ -275,19 +292,21 @@ async fn node_info_by_id_or_hostname() {
         json!([{"name": "openssl", "version": "3.5.1"}])
     );
 
-    let (is_error, text) = tool_result(&url, "ro", "node_info", json!({"node": "web"})).await;
+    let (is_error, text) = tool_result(&url, Some("ro"), "node_info", json!({"node": "web"})).await;
     assert!(
         is_error && text.starts_with("no node found for 'web': give a node id"),
         "{text}"
     );
     // A short name: the fully qualified one to retry with
-    let (is_error, text) = tool_result(&url, "ro", "node_info", json!({"node": "server"})).await;
+    let (is_error, text) =
+        tool_result(&url, Some("ro"), "node_info", json!({"node": "server"})).await;
     assert!(
         is_error && text.contains("Similar hostnames (id): server.example.com (root)."),
         "{text}"
     );
     let unknown = "8b168194-c0b4-41ab-b2b5-9571a8906d59";
-    let (is_error, text) = tool_result(&url, "ro", "node_info", json!({"node": unknown})).await;
+    let (is_error, text) =
+        tool_result(&url, Some("ro"), "node_info", json!({"node": unknown})).await;
     assert!(
         is_error && text.contains("was not found in Rudder"),
         "{text}"
@@ -318,14 +337,24 @@ async fn node_compliance_by_id_or_hostname() {
         let text = tool_text(&url, "ro", "node_compliance", json!({"node": node})).await;
         assert_eq!(text, expected);
     }
-    let (is_error, text) =
-        tool_result(&url, "ro", "node_compliance", json!({"node": "server"})).await;
+    let (is_error, text) = tool_result(
+        &url,
+        Some("ro"),
+        "node_compliance",
+        json!({"node": "server"}),
+    )
+    .await;
     assert!(
         is_error && text.contains("Similar hostnames (id): server.example.com (root)."),
         "{text}"
     );
-    let (is_error, text) =
-        tool_result(&url, "acl", "node_compliance", json!({"node": "root"})).await;
+    let (is_error, text) = tool_result(
+        &url,
+        Some("acl"),
+        "node_compliance",
+        json!({"node": "root"}),
+    )
+    .await;
     assert!(
         is_error && text.contains("requires the compliance_read right"),
         "{text}"
@@ -336,7 +365,7 @@ async fn node_compliance_by_id_or_hostname() {
 async fn api_errors_are_tool_errors() {
     // The model sees every failed call and the right it needs, so it can tell the user
     let url = mcp_server(&mock_rudder().await).await;
-    let (is_error, text) = tool_result(&url, "acl", "server_info", json!({})).await;
+    let (is_error, text) = tool_result(&url, Some("acl"), "server_info", json!({})).await;
     assert!(is_error, "{text}");
     let refused = |path, right| {
         format!(
@@ -356,17 +385,21 @@ async fn api_errors_are_tool_errors() {
 }
 
 #[tokio::test]
-async fn refuses_requests_without_an_identified_token() {
+async fn refuses_tool_calls_without_an_identified_token() {
+    // The model is told why, so it can tell the user
     let url = mcp_server(&mock_rudder().await).await;
     for (token, expected) in [
-        (None, StatusCode::UNAUTHORIZED),
-        (Some("unknown"), StatusCode::UNAUTHORIZED),
-        (Some("narrow"), StatusCode::FORBIDDEN),
-        (Some("anonymous"), StatusCode::BAD_GATEWAY),
-        (Some("future"), StatusCode::BAD_GATEWAY),
+        (None, "no Rudder API token"),
+        (Some("unknown"), "Rudder rejected the API token"),
+        (Some("narrow"), "must be allowed to read its own account"),
+        (Some("anonymous"), "could not check the API token"),
+        (Some("future"), "could not check the API token"),
     ] {
-        let (status, body) = call_tool(&url, token, "whoami", json!({})).await;
-        assert_eq!(status, expected, "token {token:?}: {body}");
+        let (is_error, text) = tool_result(&url, token, "whoami", json!({})).await;
+        assert!(
+            is_error && text.contains(expected),
+            "token {token:?}: {text}"
+        );
     }
 }
 
@@ -400,20 +433,43 @@ async fn does_not_follow_redirects_with_the_token() {
     tokio::spawn(async move { axum::serve(listener, rudder).await.unwrap() });
 
     let url = mcp_server(&rudder_url).await;
-    let (status, body) = call_tool(&url, Some("ro"), "whoami", json!({})).await;
-    assert_eq!(status, StatusCode::BAD_GATEWAY, "{body}");
+    let (is_error, text) = tool_result(&url, Some("ro"), "whoami", json!({})).await;
+    assert!(
+        is_error && text.contains("could not check the API token"),
+        "{text}"
+    );
     assert!(received.lock().unwrap().is_empty());
 }
 
 #[tokio::test]
-async fn refuses_requests_when_rudder_is_unreachable() {
+async fn connects_without_token_while_rudder_is_unreachable() {
     // A port nothing listens on
     let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let rudder_url = format!("http://{}", closed.local_addr().unwrap());
     drop(closed);
     let url = mcp_server(&rudder_url).await;
-    let (status, _) = call_tool(&url, Some("ro"), "whoami", json!({})).await;
-    assert_eq!(status, StatusCode::BAD_GATEWAY);
+
+    // Discovering the server and listing the tools need neither
+    let (status, body) = mcp_request(&url, None, "server/discover", None, json!({})).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert!(body.contains(r#""tools":{"#), "{body}");
+    let (status, body) = mcp_request(&url, None, "tools/list", None, json!({})).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let tools: Value = serde_json::from_str(&body).unwrap();
+    assert!(
+        tools["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "whoami"),
+        "{body}"
+    );
+    // Tool calls are refused
+    let (is_error, text) = tool_result(&url, Some("ro"), "whoami", json!({})).await;
+    assert!(
+        is_error && text.contains("could not check the API token"),
+        "{text}"
+    );
 }
 
 /// Log lines of all tests, from `debug`. The subscriber is global: tracing caches per process
@@ -459,26 +515,25 @@ async fn requests_are_logged_with_the_caller() {
             .unwrap_or_else(|| panic!("no log line with '{text}' in:\n{logs}"))
     };
 
-    let accepted = line(r#"MCP request account_name="Account audit""#);
+    let accepted =
+        line(r#"account_name="Account audit" rights="rw"}: rudder_mcp::auth: MCP request"#);
     assert!(
         accepted.starts_with(" INFO mcp_request{client=127.0.0.1:"),
         "{accepted}"
     );
     assert!(
-        accepted.contains(
-            r#"mcp_method="tools/call" mcp_name="whoami" account="audit-id" rights="rw"}"#
-        ),
+        accepted.contains(r#"mcp_method="tools/call" mcp_name="whoami" account="audit-id" "#),
         "{accepted}"
     );
     assert!(accepted.contains("http_status=200"), "{accepted}");
     let api_call = line("Rudder API answered status=200");
     assert!(
         api_call
-            .contains(r#"}:token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}"#),
+            .contains(r#":token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}"#),
         "{api_call}"
     );
     // Refusals have the request context, but no account
-    let refused = line("MCP request refused rejection=Rejected");
-    assert!(refused.contains(r#"mcp_name="whoami"}: "#), "{refused}");
+    let refused = line("tool call refused rejection=Rejected");
+    assert!(refused.contains(r#"mcp_name="whoami"}:"#), "{refused}");
     assert!(!logs.contains("secret-unknown-token"), "{logs}");
 }
