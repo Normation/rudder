@@ -11,12 +11,19 @@ use std::{
 use anyhow::{Context, Result, bail};
 use axum::http::{HeaderValue, Method, StatusCode};
 use secrecy::ExposeSecret;
+use serde::Deserialize;
 use url::Url;
 
 use crate::{auth::ApiToken, config::ApiConfig};
 
 const API_TOKEN_HEADER: &str = "X-API-Token";
 const API_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Body of a Rudder API response, `{"action": …, "result": …, "data": T}`: only `data` is read
+#[derive(Debug, Deserialize)]
+pub struct Envelope<T> {
+    pub data: T,
+}
 
 /// Shared by all requests: holds the connection pool. Calls go through [`CallerApi`].
 #[derive(Debug, Clone)]

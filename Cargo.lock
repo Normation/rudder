@@ -4065,6 +4065,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serde_yaml",
  "tokio",
  "toml 0.9.12+spec-1.1.0",
  "tracing",

@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::UNEXPECTED;
+use super::{UNEXPECTED, data};
 use crate::api::CallerApi;
 
 /// A policy mode, as Rudder names it
@@ -52,11 +52,7 @@ impl GlobalPolicyMode {
     /// `GET /settings/global_policy_mode_overridable`
     fn parse(mode_body: &str, overridable_body: &str) -> Result<Self> {
         #[derive(Deserialize)]
-        struct Response<T> {
-            data: Data<T>,
-        }
-        #[derive(Deserialize)]
-        struct Data<T> {
+        struct Settings<T> {
             settings: T,
         }
         #[derive(Deserialize)]
@@ -67,14 +63,10 @@ impl GlobalPolicyMode {
         struct Overridable {
             global_policy_mode_overridable: bool,
         }
-        let mode = serde_json::from_str::<Response<Mode>>(mode_body)
-            .context(UNEXPECTED)?
-            .data
+        let mode = data::<Settings<Mode>>(mode_body)?
             .settings
             .global_policy_mode;
-        let overridable = serde_json::from_str::<Response<Overridable>>(overridable_body)
-            .context(UNEXPECTED)?
-            .data
+        let overridable = data::<Settings<Overridable>>(overridable_body)?
             .settings
             .global_policy_mode_overridable;
         Ok(Self { mode, overridable })
