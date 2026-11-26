@@ -19,6 +19,8 @@ hostname = "0.4.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 askama = "0.16"
 tracing = "0.1.41"
+tempfile = "3.27.0"
+rstest = "0.28.0"
 
 [features]
 test-windows = []

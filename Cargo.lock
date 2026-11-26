@@ -26,8 +26,10 @@ dependencies = [
  "chrono",
  "clap",
  "hostname",
+ "rstest",
  "serde",
  "serde_json",
+ "tempfile",
  "toml",
  "tracing",
 ]
