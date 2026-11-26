@@ -107,6 +107,19 @@ every failed one, as each can need a different right.
   Rudder's answer is parsed into types: a change in its shape is a tool error, not a wrong
   summary.
 
+- `node_policies` lists the rules and directives in a node’s compliance tree, including
+  override information. It requests level 4 to include directive references across Rudder versions.
+  Pass a listed directive id to read its current parameter tree and the exact technique
+  version it references. Parameter expressions are returned as configured.
+  - **One technique shape**: `id`, `name`, `version`, `source` (`built-in` or `editor`) for
+    every technique, and for editor techniques their `technique.yml` as Rudder sends it, in
+    `content`. Rudder only sends that YAML for them: the metadata comes from the directive and
+    the YAML's `name`.
+  - **Named parameters**: rudderc names the directive variable of an editor technique's
+    parameter by its uppercased id, usually a UUID. Such variables are renamed to the
+    parameter's name, from the YAML's `params` (`profile` rather than `2628FA31-...`). Built-in techniques' variables
+    already have meaningful names, and are kept.
+
 ### Designating a node
 
 Users name nodes by hostname, Rudder by id. Every tool working on a node takes a single `node`
@@ -135,8 +148,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 - **`ro` or `rw` API account**: nothing more, every tool works.
 - **`acl` API account** (api-authorization plugin): `GET` on each path below, the token check's
   included.
-- **User token** (api-authorization plugin): the owning user needs the rights below. Today
-  `administration_read`, `compliance_read` and `node_read` cover every tool.
+- **User token** (api-authorization plugin): the owning user needs the rights below.
 - **`none`**: refused at the token check of each tool call.
 
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
@@ -146,6 +158,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
 | `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 | `node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
+| `node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read` (hostname only), `compliance_read`; for details, `directive_read`, `technique_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
@@ -159,11 +172,11 @@ them on 403. Update this table with every tool.
   unknown keys rejected. Samples in [`config/`](config/).
 - **Logging** shared with `relayd` through `rudder_cli::logs::daemon`. Every line of a request,
   rmcp's included, is in a `mcp_request` span with the client address, the MCP method and tool
-  (`Mcp-Method`, `Mcp-Name`) and, once a tool call's token is accepted, the account id, name and
-  rights. One `info` line per request with the HTTP status and duration; refused tool calls are
-  logged with their reason. At `debug`, each Rudder API call is in a `rudder_api` span (method,
-  path) with its status and duration. rmcp is kept to warnings by default, its `info` logs bury
-  the request log.
+  (`Mcp-Method`, `Mcp-Name`, or for a tool call without them, from its body) and, once a tool
+  call's token is accepted, the account id, name and rights. One `info` line per request with
+  the HTTP status and duration; refused tool calls are logged with their reason. At `debug`,
+  each Rudder API call is in a `rudder_api` span (method, path) with its status and duration.
+  rmcp is kept to warnings by default, its `info` logs bury the request log.
 - **systemd unit** ([`systemd/rudder-mcp.service`](systemd/rudder-mcp.service)): throwaway user
   in a sandbox. Exit codes 2 (configuration) and 3 (other startup error) are not restarted, as a
   restart would not fix them; 1 is.

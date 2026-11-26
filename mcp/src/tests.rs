@@ -48,7 +48,7 @@ async fn mock_rudder() -> String {
         };
         match token {
             "ro" => (StatusCode::OK, account(Some("ro"))),
-            "audit" => (StatusCode::OK, account(Some("rw"))),
+            "audit" | "legacy" => (StatusCode::OK, account(Some("rw"))),
             "user" => (StatusCode::OK, account(None)),
             "future" => (StatusCode::OK, account(Some("admin"))),
             "acl" => (StatusCode::OK, account(Some("acl"))),
@@ -149,6 +149,54 @@ async fn mock_rudder() -> String {
                                "directives": []}]
                 }]}}),
             ),
+        )
+        .route(
+            "/rudder/api/latest/compliance/nodes/12345678-0000-0000-0000-000000000001",
+            get(|Query(query): Query<HashMap<String,String>>| async move {
+                assert_eq!(query.get("level").map(String::as_str), Some("4"));
+                json!({"data":{"nodes":[{"id": POLICY_NODE, "name":"web", "rules":[
+                    {"id":"r1","name":"Web","directives":[{"id":"d1","name":"Site"},{"id":"d2","name":"Packages"}]}
+                ]}]}}).to_string()
+            }),
+        )
+        .route(
+            "/rudder/api/latest/directives/{id}",
+            get(|Path(id): Path<String>| async move {
+                // As Rudder sends them: the variables of an editor technique's parameters are named
+                // by the uppercased parameter id, and each method has a section with a report key
+                let (technique, sections) = if id == "d1" {
+                    ("site", json!([
+                        {"section": {"name": "Technique parameters", "vars": [
+                            {"var": {"name": "2628FA31-0C5B-4B4E-9D1F-7A1F5E7F0001", "value": "/srv/www"}},
+                            {"var": {"name": "UNKNOWN_PARAMETER", "value": "kept"}}
+                        ]}},
+                        {"section": {"name": "Site file", "vars": [
+                            {"var": {"name": "expectedReportKey Site file", "value": "/srv/www"}}
+                        ]}}
+                    ]))
+                } else {
+                    ("packages", json!([{"section": {"name": "Packages", "vars": [
+                        {"var": {"name": "PACKAGE_LIST", "value": "vim"}}
+                    ]}}]))
+                };
+                json!({"data":{"directives":[{"id":id,"displayName":technique,"techniqueName":technique,
+                    "techniqueVersion":"2.0","parameters":{"section":{"name":"sections","sections":sections}}}]}}).to_string()
+            }),
+        )
+        .route(
+            "/rudder/api/latest/techniques/{name}/2.0",
+            get(|Path(name): Path<String>, Query(query): Query<HashMap<String,String>>, headers: HeaderMap| async move {
+                assert_eq!(query.get("format").map(String::as_str), Some("yaml"));
+                if headers["X-API-Token"] == "acl" {
+                    return (StatusCode::FORBIDDEN, String::new());
+                }
+                let technique = if name == "site" {
+                    json!({"content": SITE_YAML})
+                } else {
+                    json!({"name": "Package management", "id": name, "version": "2.0", "source": "built-in"})
+                };
+                (StatusCode::OK, json!({"data":{"techniques":[technique]}}).to_string())
+            }),
         )
         .route(
             "/rudder/api/latest/compliance",
@@ -326,6 +374,80 @@ async fn node_info_without_the_global_policy_mode() {
         reason.contains("GET settings/global_policy_mode") && reason.contains("node_read"),
         "{reason}"
     );
+}
+
+const POLICY_NODE: &str = "12345678-0000-0000-0000-000000000001";
+/// As Rudder writes it: an unquoted version, parameters by id
+const SITE_YAML: &str = "id: site
+name: Web site
+version: 2.0
+params:
+  - id: 2628fa31-0c5b-4b4e-9d1f-7a1f5e7f0001
+    name: path
+    description: Site root
+items:
+  - name: Site file
+    method: file_present
+    params:
+      path: ${site.path}
+";
+
+#[tokio::test]
+async fn node_policies_overview_and_directive_details() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let query = async |args| -> Value {
+        serde_json::from_str(&tool_text(&url, "ro", "node_policies", args).await).unwrap()
+    };
+    let overview = query(json!({"node":POLICY_NODE})).await;
+    assert_eq!(overview["rules"][0]["directives"][0]["id"], "d1");
+    let by_hostname = query(json!({"node":"server.example.com"})).await;
+    assert_eq!(by_hostname["id"], "root");
+
+    // Editor technique: its definition, and the variables named after its parameters
+    let detail = query(json!({"node":POLICY_NODE,"directive":"d1"})).await;
+    let sections = &detail["directive"]["parameters"]["section"]["sections"];
+    assert_eq!(
+        sections[0]["section"]["vars"],
+        json!([{"var": {"name": "path", "value": "/srv/www"}},
+               {"var": {"name": "UNKNOWN_PARAMETER", "value": "kept"}}])
+    );
+    assert_eq!(
+        sections[1]["section"]["vars"][0]["var"]["name"],
+        "expectedReportKey Site file"
+    );
+    assert_eq!(
+        detail["technique"],
+        json!({"id": "site", "name": "Web site", "version": "2.0", "source": "editor",
+               "content": SITE_YAML})
+    );
+
+    // Built-in technique: the same shape, metadata only
+    let builtin = query(json!({"node":POLICY_NODE,"directive":"d2"})).await;
+    assert_eq!(
+        builtin["technique"],
+        json!({"id": "packages", "name": "Package management", "version": "2.0",
+               "source": "built-in"})
+    );
+    assert_eq!(
+        builtin["directive"]["parameters"]["section"]["sections"][0]["section"]["vars"][0]["var"]["name"],
+        "PACKAGE_LIST"
+    );
+    let (failed, text) = tool_result(
+        &url,
+        Some("ro"),
+        "node_policies",
+        json!({"node":POLICY_NODE,"directive":"unrelated"}),
+    )
+    .await;
+    assert!(failed && text.contains("not listed for node"), "{text}");
+    let (failed, text) = tool_result(
+        &url,
+        Some("acl"),
+        "node_policies",
+        json!({"node":POLICY_NODE,"directive":"d1"}),
+    )
+    .await;
+    assert!(failed && text.contains("technique_read"), "{text}");
 }
 
 #[tokio::test]
@@ -508,6 +630,17 @@ async fn requests_are_logged_with_the_caller() {
     let url = mcp_server(&mock_rudder().await).await;
     tool_text(&url, "audit", "whoami", json!({})).await;
     call_tool(&url, Some("secret-unknown-token"), "whoami", json!({})).await;
+    let legacy = reqwest::Client::new()
+        .post(&url)
+        .bearer_auth("legacy")
+        .header("Accept", "application/json, text/event-stream")
+        .json(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                      "params": {"name": "whoami", "arguments": {}}}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(legacy.status(), StatusCode::OK);
+    assert!(legacy.text().await.unwrap().contains("Account legacy"));
     let logs = logs();
     let line = |text: &str| {
         logs.lines()
@@ -526,6 +659,12 @@ async fn requests_are_logged_with_the_caller() {
         "{accepted}"
     );
     assert!(accepted.contains("http_status=200"), "{accepted}");
+    let legacy =
+        line(r#"account_name="Account legacy" rights="rw"}: rudder_mcp::auth: MCP request"#);
+    assert!(
+        legacy.contains(r#"mcp_method="tools/call" mcp_name="whoami""#),
+        "{legacy}"
+    );
     let api_call = line("Rudder API answered status=200");
     assert!(
         api_call

@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::{UNEXPECTED, tool_error};
+use super::{UNEXPECTED, data, tool_error};
 use crate::api::CallerApi;
 
 /// How the caller designates a node
@@ -176,17 +176,10 @@ fn not_found(node: &str, similar: &[Value]) -> String {
 /// The nodes of a `GET /nodes` or `GET /nodes/{id}` body (both answer a `nodes` array)
 fn nodes(body: &str) -> Result<Vec<Value>> {
     #[derive(Deserialize)]
-    struct Response {
-        data: Data,
-    }
-    #[derive(Deserialize)]
-    struct Data {
+    struct Nodes {
         nodes: Vec<Value>,
     }
-    Ok(serde_json::from_str::<Response>(body)
-        .context(UNEXPECTED)?
-        .data
-        .nodes)
+    Ok(data::<Nodes>(body)?.nodes)
 }
 
 /// The node designated by `node`, `None` when there is none. Several (the same hostname) is an
