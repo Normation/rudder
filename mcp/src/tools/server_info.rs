@@ -3,13 +3,13 @@
 
 //! Rudder server information, from the Rudder API
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::http::request::Parts;
 use rmcp::{handler::server::tool::Extension, tool, tool_router};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use super::{Rudder, UNEXPECTED, caller, tool_error};
+use super::{Rudder, caller, data, tool_error};
 
 #[tool_router(router = server_info_router, vis = "pub(super)")]
 impl Rudder {
@@ -47,10 +47,6 @@ impl Rudder {
 /// paths and settings. Other fields are kept as is, so new ones come through.
 fn format_info(info_body: &str, status_body: &str, compliance_body: &str) -> Result<String> {
     #[derive(Deserialize)]
-    struct Response<T> {
-        data: T,
-    }
-    #[derive(Deserialize)]
     struct Status {
         global: Value,
     }
@@ -67,12 +63,6 @@ fn format_info(info_body: &str, status_body: &str, compliance_body: &str) -> Res
         #[serde(default)]
         compliance_details: Map<String, Value>,
     }
-    fn data<T: serde::de::DeserializeOwned>(body: &str) -> Result<T> {
-        Ok(serde_json::from_str::<Response<T>>(body)
-            .context(UNEXPECTED)?
-            .data)
-    }
-
     let mut info: Map<String, Value> = data(info_body)?;
     let status: Status = data(status_body)?;
     let compliance: Compliance = data(compliance_body)?;
@@ -93,6 +83,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+    use crate::tools::UNEXPECTED;
 
     #[test]
     fn info_with_status_and_compliance_without_jvm() {

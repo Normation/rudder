@@ -18,7 +18,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use tracing::{Instrument, Span, field};
 
-use crate::api::{CallerApi, RudderApi};
+use crate::api::{CallerApi, Envelope, RudderApi};
 
 /// Returns the account of the calling token. A valid token gets 403 when its ACL does not allow
 /// reading its own account: such tokens are refused, every tool call must be attributable.
@@ -103,14 +103,9 @@ pub struct Caller {
     pub api: CallerApi,
 }
 
-/// `GET /apiaccounts/token` response, only the fields used here
+/// `GET /apiaccounts/token` response data, only the fields used here
 #[derive(Deserialize)]
-struct TokenAccountResponse {
-    data: TokenAccountData,
-}
-
-#[derive(Deserialize)]
-struct TokenAccountData {
+struct TokenAccounts {
     accounts: Vec<ApiAccount>,
 }
 
@@ -158,7 +153,7 @@ async fn check_token(api: &CallerApi) -> Result<ApiAccount, TokenRejection> {
     match response.status() {
         status if status.is_success() => {
             // A 2xx without an account means the API changed: nobody to attribute the request to
-            let parsed: TokenAccountResponse = response.json().await.map_err(|e| {
+            let parsed: Envelope<TokenAccounts> = response.json().await.map_err(|e| {
                 tracing::warn!("unexpected account response: {e}");
                 TokenRejection::Unverifiable
             })?;
@@ -224,12 +219,22 @@ pub async fn authenticate(request: &mut Parts) -> Result<(), String> {
 }
 
 /// Value of a request header, for the logs
-fn header<'a>(request: &'a Request, name: &str) -> &'a str {
-    request
-        .headers()
-        .get(name)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("-")
+fn header<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
+    headers.get(name)?.to_str().ok()
+}
+
+/// Records a tool call's method and name in the request span when the client did not send them
+/// in the `Mcp-Method` and `Mcp-Name` headers: rmcp has decoded them from the body by then
+pub fn record_tool_call(request: &Parts, name: &str) {
+    let Some(credentials) = request.extensions.get::<Credentials>() else {
+        return;
+    };
+    if header(&request.headers, MCP_METHOD_HEADER).is_none() {
+        credentials.span.record("mcp_method", "tools/call");
+    }
+    if header(&request.headers, MCP_NAME_HEADER).is_none() {
+        credentials.span.record("mcp_name", name);
+    }
 }
 
 /// Hands the request's token, unchecked, to its tool calls (see [`authenticate`]) as
@@ -237,8 +242,9 @@ fn header<'a>(request: &'a Request, name: &str) -> &'a str {
 ///
 /// Every log line of the request, refusals included, is in a `mcp_request` span with the client
 /// address (the proxy's when behind one), the MCP method and target name, and once a tool call's
-/// token is accepted, the account id, name and rights. rmcp passes the current span on to the
-/// tasks it spawns for the request.
+/// token is accepted, the account id, name and rights. A tool call fills in the method and name
+/// when the client did not send them as headers. rmcp passes the current span on to the tasks it
+/// spawns for the request.
 pub async fn with_credentials(
     State(api): State<RudderApi>,
     ConnectInfo(client): ConnectInfo<SocketAddr>,
@@ -248,8 +254,8 @@ pub async fn with_credentials(
     let span = tracing::info_span!(
         "mcp_request",
         %client,
-        mcp_method = header(&request, MCP_METHOD_HEADER),
-        mcp_name = header(&request, MCP_NAME_HEADER),
+        mcp_method = header(request.headers(), MCP_METHOD_HEADER),
+        mcp_name = header(request.headers(), MCP_NAME_HEADER),
         account = field::Empty,
         account_name = field::Empty,
         rights = field::Empty,
@@ -323,7 +329,7 @@ mod tests {
                 "tenants": "*", "tokenState": "generated"
             }]}
         }"#;
-        let account = serde_json::from_str::<TokenAccountResponse>(body)
+        let account = serde_json::from_str::<Envelope<TokenAccounts>>(body)
             .unwrap()
             .data
             .accounts
