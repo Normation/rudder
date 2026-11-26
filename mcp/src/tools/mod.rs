@@ -6,6 +6,7 @@
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
 
+mod list_nodes;
 mod node;
 mod node_compliance;
 mod node_info;
@@ -45,6 +46,7 @@ impl Rudder {
             + Self::node_info_router()
             + Self::node_policies_router()
             + Self::node_compliance_router()
+            + Self::list_nodes_router()
     }
 }
 

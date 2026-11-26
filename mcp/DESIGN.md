@@ -68,6 +68,22 @@ every failed one, as each can need a different right.
   `compliance` (percentage of each report status, empty without policies). Passed through as
   JSON, without the JVM: its command line is most of the answer, noise for the model, and it
   exposes the server's internal paths and settings. Fails if any call fails.
+- `list_nodes`: the accepted nodes, all or those matching a Rudder node search (`GET /nodes`),
+  to find the ones to look at with the other tools.
+  - **Criteria**: those of Rudder's node search (`where`, `{objectType, attribute, comparator,
+    value}`, and an `and`/`or` composition), passed through rather than a closed list of
+    filters: they cover software, properties, groups, OS, IP addresses... and change with Rudder
+    versions. The tool description documents the most useful ones; an invalid one gets Rudder's
+    error, which lists the valid object types, attributes or comparators to retry with. The
+    criteria are typed and serialized here, so no value can change the query's structure. The
+    Rudder server and relays are included, as without criteria
+    (`select=nodeAndPolicyServer`).
+  - **Answer**: `{total, nodes}`, each node with its id, hostname and OS (`include=minimal,os`):
+    enough to pick one, `node_info` gives the rest. Sorted by
+    hostname, every match listed, with their number (`total`), which spares the model counting.
+    Rudder has no paging, nor does the tool: on a large installation, an unfiltered call answers
+    every node, about 150 bytes each, so narrowing is left to the model's criteria.
+
 - `node_info`: a node's configuration and inventory. Not its runtime state (see
   `node_compliance`).
   - **Lookup**: the node is designated as below. `GET /nodes/{id}` for an id, `GET /nodes`
@@ -156,6 +172,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | Every tool call (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
+| `list_nodes` | `nodes` | `node_read` |
 | `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 | `node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
 | `node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read` (hostname only), `compliance_read`; for details, `directive_read`, `technique_read` |

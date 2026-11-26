@@ -74,10 +74,17 @@ async fn mock_rudder() -> String {
     fn nodes(nodes: Vec<Value>) -> String {
         json!({"action": "nodeDetails", "result": "success", "data": {"nodes": nodes}}).to_string()
     }
+    /// With its OS when `include` names it, as `list_nodes` asks
     fn root(query: &HashMap<String, String>) -> Value {
-        json!({"id": "root", "hostname": "server.example.com", "policyMode": "enforce",
-               "include": query.get("include").cloned().unwrap_or_default(),
-               "software": [{"name": "openssl", "version": "3.5.1"}, {"name": "bash", "version": "5.2"}]})
+        let include = query.get("include").cloned().unwrap_or_default();
+        let mut root = json!({"id": "root", "hostname": "server.example.com", "policyMode": "enforce",
+               "include": include, "status": "accepted",
+               "software": [{"name": "openssl", "version": "3.5.1"}, {"name": "bash", "version": "5.2"}]});
+        if include.split(',').any(|field| field == "os") {
+            root["os"] = json!({"type": "Linux", "name": "Debian", "version": "13",
+                                "fullName": "Debian GNU/Linux 13 (trixie)", "kernelVersion": "6.12.48"});
+        }
+        root
     }
     async fn node(
         Path(id): Path<String>,
@@ -91,16 +98,27 @@ async fn mock_rudder() -> String {
             (StatusCode::NOT_FOUND, error.to_string())
         }
     }
-    /// Finds `root` by its exact hostname, or by the similar hostnames regex of `server`
+    /// Every node (`root` and `web1`) without criteria. Finds `root` by its exact hostname, by the
+    /// similar hostnames regex of `server`, or as the Debian node of an `or` composition.
     async fn search(Query(query): Query<HashMap<String, String>>) -> String {
-        let condition = |comparator, value| {
-            json!([{"objectType": "node", "attribute": "nodeHostname",
+        let Some(condition_sent) = query.get("where") else {
+            let web1 = json!({"id": "8b168194-c0b4-41ab-b2b5-9571a8906d59",
+                              "hostname": "web1.example.com", "status": "accepted",
+                              "os": {"type": "Windows", "name": "Windows2019", "version": "10.0",
+                                     "fullName": "Windows Server 2019",
+                                     "kernelVersion": "10.0.17763"}});
+            return nodes(vec![web1, root(&query)]);
+        };
+        let condition = |attribute, comparator, value| {
+            json!([{"objectType": "node", "attribute": attribute,
                     "comparator": comparator, "value": value}])
         };
-        let condition_sent = serde_json::from_str::<Value>(&query["where"]).unwrap();
+        let condition_sent = serde_json::from_str::<Value>(condition_sent).unwrap();
         let found = query.get("select").map(String::as_str) == Some("nodeAndPolicyServer")
-            && (condition_sent == condition("eq", "server.example.com")
-                || condition_sent == condition("regex", r"(?i)server(\..*)?"));
+            && (condition_sent == condition("nodeHostname", "eq", "server.example.com")
+                || condition_sent == condition("nodeHostname", "regex", r"(?i)server(\..*)?")
+                || (condition_sent == condition("osName", "eq", "Debian")
+                    && query["composition"] == "or"));
         nodes(if found { vec![root(&query)] } else { vec![] })
     }
     let app = Router::new()
@@ -359,6 +377,37 @@ async fn node_info_by_id_or_hostname() {
         is_error && text.contains("was not found in Rudder"),
         "{text}"
     );
+}
+
+#[tokio::test]
+async fn list_nodes_all_or_matching() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let list_nodes = async |arguments| -> Value {
+        serde_json::from_str(&tool_text(&url, "ro", "list_nodes", arguments).await).unwrap()
+    };
+    let all = list_nodes(json!({})).await;
+    assert_eq!(all["total"], 2);
+    let hostnames: Vec<&str> = all["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["hostname"].as_str().unwrap())
+        .collect();
+    assert_eq!(hostnames, ["server.example.com", "web1.example.com"]);
+    // Only the selected fields
+    assert_eq!(
+        all["nodes"][0],
+        json!({"id": "root", "hostname": "server.example.com",
+               "os": {"type": "Linux", "name": "Debian", "version": "13",
+                      "fullName": "Debian GNU/Linux 13 (trixie)", "kernelVersion": "6.12.48"}})
+    );
+
+    let debian = list_nodes(json!({"where": [
+        {"objectType": "node", "attribute": "osName", "comparator": "eq", "value": "Debian"}
+    ], "composition": "or"}))
+    .await;
+    assert_eq!(debian["total"], 1);
+    assert_eq!(debian["nodes"][0]["id"], "root");
 }
 
 #[tokio::test]
@@ -665,14 +714,17 @@ async fn requests_are_logged_with_the_caller() {
         legacy.contains(r#"mcp_method="tools/call" mcp_name="whoami""#),
         "{legacy}"
     );
-    let api_call = line("Rudder API answered status=200");
-    assert!(
-        api_call
-            .contains(r#":token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}"#),
-        "{api_call}"
+    // The whole fragment, span included: the log is shared by the concurrent tests, and those whose
+    // request started before the subscriber was set log the same messages without their spans
+    line(
+        r#":token_check:rudder_api{method=GET path="apiaccounts/token" query=[]}: rudder_mcp::api: Rudder API answered status=200"#,
     );
     // Refusals have the request context, but no account
-    let refused = line("tool call refused rejection=Rejected");
-    assert!(refused.contains(r#"mcp_name="whoami"}:"#), "{refused}");
+    assert!(
+        logs.lines()
+            .any(|line| line.contains(r#"mcp_name="whoami"}:"#)
+                && line.contains("tool call refused rejection=Rejected")),
+        "no refusal in a request span in:\n{logs}"
+    );
     assert!(!logs.contains("secret-unknown-token"), "{logs}");
 }
