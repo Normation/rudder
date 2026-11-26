@@ -11,13 +11,13 @@ use serde_json::{Map, Value};
 
 use super::{Rudder, caller, data, tool_error};
 
-#[tool_router(router = server_info_router, vis = "pub(super)")]
+#[tool_router(router = get_server_info_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
         description = "Rudder server information: Rudder version, instance id, relays, OS, node counts by policy mode, installed plugins, webapp status, and global compliance as the percentage of each report status (empty when no policies are defined)",
         annotations(read_only_hint = true)
     )]
-    async fn server_info(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
+    async fn get_server_info(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
         let api = &caller(&parts)?.api;
         let calls = tokio::join!(
             api.get("system/info", &[], "administration_read"),

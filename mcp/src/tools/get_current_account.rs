@@ -9,13 +9,13 @@ use serde_json::json;
 
 use super::{Rudder, caller};
 
-#[tool_router(router = whoami_router, vis = "pub(super)")]
+#[tool_router(router = get_current_account_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
         description = "Who is calling: the Rudder API account behind the caller's token, and its rights",
         annotations(read_only_hint = true)
     )]
-    fn whoami(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
+    fn get_current_account(&self, Extension(parts): Extension<Parts>) -> Result<String, String> {
         let account = &caller(&parts)?.account;
         let rights = account.authorization_type;
         Ok(json!({

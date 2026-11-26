@@ -6,13 +6,14 @@
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
 
+mod get_current_account;
+mod get_node;
+mod get_node_compliance;
+mod get_node_policies;
+mod get_server_info;
+mod list_nodes;
 mod node;
-mod node_compliance;
-mod node_info;
-mod node_policies;
 mod policy_mode;
-mod server_info;
-mod whoami;
 
 use anyhow::Context;
 use axum::http::request::Parts;
@@ -40,11 +41,12 @@ pub struct Rudder;
 impl Rudder {
     /// Each tool module has its own router
     fn tool_router() -> ToolRouter<Self> {
-        Self::whoami_router()
-            + Self::server_info_router()
-            + Self::node_info_router()
-            + Self::node_policies_router()
-            + Self::node_compliance_router()
+        Self::get_current_account_router()
+            + Self::get_server_info_router()
+            + Self::get_node_router()
+            + Self::get_node_policies_router()
+            + Self::get_node_compliance_router()
+            + Self::list_nodes_router()
     }
 }
 

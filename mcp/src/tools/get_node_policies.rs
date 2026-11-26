@@ -175,13 +175,13 @@ fn segment(id: &str) -> Result<&str> {
     Ok(id)
 }
 
-#[tool_router(router = node_policies_router, vis = "pub(super)")]
+#[tool_router(router = get_node_policies_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
         description = "List the rules and directives reported for a node by id or hostname, including overridden directives. Pass a directive id from the list to get its configured parameters (Rudder expressions are preserved) and its versioned technique. The technique always has id, name, version and source (`built-in` or `editor`); editor techniques also have their YAML definition in `content`, and the directive's variables are named after their parameters.",
         annotations(read_only_hint = true)
     )]
-    async fn node_policies(
+    async fn get_node_policies(
         &self,
         Extension(parts): Extension<Parts>,
         Parameters(query): Parameters<PolicyQuery>,
