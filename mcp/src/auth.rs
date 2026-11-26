@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! Authentication: every request carries a Rudder API token, checked with Rudder.
+//! Authentication: tool calls carry a Rudder API token, checked with Rudder.
+//!
+//! Only tool calls need one: a client can connect and list the tools without a token, or while
+//! Rudder is unreachable (e.g. the webapp restarting).
 
-use std::{net::SocketAddr, time::Instant};
+use std::{fmt, net::SocketAddr, time::Instant};
 
 use axum::{
     extract::{ConnectInfo, Request, State},
-    http::{HeaderMap, Method, StatusCode, header::AUTHORIZATION},
+    http::{HeaderMap, Method, StatusCode, header::AUTHORIZATION, request::Parts},
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::Response,
 };
 use secrecy::SecretString;
 use serde::Deserialize;
@@ -18,7 +21,7 @@ use tracing::{Instrument, Span, field};
 use crate::api::{CallerApi, RudderApi};
 
 /// Returns the account of the calling token. A valid token gets 403 when its ACL does not allow
-/// reading its own account: such tokens are refused, every request must be attributable.
+/// reading its own account: such tokens are refused, every tool call must be attributable.
 const TOKEN_CHECK_PATH: &str = "apiaccounts/token";
 /// MCP method and target name headers (SEP-2243), checked against the body by rmcp
 const MCP_METHOD_HEADER: &str = "Mcp-Method";
@@ -92,7 +95,7 @@ pub struct ApiAccount {
     pub authorization_type: AuthorizationType,
 }
 
-/// Who is calling: what an accepted request hands to the tools, in its extensions
+/// Who is calling: what an accepted tool call hands to the tool, in its request extensions
 #[derive(Debug, Clone)]
 pub struct Caller {
     pub account: ApiAccount,
@@ -111,7 +114,7 @@ struct TokenAccountData {
     accounts: Vec<ApiAccount>,
 }
 
-/// Why a request is refused
+/// Why a tool call is refused
 #[derive(Debug)]
 enum TokenRejection {
     /// No `Authorization: Bearer` header, or a malformed one
@@ -124,24 +127,20 @@ enum TokenRejection {
     Unverifiable,
 }
 
-impl IntoResponse for TokenRejection {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Missing => (
-                StatusCode::UNAUTHORIZED,
-                "expected an 'Authorization: Bearer <Rudder API token>' header",
-            ),
-            Self::Rejected => (StatusCode::UNAUTHORIZED, "Rudder rejected the API token"),
-            Self::Unidentified => (
-                StatusCode::FORBIDDEN,
-                "the API token must be allowed to read its own account (GET apiaccounts/token)",
-            ),
-            Self::Unverifiable => (
-                StatusCode::BAD_GATEWAY,
-                "could not check the API token with Rudder",
-            ),
-        }
-        .into_response()
+/// Told to the model as the tool result, so it can tell the user
+impl fmt::Display for TokenRejection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Missing => {
+                "no Rudder API token: the MCP client must send an 'Authorization: Bearer <Rudder \
+                 API token>' header"
+            }
+            Self::Rejected => "Rudder rejected the API token",
+            Self::Unidentified => {
+                "the API token must be allowed to read its own account (GET apiaccounts/token)"
+            }
+            Self::Unverifiable => "could not check the API token with Rudder",
+        })
     }
 }
 
@@ -177,6 +176,53 @@ async fn check_token(api: &CallerApi) -> Result<ApiAccount, TokenRejection> {
     }
 }
 
+/// What a request brings to authenticate its tool calls: its token, not checked yet, and the
+/// request span to record the account in
+#[derive(Debug, Clone)]
+pub struct Credentials {
+    /// The Rudder API with the request's token, if it has one
+    api: Option<CallerApi>,
+    span: Span,
+}
+
+impl Credentials {
+    /// Checks the token with Rudder and records the account in the request span
+    async fn check(&self) -> Result<Caller, TokenRejection> {
+        let api = self.api.as_ref().ok_or(TokenRejection::Missing)?;
+        let account = check_token(api).await?;
+        self.span.record("account", account.id.as_str());
+        self.span.record("account_name", account.name.as_str());
+        self.span
+            .record("rights", account.authorization_type.as_str());
+        Ok(Caller {
+            account,
+            api: api.clone(),
+        })
+    }
+}
+
+/// Authenticates a tool call: checks the request's token with Rudder and hands the [`Caller`] to
+/// the tool. Fails closed: a token that cannot be checked is refused, with the reason for the
+/// model.
+///
+/// Costs one Rudder API call per tool call.
+pub async fn authenticate(request: &mut Parts) -> Result<(), String> {
+    let credentials = request
+        .extensions
+        .get::<Credentials>()
+        .ok_or("no credentials in request")?;
+    match credentials.check().await {
+        Ok(caller) => {
+            request.extensions.insert(caller);
+            Ok(())
+        }
+        Err(rejection) => {
+            tracing::info!(?rejection, "tool call refused");
+            Err(rejection.to_string())
+        }
+    }
+}
+
 /// Value of a request header, for the logs
 fn header<'a>(request: &'a Request, name: &str) -> &'a str {
     request
@@ -186,20 +232,17 @@ fn header<'a>(request: &'a Request, name: &str) -> &'a str {
         .unwrap_or("-")
 }
 
-/// Rejects requests without a token Rudder accepts and attributes to an account, before they reach
-/// MCP, hands the [`Caller`] to the tools, and logs each request
-/// with its account.
+/// Hands the request's token, unchecked, to its tool calls (see [`authenticate`]) as
+/// [`Credentials`], and logs each request. Other requests need no token, and cost no Rudder call.
 ///
 /// Every log line of the request, refusals included, is in a `mcp_request` span with the client
-/// address (the proxy's when behind one), the MCP method and target name, and once the token is
-/// accepted, the account id and rights. rmcp passes the current span on to the tasks it spawns for
-/// the request.
-///
-/// Costs one Rudder API call per MCP request.
-pub async fn require_token(
+/// address (the proxy's when behind one), the MCP method and target name, and once a tool call's
+/// token is accepted, the account id, name and rights. rmcp passes the current span on to the
+/// tasks it spawns for the request.
+pub async fn with_credentials(
     State(api): State<RudderApi>,
     ConnectInfo(client): ConnectInfo<SocketAddr>,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Response {
     let span = tracing::info_span!(
@@ -208,39 +251,26 @@ pub async fn require_token(
         mcp_method = header(&request, MCP_METHOD_HEADER),
         mcp_name = header(&request, MCP_NAME_HEADER),
         account = field::Empty,
+        account_name = field::Empty,
         rights = field::Empty,
     );
-    authenticate(&api, request, next).instrument(span).await
-}
-
-async fn authenticate(api: &RudderApi, mut request: Request, next: Next) -> Response {
-    let start = Instant::now();
-    let Some(token) = ApiToken::from_headers(request.headers()) else {
-        tracing::info!(rejection = ?TokenRejection::Missing, "MCP request refused");
-        return TokenRejection::Missing.into_response();
+    let credentials = Credentials {
+        api: ApiToken::from_headers(request.headers()).map(|token| api.for_caller(token)),
+        span: span.clone(),
     };
-    let api = api.for_caller(token);
-    let account = match check_token(&api).await {
-        Ok(account) => account,
-        Err(rejection) => {
-            tracing::info!(?rejection, "MCP request refused");
-            return rejection.into_response();
-        }
-    };
-
-    let span = Span::current();
-    span.record("account", account.id.as_str());
-    span.record("rights", account.authorization_type.as_str());
-    let account_name = account.name.clone();
-    request.extensions_mut().insert(Caller { account, api });
-    let response = next.run(request).await;
-    tracing::info!(
-        account_name,
-        http_status = response.status().as_u16(),
-        duration_ms = start.elapsed().as_millis(),
-        "MCP request"
-    );
-    response
+    request.extensions_mut().insert(credentials);
+    async {
+        let start = Instant::now();
+        let response = next.run(request).await;
+        tracing::info!(
+            http_status = response.status().as_u16(),
+            duration_ms = start.elapsed().as_millis(),
+            "MCP request"
+        );
+        response
+    }
+    .instrument(span)
+    .await
 }
 
 #[cfg(test)]

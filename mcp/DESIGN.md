@@ -16,19 +16,25 @@ server. It is being built in small steps; this page describes what exists today.
 - **The caller's own Rudder API token**, sent as `Authorization: Bearer <token>`, is the only
   credential. Rudder's permissions are the security boundary; the MCP server adds no privilege
   of its own.
-- **Every request is authenticated and identified**, before it reaches MCP. The token is checked
-  with Rudder (`GET /rudder/api/latest/apiaccounts/token`) and must resolve to an API account,
-  so every action can be attributed:
+- **Every tool call is authenticated and identified**, before it reaches the tool. The token is
+  checked with Rudder (`GET /rudder/api/latest/apiaccounts/token`) and must resolve to an API
+  account, so every action can be attributed. Otherwise the call fails with the reason, as a
+  tool error the model can relay:
 
-  | Case | Answer |
+  | Case | Reason given |
   |---|---|
-  | No or malformed `Authorization` header | 401 |
-  | Token unknown to Rudder | 401 |
-  | Token valid but not allowed to read its own account | 403 |
-  | Rudder unreachable, no account or unknown rights in the answer | 502 |
+  | No or malformed `Authorization` header | no token, how to send one |
+  | Token unknown to Rudder | token rejected |
+  | Token valid but not allowed to read its own account | must be allowed to read it |
+  | Rudder unreachable, no account or unknown rights in the answer | could not be checked |
 
   The check fails closed: a token that cannot be checked is refused. It costs one Rudder API
-  call per MCP request.
+  call per tool call.
+- **The other requests need no token** (connecting, listing the tools): they only expose the
+  server's code, not Rudder's data, and cost no Rudder call. A client stays connected while
+  Rudder is unreachable, e.g. the webapp restarting, and its tool calls work again once Rudder is
+  back. The check is in the tool call path rather than in front of MCP, as only the body tells a
+  tool call apart (the `Mcp-Method` header is optional for older protocol versions).
 - **The account's rights are always read**: `none`, `ro`, `rw`, `acl`, or none given, as Rudder
   does for user tokens (api-authorization plugin), whose rights are those of the owning user. An
   unknown value is refused rather than guessed.
@@ -131,11 +137,11 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
   included.
 - **User token** (api-authorization plugin): the owning user needs the rights below. Today
   `administration_read`, `compliance_read` and `node_read` cover every tool.
-- **`none`**: refused at the token check.
+- **`none`**: refused at the token check of each tool call.
 
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
 |---|---|---|
-| Every request (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
+| Every tool call (token check) | `apiaccounts/token` | `administration_read` or `userAccount_read` |
 | `whoami` | none | none |
 | `server_info` | `system/info`, `system/status`, `compliance` | `administration_read`, `compliance_read` |
 | `node_info` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
@@ -153,11 +159,11 @@ them on 403. Update this table with every tool.
   unknown keys rejected. Samples in [`config/`](config/).
 - **Logging** shared with `relayd` through `rudder_cli::logs::daemon`. Every line of a request,
   rmcp's included, is in a `mcp_request` span with the client address, the MCP method and tool
-  (`Mcp-Method`, `Mcp-Name`) and, once the token is accepted, the account id and rights. One
-  `info` line per request with the account name, HTTP status and duration; refusals are logged
-  with their reason. At `debug`, each Rudder API call is in a `rudder_api` span (method, path) with
-  its status and duration. rmcp is kept to warnings by default, its `info` logs bury the
-  request log.
+  (`Mcp-Method`, `Mcp-Name`) and, once a tool call's token is accepted, the account id, name and
+  rights. One `info` line per request with the HTTP status and duration; refused tool calls are
+  logged with their reason. At `debug`, each Rudder API call is in a `rudder_api` span (method,
+  path) with its status and duration. rmcp is kept to warnings by default, its `info` logs bury
+  the request log.
 - **systemd unit** ([`systemd/rudder-mcp.service`](systemd/rudder-mcp.service)): throwaway user
   in a sandbox. Exit codes 2 (configuration) and 3 (other startup error) are not restarted, as a
   restart would not fix them; 1 is.

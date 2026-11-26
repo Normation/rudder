@@ -88,10 +88,18 @@ impl Compliance {
         details.sort_by(|a, b| b.1.total_cmp(a.1));
         let details: Vec<String> = details
             .iter()
-            .map(|(status, rate)| format!("{status} {rate}%"))
+            .map(|(status, rate)| format!("{status} {}", percent(**rate)))
             .collect();
-        format!(": {}% [{}]", self.compliance, details.join(", "))
+        format!(": {} [{}]", percent(self.compliance), details.join(", "))
     }
+}
+
+/// `66.65%`: at most two decimals, without trailing zeros. Rudder's rates are rounded to two
+/// decimals, but sent as floats summed on its side, e.g. `66.64999999999999`.
+fn percent(rate: f64) -> String {
+    let rate = format!("{rate:.2}");
+    let rate = rate.trim_end_matches('0').trim_end_matches('.');
+    format!("{rate}%")
 }
 
 /// `GET /compliance/nodes/{id}`, at the default (full) level
@@ -338,6 +346,16 @@ mod tests {
     use serde_json::{Value, json};
 
     use super::*;
+
+    #[test]
+    fn percent_has_at_most_two_decimals() {
+        assert_eq!(percent(66.64999999999999), "66.65%");
+        assert_eq!(percent(33.333333333333336), "33.33%");
+        assert_eq!(percent(12.5), "12.5%");
+        assert_eq!(percent(100.0), "100%");
+        assert_eq!(percent(0.0), "0%");
+        assert_eq!(percent(0.004), "0%");
+    }
 
     /// The webapp API test answer (`api_compliance.yml`, node `bn1`), with a report message, a
     /// block and a skipped directive added
