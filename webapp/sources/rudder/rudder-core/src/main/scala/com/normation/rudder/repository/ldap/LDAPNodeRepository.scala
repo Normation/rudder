@@ -41,7 +41,6 @@ import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentInfo
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
@@ -135,10 +134,7 @@ class WoLDAPNodeRepository(
     else {
       nodeLibMutex.writeLock(for {
         // check that in the case of a certificate, we are using a certificate for the node
-        _             <- agentKey match {
-                           case Some(Certificate(value)) => SecurityToken.checkCertificateForNode(nodeId, Certificate(value))
-                           case _                        => ZIO.unit
-                         }
+        _             <- ZIO.foreachDiscard(agentKey)(SecurityToken.checkCertificateForNode(nodeId, _))
         con           <- ldap
         existingEntry <- con
                            .get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENT_NAME :: Nil*)

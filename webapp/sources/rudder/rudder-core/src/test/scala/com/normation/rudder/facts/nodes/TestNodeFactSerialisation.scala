@@ -4,7 +4,6 @@ import better.files.Resource
 import com.normation.JsonSpecMatcher
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.LinuxType.Centos
@@ -13,6 +12,7 @@ import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.UnknownMachineType
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.VirtualMachineType
@@ -65,7 +65,7 @@ class TestNodeFactSerialisation extends Specification with JsonSpecMatcher {
           AgentType.CfeCommunity,
           "machine-user",
           AgentVersion("3.15.3"),
-          Certificate(
+          SecurityToken.fromStored(
             """-----BEGIN CERTIFICATE-----
               |MIIFqzCCA5OgAwIBAgIUJO5/m8PZResSZZjA8L9zSRvkaXkwDQYJKoZIhvcNAQEL
               |BQAwNjE0MDIGCgmSJomT8ixkAQEMJDkzMGRjY2IwLTViMDYtNDM4NS1hYjdhLTgw

@@ -153,9 +153,9 @@ trait GetKey {
   def getKey(receivedInventory: Inventory): IOResult[(SecurityToken, KeyStatus)]
 
   def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
-    token match {
-      case x: Certificate =>
-        SecurityToken.parseCertificate(x).map { case (p, s) => ParsedSecurityToken(p, Some(s)) }
-    }
+    for {
+      cert   <- SecurityToken.certificate(token).toIO
+      parsed <- SecurityToken.parseCertificate(cert)
+    } yield ParsedSecurityToken(parsed._1, Some(parsed._2))
   }
 }

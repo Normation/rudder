@@ -754,7 +754,7 @@ object DisplayNode extends Loggable {
       {
       // Certificate fingerprint and expiration date
       agent.securityToken match {
-        case c: Certificate =>
+        case c: Certificate     =>
           c.cert.either.runNow match {
             case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
             case Right(cert) => (
@@ -766,6 +766,8 @@ object DisplayNode extends Loggable {
               }</div>
             )
           }
+        case _: UnverifiedToken =>
+          <div><label>Security token: </label> The stored agent key is not a certificate: reset the key status so that the next inventory registers the agent certificate.</div>
       }
     }
     </div>
