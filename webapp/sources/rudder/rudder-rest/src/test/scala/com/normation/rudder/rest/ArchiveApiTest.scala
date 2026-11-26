@@ -38,6 +38,7 @@
 package com.normation.rudder.rest
 
 import better.files.*
+import com.normation.GitVersion
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -49,12 +50,17 @@ import com.normation.rudder.MockTechniques
 import com.normation.rudder.apidata.JsonQueryObjects.JQRule
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroupV21
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.Visibility.Displayed
+import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
@@ -62,6 +68,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponseError
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
+import com.normation.rudder.rest.lift.GroupArchive
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -920,8 +927,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             (p.techniqueCats.sortBy(_.metadata.name).apply(2).metadata.name must beEqualTo("System settings updated")) and
             (p.techniques.sortBy(_.technique.id.name).apply(1).technique must beEqualTo(techInfo)) and
             (p.directives(0).directive must beEqualTo(dir1)) and
-            (p.groups(0).group must beEqualTo(group))
-            (p.ruleCats(0).childCategories.keySet must containTheSameElementsAs(List(RuleCategoryId("category1"))))
+            (p.groups(0).group must beEqualTo(group)) and
+            (p.ruleCats(0).childCategories.keySet must containTheSameElementsAs(List(RuleCategoryId("category1")))) and
             (p.rules(0) must beEqualTo(rule1))
         }
 
@@ -1043,7 +1050,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .map((g, id) => (g.copy(properties = g.properties.filter(_.visibility == Displayed)), id))
       .runNow
     val serializedGroup     = JRGroup.fromGroup(group, categoryId, None, None).transformInto[JRGroupV21]
-    (dest / "groups" / "category_1" / (group.name + ".json")).overwrite(serializedGroup.toJsonPretty)
+    // same file name as the exported group, so that the archive holds only the old format
+    (dest / "groups" / "category_1" / "Real_nodes.json").overwrite(serializedGroup.toJsonPretty)
 
     // now zip it
     val zip = File(dest.pathAsString + ".zip")
@@ -1063,6 +1071,67 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         }
 
       case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "import group: property descriptions are kept, hidden properties are not exported" >> {
+    val dest = testDir / "archive-group-descriptions"
+    FileUtils.copyDirectory((testDir / "archive-group").toJava, dest.toJava)
+
+    val (stored, categoryId) = restTestSetUp.mockNodeGroups.groupsRepo
+      .getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
+      .runNow
+    val displayed            = GroupProperty("described", GitVersion.DEFAULT_REV, "v1".toConfigValue, None, None)
+      .withDescription("a displayed property")
+    val hidden               = GroupProperty("hiddenDescribed", GitVersion.DEFAULT_REV, "v2".toConfigValue, None, None)
+      .withDescription("a hidden property")
+      .withVisibility(Hidden)
+    val group                = stored.copy(properties = List(displayed, hidden))
+    (dest / "groups" / "category_1" / "Real_nodes.json").overwrite(JRGroup.fromGroup(group, categoryId, None, None).toJsonPretty)
+
+    val zip = File(dest.pathAsString + ".zip")
+    dest.zipTo(zip)
+
+    restTestSetUp.archiveAPIModule.archiveSaver.base.set(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+    restTest.testBinaryPOSTResponse(s"/api/latest/archives/import", "archive", zip.name, zip.newInputStream.readAllBytes()) {
+      case Full(LiftJsonResponse(res, _, 200)) =>
+        restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
+          case None         => ko(s"No policies were saved")
+          case Some((p, m)) => p.groups(0).group.properties must beEqualTo(List(displayed))
+        }
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "the group written by an import over a stored group" >> {
+    val stored  = NodeGroup(
+      NodeGroupId(NodeGroupUid("hidden-test")),
+      "hidden test",
+      "",
+      List(
+        GroupProperty("shown", GitVersion.DEFAULT_REV, "stored".toConfigValue, None, None),
+        GroupProperty("benchmark", GitVersion.DEFAULT_REV, "stored".toConfigValue, None, None).withVisibility(Hidden),
+        GroupProperty("other", GitVersion.DEFAULT_REV, "stored".toConfigValue, None, None).withVisibility(Hidden)
+      ),
+      None,
+      isDynamic = false,
+      Set(),
+      _isEnabled = true,
+      security = None
+    )
+    val shown   = GroupProperty("shown", GitVersion.DEFAULT_REV, "archive".toConfigValue, None, None)
+    val other   = GroupProperty("other", GitVersion.DEFAULT_REV, "archive".toConfigValue, None, None)
+    val archive = GroupArchive(stored.copy(properties = List(shown)), NodeGroupCategoryId("cat"))
+
+    "keeps stored hidden properties, not stored displayed ones" in {
+      archive.updating(stored).properties must beEqualTo(List(shown) ++ stored.properties.tail)
+    }
+    "lets an archive property replace a stored hidden one with the same name" in {
+      archive
+        .copy(group = stored.copy(properties = List(shown, other)))
+        .updating(stored)
+        .properties must beEqualTo(List(shown, other, stored.properties(1)))
     }
   }
 
