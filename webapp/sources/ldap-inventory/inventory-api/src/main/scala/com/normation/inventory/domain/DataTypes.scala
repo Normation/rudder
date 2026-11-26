@@ -37,14 +37,20 @@
 
 package com.normation.inventory.domain
 
+import cats.syntax.either.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError.CryptoEx
 import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import java.io.StringReader
+import java.security.MessageDigest
+import java.util.Base64
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
+import org.bouncycastle.asn1.pkcs.RSAPublicKey
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.openssl.PEMParser
+import org.bouncycastle.util.encoders.Hex
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -70,27 +76,54 @@ final case class SoftwareEditor(val name: String) extends AnyVal
 final case class JsonDecSecurityToken(@jsonAliases("token") value: String)
 final case class JsonEncSecurityToken(@jsonField("type") @jsonAliases("kind") kind: String, value: String)
 
-sealed abstract class SecurityToken(val kind: String) {
-  def key:   String
+/*
+ * An agent security token:
+ * - `UnverifiedToken`: a text received or stored that is not exactly one certificate
+ * - `Certificate` when we checked that there is exactly one and correctly  parsed certificate. PEM is normalized.
+ *    Only certificates are published to Apache, relayd and agents.
+ */
+sealed trait SecurityToken {
+  // text stored, and returned by the API
   def value: String
 }
 
 object SecurityToken {
+  // both cases are stored as a certificate text, so a stored text becomes a certificate as soon as it has one
   implicit val securityTokenEncoder: JsonEncoder[SecurityToken] =
-    DeriveJsonEncoder.gen[JsonEncSecurityToken].contramap(t => JsonEncSecurityToken(t.kind, t.value))
+    DeriveJsonEncoder.gen[JsonEncSecurityToken].contramap(t => JsonEncSecurityToken(Certificate.kind, t.value))
   implicit val securityTokenDecoder: JsonDecoder[SecurityToken] =
-    DeriveJsonDecoder.gen[JsonDecSecurityToken].map(t => Certificate(t.value))
+    DeriveJsonDecoder.gen[JsonDecSecurityToken].map(t => fromStored(t.value))
 
-  def kind(token: SecurityToken): String = {
-    token.kind
+  // Text received by Rudder (inventory): a certificate when it is exactly one.
+  def fromReceived(text: String): SecurityToken = {
+    Certificate.parse(text).getOrElse(UnverifiedToken(text))
   }
 
-  def token(kind: String, value: String): Either[String, SecurityToken] = {
-    kind match {
-      case Certificate.kind => Right(Certificate(value))
-      case _                =>
+  /*
+   * Text stored by Rudder: its first certificate. Tokens saved before #30193 are the received text, where only the
+   * first PEM object was checked; other objects were sent by the node, so they are logged.
+   */
+  def fromStored(text: String): SecurityToken = {
+    Certificate.stored(text) match {
+      case Left(_)     => UnverifiedToken(text)
+      case Right(cert) =>
+        if (text.indexOf("-----BEGIN") != text.lastIndexOf("-----BEGIN")) {
+          InventoryDataLogger.logEffect.error(
+            s"Security: stored certificate '${cert.subject}' holds more than one PEM object, only the first one is kept. Stored text: ${text}"
+          )
+        }
+        cert
+    }
+  }
+
+  def certificate(token: SecurityToken): Either[InventoryError, Certificate] = {
+    token match {
+      case cert: Certificate     => Right(cert)
+      case u:    UnverifiedToken =>
         Left(
-          s"Value '${kind}' is not recognized as a valid security token, expecting '${Certificate.kind}'"
+          InventoryError.SecurityToken(
+            s"Agent key is not one certificate in PEM format: ${Certificate.parse(u.value).fold(_.fullMsg, _ => "it was not checked")}"
+          )
         )
     }
   }
@@ -132,79 +165,163 @@ object SecurityToken {
     }
   }
 
-  def checkCertificateForNode(nodeId: NodeId, certificate: Certificate): IO[InventoryError, Unit] = {
+  def checkCertificateForNode(nodeId: NodeId, token: SecurityToken): IO[InventoryError, Unit] = {
     for {
-      parsed <- parseCertificate(certificate)
+      cert   <- ZIO.fromEither(certificate(token))
+      parsed <- parseCertificate(cert)
       _      <- checkCertificateSubject(nodeId, parsed._2)
     } yield ()
   }
 
-  // Use bouncy castle to parse the key and check if it's a public key or a certificate
   def parseValidate(key: String): Either[InventoryError, SecurityToken] = {
-    PureResult
-      .attempt(
-        new PEMParser(new StringReader(key))
-          .readObject()
-      )
-      .left
-      .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a PEM certificate", ex.cause): InventoryError)
-      .flatMap { obj =>
-        obj match {
-          case _: X509CertificateHolder => Right(Certificate(key))
-          case null =>
-            Left(
-              InventoryError
-                .Crypto(
-                  s"Provided agent key cannot be parsed a certificate. Please use a certificate in PEM format"
-                )
-            )
-          case _    =>
-            Left(
-              InventoryError
-                .Crypto(
-                  s"Provided agent key is in an unknown format. Please use a certificate in PEM format"
-                )
-            )
-        }
-      }
+    Certificate.parse(key)
   }
+}
+
+// Text received or stored that is not one certificate in PEM format.
+final case class UnverifiedToken(value: String) extends SecurityToken
+
+/*
+ * Data for one X509 certificate, in standard PEM, with what Rudder derives from it.
+ * The format is normalized on read (and so the private constructor) so that Apache, relayd, etc all get the exact same
+ * string representation. This is needed because BouncyCastle and OpenSSL do not accept the same text as valid:
+ * BouncyCastle stops at a malformed BEGIN line, OpenSSL skips it and reads on. See https://issues.rudder.io/issues/30193
+ *
+ * Identity and Equality is on `pem`: the other fields derive from it, scala
+ * doesn't use the second argument list for case class generated methods.
+ */
+final case class Certificate private (pem: String)(
+    val subject:           String,
+    val firstRdnValue:     String,
+    // SHA-256 of the DER public key, in base64 (relayd and curl pinning)
+    val sha256Base64:      String,
+    // MD5 of the RSA modulus and exponent, in hexadecimal (CFEngine key hash); None when the key is not RSA
+    val cfengineMd5Digest: Option[String]
+) extends SecurityToken {
+  override def value: String = pem
+
+  def cert: IO[InventoryError, X509CertificateHolder] = ZIO.fromEither(Certificate.parseSingle(pem))
+
+  // the PEM is long, logs need the subject and the key digest
+  override def toString: String = s"Certificate(${subject}, sha256=${sha256Base64})"
 }
 
 object Certificate {
   val kind = "certificate"
-}
+  val HEADER: String = "-----BEGIN CERTIFICATE-----"
+  val FOOTER: String = "-----END CERTIFICATE-----"
 
-final case class Certificate(value: String) extends SecurityToken(Certificate.kind) {
+  // Text received by Rudder (inventory, API): exactly one certificate.
+  def parse(text: String): Either[InventoryError, Certificate] = {
+    parseSingle(withHeader(text)).flatMap(build)
+  }
 
-  // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
-  val key:  String                                    = {
-    if (value.startsWith("-----BEGIN CERTIFICATE-----")) {
-      value
-    } else {
-      s"""-----BEGIN CERTIFICATE-----
-         |${value.grouped(80).mkString("\n")}
-         |-----END CERTIFICATE-----""".stripMargin
+  // Text stored by Rudder: its first PEM object, see SecurityToken.fromStored.
+  def stored(text: String): Either[InventoryError, Certificate] = {
+    readPem(withHeader(text), 1).flatMap {
+      case (cert: X509CertificateHolder) :: Nil => build(cert)
+      case Nil                                  => Left(notPem(text))
+      case _                                    => Left(notCertificate(text))
     }
   }
-  def cert: IO[InventoryError, X509CertificateHolder] = {
+
+  // A security token holds exactly one certificate: every check (subject UID, inventory signature, key hashes) reads it.
+  private[domain] def parseSingle(pem: String): Either[InventoryError, X509CertificateHolder] = {
+    readPem(pem, 2).flatMap {
+      case (cert: X509CertificateHolder) :: Nil => Right(cert)
+      case Nil                                  => Left(notPem(pem))
+      case _ :: Nil                             => Left(notCertificate(pem))
+      case _                                    =>
+        Left(
+          InventoryError.SecurityToken(
+            s"Key '${pem}' contains more than one PEM object. Please use exactly one certificate in PEM format"
+          )
+        )
+    }
+  }
+
+  private def build(cert: X509CertificateHolder): Either[InventoryError, Certificate] = {
     for {
-      reader <- ZIO.attempt {
-                  new PEMParser(new StringReader(key))
-                } mapError { e => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (PEM)", e) }
-      obj    <- ZIO.attempt(reader.readObject()).mapError { e =>
-                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (read)", e)
-                }
-      res    <- obj match {
-                  case a: X509CertificateHolder =>
-                    a.succeed
-                  case null =>
-                    InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (not a valid PEM object)").fail
-                  case _    => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (unexpected type )").fail
-                }
+      pem    <- toPem(cert)
+      sha256 <- sha256Base64(cert)
     } yield {
-      res
+      new Certificate(pem)(
+        cert.getSubject.toString,
+        cert.getSubject.getRDNs().headOption.map(_.getFirst().getValue().toString).getOrElse(""),
+        sha256,
+        cfengineMd5Digest(cert)
+      )
     }
   }
+
+  // Strict PEM of the certificate (RFC 7468 §3): DER in base64, 64 characters per line, every line ended by `\n`, the last one included.
+  private def toPem(cert: X509CertificateHolder): Either[InventoryError, String] = {
+    PureResult
+      .attempt(s"Certificate '${cert.getSubject}' cannot be encoded") {
+        Base64.getMimeEncoder(64, Array('\n'.toByte)).encodeToString(cert.getEncoded)
+      }
+      .bimap(ex => InventoryError.CryptoEx(ex.msg, ex.cause): InventoryError, b64 => s"${HEADER}\n${b64}\n${FOOTER}\n")
+  }
+
+  private def sha256Base64(cert: X509CertificateHolder): Either[InventoryError, String] = {
+    PureResult
+      .attempt(s"Public key of certificate '${cert.getSubject}' cannot be hashed") {
+        Base64.getEncoder.encodeToString(MessageDigest.getInstance("SHA-256").digest(cert.getSubjectPublicKeyInfo.getEncoded))
+      }
+      .left
+      .map(ex => InventoryError.CryptoEx(ex.msg, ex.cause): InventoryError)
+  }
+
+  /*
+   * CFEngine hashes the RSA modulus, from its hexadecimal form (BigInteger.toByteArray would add a leading 0x00 that
+   * CFEngine does not hash), then the exponent.
+   */
+  private def cfengineMd5Digest(cert: X509CertificateHolder): Option[String] = {
+    val keyInfo = cert.getSubjectPublicKeyInfo
+    if (keyInfo.getAlgorithm.getAlgorithm != PKCSObjectIdentifiers.rsaEncryption) None
+    else {
+      PureResult
+        .attempt("CFEngine digest") {
+          val rsa    = RSAPublicKey.getInstance(keyInfo.parsePublicKey())
+          val digest = MessageDigest.getInstance("MD5")
+          // here, we must use the hexa-string representation,
+          // because if we directly use ".toByteArray", a leading
+          // 0x00 is happened if the modulus is positif. It should
+          // be, so we could also just take the tail. And it is node
+          // if we directly hex-dump it. Strange, but better be sure.
+          // We can note that the leading 0x00 is displayed in the
+          // openssl command above, but that if we use it in the
+          // md5 hash, we don't get the same result than CFEngine.
+          digest.update(Hex.decode(rsa.getModulus.toString(16)))
+          digest.update(rsa.getPublicExponent.toByteArray)
+          Hex.toHexString(digest.digest)
+        }
+        .toOption
+    }
+  }
+
+  // Tokens of old inventories may be stored as one line, without header and footer.
+  private def withHeader(text: String): String = {
+    if (text.startsWith(HEADER)) text
+    else {
+      s"""${HEADER}
+         |${text.grouped(80).mkString("\n")}
+         |${FOOTER}""".stripMargin
+    }
+  }
+
+  // At most `max` PEM objects, so the cost does not depend on the received text.
+  private def readPem(pem: String, max: Int): Either[InventoryError, List[AnyRef]] = {
+    PureResult.attempt {
+      val parser = new PEMParser(new StringReader(pem))
+      Iterator.continually(parser.readObject()).takeWhile(_ != null).take(max).toList
+    }.left.map(ex => InventoryError.CryptoEx(s"Key '${pem}' cannot be parsed as a PEM certificate", ex.cause))
+  }
+
+  private def notPem(pem: String):         InventoryError =
+    InventoryError.Crypto(s"Key '${pem}' is not a PEM object. Please use a certificate in PEM format")
+  private def notCertificate(pem: String): InventoryError =
+    InventoryError.Crypto(s"Key '${pem}' is not a certificate. Please use a certificate in PEM format")
 }
 
 /**

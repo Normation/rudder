@@ -43,10 +43,10 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.api.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.campaigns.CampaignId
@@ -1191,7 +1191,7 @@ class EventLogDetailsServiceImpl(
                          (node \ "agentKey").headOption,
                          { x =>
                            val s = x.text;
-                           if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Failure(s"Unrecognized security token")
+                           if (s.contains("BEGIN CERTIFICATE")) Full(UnverifiedToken(s)) else Failure(s"Unrecognized security token")
                          }
                        )
       keyStatus     <- getFromTo[KeyStatus](

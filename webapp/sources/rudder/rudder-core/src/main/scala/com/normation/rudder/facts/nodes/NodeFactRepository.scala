@@ -348,9 +348,7 @@ object CoreNodeFactRepository {
     }
 
     def checkAgentKey(node: NodeFact): IOResult[Unit] = {
-      node.rudderAgent.securityToken match {
-        case Certificate(value) => SecurityToken.checkCertificateForNode(node.id, Certificate(value))
-      }
+      SecurityToken.checkCertificateForNode(node.id, node.rudderAgent.securityToken)
     }
 
     Chunk(checkRootProperties(_), checkAgentKey(_))

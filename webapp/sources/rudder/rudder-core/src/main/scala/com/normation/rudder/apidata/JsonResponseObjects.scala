@@ -557,7 +557,7 @@ object JsonResponseObjects {
     object ManagementDetails {
       implicit val transformer: Transformer[NodeFact, ManagementDetails] = Transformer
         .define[NodeFact, ManagementDetails]
-        .withFieldComputed(_.cfengineKeys, n => Chunk(n.rudderAgent.securityToken.key))
+        .withFieldComputed(_.cfengineKeys, n => Chunk(n.rudderAgent.securityToken.value))
         .withFieldComputed(_.cfengineUser, _.rudderAgent.user)
         .withFieldComputed(
           _.scheduleOverride,

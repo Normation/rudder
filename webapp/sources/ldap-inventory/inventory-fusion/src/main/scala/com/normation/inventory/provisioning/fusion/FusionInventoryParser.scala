@@ -459,7 +459,8 @@ class FusionInventoryParser(
           optCert         = optText(agentXML \ "AGENT_CERT")
           securityToken  <-
             optCert match {
-              case Some(cert) => Right(Certificate(cert))
+              // an unverified token is refused when the node is saved
+              case Some(cert) => Right(SecurityToken.fromReceived(cert))
               case None       => Left(Inconsistency("could not parse agent security token (tag AGENT_CERT), which is mandatory"))
             }
           version        <- optText(rudderXml \ "AGENT_VERSION") match {

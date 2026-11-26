@@ -44,6 +44,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.UnverifiedToken
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -172,8 +173,13 @@ class PrepareTemplateVariablesImpl(
             })
           case Some(n) =>
             n.nodeInfo.rudderAgent.securityToken match {
-              case cert: Certificate =>
-                cert.key.succeed
+              case cert: Certificate     => cert.pem.succeed
+              case _:    UnverifiedToken =>
+                PolicyGenerationLoggerPure
+                  .error(
+                    s"Agent key of policy server '${nodeId.value}' is not a checked certificate, it is not given to its nodes"
+                  )
+                  .as("")
             }
         }
       }
