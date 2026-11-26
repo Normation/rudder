@@ -21,9 +21,9 @@ use tracing::{error, info};
 
 use rudder_cli::logs::daemon;
 
-use crate::{api::RudderApi, auth::require_token, cli::Cli, config::Config, tools::Rudder};
+use crate::{api::RudderApi, auth::with_credentials, cli::Cli, config::Config, tools::Rudder};
 
-/// The MCP endpoint, stateless: a `Rudder` is built for each request. Every request must carry a
+/// The MCP endpoint, stateless: a `Rudder` is built for each request. Tool calls must carry a
 /// Rudder API token, checked with `api`.
 fn router(api: RudderApi) -> axum::Router {
     let service = StreamableHttpService::new(
@@ -35,7 +35,7 @@ fn router(api: RudderApi) -> axum::Router {
     );
     axum::Router::new()
         .nest_service("/mcp", service)
-        .layer(middleware::from_fn_with_state(api, require_token))
+        .layer(middleware::from_fn_with_state(api, with_credentials))
 }
 
 /// Serves the MCP endpoint until an error occurs

@@ -15,13 +15,17 @@ mod whoami;
 
 use axum::http::request::Parts;
 use rmcp::{
-    ServerHandler,
-    handler::server::router::tool::ToolRouter,
-    model::{ServerCapabilities, ServerConfig},
+    ErrorData, RoleServer, ServerHandler,
+    handler::server::{router::tool::ToolRouter, tool::ToolCallContext},
+    model::{
+        CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, ServerCapabilities,
+        ServerConfig,
+    },
+    service::RequestContext,
     tool_handler,
 };
 
-use crate::auth::Caller;
+use crate::auth::{self, Caller};
 
 /// The MCP server, built for each request
 #[derive(Debug, Clone)]
@@ -42,9 +46,28 @@ impl ServerHandler for Rudder {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
     }
+
+    /// Only tool calls are authenticated, before reaching the tool: a client can connect and list
+    /// the tools without a token, or while Rudder is unreachable.
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        mut context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let parts = context
+            .extensions
+            .get_mut::<Parts>()
+            .ok_or_else(|| ErrorData::internal_error("no HTTP request", None))?;
+        if let Err(e) = auth::authenticate(parts).await {
+            return Ok(CallToolResult::error(vec![ContentBlock::text(e)]).into());
+        }
+        Self::tool_router()
+            .call(ToolCallContext::new(self, request, context))
+            .await
+    }
 }
 
-/// The caller, always inserted by `require_token`
+/// The caller, always inserted by `auth::authenticate` before a tool runs
 fn caller(parts: &Parts) -> Result<&Caller, String> {
     parts
         .extensions
