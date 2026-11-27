@@ -11,3 +11,5 @@ flate = "flate"
 volumn = "volumn"
 monitord = "monitord"
 levle = "levle"
+# from rustix
+WRONLY = "WRONLY"
