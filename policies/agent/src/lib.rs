@@ -12,6 +12,8 @@ pub use agent_state::*;
 mod config;
 pub use config::*;
 
+mod paths;
+
 mod commands;
 pub use commands::*;
 
