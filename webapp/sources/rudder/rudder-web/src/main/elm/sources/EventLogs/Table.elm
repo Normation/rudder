@@ -4,12 +4,12 @@ import EventLogs.DataTypes exposing (ContextPath(..), EventLog, EventLogsMsg)
 import EventLogs.HtmlParserAdapter exposing (toHtml, toString)
 import Html exposing (Html, a, text)
 import Html.Attributes exposing (class, href)
-import Json.Encode exposing (Value, bool, encode, int, list, object, string)
+import Json.Encode exposing (Value, bool, encode, int, list, object)
 import List.Nonempty as NonEmptyList
 import Ordering
 import Rudder.Table exposing (ColumnName(..), SortOrder(..), buildConfig, buildCustomizations, buildOptions)
-import Time exposing (Zone)
-import Utils.DateUtils exposing (posixToString, posixToStringWithHoursMinutesAndSecondsTo0, posixToStringWithoutTimeZoneOffset)
+import Time exposing (Posix, Zone)
+import Utils.DateUtils exposing (posixToString)
 
 
 initTable : Bool -> ContextPath -> Zone -> Rudder.Table.Model EventLog msg
@@ -20,8 +20,6 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
            Build the json parameters to query on this event log with the log id.
            {
              "id":{"value":1234,"regex":false,"fixed":[]},
-             "startDate":"2026-09-14 00:00:00",
-             "endDate":"2026-09-14 17:17:08"
              "draw":1,
              "start":0,
              "length":5
@@ -40,8 +38,6 @@ initTable canReadChangeLogs (ContextPath contextPath) timezone =
                 json =
                     object
                         [ ( "id", id )
-                        , ( "startDate", string (posixToStringWithHoursMinutesAndSecondsTo0 timezone eventLog.date) )
-                        , ( "endDate", string (posixToStringWithoutTimeZoneOffset timezone eventLog.date) )
                         , ( "draw", int 1 )
                         , ( "start", int 0 )
                         , ( "length", int 5 )
