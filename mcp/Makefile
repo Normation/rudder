@@ -10,9 +10,14 @@ include ../cargo.mk
 .DEFAULT_GOAL := archive
 
 VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
-COMMIT := $(shell git rev-parse HEAD)
-# The binary is built for the OS it is built on, e.g. sles16
-OS ?= $(shell . /etc/os-release && echo "$${ID}$${VERSION_ID%%.*}")
+# "unknown" when not built from a git checkout
+COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+# The binary is built for the OS it is built on, e.g. sles16, or sles15sp6 with the service pack
+# (VERSION_ID 15.6): it runs on later SPs, not on earlier ones
+OS ?= $(shell . /etc/os-release && case "$${ID}$${VERSION_ID}" in \
+         (sles15.*) echo "$${ID}15sp$${VERSION_ID\#*.}" ;; \
+         (*) echo "$${ID}$${VERSION_ID%%.*}" ;; \
+       esac)
 ARCHIVE := rudder-mcp-$(VERSION)-$(OS)
 
 build: cargo-release
@@ -22,7 +27,7 @@ archive: build
 	rm -rf target/$(ARCHIVE)
 	mkdir -p target/$(ARCHIVE)
 	cp ../target/release/rudder-mcp config/main.conf config/logging.conf systemd/rudder-mcp.service \
-	   apache/rudder-apache-mcp.conf packaging/README.md packaging/INSTALL.sh target/$(ARCHIVE)/
+	   apache/rudder-apache-mcp.conf README.md packaging/INSTALL.sh packaging/UNINSTALL.sh target/$(ARCHIVE)/
 	printf 'version: %s\ncommit: %s\n' "$(VERSION)" "$(COMMIT)" > target/$(ARCHIVE)/VERSION
 	tar cJf target/$(ARCHIVE).tar.xz -C target $(ARCHIVE)
 
