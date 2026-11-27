@@ -7,12 +7,14 @@ set -e
 cd "$(dirname "$0")"
 
 install -m 755 rudder-mcp /opt/rudder/bin/rudder-mcp
-# Keep the configuration on upgrade
-mkdir -p /opt/rudder/etc/rudder-mcp
+# Keep the configuration on upgrade. World-readable whatever the umask: the service runs as a
+# throwaway user (DynamicUser)
+install -d -m 755 /opt/rudder/etc/rudder-mcp
 for conf in main.conf logging.conf; do
   [ -f "/opt/rudder/etc/rudder-mcp/${conf}" ] || install -m 644 "${conf}" "/opt/rudder/etc/rudder-mcp/${conf}"
 done
-install -m 644 rudder-mcp.service /usr/lib/systemd/system/rudder-mcp.service
+# Installed by hand, not by a package: under /etc
+install -m 644 rudder-mcp.service /etc/systemd/system/rudder-mcp.service
 install -m 644 rudder-apache-mcp.conf /opt/rudder/etc/rudder-apache-mcp.conf
 
 systemctl daemon-reload
