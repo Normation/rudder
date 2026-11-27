@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-//! The MCP server and its tools, one module per tool, plus what several share (`node`, `policy_mode`).
+//! The MCP server and its tools, one module per tool, plus what several share (`node`,
+//! `policy_mode`, `technique`).
 //!
 //! Each tool's Rudder API calls and the rights they need are listed in `DESIGN.md` (Rudder
 //! rights): update it with the tool.
@@ -11,11 +12,13 @@ mod get_node;
 mod get_node_compliance;
 mod get_node_policies;
 mod get_server_info;
+mod get_technique;
 mod list_nodes;
 mod node;
 mod policy_mode;
+mod technique;
 
-use anyhow::Context;
+use anyhow::{Context, ensure};
 use axum::http::request::Parts;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
@@ -24,6 +27,7 @@ use rmcp::{
         CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, ServerCapabilities,
         ServerConfig,
     },
+    prompt_handler,
     service::RequestContext,
     tool_handler,
 };
@@ -47,17 +51,24 @@ impl Rudder {
             + Self::get_node_policies_router()
             + Self::get_node_compliance_router()
             + Self::list_nodes_router()
+            + Self::get_technique_router()
     }
 }
 
 #[tool_handler]
+#[prompt_handler]
 impl ServerHandler for Rudder {
     fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+        ServerConfig::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_prompts()
+                .build(),
+        )
     }
 
-    /// Only tool calls are authenticated, before reaching the tool: a client can connect and list
-    /// the tools without a token, or while Rudder is unreachable.
+    /// Only tool calls are authenticated, before reaching the tool: a client can connect, list
+    /// the tools and get the prompts without a token, or while Rudder is unreachable.
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
@@ -100,4 +111,13 @@ fn data<T: DeserializeOwned>(body: &str) -> anyhow::Result<T> {
 fn tool_error(error: anyhow::Error) -> String {
     // `{:#}` shows the cause chain
     format!("{error:#}")
+}
+
+/// An identifier as one segment of an API path. The REST client splits paths on '/'.
+fn segment(id: &str) -> anyhow::Result<&str> {
+    ensure!(
+        !matches!(id, "" | "." | "..") && !id.contains('/'),
+        "{UNEXPECTED}: invalid identifier"
+    );
+    Ok(id)
 }
