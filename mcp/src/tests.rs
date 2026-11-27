@@ -254,6 +254,20 @@ async fn mock_rudder() -> String {
             }),
         )
         .route(
+            "/rudder/api/latest/techniques/{name}",
+            // Every version of the technique, as Rudder sends them (here, only the fields read)
+            get(|Path(name): Path<String>| async move {
+                let versions: &[&str] = match name.as_str() {
+                    "site" => &["2.0"],
+                    "packages" => &["1.0", "2.0"],
+                    _ => &[],
+                };
+                let techniques: Vec<_> =
+                    versions.iter().map(|v| json!({"id": name, "version": v})).collect();
+                json!({"data":{"techniques":techniques}}).to_string()
+            }),
+        )
+        .route(
             "/rudder/api/latest/compliance",
             system(json!({"action": "getGlobalCompliance", "result": "success",
                           "data": {"globalCompliance": {"compliance": -1}}})),
@@ -565,6 +579,84 @@ async fn get_node_policies_overview_and_directive_details() {
     )
     .await;
     assert!(failed && text.contains("group_read"), "{text}");
+}
+
+#[tokio::test]
+async fn get_technique_by_id_and_version() {
+    let url = mcp_server(&mock_rudder().await).await;
+    let query = async |args| -> Value {
+        serde_json::from_str(&tool_text(&url, "ro", "get_technique", args).await).unwrap()
+    };
+    // The only version of an editor technique, or the one given
+    let site = json!({"id": "site", "name": "Web site", "version": "2.0",
+                      "source": "editor", "content": SITE_YAML});
+    for args in [
+        json!({"technique": "site"}),
+        json!({"technique": "site", "version": "2.0"}),
+    ] {
+        assert_eq!(query(args).await, site);
+    }
+    let builtin = query(json!({"technique": "packages", "version": "2.0"})).await;
+    assert_eq!(
+        builtin,
+        json!({"id": "packages", "name": "Package management", "version": "2.0",
+               "source": "built-in"})
+    );
+
+    for (args, error) in [
+        (
+            json!({"technique": "packages"}),
+            "several versions, pass one as `version`: 1.0, 2.0",
+        ),
+        (json!({"technique": "Web site"}), "Invalid technique id"),
+        (
+            json!({"technique": "site", "version": "../x"}),
+            "Invalid technique version",
+        ),
+        (json!({"technique": "unknown"}), "No technique 'unknown'"),
+    ] {
+        let (failed, text) = tool_result(&url, Some("ro"), "get_technique", args).await;
+        assert!(failed && text.contains(error), "{text}");
+    }
+    let (failed, text) = tool_result(
+        &url,
+        Some("acl"),
+        "get_technique",
+        json!({"technique": "site", "version": "2.0"}),
+    )
+    .await;
+    assert!(failed && text.contains("technique_read"), "{text}");
+}
+
+#[tokio::test]
+async fn audit_policies_prompt_without_token() {
+    // A prompt is only text: no token, no Rudder call (none is running here)
+    let url = mcp_server("http://127.0.0.1:9").await;
+    let (status, body) = mcp_request(&url, None, "prompts/list", None, json!({})).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let prompts: Value = serde_json::from_str(&body).unwrap();
+    let names: Vec<_> = prompts["result"]["prompts"][0]["arguments"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| a["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(prompts["result"]["prompts"][0]["name"], "audit_policies");
+    assert_eq!(names, ["node", "technique", "version"]);
+
+    let params = json!({"name": "audit_policies", "arguments": {"node": "web1"}});
+    let (status, body) =
+        mcp_request(&url, None, "prompts/get", Some("audit_policies"), params).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let prompt: Value = serde_json::from_str(&body).unwrap();
+    let message = &prompt["result"]["messages"][0];
+    assert_eq!(message["role"], "user");
+    let text = message["content"]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("Audit the policies of the node \"web1\""),
+        "{text}"
+    );
+    assert!(text.contains("# Rudder technique Best Practices"), "{text}");
 }
 
 #[tokio::test]

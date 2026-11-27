@@ -5,6 +5,7 @@ mod api;
 mod auth;
 mod cli;
 mod config;
+mod prompts;
 #[cfg(test)]
 mod tests;
 mod tools;

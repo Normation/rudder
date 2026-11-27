@@ -30,7 +30,8 @@ server. It is being built in small steps; this page describes what exists today.
 
   The check fails closed: a token that cannot be checked is refused. It costs one Rudder API
   call per tool call.
-- **The other requests need no token** (connecting, listing the tools): they only expose the
+- **The other requests need no token** (connecting, listing the tools, getting the prompts):
+  they only expose the
   server's code, not Rudder's data, and cost no Rudder call. A client stays connected while
   Rudder is unreachable, e.g. the webapp restarting, and its tool calls work again once Rudder is
   back. The check is in the tool call path rather than in front of MCP, as only the body tells a
@@ -149,6 +150,12 @@ every failed one, as each can need a different right.
     parameter's name, from the YAML's `params` (`profile` rather than `2628FA31-...`). Built-in techniques' variables
     already have meaningful names, and are kept.
 
+- `get_technique`: a technique by id (`GET /techniques/{id}/{version}`, `format=yaml`), in the
+  shape of `get_node_policies`: metadata, plus the YAML definition of editor techniques. The
+  version can be omitted when there is only one (`GET /techniques/{id}` lists them); with
+  several, the error lists them. The id and version are checked as plain path segments before
+  any call, so the error is the caller's rather than Rudder's.
+
 ### Designating a node
 
 Users name nodes by hostname, Rudder by id. Every tool working on a node takes a single `node`
@@ -192,10 +199,36 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | `get_node` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 | `get_node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
 | `get_node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for the overview, `groups`, `nodes/{id}/inheritedProperties`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read`, `compliance_read`; for the overview, `group_read`; for details, `directive_read`, `technique_read` |
+| `get_technique` | `techniques/{id}` (no version given), `techniques/{id}/{version}` | `technique_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
 them on 403. Update this table with every tool.
+
+## Prompts
+
+Prompts are tasks the user picks in their client, written for the model: what to read with which
+tools, what to look for, how to report. A prompt only builds text from its arguments and the
+documents embedded in the server; it reads nothing from Rudder and needs no token. The model then
+calls the tools, with the caller's token and rights. Reviews that need the model's judgment are
+prompts rather than tools: a tool would only hand over data and a checklist, and the model could
+not ask for it unprompted anyway.
+
+- `audit_policies` (`node`, `technique`, `version`, all optional): an audit, reporting only,
+  findings most severe first, each with where it is, the check broken, why it matters and the
+  fix.
+  - **A node**: its policies as a whole (`get_node`, `get_node_policies` and its details for each
+    directive, `get_node_compliance`), checked for conflicts between directives (the same object
+    managed differently or twice, dependencies between directives, missing or failing
+    properties, the wrong platform), and each of its editor techniques against the best
+    practices.
+  - **A technique**: read with `get_technique`, checked against the best practices.
+  - **Neither**: a `technique.yml` the user gives, e.g. one being written.
+  - **The checklists are embedded** in the binary, in Markdown for people:
+    [`best-practices.md`](src/prompts/best-practices.md), the technique best practices, and
+    [`node-consistency.md`](src/prompts/node-consistency.md), sent for a node only. The best
+    practices are those of the rudderc documentation minus what the model cannot check by reading
+    the technique: running `rudderc check`/`build`, the webapp logs, the editor setup.
 
 ## Operations
 
