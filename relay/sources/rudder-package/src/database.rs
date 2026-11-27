@@ -3,6 +3,7 @@
 
 use std::{
     collections::HashMap,
+    collections::hash_map::Entry,
     fs::{self, *},
     io::{BufRead, BufWriter, Write},
     path::{Path, PathBuf},
@@ -16,11 +17,10 @@ use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
-    TMP_PLUGINS_FOLDER,
-    archive::{PackageScript, PackageScriptArg},
+    archive::{PackageScript, PackageScriptArg, PackageSource, PlannedPackage},
+    plugin::SafePackageName,
     plugin::{self, short_name},
     repo_index::RepoIndex,
-    repository::Repository,
     versions::ArchiveVersion,
     webapp::Webapp,
 };
@@ -39,6 +39,11 @@ pub struct Database {
 }
 
 impl Database {
+    #[cfg(test)]
+    pub fn new(path: PathBuf, plugins: HashMap<String, InstalledPlugin>) -> Self {
+        Self { path, plugins }
+    }
+
     pub fn read(path: &Path) -> Result<Database> {
         Ok(if path.exists() {
             let data = std::fs::read_to_string(path).with_context(|| {
@@ -92,78 +97,83 @@ impl Database {
             .find(|p| p.metadata.jar_files.contains(jar))
     }
 
-    pub fn install(
-        &mut self,
+    pub fn resolve_plugins_to_install(
+        &self,
+        targets: Vec<(&str, Option<&str>)>,
         force: bool,
-        package: &str,
-        version: Option<&str>,
-        repository: &Repository,
         index: Option<&RepoIndex>,
-        webapp: &mut Webapp,
-    ) -> Result<()> {
-        info!("Installing {}", package);
-        // Local install detection
-        let rpkg_path = if package.ends_with(".rpkg") || package.contains('/') {
-            if Path::new(&package).exists() {
-                package.to_string()
-            } else {
-                bail!("The {} plugin file does not exist", package)
-            }
-        } else {
-            let i = match index {
-                Some(i) => i,
-                None => bail!(
-                    "No index was found from remote repository. Try running 'rudder package update'."
+        webapp: &Webapp,
+    ) -> Result<Vec<PlannedPackage>, anyhow::Error> {
+        let mut order: Vec<SafePackageName> = Vec::new();
+        let mut packages_to_install: HashMap<SafePackageName, PlannedPackage> = HashMap::new();
+        for (raw_name, raw_version) in targets {
+            let source = PackageSource::from_str(raw_name)?;
+            let parsed_version = match raw_version {
+                Some(v) => Some(ArchiveVersion::from_str(v)?),
+                None => None,
+            };
+            let pp = PlannedPackage::new(source, parsed_version, force, index, webapp)?;
+            let packages = match (
+                force,
+                pp.get_plugin_dependencies(&self.plugins, index, webapp),
+            ) {
+                (_, Ok(d)) => d,
+                (true, Err(e)) => {
+                    warn!(
+                        "Could not resolve the dependencies of {}, still continuing the install as --force was given: {e:?}",
+                        pp.get_metadata().name
+                    );
+                    vec![]
+                }
+                (false, Err(e)) => bail!(
+                    "Could not resolve the dependencies of {}.\n{e:?}",
+                    pp.get_metadata().name
                 ),
             };
-
-            let to_dl_and_install = if let Some(v) = version {
-                let parsed_version = ArchiveVersion::from_str(v)?;
-                if force {
-                    i.any_matching_plugin(package, &parsed_version)
-                        .ok_or(anyhow!(
-                            "Could not find any plugin matching '{}:{}'",
-                            package,
-                            v,
-                        ))
-                } else {
-                    i.matching_compatible_plugin(&webapp.version, package, &parsed_version)
-                        .ok_or(anyhow!(
-                            "Could not find any compatible plugin matching '{}:{}'",
-                            package,
-                            v,
-                        ))
+            // get_plugin_dependencies returns an ordered dependency list, already resolved.
+            // insert the resolved dependency if not yet seen
+            for p in packages {
+                let packages_name = p.get_metadata().name.clone();
+                match packages_to_install.entry(packages_name.clone()) {
+                    Entry::Vacant(e) => {
+                        order.push(packages_name.clone());
+                        e.insert(p);
+                    }
+                    Entry::Occupied(_) => (),
                 }
-            } else {
-                i.latest_compatible_plugin(&webapp.version, package)
-                    .ok_or(anyhow!(
-                        "Could not find any compatible '{}' plugin",
-                        package
-                    ))
-            }?;
+            }
+            // insert the target if not yet seen or if it is a local source package
+            let name = pp.get_metadata().name.clone();
+            match packages_to_install.entry(name.clone()) {
+                Entry::Vacant(e) => {
+                    order.push(name.clone());
+                    e.insert(pp);
+                }
+                Entry::Occupied(mut e) => {
+                    if let PlannedPackage::Local(_) = pp {
+                        e.insert(pp);
+                    }
+                }
+            }
+        }
+        Ok(order
+            .into_iter()
+            .filter_map(|x| packages_to_install.remove(&x))
+            .collect())
+    }
 
-            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                Path::new(&to_dl_and_install.path)
-                    .file_name()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Could not retrieve filename from path '{}'",
-                            to_dl_and_install.path
-                        )
-                    })?,
-            );
-            // Download rpkg
-            repository.download(&to_dl_and_install.path, &dest)?;
-            dest.as_path().display().to_string()
-        };
-        let rpkg = Rpkg::from_path(&rpkg_path)?;
-        if self.plugins.contains_key(&rpkg.metadata.name.to_string()) {
+    pub fn install(&mut self, force: bool, candidate: &Rpkg, webapp: &mut Webapp) -> Result<()> {
+        info!("Installing {}", candidate.metadata.name);
+        if self
+            .plugins
+            .contains_key(&candidate.metadata.name.to_string())
+        {
             info!(
                 "Plugin {} already installed, upgrading",
-                rpkg.metadata.short_name()
+                candidate.metadata.short_name()
             );
         }
-        rpkg.install(force, self, webapp)?;
+        candidate.install(force, self, webapp)?;
         Ok(())
     }
 
@@ -360,7 +370,13 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
-    use crate::{archive, plugin::SafePackageName, versions::RudderVersion};
+    use crate::{
+        archive,
+        dependency::{Dependencies, PluginDependency},
+        plugin::{Metadata, SafePackageName},
+        repo_index::Plugin,
+        versions::RudderVersion,
+    };
 
     /// The statuses, as the packaging would redirect them into its snapshot file.
     fn save(d: &Database, w: &mut Webapp) -> String {
@@ -546,5 +562,234 @@ mod tests {
         .unwrap();
         fs::remove_file("./tests/database/plugin_database_update_sample.json.test").unwrap();
         assert_json_eq!(reference, generated);
+    }
+
+    fn create_plugin(name: &str, deps: Option<Vec<PluginDependency>>) -> Plugin {
+        Plugin {
+            path: "...".to_string(),
+            metadata: Metadata {
+                package_type: archive::PackageType::Plugin,
+                name: name.try_into().unwrap(),
+                version: ArchiveVersion::from_str("9.2.0-1.0").unwrap(),
+                description: None,
+                build_date: "".to_string(),
+                depends: Some(Dependencies {
+                    python: None,
+                    binary: None,
+                    apt: None,
+                    rpm: None,
+                    plugin: deps,
+                }),
+                build_commit: "".to_string(),
+                content: HashMap::new(),
+                jar_files: vec![],
+                requires_license: false,
+            },
+        }
+    }
+
+    fn mock_db_and_webapp(
+        installed_plugins: HashMap<String, InstalledPlugin>,
+    ) -> (Database, Webapp) {
+        let webapp = Webapp::new(PathBuf::new(), RudderVersion::from_str("9.2.0").unwrap());
+        let db = Database::new(PathBuf::new(), installed_plugins);
+        (db, webapp)
+    }
+
+    #[test]
+    fn it_resolves_dependencies() {
+        let (db, webapp) = mock_db_and_webapp(HashMap::<String, InstalledPlugin>::new());
+        let index = RepoIndex {
+            latest_update: chrono::Utc::now(),
+            index: vec![
+                create_plugin(
+                    "rudder-plugin-a",
+                    Some(vec![PluginDependency::new("rudder-plugin-b")]),
+                ),
+                create_plugin("rudder-plugin-b", None),
+            ],
+        };
+        let resolved = db
+            .resolve_plugins_to_install(
+                vec![("rudder-plugin-a", None)],
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap();
+        let expected = vec![
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-b").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-a").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+        ];
+        assert!(resolved == expected);
+    }
+
+    #[test]
+    fn it_resolves_loop_dependencies() {
+        let (db, webapp) = mock_db_and_webapp(HashMap::<String, InstalledPlugin>::new());
+        let index = RepoIndex {
+            latest_update: chrono::Utc::now(),
+            index: vec![
+                create_plugin(
+                    "rudder-plugin-a",
+                    Some(vec![PluginDependency::new("rudder-plugin-b")]),
+                ),
+                create_plugin(
+                    "rudder-plugin-b",
+                    Some(vec![PluginDependency::new("rudder-plugin-a")]),
+                ),
+            ],
+        };
+        let resolved = db
+            .resolve_plugins_to_install(
+                vec![("rudder-plugin-a", None)],
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap();
+        let expected = vec![
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-b").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-a").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+        ];
+        assert!(resolved == expected);
+    }
+
+    #[test]
+    fn it_gives_priority_to_local_rpkg() {
+        use std::fs::File;
+        use tempfile::TempDir;
+        /// Writes a minimal rpkg containing only a `metadata` member, returns its path.
+        fn fake_rpkg(dir: &TempDir, name: &str, depends: &[&str]) -> String {
+            let metadata = serde_json::json!({
+                "type": "plugin",
+                "name": name,
+                "version": "9.2.0-1.0",
+                "build-date": "2026-01-01T00:00:00+00:00",
+                "build-commit": "x",
+                "content": {},
+                "depends": { "plugin": depends },
+            })
+            .to_string();
+            let path = dir.path().join(format!("{name}-9.2.0-1.0.rpkg"));
+            let mut builder = ar::Builder::new(File::create(&path).unwrap());
+            builder
+                .append(
+                    &ar::Header::new(b"metadata".to_vec(), metadata.len() as u64),
+                    metadata.as_bytes(),
+                )
+                .unwrap();
+            path.to_string_lossy().into_owned()
+        }
+
+        let (db, webapp) = mock_db_and_webapp(HashMap::<String, InstalledPlugin>::new());
+        let index = RepoIndex {
+            latest_update: chrono::Utc::now(),
+            index: vec![
+                create_plugin(
+                    "rudder-plugin-a",
+                    Some(vec![PluginDependency::new("rudder-plugin-b")]),
+                ),
+                create_plugin("rudder-plugin-b", None),
+            ],
+        };
+        let dir = TempDir::new().unwrap();
+        let rpkg_path = fake_rpkg(&dir, "rudder-plugin-b", &[]);
+        let resolved = db
+            .resolve_plugins_to_install(
+                vec![("rudder-plugin-a", None), (&rpkg_path, None)],
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap();
+        let expected = vec![
+            PlannedPackage::new(
+                PackageSource::from_str(&rpkg_path).unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-a").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+        ];
+        assert!(resolved == expected);
+    }
+
+    #[test]
+    fn it_skips_installed_dependencies() {
+        let b = create_plugin("rudder-plugin-b", None);
+        let (db, webapp) = mock_db_and_webapp(HashMap::from([(
+            "rudder-plugin-b".to_string(),
+            InstalledPlugin {
+                files: vec![],
+                metadata: b.metadata.clone(),
+            },
+        )]));
+        let index = RepoIndex {
+            latest_update: chrono::Utc::now(),
+            index: vec![
+                create_plugin(
+                    "rudder-plugin-a",
+                    Some(vec![PluginDependency::new("rudder-plugin-b")]),
+                ),
+                b,
+            ],
+        };
+        let resolved = db
+            .resolve_plugins_to_install(
+                vec![("rudder-plugin-a", None)],
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap();
+        let expected = vec![
+            PlannedPackage::new(
+                PackageSource::from_str("rudder-plugin-a").unwrap(),
+                None,
+                false,
+                Some(&index),
+                &webapp,
+            )
+            .unwrap(),
+        ];
+        assert!(resolved == expected);
     }
 }

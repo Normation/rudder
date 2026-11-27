@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 use which::which;
 
 use crate::cmd::CmdOutput;
+use crate::database::Database;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Dependencies {
@@ -19,6 +20,8 @@ pub struct Dependencies {
     pub apt: Option<Vec<AptDependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rpm: Option<Vec<RpmDependency>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin: Option<Vec<PluginDependency>>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -33,40 +36,61 @@ pub struct AptDependency(String);
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RpmDependency(String);
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct PluginDependency(String);
+
+impl PluginDependency {
+    #[cfg(test)]
+    pub(crate) fn new(s: &str) -> Self {
+        Self(s.to_owned())
+    }
+}
+
+impl AsRef<str> for PluginDependency {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl Dependencies {
-    pub fn are_installed(&self) -> bool {
+    pub fn are_installed(&self, db: &Database) -> bool {
         if let Some(v) = &self.python
-            && !v.iter().all(|x| x.is_installed())
+            && !v.iter().all(|x| x.is_installed(db))
         {
             return false;
         };
         if let Some(v) = &self.binary
-            && !v.iter().all(|x| x.is_installed())
+            && !v.iter().all(|x| x.is_installed(db))
         {
             return false;
         };
         if let Some(v) = &self.apt
             && which("apt").is_ok()
-            && !v.iter().all(|x| x.is_installed())
+            && !v.iter().all(|x| x.is_installed(db))
         {
             return false;
         };
         if let Some(v) = &self.rpm
             && which("rpm").is_ok()
-            && !v.iter().all(|x| x.is_installed())
+            && !v.iter().all(|x| x.is_installed(db))
         {
             return false;
         };
+        if let Some(v) = &self.plugin
+            && !v.iter().all(|x| x.is_installed(db))
+        {
+            return false;
+        }
         true
     }
 }
 
 pub trait IsInstalled {
-    fn is_installed(&self) -> bool;
+    fn is_installed(&self, db: &Database) -> bool;
 }
 
 impl IsInstalled for PythonDependency {
-    fn is_installed(&self) -> bool {
+    fn is_installed(&self, _: &Database) -> bool {
         warn!(
             "Deprecated dependency type 'python' with value '{}'. It is up to you to make sure it is installed, ignoring.",
             self.0
@@ -76,7 +100,7 @@ impl IsInstalled for PythonDependency {
 }
 
 impl IsInstalled for AptDependency {
-    fn is_installed(&self) -> bool {
+    fn is_installed(&self, _: &Database) -> bool {
         let mut binding = Command::new("dpkg-query");
         // # dpkg-query --show --showformat='${Status}' rudder-api-client
         // install ok installed
@@ -109,7 +133,7 @@ impl IsInstalled for AptDependency {
 }
 
 impl IsInstalled for RpmDependency {
-    fn is_installed(&self) -> bool {
+    fn is_installed(&self, _: &Database) -> bool {
         let mut binding = Command::new("rpm");
         let cmd = binding.arg("-q").arg("--").arg(&self.0);
         let result = match CmdOutput::new(cmd) {
@@ -132,7 +156,7 @@ impl IsInstalled for RpmDependency {
 }
 
 impl IsInstalled for BinaryDependency {
-    fn is_installed(&self) -> bool {
+    fn is_installed(&self, _: &Database) -> bool {
         match which(&self.0) {
             Ok(_) => {
                 debug!("'binary' base dependency '{}' found on the system", self.0);
@@ -146,29 +170,59 @@ impl IsInstalled for BinaryDependency {
     }
 }
 
+impl IsInstalled for PluginDependency {
+    fn is_installed(&self, db: &Database) -> bool {
+        if db.plugins.contains_key(&self.0) {
+            debug!("'plugin' base dependency '{}' found installed", self.0);
+            true
+        } else {
+            warn!(
+                "Could not find 'plugin' base dependency '{}' in the installed plugins database",
+                self.0
+            );
+            false
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{path::Path, str::FromStr, sync::LazyLock};
 
     use super::*;
+
+    static TEST_DB: LazyLock<Database> = LazyLock::new(|| {
+        Database::read(Path::new("./tests/status_backup_file/database.json")).unwrap()
+    });
+
     #[test]
     fn test_rpm_exec() {
         let a = RpmDependency(String::from_str("nonexistingpackage").unwrap());
-        assert!(!a.is_installed());
+        assert!(!a.is_installed(&TEST_DB));
     }
     #[test]
     fn test_apt_exec_failure() {
         let a = AptDependency(String::from_str("nonexistingpackage").unwrap());
-        assert!(!a.is_installed());
+        assert!(!a.is_installed(&TEST_DB));
     }
     #[test]
     fn test_binary_exec() {
         let a = BinaryDependency(String::from_str("cargo").unwrap());
-        assert!(a.is_installed());
+        assert!(a.is_installed(&TEST_DB));
     }
     #[test]
     fn test_binary_exec_failure() {
         let a = BinaryDependency(String::from_str("caat").unwrap());
-        assert!(!a.is_installed());
+        assert!(!a.is_installed(&TEST_DB));
+    }
+    #[test]
+    fn test_plugin_exec_failure() {
+        let a = PluginDependency(String::from_str("rudder-plugin-cve").unwrap());
+        assert!(!a.is_installed(&TEST_DB));
+    }
+    #[test]
+    fn test_plugin_exec_success() {
+        let a = PluginDependency(String::from_str("rudder-plugin-dsc").unwrap());
+        assert!(a.is_installed(&TEST_DB));
     }
 }
