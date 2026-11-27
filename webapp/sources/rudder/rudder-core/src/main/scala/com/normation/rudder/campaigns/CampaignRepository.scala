@@ -125,6 +125,7 @@ class CampaignRepositoryImpl(
    * When we save a campaign, we also init hook directories for that campaign.
    */
   override def save(c: Campaign): IOResult[Campaign] = {
+    c.details
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)

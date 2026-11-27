@@ -46,8 +46,10 @@ import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.campaigns.{Campaign, CampaignDetails, CampaignId, CampaignInfo, CampaignRepository, CampaignTargetService, CampaignType, ScheduleTimeZone}
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.CompositeRuleTarget
 import com.normation.rudder.domain.policies.Directive
@@ -224,7 +226,9 @@ class DependencyAndDeletionServiceImpl(
     roDirectiveRepository: RoDirectiveRepository,
     woDirectiveRepository: WoDirectiveRepository,
     woRuleRepository:      WoRuleRepository,
-    woGroupRepository:     WoNodeGroupRepository
+    woGroupRepository:     WoNodeGroupRepository,
+    campaignRepository:    CampaignRepository,
+    campaignTargetService: CampaignTargetService
 ) extends DependencyAndDeletionService with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
@@ -507,8 +511,76 @@ class DependencyAndDeletionServiceImpl(
     targetToDelete match {
       case GroupTarget(groupId) =>
         for {
-          configRules   <- findDependencies.findRulesForTarget(targetToDelete)
-          updatedRules  <- ZIO.foreach(configRules)(updateRule)
+          configRules  <- findDependencies.findRulesForTarget(targetToDelete)
+          updatedRules <- ZIO.foreach(configRules)(updateRule)
+
+
+          // TODO pb: on a pas le detail de campagnes disponible a ce niveau du code, exploration de plusieurs solutions
+          //  - [-] est ce qu'il faut implementer la suppression la verification des groupes dans system-update ?
+          //  - [-] c'est dans le plugin system update qu'il faut donc mettre a jour la campaigne ?
+          //    - rudder ne depend pas de system-update
+          //    - implementation d'une service dedié : on envoie une notification du noeud supprimé et le service mets a jour les campaignes concerné
+          //    - PUT /campaigns?deletedNode=<uuid>
+          //    - mais la persistance des campagnes se fait dans rudder et pas dans system-update
+          //  - [-] faire l'update des campagnes depuis l'ihm elm ?
+          //    - est ce qu'au moment de la suppression du groupe (action dans ihm elm) il faut catcher l'erreur et mettre a jour la campagne
+          //    - sur quel evennement de l'ihm ? sur le save idealememt mais on peut rencontrer l'erreur bien avant de refaire save
+          //    - a la lecture de la campagne ? on fait un get et lors du get on check l'existence des groupes, on appelle un save si besoin -> l'operation du GET n'est pas consistente
+          //  - [-] est ce qu'il faut bouger l'implem des campagnes dans rudder ?
+          //    - pas tout
+          //  - [-] bouger la liste des groupe dans la partie campagne info
+          //    - ca fait sens car le domaine des groupes est completement dans rudder
+          //    - on ne remonte pas toute la logique campagne system update vs campagne software update, on veut que cela reste dans le repo du plugin.
+          //    - TODO verifier l'utilisation de ce champs dans system-update
+          //    - finalement car gros impact jusqu'a la serialisation des campagnes
+          //  - [-] ne pas bouger les liste des groupe mais implementer target dans le trait
+          //    - bouger la liste a des impacts importants notemment dans la structure de la technique de campagne
+          //  - [x] definir un service, le trait dans rudder-core l'implementation dans le plugin system-update
+
+          _ <- campaignTargetService.removeGroupFromCampaigns(groupId = groupId)
+
+
+
+          /*"mytest" in {
+          val nodeId = NodeGroupId(uid = NodeGroupUid("280bf78c-9b64-42fc-ac2b-402e1f22c9c5"))
+          def groupIsInTarget(ruleTarget: RuleTarget, group: NodeGroupId): Boolean = {
+          ruleTarget.target.contains(group.uid.value)
+        }
+          /*{
+            override def target: String = "{\"include\":{\"or\":[\"group:280bf78c-9b64-42fc-ac2b-402e1f22c9c5\",\"group:d9f372e7-d64e-4372-975f-61a908b7d093\"]},\"exclude\":{\"or\":[]}}"
+          }*/
+
+        val rule = GroupTarget(nodeId)
+        groupIsInTarget(rule, nodeId) must beEqualTo(true)
+        }*/
+
+          // TODO deplacer toutes cette logique dans le plugin system-update.
+          /*campaigns    <- campaignRepository.getAll(List(), List())
+          campaignsToSave = {
+            campaigns
+              .filter(c => {
+                // Keep the campaigns having the groupId in their targets
+                def groupIsInTarget(ruleTarget: RuleTarget, group: NodeGroupId): Boolean =
+                  ruleTarget.target.contains(group.uid.value)
+
+                c.details.targets.foldLeft(false)((acc, current) => groupIsInTarget(current, groupId) || acc)
+              })
+              .map(c => {
+                // Modify the campaigns having the groupId in their targets to remove this deleted group
+                new Campaign() {
+                  override def info:         CampaignInfo    = c.info
+                  override def details:      CampaignDetails = new CampaignDetails {
+                    override def targets: List[RuleTarget] =
+                      c.details.targets.filter(!_.target.contains(groupId.uid.value))
+                  }
+                  override def campaignType: CampaignType    = c.campaignType
+                  override def copyWithId(newId:                        CampaignId):       Campaign = c
+                  override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign = c
+                  override def version: RuntimeFlags = c.version
+                }
+              })
+          }
+          _             <- ZIO.foreach(campaignsToSave)(campaignRepository.save)*/
           deletedTarget <- woGroupRepository
                              .delete(groupId)
                              .chainError(

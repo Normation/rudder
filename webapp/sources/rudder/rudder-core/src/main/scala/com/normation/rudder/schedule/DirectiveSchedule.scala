@@ -39,6 +39,7 @@ package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignSerializer.*
+import com.normation.rudder.domain.policies.RuleTarget
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.*
 import java.time.Instant
@@ -62,7 +63,10 @@ case class DirectiveScheduleDetails(
     scheduleType: String, // for documantation: benchmarks, system-update, etc
     maxDate:      Option[Instant]
 ) extends CampaignDetails
-    derives JsonCodec
+    derives JsonCodec {
+  // FIXME
+  override def targets: List[RuleTarget] = ???
+}
 
 object DirectiveScheduleDetails {
   def empty = DirectiveScheduleDetails("generic", None)

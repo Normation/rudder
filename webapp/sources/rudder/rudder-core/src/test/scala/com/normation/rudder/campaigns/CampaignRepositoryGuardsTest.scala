@@ -38,6 +38,7 @@ package com.normation.rudder.campaigns
 
 import better.files.File
 import com.normation.errors.*
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -62,7 +63,10 @@ class CampaignRepositoryGuardsTest extends Specification {
 
   object TestCampaignType extends CampaignType("guards-test-campaign")
 
-  final case class TestDetails(name: String) extends CampaignDetails
+  final case class TestDetails(name: String) extends CampaignDetails {
+    // FIXME
+    override def targets: List[RuleTarget] = ???
+  }
 
   final case class TestCampaign(info: CampaignInfo, details: TestDetails) extends Campaign {
     val campaignType: CampaignType = TestCampaignType
