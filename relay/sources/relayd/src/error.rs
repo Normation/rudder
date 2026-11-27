@@ -60,4 +60,9 @@ pub enum RudderError {
     InvalidSharedFile(String),
     #[error("uncompressed content exceeds the {0} bytes limit")]
     UncompressedSizeLimit(u64),
+    #[error("signature uses unsupported digest algorithm {invalid:} (accepted: {valid:})")]
+    UnsupportedSignatureDigest {
+        invalid: String,
+        valid: &'static str,
+    },
 }

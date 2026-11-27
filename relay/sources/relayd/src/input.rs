@@ -11,16 +11,18 @@ use std::{
 
 use anyhow::Error;
 use flate2::read::GzDecoder;
+use foreign_types::ForeignTypeRef;
 use openssl::{
-    pkcs7::{Pkcs7, Pkcs7Flags},
-    stack::Stack,
-    x509::{X509, store::X509StoreBuilder},
+    nid::Nid,
+    pkcs7::{Pkcs7, Pkcs7Flags, Pkcs7Ref, Pkcs7SignerInfo},
+    stack::{Stack, StackRef},
+    x509::{X509, X509AlgorithmRef, store::X509StoreBuilder},
 };
 use tokio::fs::read;
 use tracing::debug;
 use zip::read::ZipArchive;
 
-use crate::error::RudderError;
+use crate::{error::RudderError, hashing::HashType};
 
 /// Reads a received report, decompressing it if needed.
 ///
@@ -84,16 +86,21 @@ fn read_to_end_limited<R: Read>(reader: R, limit: u64) -> Result<Vec<u8>, Error>
 ///   It also replaces all line endings by CRLF. It is necessary for the runlog
 ///   to be correctly read by this function.
 ///   Note: `-binary` is not valid S/MIME and default is missing the header.
-/// * `-md sha256` to force sha256 hash.
-///   FIXME: refuse weaker hashes in signature verification.
 /// * `-nocerts` to avoid including certs in the signature, as we use the known
 ///   certificate on the server to validate signature and embedded certs are ignored.
+///
+/// Agents do not pass `-md` and rely on OpenSSL's default digest for RSA keys (sha256).
+/// Only sha256 and sha512 are accepted, as required by S/MIME 4.0 (RFC 8551).
 pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
     let (signature, content) = Pkcs7::from_smime(input)?;
 
     // An empty content is possible in S/MIME, but is it an
     // error in the Rudder context.
     let content = content.ok_or(RudderError::EmptyRunlog)?;
+
+    // OpenSSL verifies any digest it supports, including MD5 and SHA-1.
+    // Every signer must pass, as `verify` requires all of them to be valid.
+    check_signer_digests(&signature)?;
 
     let mut flags = Pkcs7Flags::empty();
     // To remove text header
@@ -114,6 +121,58 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
     // content as a string.
     // Don't fail on non UTF-8 input
     Ok(String::from_utf8_lossy(&message).into_owned())
+}
+
+/// Refuses messages that are not signed data, or with a signer using a digest
+/// algorithm we do not accept.
+fn check_signer_digests(message: &Pkcs7Ref) -> Result<(), RudderError> {
+    if message.signed().is_none() {
+        return Err(RudderError::InvalidRunLog(
+            "S/MIME content is not PKCS#7 signed data".to_string(),
+        ));
+    }
+    for digest in signer_digests(message) {
+        if HashType::from_nid(digest).is_none() {
+            return Err(RudderError::UnsupportedSignatureDigest {
+                invalid: digest
+                    .short_name()
+                    .map_or_else(|_| format!("{digest:?}"), str::to_string),
+                valid: HashType::ACCEPTED,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Digest algorithm declared by each SignerInfo of `message`.
+///
+/// The `openssl` crate has no SignerInfo accessors (as of 0.10.82), hence the FFI.
+fn signer_digests(message: &Pkcs7Ref) -> impl Iterator<Item = Nid> + '_ {
+    // SAFETY: `message` is a valid PKCS7. The returned stack is owned by `message` (NULL when
+    // it is not signed data) and the borrow ties it to `message`'s lifetime.
+    let signer_infos = unsafe {
+        let ptr = openssl_sys::PKCS7_get_signer_info(message.as_ptr());
+        (!ptr.is_null()).then(|| StackRef::<Pkcs7SignerInfo>::from_ptr(ptr))
+    };
+    signer_infos.into_iter().flatten().map(|signer_info| {
+        let mut digest_alg = std::ptr::null_mut();
+        // SAFETY: `signer_info` is valid, the unused out-parameters may be NULL, and
+        // `digest_alg` points into `signer_info` (not freed here), used only within this borrow.
+        unsafe {
+            openssl_sys::PKCS7_SIGNER_INFO_get0_algs(
+                signer_info.as_ptr(),
+                std::ptr::null_mut(),
+                &mut digest_alg,
+                std::ptr::null_mut(),
+            );
+            if digest_alg.is_null() {
+                // Mandatory in the ASN.1 structure, refuse anyway
+                Nid::UNDEF
+            } else {
+                X509AlgorithmRef::from_ptr(digest_alg).object().nid()
+            }
+        }
+    })
 }
 
 #[cfg(test)]
@@ -192,46 +251,77 @@ mod tests {
         );
     }
 
+    fn certs(path: &str) -> Stack<X509> {
+        let mut certs = Stack::new().unwrap();
+        certs
+            .push(X509::from_pem(&std::fs::read(path).unwrap()).unwrap())
+            .unwrap();
+        certs
+    }
+
+    fn node_certs() -> Stack<X509> {
+        certs("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert")
+    }
+
     #[test]
     fn it_reads_signed_content() {
         // unix2dos normal.log
         let reference = read_to_string("tests/files/smime/normal.log").unwrap();
 
-        let x509 = X509::from_pem(
-            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
-        )
-        .unwrap();
+        // See tests/files/smime/README for how the files were signed
+        for signed in [
+            "tests/files/smime/normal.signed",
+            "tests/files/smime/normal-sha512.signed",
+        ] {
+            assert_eq!(
+                signature(&std::fs::read(signed).unwrap(), &node_certs()).unwrap(),
+                reference
+            );
+        }
+    }
 
-        // Certs
-        let mut certs = Stack::new().unwrap();
-        certs.push(x509).unwrap();
+    #[test]
+    fn it_refuses_weak_signature_digests() {
+        for (signed, digest) in [
+            ("tests/files/smime/normal-sha1.signed", "SHA1"),
+            ("tests/files/smime/normal-md5.signed", "MD5"),
+        ] {
+            let input = std::fs::read(signed).unwrap();
 
-        assert_eq!(
-            // openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert
-            //         -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv
-            //         -passin "pass:Cfengine passphrase" -text -nocerts -md sha256
-            signature(
-                &std::fs::read("tests/files/smime/normal.signed").unwrap(),
-                &certs,
-            )
-            .unwrap(),
-            reference
-        );
+            // The signature itself is valid, OpenSSL alone would accept it
+            let (message, content) = Pkcs7::from_smime(&input).unwrap();
+            let mut flags = Pkcs7Flags::empty();
+            flags.set(
+                Pkcs7Flags::TEXT | Pkcs7Flags::NOINTERN | Pkcs7Flags::NOVERIFY,
+                true,
+            );
+            message
+                .verify(
+                    &node_certs(),
+                    &X509StoreBuilder::new().unwrap().build(),
+                    content.as_deref(),
+                    None,
+                    flags,
+                )
+                .unwrap();
+
+            let err = signature(&input, &node_certs()).unwrap_err();
+            assert!(
+                matches!(
+                    err.downcast_ref::<RudderError>(),
+                    Some(RudderError::UnsupportedSignatureDigest { invalid, .. }) if invalid == digest
+                ),
+                "{signed}: {err}"
+            );
+        }
     }
 
     #[test]
     fn it_detects_wrong_content() {
-        let x509 = X509::from_pem(
-            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
-        )
-        .unwrap();
-        let mut certs = Stack::new().unwrap();
-        certs.push(x509).unwrap();
-
         assert!(
             signature(
                 &std::fs::read("tests/files/smime/normal-diff.signed").unwrap(),
-                &certs,
+                &node_certs(),
             )
             .is_err()
         );
@@ -239,18 +329,10 @@ mod tests {
 
     #[test]
     fn it_detects_wrong_certificates() {
-        let x509bis = X509::from_pem(
-            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert")
-                .unwrap(),
-        )
-        .unwrap();
-        let mut certs = Stack::new().unwrap();
-        certs.push(x509bis).unwrap();
-
         assert!(
             signature(
                 &std::fs::read("tests/files/smime/normal.signed").unwrap(),
-                &certs,
+                &certs("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert"),
             )
             .is_err()
         );

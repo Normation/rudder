@@ -5,7 +5,7 @@ use std::{fmt, str, str::FromStr};
 
 use anyhow::{Error, anyhow};
 use base64::{Engine, engine::general_purpose as base64_engine};
-use openssl::hash::MessageDigest;
+use openssl::{hash::MessageDigest, nid::Nid};
 use sha2::{Digest, Sha256, Sha512};
 
 use crate::error::RudderError;
@@ -111,7 +111,7 @@ impl FromStr for HashType {
             "sha512" => Ok(HashType::Sha512),
             _ => Err(RudderError::InvalidHashType {
                 invalid: s.to_string(),
-                valid: "sha256, sha512",
+                valid: HashType::ACCEPTED,
             }
             .into()),
         }
@@ -132,6 +132,18 @@ impl fmt::Display for HashType {
 }
 
 impl HashType {
+    /// Accepted algorithms, for error messages.
+    pub const ACCEPTED: &'static str = "sha256, sha512";
+
+    /// The accepted algorithm identified by `nid`, if any.
+    pub fn from_nid(nid: Nid) -> Option<HashType> {
+        match nid {
+            Nid::SHA256 => Some(HashType::Sha256),
+            Nid::SHA512 => Some(HashType::Sha512),
+            _ => None,
+        }
+    }
+
     pub fn hash(self, bytes: &[u8]) -> Hash {
         let value = match self {
             HashType::Sha256 => {
@@ -180,6 +192,15 @@ mod tests {
         assert_eq!(HashType::from_str("sha256").unwrap(), Sha256);
         assert_eq!(HashType::from_str("sha512").unwrap(), Sha512);
         assert!(HashType::from_str("").is_err());
+    }
+
+    #[test]
+    fn it_maps_only_accepted_nids() {
+        assert_eq!(HashType::from_nid(Nid::SHA256), Some(Sha256));
+        assert_eq!(HashType::from_nid(Nid::SHA512), Some(Sha512));
+        for nid in [Nid::MD5, Nid::SHA1, Nid::SHA224, Nid::SHA384, Nid::UNDEF] {
+            assert_eq!(HashType::from_nid(nid), None);
+        }
     }
 
     #[test]

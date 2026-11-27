@@ -1,1 +1,5 @@
-openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv -passin "pass:Cfengine passphrase" -nocerts
+# Signed the way agents do (no -md: OpenSSL's default for RSA keys, sha256)
+openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv -passin "pass:Cfengine passphrase" -text -nocerts
+
+# Explicit digests, for MD in sha1 md5 sha512 (only sha256 and sha512 are accepted)
+openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert -in normal.log -out normal-$MD.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv -passin "pass:Cfengine passphrase" -text -nocerts -md $MD
