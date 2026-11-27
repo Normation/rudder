@@ -10,6 +10,7 @@
 - [Usage](./usage.md)
 - [Syntax](./syntax.md)
 - [Testing](./test.md)
+- [Best practices](./best-practices.md)
 
 ---
 
