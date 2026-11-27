@@ -120,9 +120,7 @@ impl Status {
     pub fn poll(job_config: Arc<JobConfig>) -> Self {
         Self {
             database: job_config.pool.clone().map(|p| ping(&p).into()),
-            configuration: check_configuration(Path::new(&job_config.cli_cfg.config))
-                .map(|_| ())
-                .into(),
+            configuration: check_configuration(Path::new(&job_config.cli_cfg.config)).into(),
         }
     }
 }

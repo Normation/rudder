@@ -27,7 +27,6 @@ pub enum HttpClient {
     Pinned(Client, Vec<PemCertificate>),
     /// For compatibility for 6.X
     System(Client),
-    NoVerify(Client),
 }
 
 pub struct HttpClientBuilder {
@@ -81,13 +80,6 @@ impl HttpClientBuilder {
         let client = self.builder.tls_certs_only(certs);
         Ok(HttpClient::System(client.build()?))
     }
-
-    pub fn no_verify(self) -> Result<HttpClient, Error> {
-        debug!("Creating HTTP client with no certificate verification");
-        Ok(HttpClient::NoVerify(
-            self.builder.danger_accept_invalid_certs(true).build()?,
-        ))
-    }
 }
 
 // With Rudder cert model we currently need one client for each host we talk to.
@@ -107,7 +99,6 @@ impl HttpClient {
         match *self {
             Self::Pinned(ref c, _) => c,
             Self::System(ref c) => c,
-            Self::NoVerify(ref c) => c,
         }
     }
 

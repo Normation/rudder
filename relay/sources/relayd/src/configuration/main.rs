@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Error, anyhow, bail};
+use anyhow::{Context, Error, bail};
 use secrecy::SecretString;
 use serde::{
     Deserialize,
@@ -94,10 +94,6 @@ impl Configuration {
         let res = res.and_then(|c| c.validate());
         if let Ok(ref cfg) = res {
             debug!("Parsed main configuration:\n{:#?}", &cfg);
-            for e in cfg.warnings() {
-                // log warnings
-                warn!("{}", e);
-            }
         }
         res
     }
@@ -152,19 +148,7 @@ impl Configuration {
                     PeerAuthentication::CertValidation(None)
                 }
             }
-            PeerAuthenticationType::DangerousNone => PeerAuthentication::DangerousNone,
         })
-    }
-
-    /// Check for valid configs known to present security or stability risks
-    pub fn warnings(&self) -> Vec<Error> {
-        let mut warnings = vec![];
-
-        if self.peer_authentication().unwrap() == PeerAuthentication::DangerousNone {
-            warnings.push(anyhow!("Certificate verification is disabled"));
-        }
-
-        warnings
     }
 
     pub fn upstream_url(&self) -> String {
@@ -257,7 +241,6 @@ impl Default for GeneralConfig {
 pub enum PeerAuthenticationType {
     CertPinning,
     CertValidation,
-    DangerousNone,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -265,7 +248,6 @@ pub enum PeerAuthenticationType {
 pub enum PeerAuthentication {
     CertPinning,
     CertValidation(Option<PemCertificate>),
-    DangerousNone,
 }
 
 #[serde_inline_default]

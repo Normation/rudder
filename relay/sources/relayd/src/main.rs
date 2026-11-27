@@ -21,12 +21,7 @@ fn main() {
                 println!("{e:#}");
                 exit(ExitStatus::StartError(e).code());
             }
-            Ok(warns) => {
-                for w in warns {
-                    println!("warning: {w}");
-                }
-                println!("Syntax: OK");
-            }
+            Ok(()) => println!("Syntax: OK"),
         }
     } else {
         let reload_handle = match init_logger() {
