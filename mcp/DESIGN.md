@@ -130,6 +130,16 @@ every failed one, as each can need a different right.
   override information. It requests level 4 to include directive references across Rudder versions.
   Pass a listed directive id to read its current parameter tree and the exact technique
   version it references. Parameter expressions are returned as configured.
+  - **Groups and properties**: the overview also has what decides the node's policies: the
+    groups it belongs to (`{id, name}`, sorted by name), the targets of its rules, and its
+    properties as Rudder resolves them (`GET /nodes/{id}/inheritedProperties`), the values
+    directive expressions read. Each property has its value, and in `definedIn` where it is set
+    (node, groups, global), closest first, from Rudder's hierarchy minus the values at each
+    level, which repeat. Rudder's resolution errors are kept (per property in `error`, for the
+    node in `propertiesError`): they block the node's policy generation. Rudder has no endpoint
+    for a node's groups, so `GET /groups` reads every group with its members and keeps those
+    listing the node: on a large installation, this answer is the largest of the three calls.
+    The three calls are concurrent, and the overview fails with every failed one.
   - **One technique shape**: `id`, `name`, `version`, `source` (`built-in` or `editor`) for
     every technique, and for editor techniques their `technique.yml` as Rudder sends it, in
     `content`. Rudder only sends that YAML for them: the metadata comes from the directive and
@@ -168,6 +178,9 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 - **`acl` API account** (api-authorization plugin): `GET` on each path below, the token check's
   included.
 - **User token** (api-authorization plugin): the owning user needs the rights below.
+- **System token** (Rudder's own, told by its account id `rudder-system-api-account`, as
+  Rudder sends no `authorizationType` for it): every tool works, `system` rights. Each tool call with it logs a
+  warning, as it has every right: clients should use a dedicated API account.
 - **`none`**: refused at the token check of each tool call.
 
 | Tool | Rudder API calls (`GET`, under `/rudder/api/latest/`) | Rights (user token) |
@@ -178,7 +191,7 @@ Every tool only reads (`GET`). What the caller's token needs depends on its kind
 | `list_nodes` | `nodes` | `node_read` |
 | `get_node` | `nodes/{id}` or `nodes`; `settings/global_policy_mode`, `settings/global_policy_mode_overridable` (optional) | `node_read` |
 | `get_node_compliance` | `nodes` (hostname only); `compliance/nodes/{id}` | `node_read` (hostname only), `compliance_read` |
-| `get_node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read` (hostname only), `compliance_read`; for details, `directive_read`, `technique_read` |
+| `get_node_policies` | `nodes` (hostname only), `compliance/nodes/{id}`; for the overview, `groups`, `nodes/{id}/inheritedProperties`; for details, `directives/{id}`, `techniques/{name}/{version}` | `node_read`, `compliance_read`; for the overview, `group_read`; for details, `directive_read`, `technique_read` |
 
 The rights are those of each endpoint's `authz` in the webapp's `EndpointsDefinition.scala`
 (any one of them is enough). The tools pass the same names to `CallerApi::get`, which reports
