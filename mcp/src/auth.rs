@@ -26,6 +26,8 @@ const TOKEN_CHECK_PATH: &str = "apiaccounts/token";
 /// MCP method and target name headers (SEP-2243), checked against the body by rmcp
 const MCP_METHOD_HEADER: &str = "Mcp-Method";
 const MCP_NAME_HEADER: &str = "Mcp-Name";
+/// Id of the account of Rudder's system token (`systemAccountId` in the webapp)
+const SYSTEM_ACCOUNT_ID: &str = "rudder-system-api-account";
 
 /// The caller's Rudder API token, taken from `Authorization: Bearer <token>`.
 ///
@@ -56,11 +58,14 @@ pub enum AuthorizationType {
     Rw,
     /// Per-path rights (api-authorization plugin)
     Acl,
-    /// No `authorizationType`, as Rudder sends for user tokens (api-authorization plugin) and the
-    /// system token: the rights are those of the owning account
+    /// No `authorizationType`, as Rudder sends for user tokens (api-authorization plugin): the
+    /// rights are those of the owning account
     #[default]
     #[serde(skip_deserializing)]
     Owner,
+    /// Rudder's system token, told by its account id: Rudder sends no `authorizationType` for it
+    #[serde(skip_deserializing)]
+    System,
 }
 
 impl AuthorizationType {
@@ -71,6 +76,7 @@ impl AuthorizationType {
             Self::Rw => "rw",
             Self::Acl => "acl",
             Self::Owner => "owner",
+            Self::System => "system",
         }
     }
 
@@ -81,6 +87,7 @@ impl AuthorizationType {
             Self::Rw => "read-write: all verbs on all APIs",
             Self::Acl => "per-path access control list (api-authorization plugin)",
             Self::Owner => "those of the user owning the token (api-authorization plugin)",
+            Self::System => "Rudder's internal system token: all verbs on all APIs",
         }
     }
 }
@@ -184,11 +191,21 @@ impl Credentials {
     /// Checks the token with Rudder and records the account in the request span
     async fn check(&self) -> Result<Caller, TokenRejection> {
         let api = self.api.as_ref().ok_or(TokenRejection::Missing)?;
-        let account = check_token(api).await?;
+        let mut account = check_token(api).await?;
+        if account.id == SYSTEM_ACCOUNT_ID {
+            account.authorization_type = AuthorizationType::System;
+        }
         self.span.record("account", account.id.as_str());
         self.span.record("account_name", account.name.as_str());
         self.span
             .record("rights", account.authorization_type.as_str());
+        if account.authorization_type == AuthorizationType::System {
+            // After the recording: the warning names the account
+            tracing::warn!(
+                "tool call with Rudder's system API token, which has every right and is meant \
+                 for Rudder itself: give the MCP client the token of a dedicated API account"
+            );
+        }
         Ok(Caller {
             account,
             api: api.clone(),

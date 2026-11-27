@@ -24,7 +24,7 @@ use crate::{api::RudderApi, config::ApiConfig, serve};
 /// `server.example.com`, which echoes the requested `include` (`""` when absent). Tokens: `ro` identifies a read-only
 /// account, `user` a user token (no `authorizationType`), `acl` an account that can read its own
 /// account but not the system endpoints, the settings nor the compliance, `narrow` is valid but cannot read its own account,
-/// `anonymous` gets an answer without account, `future` an account with an unknown
+/// `system` the system token, `user-system` a user token ending like it, `anonymous` gets an answer without account, `future` an account with an unknown
 /// `authorizationType`, `audit` is an `rw` account only used to check the logs, anything else is
 /// unknown.
 async fn mock_rudder() -> String {
@@ -50,6 +50,14 @@ async fn mock_rudder() -> String {
             "ro" => (StatusCode::OK, account(Some("ro"))),
             "audit" | "legacy" => (StatusCode::OK, account(Some("rw"))),
             "user" => (StatusCode::OK, account(None)),
+            // As Rudder sends it: no `authorizationType`, a fixed id. A user token named like
+            // the system one is still a user token.
+            "system" => (
+                StatusCode::OK,
+                accounts(json!([{"id": "rudder-system-api-account",
+                "name": "Rudder system account", "status": "enabled"}])),
+            ),
+            "user-system" => (StatusCode::OK, account(None)),
             "future" => (StatusCode::OK, account(Some("admin"))),
             "acl" => (StatusCode::OK, account(Some("acl"))),
             "anonymous" => (StatusCode::OK, accounts(json!([]))),
@@ -175,6 +183,35 @@ async fn mock_rudder() -> String {
                 json!({"data":{"nodes":[{"id": POLICY_NODE, "name":"web", "rules":[
                     {"id":"r1","name":"Web","directives":[{"id":"d1","name":"Site"},{"id":"d2","name":"Packages"}]}
                 ]}]}}).to_string()
+            }),
+        )
+        .route(
+            "/rudder/api/latest/groups",
+            system(json!({"action": "listGroups", "result": "success", "data": {"groups": [
+                {"id": "g2", "displayName": "Web servers", "nodeIds": [POLICY_NODE, "root"]},
+                {"id": "g1", "displayName": "Databases", "nodeIds": []},
+                {"id": "g3", "displayName": "All nodes", "nodeIds": [POLICY_NODE, "root"]}
+            ]}})),
+        )
+        .route(
+            "/rudder/api/latest/nodes/{id}/inheritedProperties",
+            // As Rudder sends them, with the values along the hierarchy left out here
+            get(|Path(id): Path<String>| async move {
+                json!({"action": "nodeInheritedProperties", "result": "success", "data": [{
+                    "nodeId": id,
+                    "properties": [
+                        {"name": "env", "value": "prod", "provider": "inherited",
+                         "hierarchy": {"kind": "group", "id": "g2", "name": "Web servers"},
+                         "hierarchyStatus": {"hasChildTypeConflicts": false, "fullHierarchy":
+                            {"kind": "group", "id": "g2", "name": "Web servers", "valueType": "String",
+                             "parent": {"kind": "global", "valueType": "String"}}}},
+                        {"name": "site", "value": {"root": "/srv/www"}, "description": "Site settings",
+                         "hierarchyStatus": {"hasChildTypeConflicts": false, "fullHierarchy":
+                            {"kind": "node", "id": id, "name": "web", "valueType": "Object"}},
+                         "origval": {"root": "/srv/www"}}
+                    ]
+                }]})
+                .to_string()
             }),
         )
         .route(
@@ -323,6 +360,13 @@ async fn get_current_account_describes_the_caller() {
         json!({"id": "user-id", "name": "Account user", "rights": "owner",
                "rightsDescription": "those of the user owning the token (api-authorization plugin)"})
     );
+    assert_eq!(
+        get_current_account("system").await,
+        json!({"id": "rudder-system-api-account", "name": "Rudder system account",
+               "rights": "system",
+               "rightsDescription": "Rudder's internal system token: all verbs on all APIs"})
+    );
+    assert_eq!(get_current_account("user-system").await["rights"], "owner");
 }
 
 #[tokio::test]
@@ -450,6 +494,21 @@ async fn get_node_policies_overview_and_directive_details() {
     };
     let overview = query(json!({"node":POLICY_NODE})).await;
     assert_eq!(overview["rules"][0]["directives"][0]["id"], "d1");
+    // The node's groups by name, its properties with where they are set
+    assert_eq!(
+        overview["groups"],
+        json!([{"id": "g3", "name": "All nodes"}, {"id": "g2", "name": "Web servers"}])
+    );
+    assert_eq!(
+        overview["properties"],
+        json!([
+            {"name": "env", "value": "prod", "provider": "inherited", "definedIn": [
+                {"kind": "group", "id": "g2", "name": "Web servers"}, {"kind": "global"}]},
+            {"name": "site", "value": {"root": "/srv/www"}, "description": "Site settings",
+             "definedIn": [{"kind": "node", "id": POLICY_NODE, "name": "web"}]}
+        ])
+    );
+    assert!(overview.get("propertiesError").is_none());
     let by_hostname = query(json!({"node":"server.example.com"})).await;
     assert_eq!(by_hostname["id"], "root");
 
@@ -498,6 +557,14 @@ async fn get_node_policies_overview_and_directive_details() {
     )
     .await;
     assert!(failed && text.contains("technique_read"), "{text}");
+    let (failed, text) = tool_result(
+        &url,
+        Some("acl"),
+        "get_node_policies",
+        json!({"node":POLICY_NODE}),
+    )
+    .await;
+    assert!(failed && text.contains("group_read"), "{text}");
 }
 
 #[tokio::test]
