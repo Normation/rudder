@@ -262,7 +262,6 @@ impl JobConfig {
                 None => builder.system(),
                 Some(ca) => builder.custom_ca(ca),
             },
-            PeerAuthentication::DangerousNone => builder.no_verify(),
         }?;
 
         let mut downstream_clients = HashMap::new();
@@ -287,7 +286,6 @@ impl JobConfig {
                     None => builder.system(),
                     Some(ca) => builder.custom_ca(ca),
                 },
-                PeerAuthentication::DangerousNone => builder.no_verify(),
             }?;
             downstream_clients.insert(id, client);
         }

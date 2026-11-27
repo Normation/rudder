@@ -10,11 +10,8 @@ use anyhow::Error;
 use main::Configuration;
 use rudder_cli::logs::daemon::LogConfig;
 
-type Warnings = Vec<Error>;
-
-pub fn check_configuration(cfg_dir: &Path) -> Result<Warnings, Error> {
-    let cfg = Configuration::new(cfg_dir)?;
-    let warns = cfg.warnings();
+pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
+    Configuration::new(cfg_dir)?;
     LogConfig::load(cfg_dir)?;
-    Ok(warns)
+    Ok(())
 }
