@@ -201,30 +201,6 @@ final case class PasswordEncoderData(hashName: String)
 
 object UserManagementService {
 
-  /**
-   * Parse a list of permissions and split it so that we have a representation of users permissions as :
-   * - a set of roles that could be parsed from the permissions
-   * - a minimal set of authorization types that are complementary to roles and not present yet in the set of roles
-   * - a set of unknown permissions that could neither parsed as roles nor authorization types
-   */
-  def parsePermissions(
-      permissions: Set[String]
-  )(implicit allRoles: Set[Role]): (Set[Role], Set[AuthorizationType], Set[String]) = {
-    // Everything that is not a role is an authz and remaining authz are put into custom role
-    val allRolesByName     = allRoles.map(r => r.name -> r).toMap
-    val (remaining, roles) = permissions.partitionMap(r => allRolesByName.get(r).toRight(r))
-    val allRoleAuthz       = roles.flatMap(_.rights.authorizationTypes)
-    val (unknowns, authzs) = remaining.partitionMap(a => {
-      AuthorizationType
-        .parseRight(a)
-        .map(_.filter(!allRoleAuthz.contains(_)))
-        .left
-        .map(_ => a)
-    })
-
-    (roles, authzs.flatten, unknowns)
-  }
-
   def computeRoleCoverage(roles: Set[Role], authzs: Set[AuthorizationType]): Option[Set[Role]] = {
 
     def compareRights(r: Role, as: Set[AuthorizationType]): Option[Role] = {
@@ -331,7 +307,7 @@ object UserManagementService {
   // updating a user is changing its node by the updated ones
   def updateUserXmlRewriteRule(
       id:              String,
-      updateUser:      JsonUserFormData,
+      updateUser:      UpdateUserFile,
       passwordEncoder: PasswordEncoderData => UserPasswordEncoder[SecretUserPassword]
   ): Elem => PureResult[RewriteRule] = (origXml: Elem) => {
     if (!userExists(id, origXml)) {
@@ -342,11 +318,11 @@ object UserManagementService {
           case user: Elem if (user \ "@name").text == id =>
             implicit val encoder: UserPasswordEncoder[SecretUserPassword] =
               passwordEncoder(PasswordEncoderData((origXml \ "@hash").text))
-            val fileUser    = updateUser.transformInto[User]
             // for each user's parameters, if a new user's parameter is empty we decide to keep the original one
-            val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
-            val newPassword = fileUser.password match {
+            val newUsername = if (updateUser.username.isEmpty) id else updateUser.username
+            val newPassword = updateUser.password match {
               case _: UnknownPassword      => UserPassword.UnknownPassword((user \ "@password").text)
+              case s: SecretUserPassword   => s.transformInto[UserPassword.HashedUserPassword]
               case s: StorableUserPassword => s
             }
             // return the user to update in the file with the resolved permissions
@@ -355,8 +331,7 @@ object UserManagementService {
                 newUsername,
                 newPassword,
                 updateUser.permissions
-                  .map(_.toSet)
-                  .getOrElse(((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet),
+                  .getOrElse(UserPermissions.Unparsed(((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet)),
                 (user \ "@tenants").text
               )
               .toNode
@@ -413,20 +388,7 @@ class UserManagementService(
    * - the providers list for the user and their ability to extend roles from user file
    * - the password definition and hashing
    */
-  def update(id: String, updateUser: JsonUserFormData)(
-      allRoles: Map[String, Role]
-  ): IOResult[ParsedUser] = {
-    implicit val currentRoles: Set[Role] = allRoles.values.toSet
-
-    // Unknown permissions are trusted and put in file
-    val optNewPermissions: Option[List[String]] = updateUser.permissions
-      .map(p => {
-        UserManagementService.parsePermissions(p.toSet) match {
-          case (roles, authz, unknown) => roles.map(_.name) ++ authz.map(_.id) ++ unknown
-        }
-      })
-      .map(_.toList)
-
+  def update(id: String, updateUser: UpdateUserFile): IOResult[ParsedUser] = {
     UserManagementIO.inUserFileSemaphore(for {
       // this is only to check user exists
       _     <- userRepository
@@ -447,7 +409,7 @@ class UserManagementService(
                  file,
                  updateUserXmlRewriteRule(
                    id,
-                   updateUser.copy(permissions = optNewPermissions),
+                   updateUser,
                    data => getHashEncoderOrDefault(data.hashName)
                  )
                )

@@ -37,9 +37,11 @@
 package com.normation.rudder.users
 
 import com.normation.XmlSpecMatcher
+import com.normation.rudder.Role
 import com.normation.rudder.users.UserPassword.SecretUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.rudder.users.UserPassword.UserPasswordEncoder
+import io.scalaland.chimney.syntax.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -52,6 +54,8 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
     <user name="user1" password="1234" permissions="user" tenants="zoneA" />
     <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
   </authentication>
+
+  given Set[Role] = Role.allBuiltInRoles.values.toSet
 
   // super secure password encoder
   val passwordEncoder = (data: PasswordEncoderData) => {
@@ -74,7 +78,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
 
   "Adding an user" should {
     "add it in last position with the correct parameters when it does not exists yet" in {
-      val newUser = User("alice", UnknownPassword("secret"), Set("permA", "permB"), Some("tenantA"))
+      val newUser = User.make("alice", UnknownPassword("secret"), Set("permA", "permB"), "tenantA")
       val exec    = UserManagementIO.replaceXml(
         userXml,
         UserManagementService.addUserXmlRewriteRule(newUser),
@@ -93,7 +97,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
     }
 
     "lead to an error if user exists" in {
-      val newUser = User("user1", UnknownPassword("secret"), Set("permA", "permB"), Some("tenantA"))
+      val newUser = User.make("user1", UnknownPassword("secret"), Set("permA", "permB"), "tenantA")
       val exec    = UserManagementIO.replaceXml(
         userXml,
         UserManagementService.addUserXmlRewriteRule(newUser),
@@ -131,12 +135,13 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
 
   "Updating an user" should {
 
+    def perms(p: String*): UserPermissions.Parsed = UserPermissions.Parsed(Set.empty, Set.empty, p.toSet)
     "update it as wanted when it exists" in {
       val exec = UserManagementIO.replaceXml(
         userXml,
         UserManagementService.updateUserXmlRewriteRule(
           "user1",
-          JsonUserFormData("user3", "secret", Some(List("perm1", "perm2")), isPreHashed = false, None, None, None),
+          UpdateUserFile("user3", UserPassword.fromSecret("secret"), Some(perms("perm1", "perm2"))),
           passwordEncoder
         ),
         "test"
@@ -151,16 +156,32 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
       )
     }
 
+    val updateUser1 = UpdateUserFile("user1", UserPassword.unknown, Some(perms("perm1")))
+
+    "consider the new password unchanged when it is" >> {
+      "a blank cleartext password" in {
+        JsonUserFormData("user1", "   ", Some(List("perm1")), isPreHashed = false, None, None, None)
+          .transformInto[UpdateUserFile] must beEqualTo(updateUser1)
+      }
+
+      "an empty pre-hashed password" in {
+        JsonUserFormData("user1", "", Some(List("perm1")), isPreHashed = true, None, None, None)
+          .transformInto[UpdateUserFile] must beEqualTo(updateUser1)
+      }
+
+      "a blank pre-hashed password" in {
+        JsonUserFormData("user1", " \t ", Some(List("perm1")), isPreHashed = true, None, None, None)
+          .transformInto[UpdateUserFile] must beEqualTo(updateUser1)
+      }
+    }
+
     // an empty password must never be hashed and stored: it would be a valid hash of the empty
     // string, and anybody could then log in as that user with an empty password.
-    "keep the password already in the file when the new one is an empty cleartext password" in {
+    // covers all unchanged password cases above
+    "keep the password already in the file when the new one is unchanged" in {
       val exec = UserManagementIO.replaceXml(
         userXml,
-        UserManagementService.updateUserXmlRewriteRule(
-          "user1",
-          JsonUserFormData("user1", "", Some(List("perm1")), isPreHashed = false, None, None, None),
-          passwordEncoder
-        ),
+        UserManagementService.updateUserXmlRewriteRule("user1", updateUser1, passwordEncoder),
         "test"
       )
       exec must beRight(
@@ -173,64 +194,29 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
       )
     }
 
-    "keep the password already in the file when the new one is a blank cleartext password" in {
-      val exec = UserManagementIO.replaceXml(
+    "take a new cleartext password" >> {
+      val expectedJson = UpdateUserFile("user1", UserPassword.fromSecret("secret"), Some(perms("perm1")))
+      val exec         = UserManagementIO.replaceXml(
         userXml,
-        UserManagementService.updateUserXmlRewriteRule(
-          "user1",
-          JsonUserFormData("user1", "   ", Some(List("perm1")), isPreHashed = false, None, None, None),
-          passwordEncoder
-        ),
+        UserManagementService.updateUserXmlRewriteRule("user1", expectedJson, passwordEncoder),
         "test"
       )
-      exec must beRight(
-        equalsIgnoringSpace(
-          <authentication hash="sha-1" case-sensitivity="true">
-            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
-            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
-          </authentication>
-        )
-      )
-    }
 
-    "keep the password already in the file when the new one is an empty pre-hashed password" in {
-      val exec = UserManagementIO.replaceXml(
-        userXml,
-        UserManagementService.updateUserXmlRewriteRule(
-          "user1",
-          JsonUserFormData("user1", "", Some(List("perm1")), isPreHashed = true, None, None, None),
-          passwordEncoder
-        ),
-        "test"
-      )
-      exec must beRight(
-        equalsIgnoringSpace(
-          <authentication hash="sha-1" case-sensitivity="true">
-            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
-            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
-          </authentication>
-        )
-      )
-    }
+      "as a secret in the update" in {
+        JsonUserFormData("user1", "secret", Some(List("perm1")), isPreHashed = false, None, None, None)
+          .transformInto[UpdateUserFile] must beEqualTo(expectedJson)
+      }
 
-    "keep the password already in the file when the new one is a blank pre-hashed password" in {
-      val exec = UserManagementIO.replaceXml(
-        userXml,
-        UserManagementService.updateUserXmlRewriteRule(
-          "user1",
-          JsonUserFormData("user1", " \t ", Some(List("perm1")), isPreHashed = true, None, None, None),
-          passwordEncoder
-        ),
-        "test"
-      )
-      exec must beRight(
-        equalsIgnoringSpace(
-          <authentication hash="sha-1" case-sensitivity="true">
-            <user name="user1" password="1234" permissions="perm1" tenants="zoneA" />
-            <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
-          </authentication>
+      "hashed with the file hash in the file" in {
+        exec must beRight(
+          equalsIgnoringSpace(
+            <authentication hash="sha-1" case-sensitivity="true">
+              <user name="user1" password="sha-1terces" permissions="perm1" tenants="zoneA" />
+              <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+            </authentication>
+          )
         )
-      )
+      }
     }
 
     "lead to an error is user doesn't exists" in {
@@ -238,7 +224,7 @@ class UserManagementServiceTest extends Specification with XmlSpecMatcher {
         userXml,
         UserManagementService.updateUserXmlRewriteRule(
           "alice",
-          JsonUserFormData("whatever", "whatever", None, isPreHashed = true, None, None, None),
+          UpdateUserFile("whatever", UserPassword.UnknownPassword("whatever"), None),
           passwordEncoder
         ),
         "test"
