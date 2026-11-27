@@ -302,7 +302,7 @@ class EventLogDetailsGenerator(
         }
       }
 
-      def xmlParameters(eventId: Option[Int]) = {
+      def xmlParametersCommon(eventId: Option[Int], technicalDetails: Elem) = {
         eventId match {
           case None     => NodeSeq.Empty
           case Some(id) =>
@@ -312,10 +312,81 @@ class EventLogDetailsGenerator(
               <b class="action">Show</b>
               raw technical details
             </button>
-            <pre id={preId} style="display:none;" class="technical-details">{
-              event.details.map(n => xmlPretty.format(n) + "\n")
+              <pre id={preId} style="display:none;" class="technical-details">{
+              technicalDetails.map(n => xmlPretty.format(n) + "\n")
             }</pre>
         }
+      }
+
+      def xmlParameters(eventId: Option[Int]) = {
+        xmlParametersCommon(eventId, event.details)
+      }
+
+      /*
+      Create an XML node with the given label whose text will be "[REDACTED ApiTokenHash]"
+      if the given hash is non-empty, and no text otherwise.
+       */
+      def xmlApiTokenHash(label: String, tokenHash: String) = {
+        val children = {
+          if (tokenHash.isEmpty) Seq.empty
+          else Seq(Text(ApiTokenHash.fromHashValue(tokenHash).toString))
+        }
+        Elem(null, label, Null, TopScope, true, children*)
+      }
+
+      /*
+      Display change log details for CreateAPIAccount and DeleteAPIAccount change logs.
+      API account token hashes used to be displayed in API account event logs (see https://issues.rudder.io/issues/29507);
+      hence, this function aims to hide API token hashes in CreateAPIAccount and DeleteAPIAccount change log XML data
+       */
+      def xmlParametersApiAccount(eventId: Option[Int]) = {
+        xmlParametersCommon(
+          eventId,
+          event.details.copy(
+            child = event.details.child.find(_.label == "apiAccount") match {
+              case Some(apiAccount) =>
+                val index = apiAccount.child.indexWhere(_.label == "token")
+                if (index == -1) Seq(apiAccount)
+                else {
+                  val tokenXml = xmlApiTokenHash("token", apiAccount.child(index).text)
+                  val children = apiAccount.child.updated(index, tokenXml)
+                  Seq(Elem(null, "apiAccount", apiAccount.attributes, apiAccount.scope, false, children*))
+                }
+              case None             => Seq.empty
+            }
+          )
+        )
+      }
+
+      /*
+      Display change log details for ModifyAPIAccount change logs.
+      API account token hashes used to be displayed in API account event logs (see https://issues.rudder.io/issues/29507);
+      hence, this function aims to hide API token hashes in ModifyAPIAccount change log XML data
+       */
+      def xmlParametersApiAccountDiff(eventId: Option[Int]) = {
+        xmlParametersCommon(
+          eventId,
+          event.details.copy(
+            child = event.details.child.find(_.label == "apiAccount") match {
+              case Some(apiAccount) =>
+                val index = apiAccount.child.indexWhere(_.label == "token")
+                if (index == -1) Seq(apiAccount)
+                else {
+                  val tokenFrom = apiAccount.child(index).child.find(_.label == "from")
+                  val tokenTo   = apiAccount.child(index).child.find(_.label == "to")
+
+                  (tokenFrom, tokenTo) match {
+                    case (Some(from), Some(to)) =>
+                      val tokenXml = <token>{xmlApiTokenHash("from", from.text)}{xmlApiTokenHash("to", to.text)}</token>
+                      val children = apiAccount.child.updated(index, tokenXml)
+                      Seq(Elem(null, "apiAccount", apiAccount.attributes, apiAccount.scope, false, children*))
+                    case _                      => Seq(apiAccount)
+                  }
+                }
+              case None             => Seq.empty
+            }
+          )
+        )
       }
 
       val reasonHtml = {
@@ -979,7 +1050,7 @@ class EventLogDetailsGenerator(
                   <div class="evloglmargin">
 
                     {generatedByChangeRequest}{apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}{reasonHtml}{
-                    xmlParameters(event.id)
+                    xmlParametersApiAccount(event.id)
                   }
                   </div>
                 case e: EmptyBox =>
@@ -995,7 +1066,7 @@ class EventLogDetailsGenerator(
                   <div class="evloglmargin">
 
                     {generatedByChangeRequest}{apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}{reasonHtml}{
-                    xmlParameters(event.id)
+                    xmlParametersApiAccount(event.id)
                   }
                   </div>
                 case e: EmptyBox =>
@@ -1018,7 +1089,16 @@ class EventLogDetailsGenerator(
                     </ul>{
                     (
                       "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
-                      "#token" #> mapSimpleDiff(apiAccountDiff.modToken) &
+                      "#token" #> {
+                        apiAccountDiff.modToken match {
+                          case Some(SimpleDiff("", _)) =>
+                            <ul class="evlogviewpad"><li><b>Token created</b></li></ul>
+                          case Some(_)                 =>
+                            <ul class="evlogviewpad"><li><b>Token regenerated</b></li></ul>
+                          case None                    =>
+                            <ul class="evlogviewpad"><li><b>Token value unchanged</b></li></ul>
+                        }
+                      } &
                       "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
                       "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
                       "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
@@ -1041,7 +1121,7 @@ class EventLogDetailsGenerator(
                         SimpleDiff(f(o.oldValue), f(o.newValue))
                       }))
                     )(apiAccountModDetailsXML)
-                  }{reasonHtml}{xmlParameters(event.id)}
+                  }{reasonHtml}{xmlParametersApiAccountDiff(event.id)}
                   </div>
                 case e: EmptyBox =>
                   logger.warn(e)
@@ -1361,7 +1441,7 @@ class EventLogDetailsGenerator(
       "#description" #> globalParameter.description
   )(xml)
 
-  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = {
+  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccountNoToken) = {
     val (expiration, kind, authz) = apiAccount.kind match {
       case ApiAccountKind.System                                      => ("N/A", "system", Text("N/A"))
       case ApiAccountKind.User                                        => ("N/A", "user", Text("N/A"))
@@ -1385,7 +1465,6 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-    "#token" #> apiAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
@@ -1517,7 +1596,6 @@ class EventLogDetailsGenerator(
       <ul class="evlogviewpad">
         <li><b>Rudder ID: </b><value id="id"/></li>
         <li><b>Name:&nbsp;</b><value id="name"/></li>
-        <li><b>Token:&nbsp;</b><value id="token"/></li>
         <li><b>Description:&nbsp;</b><value id="description"/></li>
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>
