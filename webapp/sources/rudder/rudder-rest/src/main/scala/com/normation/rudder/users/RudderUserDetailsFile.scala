@@ -800,7 +800,7 @@ object UserFileProcessing {
                  .catchAll(err => logger.warn(err.fullMsg) *> TenantAccessGrant.None.succeed)
         rs  <-
           RudderRoles
-            .parseRoles(roles)
+            .parseRoles(roles, s"Error parsing user '${u.name}' credentials")
             .flatMap(list => {
               list match {
                 case Nil => // 'role' attribute is optional, by default get "none" role
