@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-use anyhow::{Context, Result, ensure};
+use anyhow::{Result, ensure};
 use axum::http::request::Parts;
 use rmcp::{
     handler::server::{tool::Extension, wrapper::Parameters},
@@ -12,7 +12,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use super::{Rudder, UNEXPECTED, caller, data, node::NodeRef, tool_error};
+use super::{
+    Rudder, UNEXPECTED, caller, data, node::NodeRef, segment, technique::Technique, tool_error,
+};
 use crate::api::CallerApi;
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -224,66 +226,6 @@ impl Section {
     }
 }
 
-#[derive(Deserialize)]
-struct Techniques {
-    techniques: [TechniqueResponse; 1],
-}
-
-/// `GET techniques/{id}/{version}?format=yaml`: an editor technique is only its YAML, a built-in
-/// one only its metadata
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum TechniqueResponse {
-    Editor { content: String },
-    BuiltIn(Technique),
-}
-
-/// One shape for every technique: the metadata, plus the YAML definition of editor techniques
-#[derive(Deserialize, Serialize)]
-struct Technique {
-    id: String,
-    name: String,
-    version: String,
-    /// `built-in` or `editor`
-    source: String,
-    /// The `technique.yml`, editor techniques only
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    content: Option<String>,
-}
-
-/// The parts of an editor technique's YAML used here, the rest is passed through as is
-#[derive(Deserialize)]
-struct TechniqueYaml {
-    name: String,
-    #[serde(default)]
-    params: Vec<TechniqueParameter>,
-}
-
-#[derive(Deserialize)]
-struct TechniqueParameter {
-    id: String,
-    name: String,
-}
-
-impl TechniqueYaml {
-    /// The parameter names, by the name of their directive variable
-    fn parameter_names(&self) -> HashMap<String, &str> {
-        self.params
-            .iter()
-            .map(|p| (p.id.to_uppercase(), p.name.as_str()))
-            .collect()
-    }
-}
-
-// The REST client splits paths on '/'. Each identifier here must occupy exactly one segment.
-fn segment(id: &str) -> Result<&str> {
-    ensure!(
-        !matches!(id, "" | "." | "..") && !id.contains('/'),
-        "{UNEXPECTED}: invalid identifier"
-    );
-    Ok(id)
-}
-
 #[tool_router(router = get_node_policies_router, vis = "pub(super)")]
 impl Rudder {
     #[tool(
@@ -387,34 +329,11 @@ async fn directive(api: &CallerApi, node: &str, id: &str) -> Result<String> {
     let [mut directive] = data::<Directives>(&body)?.directives;
     ensure!(directive.id == id, "{UNEXPECTED}: directive id mismatch");
 
-    let path = format!(
-        "techniques/{}/{}",
-        segment(&directive.technique_name)?,
-        segment(&directive.technique_version)?
-    );
-    let body = api
-        .get(&path, &[("format", "yaml")], "technique_read")
-        .await?;
-    let [technique] = data::<Techniques>(&body)?.techniques;
-    let technique = match technique {
-        TechniqueResponse::BuiltIn(technique) => technique,
-        TechniqueResponse::Editor { content } => {
-            let yaml: TechniqueYaml = serde_yaml::from_str(&content)
-                .context(UNEXPECTED)
-                .context("could not read the technique YAML")?;
-            directive
-                .parameters
-                .section
-                .name_parameters(&yaml.parameter_names());
-            Technique {
-                // From the directive: in the YAML, an unquoted version (`2.0`) is a number
-                id: directive.technique_name.clone(),
-                version: directive.technique_version.clone(),
-                name: yaml.name,
-                source: "editor".to_owned(),
-                content: Some(content),
-            }
-        }
-    };
+    let technique =
+        Technique::get(api, &directive.technique_name, &directive.technique_version).await?;
+    directive
+        .parameters
+        .section
+        .name_parameters(&technique.parameter_names());
     Ok(json!({"node": overview, "directive": directive, "technique": technique}).to_string())
 }
