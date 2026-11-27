@@ -307,7 +307,7 @@ object PathMatcher {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[String] = {
       (schema, path) match {
-        case (Nil, Nil)                                                                     => None // where would be my free variable value, hum?
+        case (Nil, Nil)                                                                     => None
         case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
         case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2)            => Zero.compare(t1, t2).map(_ => b)
         case _                                                                              => None
@@ -319,9 +319,21 @@ object PathMatcher {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[(String, String)] = {
       (schema, path) match {
-        case (Nil, Nil)                                                                     => None // where would be my free variable value, hum?
+        case (Nil, Nil)                                                                     => None
         case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
         case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2)            => One.compare(t1, t2).map(c => (b, c))
+        case _                                                                              => None
+      }
+    }
+  }
+
+  object Three extends PathMatcher[(String, String, String)] {
+    def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[(String, String, String)] = {
+      (schema, path) match {
+        case (Nil, Nil)                                                                     => None
+        case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
+        case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2)            =>
+          Two.compare(t1, t2).map((c1, c2) => (b, c1, c2))
         case _                                                                              => None
       }
     }
@@ -349,6 +361,16 @@ trait TwoParam  extends EndpointSchema  {
   type RESOURCES = (String, String)
   override def getResources(p: ApiPath): Either[ApiError.BadParam, (String, String)] = {
     PathMatcher.Two.compare(path.parts.toList, p.parts.toList) match {
+      case None    => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
+      case Some(x) => Right(x)
+    }
+  }
+}
+
+trait ThreeParam extends EndpointSchema {
+  type RESOURCES = (String, String, String)
+  override def getResources(p: ApiPath): Either[ApiError.BadParam, (String, String, String)] = {
+    PathMatcher.Three.compare(path.parts.toList, p.parts.toList) match {
       case None    => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
       case Some(x) => Right(x)
     }

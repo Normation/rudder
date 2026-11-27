@@ -38,6 +38,8 @@
 package com.normation.cfclerk.domain
 
 import com.normation.GitVersion.Revision
+import zio.json.JsonCodec
+import zio.json.JsonEncoder
 
 /**
  * Representation of a technique resource id.
@@ -53,7 +55,7 @@ import com.normation.GitVersion.Revision
  *   different.
  */
 sealed trait TechniqueResourceId {
-  def name:        String
+  def name:        ResourceName
   def displayPath: String
 }
 
@@ -62,8 +64,22 @@ sealed trait TechniqueResourceId {
  * It can be a path like "subdirectory/myTemplate"
  * The name must not contain the extension.
  */
-final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: String) extends TechniqueResourceId {
+final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: ResourceName) extends TechniqueResourceId
+    derives JsonEncoder {
   def displayPath: String = techniqueId.serialize + "/" + name
+
+  def fileSystemPath: String = techniqueId.serialize + "/resources/" + name
+}
+opaque type ResourceName = String
+object ResourceName     {
+
+  given jsonCodec: JsonCodec[ResourceName] = JsonCodec.string
+
+  extension (self: ResourceName) {
+    def value: String = self
+  }
+
+  def apply(name: String): ResourceName = name
 }
 
 /**
@@ -73,7 +89,7 @@ final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: Strin
  * For example, an empty list means that the template is in configuration-repository directory.
  * Name is an unix compliant file name, without the ".st" extension.
  */
-final case class TechniqueResourceIdByPath(parentDirectories: List[String], rev: Revision, name: String)
+final case class TechniqueResourceIdByPath(parentDirectories: List[String], rev: Revision, name: ResourceName)
     extends TechniqueResourceId {
   def displayPath: String = parentDirectories.mkString("", "/", "/") + name
 }

@@ -41,6 +41,7 @@ import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
@@ -72,6 +73,10 @@ trait TechniqueWriter {
       techniqueName:    String,
       techniqueVersion: String,
       deleteDirective:  Boolean
+  )(implicit cc: ChangeContext): IOResult[Unit]
+
+  def deleteResource(
+      resourceId: TechniqueResourceIdByName
   )(implicit cc: ChangeContext): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
@@ -112,7 +117,14 @@ class TechniqueWriterImpl(
     deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective)
   }
 
-  def writeTechniqueAndUpdateLib(
+  override def deleteResource(
+      resourceId: TechniqueResourceIdByName
+  )(implicit cc: ChangeContext): IOResult[Unit] = for {
+    _ <- deleteService.deleteResource(resourceId)
+
+  } yield ()
+
+  override def writeTechniqueAndUpdateLib(
       technique: EditorTechnique
   )(implicit cc: ChangeContext): IOResult[EditorTechnique] = {
     for {

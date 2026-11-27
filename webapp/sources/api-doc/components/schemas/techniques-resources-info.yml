@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: array
+items:
+  type: object
+  properties:
+    techniqueName:
+      type: string
+      description: Technique's name
+      example: "userManagement"
+    techniqueVersion:
+      type: string
+      description: Technique's version
+      example: "6.0"
+    resourceName:
+      type: string
+      description: Resource's name
+      example: "readme"

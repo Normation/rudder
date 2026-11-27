@@ -358,7 +358,7 @@ class TechniqueParser(
                     val path = new java.io.File(n.substring(RUDDER_CONFIGURATION_REPOSITORY.length + 1))
                     val name = path.getName
                     // here, getName can't be empty since n does not end by "/"
-                    Right(TechniqueResourceIdByPath(fileToList(path.getParentFile), techniqueId.version.rev, name))
+                    Right(TechniqueResourceIdByPath(fileToList(path.getParentFile), techniqueId.version.rev, ResourceName(name)))
                   } else {
                     if (n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { // most likely an user error, issue a warning
                       logEffect.warn(
@@ -366,14 +366,14 @@ class TechniqueParser(
                         "If you meant to use a relative path from configuration-repository directory for the resource, it is an error."
                       )
                     }
-                    Right(TechniqueResourceIdByName(techniqueId, n))
+                    Right(TechniqueResourceIdByName(techniqueId, ResourceName(n)))
                   }
                 }
 
               case _ => Left(LoadTechniqueError.Parsing(s"Error when parsing xml ${xml}. Resource name is not defined"))
             }
     } yield {
-      (id, outPath.getOrElse(defaultOutPath(id.name)))
+      (id, outPath.getOrElse(defaultOutPath(id.name.value)))
     }
   }
 
@@ -465,7 +465,7 @@ class TechniqueParser(
     if (xml.label != RUN_HOOKS) {
       Left(
         LoadTechniqueError.Parsing(
-          s"Error in techni in technique '${id.debugString}', this is not a valid <${RUN_HOOKS}>: ${xml}"
+          s"Error in technique '${id.debugString}', this is not a valid <${RUN_HOOKS}>: ${xml}"
         )
       )
     } else {

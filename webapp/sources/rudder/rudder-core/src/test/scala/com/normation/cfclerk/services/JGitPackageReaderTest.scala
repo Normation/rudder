@@ -118,23 +118,25 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    *      --- template2.st
    */
   val template = new File(gitRoot, "template.st")
-  val templateId: TechniqueResourceIdByPath = TechniqueResourceIdByPath(Nil, GitVersion.DEFAULT_REV, "template")
+  val templateId: TechniqueResourceIdByPath = TechniqueResourceIdByPath(Nil, GitVersion.DEFAULT_REV, ResourceName("template"))
   val templateContent = "this is some template content"
   template.getParentFile.mkdirs
   FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
   val template2       = new File(new File(gitRoot, "libdir"), "template2.st")
-  val template2Id: TechniqueResourceIdByPath = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, "template2")
+  val template2Id: TechniqueResourceIdByPath =
+    TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, ResourceName("template2"))
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1        = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
-  val file1: TechniqueResourceIdByPath = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, f1.getName)
+  val file1: TechniqueResourceIdByPath =
+    TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, ResourceName(f1.getName))
   FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
   val file2: TechniqueResourceIdByName =
-    TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")
+    TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), ResourceName("file2.txt"))
 
   val repo: GitRepositoryProviderImpl = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
 
@@ -183,7 +185,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   "cat1 sub category" should {
     val cat1       = infos.subCategories(R / "cat1")
     val techniques = cat1.techniqueIds.toSeq
-    val tmlId      = TechniqueResourceIdByName(techniques(0), "theTemplate")
+    val tmlId      = TechniqueResourceIdByName(techniques(0), ResourceName("theTemplate"))
     "be named 'cat1'" in cat1.name === "cat1"
     "has no description" in cat1.description === ""
     "has two techniques..." in cat1.techniqueIds.size === 2
