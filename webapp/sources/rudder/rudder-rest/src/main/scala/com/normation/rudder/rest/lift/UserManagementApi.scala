@@ -56,6 +56,7 @@ import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
 import com.normation.rudder.users.Serialisation.*
+import com.normation.rudder.users.UpdateUserFile
 import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.zio.currentOffsetDateTimeUTC
 import enumeratum.*
@@ -444,20 +445,18 @@ class UserManagementApiImpl(
         authzToken: AuthzToken
     ): LiftResponse = {
       (for {
-        u          <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO
-        permissions = u.permissions.map(_.filter(_ != AuthorizationType.NoRights.id))
-        user        = u.copy(permissions = permissions)
-        allRoles   <- RudderRoles.getAllRoles
+        u        <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO
+        allRoles <- RudderRoles.getAllRoles
         // We ignore the "user info" part of the request when updating
-        newUser    <-
-          userManagementService.update(id, user)(
-            allRoles
-          )
-        res         = if (u.password.isEmpty) {
-                        newUser.transformInto[JsonUpdatedUser]
-                      } else { // return the password if it's not updated i.e. non-empty
-                        newUser.transformInto[JsonUpdatedUser].withPassword(u.password)
-                      }
+        newUser  <- {
+          given Set[Role] = allRoles.values.toSet
+          userManagementService.update(id, u.transformInto[UpdateUserFile])
+        }
+        res       = if (u.password.isEmpty) {
+                      newUser.transformInto[JsonUpdatedUser]
+                    } else { // return the password if it's not updated i.e. non-empty
+                      newUser.transformInto[JsonUpdatedUser].withPassword(u.password)
+                    }
 
       } yield {
         res
@@ -572,7 +571,7 @@ class UserManagementApiImpl(
     ): LiftResponse = {
       (for {
         data          <- ZioJsonExtractor.parseJson[JsonRoleAuthorizations](req).toIO
-        parsed        <- RudderRoles.parseRoles(data.permissions)
+        parsed        <- RudderRoles.parseRoles(data.permissions, "Error parsing role coverage")
         coverage      <- UserManagementService
                            .computeRoleCoverage(
                              parsed.toSet,
